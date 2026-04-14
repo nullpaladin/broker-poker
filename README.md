@@ -1,6 +1,20 @@
 # broker-poker
 Broker Poker is an application that assists users to receive a copy of and delete their personal data from registered or otherwise known data brokers.
 
+# Acronyms
+- DSAR: Data Subject Access Request (the method of communication from a consumer to a controller in order to exercise data privacy rights)
+
+# AI usage disclosure
+- Generative AI (LLMs) are used in this project only for the following:
+  - To generate broker opt-out scrapers in `src/dsar/`
+    - Why? There are too many data brokers that require DSAR forms (hundreds) to generate myself. The output is deterministic (the scraper will fail if it cannot insert a piece of information) and relatively easy to validate by a human.
+      - `pydoll` makes this easy since I can take a screenshot of the site before and after the scraper runs, so I can view the output before committing anything to main.
+- Generative AI (LLMs) are not used in any decision making, nor to generate infrastructure. All design decisions are my own and are unassisted by LLMs.
+- All code is reviewed by myself and no code will be allowed to make it to main without a thorough review (and later CICD checks to make sure all scrapers are valid and healthchecks pass).
+- Captcha bypass is either done by the end user or via captcha solution services (which as far as I am aware do not use LLMs or other forms of machine learning for these tasks).
+- Generative AI (LLMs) may be used to critique frontend (GUI) code before it hits version control, however LLMs will have no say in the design or final output.
+  - I'm not very good at frontend design, however I will not rely on LLMs as a crutch since this is part learning exercise for frontend design and implementation.
+
 # Infrastructure
 - `src/emails`
   - [ ] per-state factory with exercisable rights checkboxed, including citing specific statutes

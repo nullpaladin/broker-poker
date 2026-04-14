@@ -1,0 +1,117 @@
+# broker-poker
+Broker Poker is an application that assists users to receive a copy of and delete their personal data from registered or otherwise known data brokers.
+
+# Infrastructure
+- `src/emails`
+  - [ ] per-state factory with exercisable rights checkboxed, including citing specific statutes
+  - [ ] simple GUI to generate the above per-state factory for emails
+  - [ ] batched list of 100 each emails for brokers that allow for email-based rights requests
+- `src/dsar`
+  - [ ] directories of each verified dsar-only brokers created
+  - [ ] user-solved captcha service setup / GUI enablement
+  - [ ] captcha bypass service setup
+- misc
+  - [ ] Will need some sort of explanation for different brokers that have a very complex setup for DSAR (e.g. transunion), opt-out guides
+  - [ ] Create a "learn more" section for the readme
+
+# Broker sites
+- [ ] 33across.com
+- [ ] accurateappend.com
+- [ ] acxiom.com
+- [ ] addresssearch.com
+- [ ] affinityanswers.com
+- [ ] allareacodes.com
+- [ ] allpeople.com
+- [ ] altisource.com
+- [ ] amplemarket.com
+- [ ] analytics-iq.com
+- [ ] atdata.com
+- [ ] blackbaud.com
+- [ ] bridg.com
+- [ ] catalist.us
+- [ ] cengage.com
+- [ ] civicelement.com
+- [ ] civisanalytics.com
+- [ ] classfinders.com
+- [ ] clearview.ai
+- [ ] clientcommand.com
+- [ ] connectedinvestors.com (not 100% sure DSAR is required)
+- [ ] corporationwiki.com
+- [ ] crunchbase.com
+- [ ] databaseusa.com
+- [ ] datadecisionsgroup.com
+- [ ] datonics.com
+- [ ] deeprootanalytics.com
+- [ ] deloitte.com
+- [ ] directmail.com
+- [ ] disqus.com
+- [ ] dstillery.com
+- [ ] eab.com
+- [ ] eltoro.com
+- [ ] enformion.com
+- [ ] epsilon.com
+- [ ] facecheck.id
+- [ ] faraday.io
+- [ ] fastpeoplesearch.com (Mississippi Tornado Alley LLC, who owns a number of other sites)
+- [ ] firstorion.com
+- [ ] forddirect.com
+- [ ] getelevar.com
+- [ ] gm.com
+- [ ] govbackgroundchecks.com
+- [ ] grin.co
+- [ ] growinglibraries.com
+- [ ] hibu.com
+- [ ] hubspot.com
+- [ ] ice.com
+- [ ] ididata.com
+- [ ] inmarket.com
+- [ ] intelius.com
+- [ ] ispot.tv
+- [ ] iwave.com
+- [ ] jmr-media.com
+- [ ] jungroup.com
+- [ ] kbsynergy.com
+- [ ] leadpost.com
+- [ ] lightboxre.com
+- [ ] lightcast.io
+- [ ] liveramp.com
+- [ ] malvernmedia.com
+- [ ] mediaocean.com
+- [ ] messagedigital.com
+- [ ] nationalopinioninstitute.com
+- [ ] nexxen.com
+- [ ] oracle.com
+- [ ] outbrain.com
+- [ ] owneriq.com
+- [ ] path2response.com
+- [ ] peoplefinders.com
+- [ ] popacta.com
+- [ ] possiblenow.com
+- [ ] propertyradar.com
+- [ ] propertyreach.com
+- [ ] publicinfoservices.com
+- [ ] pubmatic.com
+- [ ] purecars.com
+- [ ] reklaimyours.com
+- [ ] rrd.com
+- [ ] samba.tv
+- [ ] seekout.com
+- [ ] skipsmasher.com
+- [ ] spokeo.com (TODO: see if this is for every site or all Spokeo, Inc. sites)
+- [ ] spycloud.com
+- [ ] spydailer.com
+- [ ] swoop.com
+- [ ] system1.com
+- [ ] t-mobile.com
+- [ ] tapad.com
+- [ ] teads.com
+- [ ] techtarget.com
+- [ ] throtle.io
+- [ ] transunion.com
+- [ ] tunnldata.com
+- [ ] veeva.com
+- [ ] verisk.com
+- [ ] videoamp.com
+- [ ] vrtcal.com
+- [ ] wiland.com
+- [ ] youradv.com

@@ -1,6 +1,6 @@
 import asyncio
 
-from src.broker_sites.super_scraper import SuperScraper
+from src.dsar.super_scraper import SuperScraper
 
 from pydoll.browser.chromium import Chrome
 from pydoll.browser.options import ChromiumOptions
@@ -11,6 +11,7 @@ URL = ""
 async def main():
     options = ChromiumOptions()
     options.binary_location = "/snap/bin/chromium"
+    options.add_argument("--no-sandbox")
     super_scraper = SuperScraper()
 
     async with Chrome(options=options) as browser:

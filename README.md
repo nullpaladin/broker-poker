@@ -29,103 +29,300 @@ Broker Poker is an application that assists users to receive a copy of and delet
   - [ ] Create a "learn more" section for the readme
 
 # Broker sites
+
 - [ ] 33across.com
+  - Right to Access URL: https://udp.33across.com/udp_opt_out/submit_request?type=access
+  - Right to Opt-Out URL: https://udp.33across.com/udp_opt_out/submit_request?type=donotsell
+  - Right to Delete URL: https://udp.33across.com/udp_opt_out/submit_request?type=delete
+- [ ] absolutepeoplesearch.com
+  - URL: https://absolutepeoplesearch.com/public.php?funct=optout&fname=&mname=&lname=&number=&profile_id=&state=
 - [ ] accurateappend.com
+  - Opt Out URL but nothing else?: https://clients.accurateappend.com/public/optout/capture
 - [ ] acxiom.com
-- [ ] addresssearch.com
+  - URL: https://www.acxiom.com/optout/
+- [x] addresssearch.com
+  - URL: https://www.addresssearch.com/remove-info.php
 - [ ] affinityanswers.com
+  - URL: https://www.affinityanswers.com/your-privacy-choices/
 - [ ] allareacodes.com
+  - URL: https://www.allareacodes.com/remove_name.htm
 - [ ] allpeople.com
+  - URL: https://allpeople.com/removal
 - [ ] altisource.com
-- [ ] amplemarket.com
+  - URL: https://www.altisource.com/contact-us/
 - [ ] analytics-iq.com
+  - URL: https://privacyportal.onetrust.com/webform/f6a59500-f900-4652-b030-0cd51afe15a5/87ca07e4-e06c-4ad8-9aa6-ccbbaa8750c1
+- [ ] applecart.co
+  - URL: http://applecart.co/privacyrights
 - [ ] atdata.com
+  - URL: https://privacyportal-cdn.onetrust.com/dsarwebform/b38ccfa3-c14a-451e-bf1d-974d1e278b7c/6214ac53-9059-474d-a847-800250556e9d.html
+- [ ] automotivemastermind.com
+  - URL: https://privacyportal.onetrust.com/webform/5cb57702-8ef7-437e-a62b-408fe78cd310/93391c3d-d6c8-45b1-a169-39a0b7f9fb74
+- [ ] babelstreet.com
+  - URL: https://privacyportal.onetrust.com/webform/43f52ed9-df36-44dc-94b6-ce2f8458ca29/2ddc0d62-7d6a-4de2-b5c4-9f9f68116970
+- [ ] bi2technologies.com
+  - URL: https://bi2technologies.com/contact-us/
+- [ ] billtrust.com
+  - URL: https://privacyportal.onetrust.com/webform/82a6a736-b3a7-4e87-a2fd-04a39b7d2b19/2f5dc7b8-7698-4623-82d2-b2b969ef901e
 - [ ] blackbaud.com
+  - URL: https://blackbaud-privacy.my.onetrust.com/webform/170c909c-5ed2-49f1-a59c-2a44be2f6f27/de22df57-d96c-480a-afb0-ac090b928192
 - [ ] bridg.com
+  - URL: https://datagrail.cardlytics.com/
 - [ ] catalist.us
-- [ ] cengage.com
+  - URL: https://catalist.us/your-privacy-choices/
+  - Note: No Minnesota option lmao, time for an email / complaint
 - [ ] civicelement.com
+  - URL: https://www.civicelement.com/privacy-policy-request
 - [ ] civisanalytics.com
+  - URL: https://docs.google.com/forms/d/e/1FAIpQLSfvUYww9wEK9Y4F6VY3nQtm0bBS8QTdcDthet6WAKDYqnnwHA/viewform
+  - Note: No Minnesota option lmao, time for an email / complaint
 - [ ] classfinders.com
+  - URL: https://www.classfinders.com/name_removal.php
+- [ ] clarivate.com
+   - URL: https://privacyportal.onetrust.com/webform/7636e208-dda4-4218-8026-e1bc155873fc/ae937376-9b21-4996-9327-81eaaa1b20f9
+- [ ] clearbit.com
+  - URL: https://preferences.clearbit.com/
 - [ ] clearview.ai
+  - URL: https://www.clearview.ai/privacy-and-requests
 - [ ] clientcommand.com
+  - URL: https://privacyportal-cdn.onetrust.com/dsarwebform/555c3377-7eb2-4e7a-bf30-c408de4ab483/70df6685-8289-4d72-a9d7-9a736b3b837f.html
 - [ ] connectedinvestors.com (not 100% sure DSAR is required)
+  - URL: https://firstam.service-now.com/x_farf2_dp_request_ci_opt_out.do?sysparm_id=fd58b253875b219095280ed7dabb359a
+  - If information found, do Right to List of Third Parties by emailing - dataprivacy@connectedinvestors.com
 - [ ] corporationwiki.com
+  - URL: https://www.corporationwiki.com/profiles/public
+- [ ] criminalpages.com
+  - URL: http://members.criminalpages.com/opt-out
 - [ ] crunchbase.com
+  - URL: https://preferences.crunchbase.com/
 - [ ] databaseusa.com
+  - URL: https://privacycompliance.biz/databaseusa-mcdpa/
 - [ ] datadecisionsgroup.com
+  - URL: https://datadecisionsgroup.com/preferences
 - [ ] datonics.com
+  - URL: https://www.datonics.com/privacy/privacy-choices
 - [ ] deeprootanalytics.com
+  - URL: https://privacy.deeprootanalytics.com/
 - [ ] deloitte.com
-- [ ] directmail.com
+  - URL: https://datasubject.deloitte.com/
+- [x] directmail.com
+  - URL: https://www.directmail.com/mail_preference/
+  - Note: reCAPTCHA v2 requires manual solve or 2captcha (site key: 6Le9aeApAAAAAMRr0iCDa65cZ1iGkHUI1FwEAKZH). Step 2 category opt-out is automated.
 - [ ] disqus.com
+  - URL: https://privacyportal-cdn.onetrust.com/dsarwebform/bc2d3301-11a5-4de5-b15e-ce796187a352/9a049fa1-37af-4598-a87a-d0df2e2d904b.html
 - [ ] dstillery.com
-- [ ] eab.com
+  - URL: https://privacyportal-eu-cdn.onetrust.com/dsarwebform/246426b7-49c6-4bf5-879b-d3fdd4cbc15d/35502283-7b19-4b67-b3e0-ede06d3820c5.html
 - [ ] eltoro.com
+  - Right to Access URL: https://eltoro.com/access-form/
+  - Right to Opt-Out URL: https://eltoro.com/do-not-sell-my-personal-information/
+  - Right to Delete URL: https://eltoro.com/access-deletion-form/
 - [ ] enformion.com
+  - URL: https://www.enformion.com/opt-out/
 - [ ] epsilon.com
+  - URL: https://legal.epsilon.com/dsr
 - [ ] facecheck.id
+  - URL: https://facecheck.id/en/RemoveMyPhotos
 - [ ] faraday.io
+  - URL: https://faraday.ai/privacy-options
 - [ ] fastpeoplesearch.com (Mississippi Tornado Alley LLC, who owns a number of other sites)
+  - URL: https://www.fastpeoplesearch.com/removal
 - [ ] firstorion.com
+  - TODO: privacy policy says email, need to look through emails
 - [ ] forddirect.com
-- [ ] getelevar.com
+  - URL: https://privacyportal.onetrust.com/webform/1d20b685-0942-4b4d-a0af-b799c97f5cf6/2e4928b6-d77a-4f76-9518-1bfb9721669d
+  - Note: only for ford owners more or less
+- [ ] fullcontact.com
+  - URL: https://platform.fullcontact.com/your-privacy-choices
 - [ ] gm.com
+  - URL: https://www.gm.com/consumer-privacy
+  - Note: Only for GM car owners
 - [ ] govbackgroundchecks.com
+  - URL: https://www.govbackgroundchecks.com/opt-out/
 - [ ] grin.co
+  - URL: https://grin.co/data-privacy-form/
 - [ ] growinglibraries.com
+  - TODO: Remove from list?
+  - Only Opt-Out/Delete: https://growinglibraries.com/do-not-sell
+- [ ] hartehanks.com
+  - URL: https://privacy-in-action.hartehanks.com/
 - [ ] hibu.com
+  - URL: https://hibu.com/legal/privacy-form
 - [ ] hubspot.com
+  - URL: https://preferences.hubspot.com/?locale=en
 - [ ] ice.com
+  - URL: https://ice-privacy.my.onetrust.com/webform/cca3ac39-00b6-45f4-819b-bec660878b46/124d1692-407b-4384-9036-bef3ece530e3
 - [ ] ididata.com
+  - Right to Access URL: https://www.ididata.com/personal-information-request/
+  - Right to Opt-Out URL: https://www.ididata.com/do-not-sell-my-personal-information/
+  - Right to Delete URL: https://www.ididata.com/deletion-request/
+- [ ] inmar.com
+  - URL: https://privacyportal-cdn.onetrust.com/dsarwebform/fa9f2f77-33ff-473b-ae55-579e2e693a91/ea2fadbb-3208-459b-8ed6-c975b6a9901c.html
 - [ ] inmarket.com
+  - URL: https://preferences.inmarket.com/?locationCode=US-MN
+- [ ] intellicorp
+  - URL: https://consumer.intellicorp.net/Criteria
 - [ ] intelius.com
-- [ ] ispot.tv
-- [ ] iwave.com
+  - URL: https://app.intelius.com/privacy-center/
 - [ ] jmr-media.com
+  - URL: https://jmr-media.com/do-not-sell
+- [ ] jobot.com
+  - URL: https://forms.gle/y8LzfvuoJWRAgqNL9
 - [ ] jungroup.com
+  - URL: https://jungroup.com/optout
 - [ ] kbsynergy.com
+  - TODO: Only seeing opt-out, need the rest of them. Look through emails
+  - Right to Opt-Out: https://hiy.ywv.mybluehost.me/website_8088244e/privacy-policy-ccpa-do-not-sell-my-information/
+- [ ] knowwho.com
+  - URL: http://go.knowwho.com/lp-ccpa-request
+- [ ] kochava.com
+  - URL: https://www.kochava.com/opt-out-do-not-sell-request-process/
+- [ ] leadloft.com
+  - URL: https://www.leadloft.com/user-agreements/personal-data
 - [ ] leadpost.com
+  - URL: https://client.leadpost.com/PrivacyRequest
 - [ ] lightboxre.com
+  - URL: https://urldefense.proofpoint.com/v2/url?u=https-3A__my.datasubject.com_16BXQXSvkBnuN4W2w_51306&d=DwMFAg&c=euGZstcaTDllvimEN8b7jXrwqOf-v5A_CdpgnVfiiMM&r=wUxcY8xds7NwcPyJ-9PjbzzSWU5GA_GcSHVVxAQ-_ck&m=QP3FQwlf_Gn97KYLT2H1snnHVQkjfxCiTy2pY0dms5U21w9wQ-LaUqOvy8LubeLm&s=xCInMnbg7DMZHZqxuo9y-iQLUh5jfATJCSvt27W0ROM&e=
 - [ ] lightcast.io
+  - URL: https://privacyportal.onetrust.com/webform/0f61f895-d08d-410f-b96d-ecfd34fd42e3/8d4dfe0d-998d-4c1d-ab6d-4357670fa8e9
+  - Note: No Minnesota-specific choices, just a general thing. Will need to add in text
 - [ ] liveramp.com
+  - URL: https://liveramp.com/privacy/my-privacy-choices/
+- [ ] madisonlogic.com
+  - URL: https://madisonlogic-privacy.my.onetrust.com/webform/b7449bea-44c6-4823-a2ac-30a8f33047d0/9a375b0c-9030-44ce-bfd3-217fd7a71993
 - [ ] malvernmedia.com
+  - URL: https://privacyportal.privacypillar.com/dsar/form?formid=6e6ff4b8-2296-4589-ae7f-563fa743ec2d&orgid=369c8ff9-8ffb-4308-8362-f01691e77db8&propid=64c8904f-8bac-4dd9-8e6c-d052be1918a2&status=publish
+- [ ] mchdata.com
+  - URL: https://www.mchdata.com/about/ccpaemail
 - [ ] mediaocean.com
+  - URL: https://www.mediaocean.com/your-privacy-rights
 - [ ] messagedigital.com
+  - URL: https://messagedigital.com/my-data
+- [ ] mobilewalla.com
+  - URL: https://www.mobilewalla.com/california-residents-do-not-sell-my-personal-information
+- [ ] mrginc.com
+  - URL: https://www.mrginc.com/do-not-sell-my-personal-information
+- [ ] narvar.com
+  - URL: https://narvar.my.onetrust.com/webform/04b3731f-2a9a-42ce-bd6b-106d4b4ec3bf/a7c944bf-3cec-4f00-9dc5-dea5bf2b6f4f
 - [ ] nationalopinioninstitute.com
+  - URL: https://privacyportal.onetrust.com/webform/77dff651-9f08-40cd-99fe-a7c487b2504d/afcce4ab-fd72-4990-a972-58e24d9110a7
+- [ ] nexxagroup.com
+  - URL: https://privacyportal.onetrust.com/webform/c02129bc-bbab-43a6-a0b4-175489cb893e/156ac96a-9d7e-4fe6-bab8-a44df779202b
 - [ ] nexxen.com
+  - URL: https://nexxen.com/privacy-data-subject-rights-request/
+- [ ] neighbor.report
+  - URL: https://neighbor.report/remove
 - [ ] oracle.com
+  - URL: https://www.oracle.com/legal/data-privacy-inquiry-form/
 - [ ] outbrain.com
+  - URL: https://dsr.outbrain.com/recommendations-settings/data-rights/en
 - [ ] owneriq.com
+  - URL: https://privacyportal-cdn.onetrust.com/dsarwebform/fa9f2f77-33ff-473b-ae55-579e2e693a91/ea2fadbb-3208-459b-8ed6-c975b6a9901c.html
+- [ ] parasolleads.com
+  - URL: https://www.parasolleads.com/ccpa-opt-out-form.php
 - [ ] path2response.com
+  - URL: https://privacyportal-cdn.onetrust.com/dsarwebform/2de26f06-de6f-45a7-8e1d-7d1148a3f301/draft/7a5dc7d1-cc7e-43a8-9f24-702807deb65b.html
+- [ ] pch.com
+  - URL: https://accounts.pch.com/privacy/rtc
+- [ ] phonebooks.com
+  - URL: https://www.phonebooks.com/privacy-rights
 - [ ] peoplefinders.com
+  - Right to Access URL: https://www.peoplefinders.com/request-my-info
+  - Right to Opt-Out, Delete URL: https://www.peoplefinders.com/opt-out
 - [ ] popacta.com
-- [ ] possiblenow.com
+  - URL: https://optout.popacta.com/contact-us
 - [ ] propertyradar.com
+  - URL: https://privacyportal.onetrust.com/webform/c3eb779a-028a-4045-aefc-ac78be730689/6f6c2bef-b565-4753-adc6-95585d7a9486
 - [ ] propertyreach.com
+  - URL: https://www.propertyreach.com/privacy-rights
+- [ ] publicdatausa.com
+  - URL: https://publicdatausa.com/optout
 - [ ] publicinfoservices.com
+  - URL: https://www.publicinfoservices.com/help-center/privacy-requests
 - [ ] pubmatic.com
-- [ ] purecars.com
+  - URL: ??? Look through emails
+- [ ] qualcomm.com
+  - URL: https://privacyportal.onetrust.com/webform/b0a5f2cc-0b29-4907-89bf-3f6b380a03c8/7ab89abb-0d42-492a-a324-0570883e2c11
+- [ ] quantcast.com
+  - URL: https://www.quantcast.com/privacy/data-subject-rights/
+- [ ] quinstreet.com
+  - URL: https://privacy-central.securiti.ai/#/dsr/1b319101-f00c-470f-a7f0-26aa81f057b8
+- [ ] radaris.com
+  - URL: https://radaris.com/control-privacy
+- [ ] reachdata.com
+  - URL: https://www.reachdata.com/contact
+- [x] recordsfinder.com
+  - URL: https://recordsfinder.com/optout/
+  - Note: Opt-out only — no Right to Access or Right to Delete form available on site.
 - [ ] reklaimyours.com
+  - URL: https://www.reklaimyou.com/optout
+- [ ] reonomy.com
+  - URL: https://privacyportal-cdn.onetrust.com/dsarwebform/ed2a4eae-cadd-4d40-9f21-cf27556d3a21/49fbe5ce-5ee2-487b-9b4f-bfdab733819b.html
+- [ ] refinitiv.com
+  - URL: https://privacyportal-de.onetrust.com/webform/5f7a2da0-bed0-45e8-ac2c-c1f297e2efdc/4ae30ef5-8107-4353-a0b5-1bf34dd647f6
+- [ ] revenuebase.ai
+  - URL: https://forms.gle/5Cab6bJcRtqVzAJS8
+- [ ] rooftopmedia.ai
+  - https://www.consumerdataprotect.com/
+- [ ] rpmleader.com
+  - URL: https://rpmleader.com/unsubscribe
 - [ ] rrd.com
+  - URL: https://privacyportal.onetrust.com/webform/45e4be25-919b-483f-9f95-12809576a2b3/6e633594-9a81-48bb-97ab-6fb29bf46019
 - [ ] samba.tv
+  - URL: https://privacyportal-cdn.onetrust.com/dsarwebform/87c5ee85-893d-4972-ba26-2e82b743d041/d84d9664-facb-4de3-85fd-a2e339b73dbf.html
 - [ ] seekout.com
+  - URL: https://www.seekout.com/privacy/choices/
 - [ ] skipsmasher.com
+  - URL: https://www.skipsmasher.com/consumers/wizard.aspx
+- [ ] skydeo.com
+  - URL: https://forms.gle/aLg2VBNBf7Nr11tUA
 - [ ] spokeo.com (TODO: see if this is for every site or all Spokeo, Inc. sites)
+  - URL: # TODO: Weird
 - [ ] spycloud.com
+  - URL: https://spycloud.com/legal/dsar/
 - [ ] spydailer.com
+  - URL: https://www.spydialer.com/Consumers/
 - [ ] swoop.com
+  - URL: https://swoop.com/your-privacy-choices/
 - [ ] system1.com
+  - URL: https://system1.com/terms/privacy-policy/privacy-inquiries
 - [ ] t-mobile.com
-- [ ] tapad.com
+  - URL: https://privacyportal-t-mobile.my.onetrust.com/webform/d4a925f0-4ebf-40ba-817b-bccc309e602f/7831d667-1ebc-4b1e-a941-e545cb0d0523
+- [x] tapad.com
+  - URL: https://crportal.tapad.com/#/email (email-based requests)
+  - Note: Scraper incomplete — Data Access and Deletion require a mouse-drawn signature in a canvas element that is not yet automated. Opt-Out works without a signature.
 - [ ] teads.com
+  - TODO: Privacy policy says email, look through emails
 - [ ] techtarget.com
-- [ ] throtle.io
+  - URL: https://techtarget.zendesk.com/hc/en-us/requests/new?ticket_form_id=360004852434
+- [ ] telephonedirectories.us
+  - URL: https://www.telephonedirectories.us/Edit_Records
+- [ ] thebridgecorp.com
+  - URL: https://www.thebridgecorp.com/opt-out/
 - [ ] transunion.com
+  - URL: https://service.transunion.com/dss/ccpa_optout.page
 - [ ] tunnldata.com
-- [ ] veeva.com
+  - URL: https://privacy.tunnldata.com/
+- [ ] upwave.com
+  - URL: https://surveywall-api.survata.com/opt-out/opt-out
+- [ ] usa-people-search.com
+  - URL: https://www.usa-people-search.com/privacy-rights
+- [x] veeva.com
+  - URL: https://privacyportal.onetrust.com/webform/3d676ed2-16b1-4c48-97f8-a911923a3adf/a0df0a98-d990-40ff-9bdb-35b5f9e06620
+  - Note: reCAPTCHA v2 requires manual solve or 2captcha. Exercises Access Data, Correct Data, Opt-Out, Data Portability, List of Third Party Recipients; Delete Data gated behind REMOVE_INFORMATION.
 - [ ] verisk.com
+  - URL: # TODO: Verify after sending email to the new address
+- [ ] verizon.com
+  - URL: https://www.visible.com/privacyportal?CMP=MarketingTactic-EML_Site-SLF_Funnel-AC_AudienceType-TRA_Audience-CCPA_Tactic-EMLBDY_Initiative-CM34_VideoType-NV
 - [ ] videoamp.com
+  - URL: https://videoamp.com/your-privacy-choices
+  - TODO: Look without a VPN, it only lets you do this 
 - [ ] vrtcal.com
+  - URL: # TODO: No DSAR? It's per-device opt out but what about Right to Access and whatnot?
 - [ ] wiland.com
+  - Right to Access URL :https://privacyportal.onetrust.com/webform/7567ece3-2d27-4ee0-a506-1153cb7a62b7/a1e6c0c7-b7ff-45f9-9c62-7f1eb47a6e77 
+  - Right to Opt-Out URL: https://privacyportal.onetrust.com/webform/7567ece3-2d27-4ee0-a506-1153cb7a62b7/718ad3c3-e1f5-4463-a301-2d6f84938588
+  - Right to Delete URL: https://privacyportal.onetrust.com/webform/7567ece3-2d27-4ee0-a506-1153cb7a62b7/718ad3c3-e1f5-4463-a301-2d6f84938588
+- [ ] yellowpages.com
+  - URL: https://privacyportal-cdn.onetrust.com/dsarwebform/dd6500c7-03cb-45b0-8bed-97ece55a892d/cfcefb69-41db-4aee-bd00-c702df72ee0f.html
 - [ ] youradv.com
+  - URL: https://bigidprivacy.cloud/consumer/#/fHveyhjnOM/10004

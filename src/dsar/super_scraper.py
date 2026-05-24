@@ -27,6 +27,7 @@ class SuperScraper:
     TWO_CAPTCHA_API_KEY = os.getenv("2CAPTCHA_API_KEY")
     REQUEST_DETAILS = "REQUEST_TEMPLATE_HERE"  # TODO: Move to factory
     BASE_TIMEOUT_IN_SECONDS = os.getenv("BASE_TIMEOUT_IN_SECONDS")
+    ADVERTISING_ID = os.getenv("ADVERTISING_ID")
     OOPS = ""
 
     def __init__(self):

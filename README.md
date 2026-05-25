@@ -48,36 +48,53 @@ Broker Poker is an application that assists users to receive a copy of and delet
 
 # Broker sites
 
-- [x] 33across.com
-  - Right to Access URL: https://udp.33across.com/udp_opt_out/submit_request?type=access
-  - Right to Opt-Out URL: https://udp.33across.com/udp_opt_out/submit_request?type=donotsell
-  - Right to Delete URL: https://udp.33across.com/udp_opt_out/submit_request?type=delete
-  - Note: Exercises Right to Access, Do Not Sell/Share, and Right to Delete (gated on REMOVE_INFORMATION). Server-rendered POST form. No captcha. Only requires email.
-- [ ] absolutepeoplesearch.com
-  - URL: https://absolutepeoplesearch.com/public.php?funct=optout&fname=&mname=&lname=&number=&profile_id=&state=
-  - Note: reCAPTCHA v2 on opt-out form (curl shows captcha container). Needs manual solve or bypass service.
-- [ ] accurateappend.com
+## Sites that cannot be automated
+- [x] accurateappend.com
   - Opt Out URL but nothing else?: https://clients.accurateappend.com/public/optout/capture
-- [ ] acxiom.com
-  - URL: https://www.acxiom.com/optout/
-- [x] addresssearch.com
-  - URL: https://www.addresssearch.com/remove-info.php
-- [ ] affinityanswers.com
-  - URL: https://www.affinityanswers.com/your-privacy-choices/
+  - Note: Blocked by Cloudflare Turnstile on the opt-out endpoint — cannot be automated.
 - [x] allareacodes.com
   - URL: https://www.allareacodes.com/remove_name.htm
   - Note: Removal requires entering your phone number and completing a live SMS or phone-call verification. Must be done manually by the user — cannot be automated.
 - [x] allpeople.com
   - URL: https://allpeople.com/removal
   - Note: Opt-out/removal only (no separate Access or Delete form). Scraper fills email and agreement checkbox; user must solve reCAPTCHA v2 (site key: 6LfrfkwUAAAAAOzaM6N-Jk-uT3p-KYjf9sO_zwZB), then manually find and click "Remove" on their specific record. Email confirmation link required to complete removal.
+- [ ] tapad.com
+  - URL: https://crportal.tapad.com/#/email (email-based requests)
+  - Note: Scraper incomplete — Data Access and Deletion require a mouse-drawn signature in a canvas element that is not yet automated. Opt-Out works without a signature.
+- [ ] telephonedirectories.us
+  - URL: https://www.telephonedirectories.us/Edit_Records
+  - Note: Removal requires a URL to a specific record (not a name-based lookup), then reCAPTCHA v2. Only useful after finding your record on the site manually.
+
+
+## Automated sites
+- [x] 33across.com
+  - Right to Access URL: https://udp.33across.com/udp_opt_out/submit_request?type=access
+  - Right to Opt-Out URL: https://udp.33across.com/udp_opt_out/submit_request?type=donotsell
+  - Right to Delete URL: https://udp.33across.com/udp_opt_out/submit_request?type=delete
+  - Note: Exercises Right to Access, Do Not Sell/Share, and Right to Delete (gated on REMOVE_INFORMATION). Server-rendered POST form. No captcha. Only requires email.
+- [ ] absolutepeoplesearch.com
+  - **CAPTCHA solution required**
+  - URL: https://absolutepeoplesearch.com/public.php?funct=optout&fname=&mname=&lname=&number=&profile_id=&state=
+- [ ] acxiom.com
+  - URL: https://www.acxiom.com/optout/
+- [x] addresssearch.com
+  - URL: https://www.addresssearch.com/remove-info.php
+- [x] affinityanswers.com
+  - URL: https://www.affinityanswers.com/your-privacy-choices/
+  - **CAPTCHA solution required**
+  - Note: Gravity Forms POST; residency select uses full state name (all US states listed). Exercises Access, Correct, Opt-Out of Sale, Opt-Out of Targeted Advertising, and Delete (gated). reCAPTCHA v3 invisible auto-resolves. input_13 is a honeypot — left empty.
 - [ ] altisource.com
   - URL: https://www.altisource.com/contact-us/
-- [ ] analytics-iq.com
+- [x] analytics-iq.com
+  - **CAPTCHA solution required**
   - URL: https://privacyportal.onetrust.com/webform/f6a59500-f900-4652-b030-0cd51afe15a5/87ca07e4-e06c-4ad8-9aa6-ccbbaa8750c1
+  - Note: OneTrust Angular portal. Exercises Do Not Sell/Share, Access (state residents), Correct, Opt-Out of Targeted Advertising, Limit Sensitive, and Delete (gated). No subject type step. Country and state are autocomplete comboboxes (type then click first visible role=option). captchaCode text input requires manual entry in live mode.
 - [ ] applecart.co
   - URL: http://applecart.co/privacyrights
-- [ ] atdata.com
+- [x] atdata.com
+  - **CAPTCHA solution required**
   - URL: https://privacyportal-cdn.onetrust.com/dsarwebform/b38ccfa3-c14a-451e-bf1d-974d1e278b7c/6214ac53-9059-474d-a847-800250556e9d.html
+  - Note: OneTrust CDN Angular DSAR form. Exercises Do Not Sell, Access, and Delete (gated). Subject type and request type are Angular role="button" divs (click_using_js). State is a text input (full state name). reCAPTCHA v2 checkbox requires manual solve.
 - [ ] automotivemastermind.com
   - URL: https://privacyportal.onetrust.com/webform/5cb57702-8ef7-437e-a62b-408fe78cd310/93391c3d-d6c8-45b1-a169-39a0b7f9fb74
 - [ ] babelstreet.com
@@ -92,17 +109,16 @@ Broker Poker is an application that assists users to receive a copy of and delet
   - URL: https://datagrail.cardlytics.com/
 - [ ] catalist.us
   - URL: https://catalist.us/your-privacy-choices/
-  - Note: No Minnesota option lmao, time for an email / complaint
 - [x] civicelement.com
   - URL: https://www.civicelement.com/privacy-policy-request
   - Note: Webflow form, no captcha. Exercises Right to Access, Opt-Out of Sales/Sharing, Opt-Out of Sensitive Data Processing, and Right to Delete (gated). Phone number required. Submits once per request type (select only allows one at a time). First/last name and phone/email fields share HTML name attributes — targeted by CSS class.
 - [ ] civisanalytics.com
   - URL: https://docs.google.com/forms/d/e/1FAIpQLSfvUYww9wEK9Y4F6VY3nQtm0bBS8QTdcDthet6WAKDYqnnwHA/viewform
-  - Note: No Minnesota option lmao, time for an email / complaint
 - [ ] classfinders.com
   - URL: https://www.classfinders.com/name_removal.php
   - Note: SPA — curl returns no form HTML. Needs pydoll.
 - [x] clarivate.com
+  - **CAPTCHA solution required**
   - URL: https://privacyportal.onetrust.com/webform/7636e208-dda4-4218-8026-e1bc155873fc/ae937376-9b21-4996-9327-81eaaa1b20f9
   - Note: OneTrust Angular portal with reCAPTCHA v2 (manual solve). No explicit right-type picker — single general DSAR form. Fields appear dynamically: Country → State → "This request is for" (data subject role, defaults to "Customer"). All autocomplete dropdowns require type-then-JS-click (pydoll find() matches hidden elements).
 - [ ] clearbit.com
@@ -112,9 +128,8 @@ Broker Poker is an application that assists users to receive a copy of and delet
   - URL: https://www.clearview.ai/privacy-and-requests
 - [ ] clientcommand.com
   - URL: https://privacyportal-cdn.onetrust.com/dsarwebform/555c3377-7eb2-4e7a-bf30-c408de4ab483/70df6685-8289-4d72-a9d7-9a736b3b837f.html
-- [ ] connectedinvestors.com (not 100% sure DSAR is required)
+- [ ] connectedinvestors.com
   - URL: https://firstam.service-now.com/x_farf2_dp_request_ci_opt_out.do?sysparm_id=fd58b253875b219095280ed7dabb359a
-  - If information found, do Right to List of Third Parties by emailing - dataprivacy@connectedinvestors.com
 - [ ] corporationwiki.com
   - URL: https://www.corporationwiki.com/profiles/public
 - [ ] criminalpages.com
@@ -134,6 +149,7 @@ Broker Poker is an application that assists users to receive a copy of and delet
 - [ ] deloitte.com
   - URL: https://datasubject.deloitte.com/
 - [x] directmail.com
+  - **CAPTCHA solution required**
   - URL: https://www.directmail.com/mail_preference/
   - Note: reCAPTCHA v2 requires manual solve or 2captcha (site key: 6Le9aeApAAAAAMRr0iCDa65cZ1iGkHUI1FwEAKZH). Step 2 category opt-out is automated.
 - [ ] disqus.com
@@ -146,10 +162,13 @@ Broker Poker is an application that assists users to receive a copy of and delet
   - Right to Delete URL: https://eltoro.com/access-deletion-form/
   - Note: SPA — curl returns no form HTML on opt-out URL. Needs pydoll.
 - [x] enformion.com
+  - **CAPTCHA solution required**
   - URL: https://www.enformion.com/opt-out/
   - Note: Exercises Opt-Out, Right to Know, Right to Correct, and Right to Delete (gated on REMOVE_INFORMATION). All forms on one page; each shown via a dropdown. reCAPTCHA Enterprise checkbox — checking it auto-submits the form. Opt-Out and Delete send a verification email the user must click to complete; Correct creates a ticket directly. Correct form requires PHONE_NUMBER, ADDRESS, CITY, STATE, ZIP_CODE (and optionally DATE_OF_BIRTH in YYYY-MM-DD).
-- [ ] epsilon.com
+- [x] epsilon.com
+  - **CAPTCHA solution required**
   - URL: https://legal.epsilon.com/dsr
+  - Note: Exercises Do Not Sell, Do Not Share, Access, Correct, Opt-Out of Profiling, Opt-Out of Sensitive Data, and Delete (gated on REMOVE_INFORMATION). Custom React form; country select reveals request-type radios and personal info fields. State dropdown only includes US privacy-law states. reCAPTCHA v2 invisible requires manual solve before submit. Date of Birth fields present but optional.
 - [ ] facecheck.id
   - URL: https://facecheck.id/en/RemoveMyPhotos
 - [ ] faraday.io
@@ -211,8 +230,9 @@ Broker Poker is an application that assists users to receive a copy of and delet
   - Right to Opt-Out: https://hiy.ywv.mybluehost.me/website_8088244e/privacy-policy-ccpa-do-not-sell-my-information/
 - [ ] knowwho.com
   - URL: http://go.knowwho.com/lp-ccpa-request
-- [ ] kochava.com
+- [x] kochava.com
   - URL: https://www.kochava.com/opt-out-do-not-sell-request-process/
+  - Note: Opt-Out only by Mobile Ad ID (ADVERTISING_ID required, UUID format). No Access or Delete form. reCAPTCHA v2 checkbox requires manual solve; submit button disabled until reCAPTCHA callback enables it.
 - [ ] leadloft.com
   - URL: https://www.leadloft.com/user-agreements/personal-data
 - [ ] leadpost.com
@@ -273,9 +293,10 @@ Broker Poker is an application that assists users to receive a copy of and delet
   - Right to Access URL: https://www.peoplefinders.com/request-my-info
   - Right to Opt-Out, Delete URL: https://www.peoplefinders.com/opt-out
   - Note: SPA — curl returns a JS app config blob with reCAPTCHA keys but no form HTML. Needs pydoll.
-- [ ] popacta.com
+- [x] popacta.com
+  - **CAPTCHA solution required**
   - URL: https://optout.popacta.com/contact-us
-  - Note: Server-rendered form with email, first/last name. reCAPTCHA v3 (invisible, site key: 6LdNIZgsAAAAAPirwcIQkyHV5uXibWJ3FgtlFQff) — token injected into hidden g-recaptcha-response field before POST. Needs 2captcha or manual solve.
+  - Note: General DSAR contact form (no right-type picker); rights expressed in free-text message (250-char limit). reCAPTCHA v3 invisible auto-injects token via page JS before submit. Exercises Access, Opt-Out, and Delete (gated).
 - [ ] propertyradar.com
   - URL: https://privacyportal.onetrust.com/webform/c3eb779a-028a-4045-aefc-ac78be730689/6f6c2bef-b565-4753-adc6-95585d7a9486
 - [ ] propertyreach.com
@@ -284,6 +305,7 @@ Broker Poker is an application that assists users to receive a copy of and delet
   - URL: https://publicdatausa.com/optout
   - Note: SPA — curl returns only a captcha container div, no form fields. Needs pydoll.
 - [ ] publicinfoservices.com
+  - **CAPTCHA solution required**
   - URL: https://www.publicinfoservices.com/help-center/privacy-requests
   - Note: Server-rendered form covering doNotSell, delete, and copy (access). Fields: requestType select, customerId (unclear), firstName, obfuscated lastName field (name="f3bcaa1e009cd87d2" — anti-scraping), city, States select (full state names as values). reCAPTCHA (data-action="pis-opt-out-search" suggests v3). Needs 2captcha.
 - [ ] pubmatic.com
@@ -322,12 +344,13 @@ Broker Poker is an application that assists users to receive a copy of and delet
   - URL: https://www.seekout.com/privacy/choices/
   - Note: SPA — curl returns no form HTML. Needs pydoll.
 - [ ] skipsmasher.com
+  - **CAPTCHA solution requirement**
   - URL: https://www.skipsmasher.com/consumers/wizard.aspx
   - Note: ASP.NET WebForms (VIEWSTATE), server-rendered, multi-step wizard. Step 1 selects state (reCAPTCHA v2 checkbox). Steps 2+ enter name/phone/email/address incrementally, each with its own POST.
 - [ ] skydeo.com
   - URL: https://forms.gle/aLg2VBNBf7Nr11tUA
-- [ ] spokeo.com (TODO: see if this is for every site or all Spokeo, Inc. sites)
-  - URL: # TODO: Weird
+- [ ] spokeo.com
+  - URL: https://thatsthem.com/optout
 - [ ] spycloud.com
   - URL: https://spycloud.com/legal/dsar/
 - [ ] spydailer.com
@@ -339,16 +362,10 @@ Broker Poker is an application that assists users to receive a copy of and delet
   - URL: https://system1.com/terms/privacy-policy/privacy-inquiries
 - [ ] t-mobile.com
   - URL: https://privacyportal-t-mobile.my.onetrust.com/webform/d4a925f0-4ebf-40ba-817b-bccc309e602f/7831d667-1ebc-4b1e-a941-e545cb0d0523
-- [x] tapad.com
-  - URL: https://crportal.tapad.com/#/email (email-based requests)
-  - Note: Scraper incomplete — Data Access and Deletion require a mouse-drawn signature in a canvas element that is not yet automated. Opt-Out works without a signature.
 - [ ] teads.com
   - TODO: Privacy policy says email, look through emails
 - [ ] techtarget.com
   - URL: https://techtarget.zendesk.com/hc/en-us/requests/new?ticket_form_id=360004852434
-- [ ] telephonedirectories.us
-  - URL: https://www.telephonedirectories.us/Edit_Records
-  - Note: Removal requires a URL to a specific record (not a name-based lookup), then reCAPTCHA v2. Only useful after finding your record on the site manually.
 - [ ] thebridgecorp.com
   - URL: https://www.thebridgecorp.com/opt-out/
   - Note: The /opt-out/ page contains only Complianz cookie-consent checkboxes (functional/preferences/statistics/marketing) — not a DSAR form. Actual DSAR mechanism unclear; may require email.
@@ -361,6 +378,7 @@ Broker Poker is an application that assists users to receive a copy of and delet
 - [ ] usa-people-search.com
   - URL: https://www.usa-people-search.com/privacy-rights
 - [x] veeva.com
+  - **CAPTCHA solution required**
   - URL: https://privacyportal.onetrust.com/webform/3d676ed2-16b1-4c48-97f8-a911923a3adf/a0df0a98-d990-40ff-9bdb-35b5f9e06620
   - Note: reCAPTCHA v2 requires manual solve or 2captcha. Exercises Access Data, Correct Data, Opt-Out, Data Portability, List of Third Party Recipients; Delete Data gated behind REMOVE_INFORMATION.
 - [ ] verisk.com

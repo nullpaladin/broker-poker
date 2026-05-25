@@ -22,9 +22,9 @@ SELECT_ALL_XPATH = '//input[@id="checkbox"]'
 
 async def main():
     options = ChromiumOptions()
-    options.binary_location = "/snap/bin/chromium"
-    options.add_argument("--no-sandbox")
     super_scraper = SuperScraper()
+    options.binary_location = super_scraper.CHROMIUM_LOCATION
+    options.add_argument("--no-sandbox")
 
     state_abbrev = await SuperScraper.state_full_name_to_abbreviated(SuperScraper.STATE)
 

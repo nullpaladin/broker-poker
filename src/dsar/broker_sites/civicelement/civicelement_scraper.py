@@ -57,8 +57,8 @@ async def submit_request(tab, request_type, label, super_scraper):
             f"{SuperScraper.FIRST_NAME} {SuperScraper.LAST_NAME} <{SuperScraper.EMAIL}>"
         )
         await asyncio.sleep(2)
-        await tab.take_screenshot(f"civicelement_dry_run_{label}.png")
-        print(f"Screenshot saved to civicelement_dry_run_{label}.png")
+        await tab.take_screenshot(f"resources/screenshots/civicelement_dry_run_{label}.png")
+        print(f"Screenshot saved to resources/screenshots/civicelement_dry_run_{label}.png")
         return
 
     await tab.execute_script("document.querySelector('.light-button-cta').click();")
@@ -73,9 +73,9 @@ async def submit_request(tab, request_type, label, super_scraper):
 
 async def main():
     options = ChromiumOptions()
-    options.binary_location = "/snap/bin/chromium"
-    options.add_argument("--no-sandbox")
     super_scraper = SuperScraper()
+    options.binary_location = super_scraper.CHROMIUM_LOCATION
+    options.add_argument("--no-sandbox")
 
     requests = list(REQUESTS)
     if SuperScraper.REMOVE_INFORMATION:

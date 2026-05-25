@@ -8,6 +8,15 @@ from src.state_privacy_request_factory.state_name_abbreviation import StateAbbre
 
 class SuperScraper:
     dotenv.load_dotenv()
+    # System-related information
+    REMOVE_INFORMATION = os.getenv("REMOVE_INFORMATION")
+    DRY_RUN = os.getenv("DRY_RUN")
+    TWO_CAPTCHA_API_KEY = os.getenv("2CAPTCHA_API_KEY")
+    REQUEST_DETAILS = "REQUEST_TEMPLATE_HERE"  # TODO: Move to factory
+    BASE_TIMEOUT_IN_SECONDS = os.getenv("BASE_TIMEOUT_IN_SECONDS")
+    CHROMIUM_LOCATION = os.getenv("CHROMIUM_LOCATION")
+
+    # Personal information
     FIRST_NAME = os.getenv("FIRST_NAME")
     LAST_NAME = os.getenv("LAST_NAME")
     EMAIL = os.getenv("EMAIL")
@@ -22,11 +31,7 @@ class SuperScraper:
     JOB_TITLE = os.getenv("JOB_TITLE")
     COMPANY_NAME = os.getenv("COMPANY_NAME")
     PHONE_NUMBER = os.getenv("PHONE_NUMBER")
-    REMOVE_INFORMATION = os.getenv("REMOVE_INFORMATION")
-    DRY_RUN = os.getenv("DRY_RUN")
-    TWO_CAPTCHA_API_KEY = os.getenv("2CAPTCHA_API_KEY")
-    REQUEST_DETAILS = "REQUEST_TEMPLATE_HERE"  # TODO: Move to factory
-    BASE_TIMEOUT_IN_SECONDS = os.getenv("BASE_TIMEOUT_IN_SECONDS")
+    
     ADVERTISING_ID = os.getenv("ADVERTISING_ID")
     OOPS = ""
 

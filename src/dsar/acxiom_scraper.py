@@ -12,8 +12,8 @@ URL = "https://privacyportal.onetrust.com/webform/342ca6ac-4177-4827-b61e-190702
 
 async def main():
     options = ChromiumOptions()
-    options.binary_location = "/snap/bin/chromium"
     super_scraper = SuperScraper()
+    options.binary_location = super_scraper.CHROMIUM_LOCATION
 
     async with Chrome(options=options) as browser:
         tab = await browser.start()

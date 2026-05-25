@@ -25,10 +25,10 @@ _MSG_DELETE = (
 
 async def main():
     options = ChromiumOptions()
-    options.binary_location = "/snap/bin/chromium"
+    super_scraper = SuperScraper()
+    options.binary_location = super_scraper.CHROMIUM_LOCATION
     options.add_argument("--no-sandbox")
     options.add_argument("--window-size=1280,2000")
-    super_scraper = SuperScraper()
 
     message = _MSG_DELETE if SuperScraper.REMOVE_INFORMATION else _MSG_BASE
 

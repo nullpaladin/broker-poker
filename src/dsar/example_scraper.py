@@ -11,8 +11,8 @@ URL = "https://www.achcoop.com/do-not-sell-my-personal-info"
 
 async def main():
     options = ChromiumOptions()
-    options.binary_location = "/snap/bin/chromium"
     super_scraper = SuperScraper()
+    options.binary_location = super_scraper.CHROMIUM_LOCATION
 
     async with Chrome(options=options) as browser:
         tab = await browser.start()

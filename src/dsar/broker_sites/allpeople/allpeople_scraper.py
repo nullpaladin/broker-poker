@@ -40,8 +40,8 @@ async def main():
             )
             print("Pausing 5s for screenshot...")
             await asyncio.sleep(5)
-            await tab.take_screenshot("allpeople_dry_run.png")
-            print("Screenshot saved to allpeople_dry_run.png")
+            await tab.take_screenshot("resources/screenshots/allpeople_dry_run.png")
+            print("Screenshot saved to resources/screenshots/allpeople_dry_run.png")
             return
 
         print(f"\nEmail and agreement filled for {SuperScraper.EMAIL}.")

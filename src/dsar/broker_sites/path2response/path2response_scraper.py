@@ -18,10 +18,10 @@ URL = "https://privacyportal-cdn.onetrust.com/dsarwebform/2de26f06-de6f-45a7-8e1
 
 async def main():
     options = ChromiumOptions()
-    options.binary_location = "/snap/bin/chromium"
+    super_scraper = SuperScraper()
+    options.binary_location = super_scraper.CHROMIUM_LOCATION
     options.add_argument("--no-sandbox")
     options.add_argument("--window-size=1280,3000")
-    super_scraper = SuperScraper()
 
     async with Chrome(options=options) as browser:
         tab = await browser.start()
@@ -128,8 +128,8 @@ async def main():
             if submit_btn:
                 await submit_btn.scroll_into_view()
             await asyncio.sleep(1)
-            await tab.take_screenshot("path2response_dry_run.png")
-            print("Screenshot saved to path2response_dry_run.png")
+            await tab.take_screenshot("resources/screenshots/path2response_dry_run.png")
+            print("Screenshot saved to resources/screenshots/path2response_dry_run.png")
             return
 
         print("\nForm filled. Solve the reCAPTCHA in the browser, then click Submit.")

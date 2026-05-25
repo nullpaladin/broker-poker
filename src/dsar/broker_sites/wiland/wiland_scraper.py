@@ -73,8 +73,8 @@ async def submit_access(tab, state_abbr, super_scraper):
         if captcha_field:
             await captcha_field.scroll_into_view()
         await asyncio.sleep(1)
-        await tab.take_screenshot("wiland_dry_run_access.png")
-        print("Screenshot saved to wiland_dry_run_access.png")
+        await tab.take_screenshot("resources/screenshots/wiland_dry_run_access.png")
+        print("Screenshot saved to resources/screenshots/wiland_dry_run_access.png")
         return
 
     print(
@@ -111,8 +111,8 @@ async def submit_delete(tab, state_abbr, super_scraper):
         if captcha_field:
             await captcha_field.scroll_into_view()
         await asyncio.sleep(1)
-        await tab.take_screenshot("wiland_dry_run_delete.png")
-        print("Screenshot saved to wiland_dry_run_delete.png")
+        await tab.take_screenshot("resources/screenshots/wiland_dry_run_delete.png")
+        print("Screenshot saved to resources/screenshots/wiland_dry_run_delete.png")
         return
 
     print(
@@ -131,10 +131,10 @@ async def submit_delete(tab, state_abbr, super_scraper):
 
 async def main():
     options = ChromiumOptions()
-    options.binary_location = "/snap/bin/chromium"
+    super_scraper = SuperScraper()
+    options.binary_location = super_scraper.CHROMIUM_LOCATION
     options.add_argument("--no-sandbox")
     options.add_argument("--window-size=1280,3000")
-    super_scraper = SuperScraper()
 
     state_abbr = StateAbbreviation[SuperScraper.STATE.upper()].value
 

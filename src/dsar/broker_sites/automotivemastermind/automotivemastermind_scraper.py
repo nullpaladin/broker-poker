@@ -87,8 +87,8 @@ async def submit_dns(tab, super_scraper):
         if submit_btn:
             await submit_btn.scroll_into_view()
         await asyncio.sleep(2)
-        await tab.take_screenshot("automotivemastermind_dry_run_dns.png")
-        print("Screenshot saved to automotivemastermind_dry_run_dns.png")
+        await tab.take_screenshot("resources/screenshots/automotivemastermind_dry_run_dns.png")
+        print("Screenshot saved to resources/screenshots/automotivemastermind_dry_run_dns.png")
         return
 
     submit_btn = await tab.find(**{"aria-label": "Click to submit form"}, raise_exc=False)
@@ -173,8 +173,8 @@ async def submit_main(tab, request_types, label, details_text, super_scraper):
         if submit_btn:
             await submit_btn.scroll_into_view()
         await asyncio.sleep(2)
-        await tab.take_screenshot(f"automotivemastermind_dry_run_{label}.png")
-        print(f"Screenshot saved to automotivemastermind_dry_run_{label}.png")
+        await tab.take_screenshot(f"resources/screenshots/automotivemastermind_dry_run_{label}.png")
+        print(f"Screenshot saved to resources/screenshots/automotivemastermind_dry_run_{label}.png")
         return
 
     print(f"\nForm filled for '{label}'.")
@@ -191,10 +191,10 @@ async def submit_main(tab, request_types, label, details_text, super_scraper):
 
 async def main():
     options = ChromiumOptions()
-    options.binary_location = "/snap/bin/chromium"
+    super_scraper = SuperScraper()
+    options.binary_location = super_scraper.CHROMIUM_LOCATION
     options.add_argument("--no-sandbox")
     options.add_argument("--window-size=1280,3000")
-    super_scraper = SuperScraper()
 
     async with Chrome(options=options) as browser:
         tab = await browser.start()

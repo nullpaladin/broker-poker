@@ -108,8 +108,8 @@ async def fill_and_submit(tab, req_aria_label, screenshot_label, super_scraper):
         if captcha_field:
             await captcha_field.scroll_into_view()
         await asyncio.sleep(1)
-        await tab.take_screenshot(f"reonomy_dry_run_{screenshot_label}.png")
-        print(f"Screenshot saved to reonomy_dry_run_{screenshot_label}.png")
+        await tab.take_screenshot(f"resources/screenshots/reonomy_dry_run_{screenshot_label}.png")
+        print(f"Screenshot saved to resources/screenshots/reonomy_dry_run_{screenshot_label}.png")
         return
 
     print(f"\nForm filled for '{req_aria_label.strip()}'.")
@@ -126,10 +126,10 @@ async def fill_and_submit(tab, req_aria_label, screenshot_label, super_scraper):
 
 async def main():
     options = ChromiumOptions()
-    options.binary_location = "/snap/bin/chromium"
+    super_scraper = SuperScraper()
+    options.binary_location = super_scraper.CHROMIUM_LOCATION
     options.add_argument("--no-sandbox")
     options.add_argument("--window-size=1280,3000")
-    super_scraper = SuperScraper()
 
     requests = list(REQUESTS)
     if SuperScraper.REMOVE_INFORMATION:

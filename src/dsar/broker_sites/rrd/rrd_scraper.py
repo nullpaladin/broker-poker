@@ -48,10 +48,10 @@ async def _autocomplete(tab, field_id, text):
 
 async def main():
     options = ChromiumOptions()
-    options.binary_location = "/snap/bin/chromium"
+    super_scraper = SuperScraper()
+    options.binary_location = super_scraper.CHROMIUM_LOCATION
     options.add_argument("--no-sandbox")
     options.add_argument("--window-size=1280,3000")
-    super_scraper = SuperScraper()
 
     async with Chrome(options=options) as browser:
         tab = await browser.start()
@@ -140,8 +140,8 @@ async def main():
             if captcha_field:
                 await captcha_field.scroll_into_view()
             await asyncio.sleep(1)
-            await tab.take_screenshot("rrd_dry_run.png")
-            print("Screenshot saved to rrd_dry_run.png")
+            await tab.take_screenshot("resources/screenshots/rrd_dry_run.png")
+            print("Screenshot saved to resources/screenshots/rrd_dry_run.png")
             return
 
         print(

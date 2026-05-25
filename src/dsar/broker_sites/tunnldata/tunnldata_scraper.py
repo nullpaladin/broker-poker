@@ -60,8 +60,8 @@ async def _submit_request(tab, card_text, label, phone_field_id, super_scraper):
         if continue_btn and await continue_btn.is_visible():
             await continue_btn.scroll_into_view()
         await asyncio.sleep(2)
-        await tab.take_screenshot(f"tunnldata_dry_run_{label}.png")
-        print(f"Screenshot: tunnldata_dry_run_{label}.png")
+        await tab.take_screenshot(f"resources/screenshots/tunnldata_dry_run_{label}.png")
+        print(f"Screenshot: resources/screenshots/tunnldata_dry_run_{label}.png")
         return
 
     continue_btn = await tab.find(text="Continue", raise_exc=False)
@@ -92,10 +92,10 @@ async def _submit_request(tab, card_text, label, phone_field_id, super_scraper):
 
 async def main():
     options = ChromiumOptions()
-    options.binary_location = "/snap/bin/chromium"
+    super_scraper = SuperScraper()
+    options.binary_location = super_scraper.CHROMIUM_LOCATION
     options.add_argument("--no-sandbox")
     options.add_argument("--window-size=1280,3000")
-    super_scraper = SuperScraper()
 
     async with Chrome(options=options) as browser:
         tab = await browser.start()

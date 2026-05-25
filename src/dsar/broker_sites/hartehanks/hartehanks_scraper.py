@@ -94,10 +94,10 @@ async def _pick_visible_role_option(tab, field_id, text):
 
 async def main():
     options = ChromiumOptions()
-    options.binary_location = "/snap/bin/chromium"
+    super_scraper = SuperScraper()
+    options.binary_location = super_scraper.CHROMIUM_LOCATION
     options.add_argument("--no-sandbox")
     options.add_argument("--window-size=1280,4000")
-    super_scraper = SuperScraper()
 
     async with Chrome(options=options) as browser:
         tab = await browser.start()
@@ -187,11 +187,11 @@ async def main():
 
         if SuperScraper.DRY_RUN:
             # Screenshot top of form first, then scroll to submit
-            await tab.take_screenshot("hartehanks_dry_run_top.png")
+            await tab.take_screenshot("resources/screenshots/hartehanks_dry_run_top.png")
             submit_btn = await tab.find(id="dsar-webform-submit-button", raise_exc=False)
             if submit_btn:
                 await submit_btn.scroll_into_view()
-            await tab.take_screenshot("hartehanks_dry_run.png")
+            await tab.take_screenshot("resources/screenshots/hartehanks_dry_run.png")
             print(
                 f"DRY RUN: would submit for "
                 f"{SuperScraper.FIRST_NAME} {SuperScraper.LAST_NAME} <{SuperScraper.EMAIL}>"

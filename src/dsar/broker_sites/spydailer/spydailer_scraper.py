@@ -34,10 +34,10 @@ async def _select_option(tab, select_id, value):
 
 async def main():
     options = ChromiumOptions()
-    options.binary_location = "/snap/bin/chromium"
+    super_scraper = SuperScraper()
+    options.binary_location = super_scraper.CHROMIUM_LOCATION
     options.add_argument("--no-sandbox")
     options.add_argument("--window-size=1280,3000")
-    super_scraper = SuperScraper()
 
     state_abbr = await SuperScraper.state_full_name_to_abbreviated(SuperScraper.STATE)
 
@@ -62,7 +62,7 @@ async def main():
             )
             if submit_btn:
                 await submit_btn.scroll_into_view()
-            await tab.take_screenshot("spydailer_dry_run.png")
+            await tab.take_screenshot("resources/screenshots/spydailer_dry_run.png")
             print(
                 f"DRY RUN: would submit state filter for "
                 f"{SuperScraper.FIRST_NAME} {SuperScraper.LAST_NAME} <{SuperScraper.EMAIL}>"

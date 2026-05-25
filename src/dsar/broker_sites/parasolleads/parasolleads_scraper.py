@@ -44,7 +44,7 @@ async def main():
         time.sleep(0.5)
 
         if SuperScraper.DRY_RUN:
-            await tab.take_screenshot(path="validation/parasolleads_dry_run.png")
+            await tab.take_screenshot(path="resources/screenshots/parasolleads_dry_run.png")
             print(f"DRY RUN: would submit opt-out for {SuperScraper.EMAIL}")
             await asyncio.sleep(3)
             return

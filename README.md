@@ -28,6 +28,24 @@ Broker Poker is an application that assists users to receive a copy of and delet
   - [ ] Will need some sort of explanation for different brokers that have a very complex setup for DSAR (e.g. transunion), opt-out guides
   - [ ] Create a "learn more" section for the readme
 
+# How To Email Data Brokers
+- 200+ data brokers allow users to exercise their data privacy rights through email.
+  - This is advantageous, as you can theoretically send one email via a template to hundreds of data brokers and have your information removed with minimal effort on the consumers' end.
+- The basic idea of how to send these mass emails:
+  1. Open your email client and draft a new email
+  2. Instead of adding emails to the `To:` or `CC:` fields, add emails to the `BCC:` field so each recipient doesn't see the others that you're emailing.
+  3. Gather up to 100 emails at a time from the email list that lives at [verified_email_list.txt](src/dsar/emails/verified_email_list.txt) and put them in the BCC field
+  4. Set the subject to `<state privacy act name> Request`
+  5. Copy the email template found at [mcdpa_email_template.txt](src/dsar/emails/mcdpa_email_template.txt) into the email body and add in your personal information, including Mobile Advertising IDs. You can find your Mobile Advertising ID (MAID) by following these guides:
+    - Android 
+      - https://privacyinternational.org/guide-step/4317/android-opt-out-targeted-ads-and-renew-your-advertising-id
+      - Note that this is per-device, so if you have multiple devices, place them on separate lines in the email template. This goes for any old phones that you still have in your possession.
+      - Note that you can permanently remove your MAID), but you should absolutely write down this value before doing so as it will be permanently deleted once removed.
+    - Apple / iOS
+      - You can't natively view your advertising ID (IDFA), however there are apps on the app store that will display this value for you.
+
+
+
 # Broker sites
 
 - [x] 33across.com

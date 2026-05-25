@@ -1,0 +1,23 @@
+Hello,
+
+I am contacting you in pursuit of exercising the consumer data rights provided to me by the Minnesota Consumer Data Privacy Act.
+
+Specifically, I request that you conduct the following, in this order (you must delete data LAST):
+1. Send me a copy of my personal and related information that you have in your systems
+  - Minnesota statute 325M.14(e)
+2. Assuming you have my personal information in your systems, you send me a copy of all third parties (natural or legal persons, public authorities, agencies, or body other than you, myself, processors, and your direct affiliates) to whom you have shared my data.
+  - Minnesota statute 325M.14(h), definition of third party 325M.11(y)
+3. Opt me out of the processing of personal information for purposes of targeted advertisement and sale of personal data if applicable.
+  - Minnesota statute 325M.14(f)
+4. Delete my personal data from your systems
+  - Minnesota stautte 325M.14(d)
+
+Personal identifiers:
+Name: 
+Email: 
+Phone Number: 
+Home Address: 
+Mobile Advertising ID: 
+
+Thank you,
+

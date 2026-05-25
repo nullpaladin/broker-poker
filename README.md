@@ -30,6 +30,8 @@ Broker Poker is an application that assists users to receive a copy of and delet
 
 # Broker sites
 
+- [ ] 01advertising.com
+  - URL: https://www.01advertising.com/legal/dsar/
 - [x] 33across.com
   - Right to Access URL: https://udp.33across.com/udp_opt_out/submit_request?type=access
   - Right to Opt-Out URL: https://udp.33across.com/udp_opt_out/submit_request?type=donotsell
@@ -126,6 +128,7 @@ Broker Poker is an application that assists users to receive a copy of and delet
   - Note: Ethyca/Fides portal. Cards: Access, Delete (gated), Opt-out (unavailable — "Consent management is unavailable in your area"). Each card navigates to full form (email, first/last name, addr1, city, state text input, zip; phone optional). After Continue: email verification code sent (id="code", "Submit code" button). No CAPTCHA. Live mode prompts user to enter code from inbox.
 - [ ] deloitte.com
   - URL: https://datasubject.deloitte.com/
+  - Note: ANTI-BOT. DataDome WAF blocks all automation.
 - [x] directmail.com
   - URL: https://www.directmail.com/mail_preference/
   - Note: reCAPTCHA v2 requires manual solve or 2captcha (site key: 6Le9aeApAAAAAMRr0iCDa65cZ1iGkHUI1FwEAKZH). Step 2 category opt-out is automated.
@@ -180,8 +183,9 @@ Broker Poker is an application that assists users to receive a copy of and delet
   - Note: Server-rendered POST form, no captcha. Exercises Access, Opt-Out (Sale/Share), and Delete (gated on REMOVE_INFORMATION). "Correct my Personal Information" is on the site but requires specifying what to correct — not automated. Visitor type fixed to "Visitor / User of hibu.com or yellowbook.com".
 - [ ] hubspot.com
   - URL: https://preferences.hubspot.com/?locale=en
-- [ ] ice.com
+- [x] ice.com
   - URL: https://ice-privacy.my.onetrust.com/webform/cca3ac39-00b6-45f4-819b-bec660878b46/124d1692-407b-4384-9036-bef3ece530e3
+  - Note: Custom OneTrust Angular portal (ice-privacy.my.onetrust.com). Subject "Customer". Country + State autocompletes (stateDSARElement appears after country). Line of Service "Data Services" (formField85DSARElement). Request type SINGLE-SELECT — one submission per right: Info Request, Update Data, Object to Processing, Data Portability, Restrict Processing; Data Deletion gated on REMOVE_INFORMATION. First/Last Name via aria-label. Phone optional (formField82DSARElement). Request Details textarea required (requestDetailsDSARElement). BotDetect 6-char CAPTCHA (captchaCode) per submission.
 - [x] ididata.com
   - Right to Access URL: https://www.ididata.com/personal-information-request/
   - Right to Opt-Out URL: https://www.ididata.com/do-not-sell-my-personal-information/
@@ -220,16 +224,18 @@ Broker Poker is an application that assists users to receive a copy of and delet
   - Note: Server-rendered POST form. Exercises Opt-Out (future data collection), Access (copy of data + list of recipients), and Delete (gated). State requires 2-letter abbreviation. reCAPTCHA v2 requires manual solve before submit. Single submission for all rights.
 - [ ] lightboxre.com
   - URL: https://urldefense.proofpoint.com/v2/url?u=https-3A__my.datasubject.com_16BXQXSvkBnuN4W2w_51306&d=DwMFAg&c=euGZstcaTDllvimEN8b7jXrwqOf-v5A_CdpgnVfiiMM&r=wUxcY8xds7NwcPyJ-9PjbzzSWU5GA_GcSHVVxAQ-_ck&m=QP3FQwlf_Gn97KYLT2H1snnHVQkjfxCiTy2pY0dms5U21w9wQ-LaUqOvy8LubeLm&s=xCInMnbg7DMZHZqxuo9y-iQLUh5jfATJCSvt27W0ROM&e=
-- [ ] lightcast.io
-  - URL: https://privacyportal.onetrust.com/webform/0f61f895-d08d-410f-b96d-ecfd34fd42e3/8d4dfe0d-998d-4c1d-ab6d-4357670fa8e9
-  - Note: No Minnesota-specific choices, just a general thing. Will need to add in text
+- [x] lightcast.io
+  - URL: https://privacyportal.onetrust.com/webform/0f61f895-d08d-410f-b96d-ecfd34fd42e3/4b91c2db-5fdc-4f47-8523-b9f01d9e92a3
+  - Note: OneTrust Angular form. Country + State must be filled FIRST (selecting MN reveals MN-specific request type buttons). JS native value setter required for all text inputs (element.type_text doesn't trigger Angular ngModel). Rights: Right to Know/Access, Right to Object/Opt out of Sales, Right to Rectify/Correct, Right to Delete (gated). Subject type: "data owner / subject". BotDetect image CAPTCHA requires manual entry.
 - [ ] liveramp.com
   - URL: https://liveramp.com/privacy/my-privacy-choices/
+  - Note: ANTI-BOT. TrustArc forms (697ea013, bcdbaba0, ac603fe1) — Cloudflare challenge blocks all automated access after the first request. Only the opt-out form (ac603fe1) loads consistently; the access and correct forms (697ea013, bcdbaba0) trigger "Human Verification" on every attempt.
 - [x] madisonlogic.com
   - URL: https://madisonlogic-privacy.my.onetrust.com/webform/b7449bea-44c6-4823-a2ac-30a8f33047d0/9a375b0c-9030-44ce-bfd3-217fd7a71993
   - Note: Custom OneTrust portal. Country must be filled first to reveal State, subject type ("Data Subject"), and request type buttons. Both the main request type buttons and opt-out sub-option buttons are SINGLE-SELECT — one submission per right. "Opt out" reveals two sub-options ("Partner Services Marketing", "Personalized Content"), each requiring a separate submission. "Data Deletion" shows a Yes/No confirmation; click Yes. requestDetailsDSARElement is always required. Phone country code vt-input-7. captchaCode image CAPTCHA. Data Deletion gated on REMOVE_INFORMATION.
-- [ ] malvernmedia.com
+- [x] malvernmedia.com
   - URL: https://privacyportal.privacypillar.com/dsar/form?formid=6e6ff4b8-2296-4589-ae7f-563fa743ec2d&orgid=369c8ff9-8ffb-4308-8362-f01691e77db8&propid=64c8904f-8bac-4dd9-8e6c-d052be1918a2&status=publish
+  - Note: PrivacyPillar Angular portal. Subject type "Other US State Resident" (label click). Request type radios are single-select — one submission per right. Fields: email, first_name, last_name, country (typeahead), address, city, state (typeahead), zip. 6-character alphanumeric image CAPTCHA (name="captchacode") — manual entry per submission in live mode. Exercises Right to Know, Right to Correct, Right to Opt-Out of Sale/Sharing, Right to Opt-Out of Cross-Behavioral Sale/Sharing, Right to Limit Sensitive PI; Delete gated on REMOVE_INFORMATION.
 - [ ] mchdata.com
   - URL: https://www.mchdata.com/about/ccpaemail
   - Note: ASP.NET server-rendered form with __RequestVerificationToken. reCAPTCHA v2 (site key: 6LdxH94UAAAAAHLdMKLtxaN-s7R1oW0WGdj81bYZ). Only email + IsCaliforniaResident radio — California-focused, no Minnesota option.
@@ -262,6 +268,7 @@ Broker Poker is an application that assists users to receive a copy of and delet
   - Note: SPA — curl returns no form HTML. Needs pydoll.
 - [ ] oracle.com
   - URL: https://www.oracle.com/legal/data-privacy-inquiry-form/
+  - Note: ANTI-BOT. TrustArc form (submit-irm.trustarc.com/services/validation/742d5422). Cloudflare bot detection blocks automation after first session (same pattern as liveramp). Additionally, "United States" is absent from the country dropdown when typing — virtual scrolling renders only alphabetically-adjacent options, making US country selection unreliable.
 - [x] outbrain.com
   - URL: https://dsr.outbrain.com/recommendations-settings/data-rights/en
   - Note: Device-based privacy portal only. The opt-out toggle operates on the current browser/device (cookie-based) and the "My Data Rights" section requires a stored device profile to function — the Proceed verification modal does not dismiss in headless Chrome without one. No traditional email/name DSAR form exists on this portal. Cannot be meaningfully automated.
@@ -403,3 +410,4 @@ Broker Poker is an application that assists users to receive a copy of and delet
   - Note: OneTrust CDN Angular form (Thryv, Inc.). Subject "Myself" + role "Consumer" + site picker "I am not a registered user of any of these sites or apps." Data Request sub-options (categories, specific pieces, 3rd parties) all selected. Opt-Out expressed in Additional Request Information (no dedicated button). Delete gated on REMOVE_INFORMATION. Country and state autocomplete use ArrowDown+Enter keyboard nav. captchaCode image CAPTCHA requires manual entry in live mode.
 - [ ] youradv.com
   - URL: https://bigidprivacy.cloud/consumer/#/fHveyhjnOM/10004
+  - Note: BigID Privacy Center portal (Advantage Solutions). Country/State dropdowns require CDP mouse click at computed bounding-rect position (element.type_text works for value but MUI aria-expanded stays null; need mouse click to select option). **Minnesota is not supported** — form shows "Requests from this region are not supported at this time." Must use a supported state (CA, CO, etc.) in SuperScraper.STATE to submit. Skip if user is MN-only.

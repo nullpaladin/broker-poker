@@ -26,9 +26,9 @@ async def check_checkbox(tab, aria_label):
 
 async def main():
     options = ChromiumOptions()
-    options.binary_location = "/snap/bin/chromium"
-    options.add_argument("--no-sandbox")
     super_scraper = SuperScraper()
+    options.binary_location = super_scraper.CHROMIUM_LOCATION
+    options.add_argument("--no-sandbox")
 
     async with Chrome(options=options) as browser:
         tab = await browser.start()

@@ -65,7 +65,7 @@ async def submit_request(tab, request_type, label, super_scraper):
             f"DRY RUN: would submit '{request_type}' for "
             f"{SuperScraper.FIRST_NAME} {SuperScraper.LAST_NAME} <{SuperScraper.EMAIL}>"
         )
-        await tab.take_screenshot(f"hibu_dry_run_{label}.png")
+        await tab.take_screenshot(f"resources/screenshots/hibu_dry_run_{label}.png")
         return
 
     await tab.execute_script(
@@ -84,10 +84,10 @@ async def submit_request(tab, request_type, label, super_scraper):
 
 async def main():
     options = ChromiumOptions()
-    options.binary_location = "/snap/bin/chromium"
+    super_scraper = SuperScraper()
+    options.binary_location = super_scraper.CHROMIUM_LOCATION
     options.add_argument("--no-sandbox")
     options.add_argument("--window-size=1280,2400")
-    super_scraper = SuperScraper()
 
     requests = list(REQUESTS)
     if SuperScraper.REMOVE_INFORMATION:

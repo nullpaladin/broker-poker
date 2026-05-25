@@ -108,8 +108,8 @@ async def submit_request(tab, radio_value, label, super_scraper):
         if submit_btn:
             await submit_btn.scroll_into_view()
         await asyncio.sleep(2)
-        await tab.take_screenshot(f"epsilon_dry_run_{label}.png")
-        print(f"Screenshot saved to epsilon_dry_run_{label}.png")
+        await tab.take_screenshot(f"resources/screenshots/epsilon_dry_run_{label}.png")
+        print(f"Screenshot saved to resources/screenshots/epsilon_dry_run_{label}.png")
         return
 
     print(f"\nForm filled for '{radio_value}'.")
@@ -127,10 +127,10 @@ async def submit_request(tab, radio_value, label, super_scraper):
 
 async def main():
     options = ChromiumOptions()
-    options.binary_location = "/snap/bin/chromium"
+    super_scraper = SuperScraper()
+    options.binary_location = super_scraper.CHROMIUM_LOCATION
     options.add_argument("--no-sandbox")
     options.add_argument("--window-size=1280,5000")
-    super_scraper = SuperScraper()
 
     requests = list(REQUESTS)
     if SuperScraper.REMOVE_INFORMATION:

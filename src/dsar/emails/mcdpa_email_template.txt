@@ -10,7 +10,7 @@ Specifically, I request that you conduct the following, in this order (you must 
 3. Opt me out of the processing of personal information for purposes of targeted advertisement and sale of personal data if applicable.
   - Minnesota statute 325M.14(f)
 4. Delete my personal data from your systems
-  - Minnesota stautte 325M.14(d)
+  - Minnesota statute 325M.14(d)
 
 Personal identifiers:
 Name: 

@@ -65,7 +65,7 @@ async def submit_request(tab, request_type, label, super_scraper):
             f"DRY RUN: would submit '{request_type}' for "
             f"{SuperScraper.FIRST_NAME} {SuperScraper.LAST_NAME} <{SuperScraper.EMAIL}>"
         )
-        await tab.take_screenshot(f"hibu_dry_run_{label}.png")
+        await tab.take_screenshot(f"resources/screenshots/hibu_dry_run_{label}.png")
         return
 
     await tab.execute_script(

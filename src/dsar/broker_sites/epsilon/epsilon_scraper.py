@@ -108,8 +108,8 @@ async def submit_request(tab, radio_value, label, super_scraper):
         if submit_btn:
             await submit_btn.scroll_into_view()
         await asyncio.sleep(2)
-        await tab.take_screenshot(f"epsilon_dry_run_{label}.png")
-        print(f"Screenshot saved to epsilon_dry_run_{label}.png")
+        await tab.take_screenshot(f"resources/screenshots/epsilon_dry_run_{label}.png")
+        print(f"Screenshot saved to resources/screenshots/epsilon_dry_run_{label}.png")
         return
 
     print(f"\nForm filled for '{radio_value}'.")

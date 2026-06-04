@@ -1,6 +1,9 @@
 # broker-poker
 Broker Poker is an application that assists users to receive a copy of and delete their personal data from registered or otherwise known data brokers.
 
+# Status
+- Broker Poker is in a near-MVP status, where a user can email data brokers, but the automation to send web form requests is not yet ready.
+
 # Acronyms
 - DSAR: Data Subject Access Request (the method of communication from a consumer to a controller in order to exercise data privacy rights)
 

@@ -117,9 +117,9 @@ async def process_form(tab, dropdown_val, label, has_extended, super_scraper):
 
 async def main():
     options = ChromiumOptions()
-    options.binary_location = "/snap/bin/chromium"
-    options.add_argument("--no-sandbox")
     super_scraper = SuperScraper()
+    options.binary_location = super_scraper.CHROMIUM_LOCATION
+    options.add_argument("--no-sandbox")
 
     forms = list(FORMS)
     if SuperScraper.REMOVE_INFORMATION:

@@ -14,10 +14,10 @@ URL = "https://client.leadpost.com/PrivacyRequest"
 
 async def main():
     options = ChromiumOptions()
-    options.binary_location = "/snap/bin/chromium"
+    super_scraper = SuperScraper()
+    options.binary_location = super_scraper.CHROMIUM_LOCATION
     options.add_argument("--no-sandbox")
     options.add_argument("--window-size=1280,3000")
-    super_scraper = SuperScraper()
 
     async with Chrome(options=options) as browser:
         tab = await browser.start()
@@ -86,7 +86,7 @@ async def main():
         time.sleep(0.5)
 
         if SuperScraper.DRY_RUN:
-            await tab.take_screenshot("leadpost_dry_run.png")
+            await tab.take_screenshot("resources/screenshots/leadpost_dry_run.png")
             print(
                 f"DRY RUN: would submit for "
                 f"{SuperScraper.FIRST_NAME} {SuperScraper.LAST_NAME} <{SuperScraper.EMAIL}>"

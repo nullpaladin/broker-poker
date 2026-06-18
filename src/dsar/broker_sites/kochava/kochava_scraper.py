@@ -17,9 +17,9 @@ URL = "https://www.kochava.com/opt-out-do-not-sell-request-process/"
 
 async def main():
     options = ChromiumOptions()
-    options.binary_location = "/snap/bin/chromium"
-    options.add_argument("--no-sandbox")
     super_scraper = SuperScraper()
+    options.binary_location = super_scraper.CHROMIUM_LOCATION
+    options.add_argument("--no-sandbox")
 
     if not SuperScraper.ADVERTISING_ID:
         print(f"{super_scraper.OOPS} ADVERTISING_ID not set — kochava requires a Mobile Ad ID (IDFA/GAID)")
@@ -42,8 +42,8 @@ async def main():
             print(
                 f"DRY RUN: would submit opt-out for MAID={SuperScraper.ADVERTISING_ID}"
             )
-            await tab.take_screenshot("kochava_dry_run.png")
-            print("Screenshot saved to kochava_dry_run.png")
+            await tab.take_screenshot("resources/screenshots/kochava_dry_run.png")
+            print("Screenshot saved to resources/screenshots/kochava_dry_run.png")
             return
 
         print(f"\nMAID field filled: {SuperScraper.ADVERTISING_ID}")

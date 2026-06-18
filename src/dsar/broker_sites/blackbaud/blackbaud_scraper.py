@@ -44,10 +44,10 @@ async def _select_autocomplete(tab, field_id, search_text):
 
 async def main():
     options = ChromiumOptions()
-    options.binary_location = "/snap/bin/chromium"
+    super_scraper = SuperScraper()
+    options.binary_location = super_scraper.CHROMIUM_LOCATION
     options.add_argument("--no-sandbox")
     options.add_argument("--window-size=1280,3000")
-    super_scraper = SuperScraper()
 
     request_types = list(BASE_REQUEST_TYPES)
     if SuperScraper.REMOVE_INFORMATION:
@@ -123,8 +123,8 @@ async def main():
                 await submit_btn.scroll_into_view()
             await asyncio.sleep(2)
             suffix = "_delete" if SuperScraper.REMOVE_INFORMATION else ""
-            await tab.take_screenshot(f"blackbaud_dry_run{suffix}.png")
-            print(f"Screenshot saved to blackbaud_dry_run{suffix}.png")
+            await tab.take_screenshot(f"resources/screenshots/blackbaud_dry_run{suffix}.png")
+            print(f"Screenshot saved to resources/screenshots/blackbaud_dry_run{suffix}.png")
             return
 
         print(f"\nForm filled for {SuperScraper.FIRST_NAME} {SuperScraper.LAST_NAME}.")

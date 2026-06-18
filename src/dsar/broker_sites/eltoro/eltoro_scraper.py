@@ -109,8 +109,8 @@ async def submit_form(tab, url, request_types, label, super_scraper):
         if submit_btn:
             await submit_btn.scroll_into_view()
         await asyncio.sleep(2)
-        await tab.take_screenshot(f"eltoro_dry_run_{label}.png")
-        print(f"Screenshot: eltoro_dry_run_{label}.png")
+        await tab.take_screenshot(f"resources/screenshots/eltoro_dry_run_{label}.png")
+        print(f"Screenshot: resources/screenshots/eltoro_dry_run_{label}.png")
         return
 
     captcha = await tab.find(id="captchaCode", raise_exc=False)
@@ -131,10 +131,10 @@ async def submit_form(tab, url, request_types, label, super_scraper):
 
 async def main():
     options = ChromiumOptions()
-    options.binary_location = "/snap/bin/chromium"
+    super_scraper = SuperScraper()
+    options.binary_location = super_scraper.CHROMIUM_LOCATION
     options.add_argument("--no-sandbox")
     options.add_argument("--window-size=1280,3000")
-    super_scraper = SuperScraper()
 
     async with Chrome(options=options) as browser:
         tab = await browser.start()

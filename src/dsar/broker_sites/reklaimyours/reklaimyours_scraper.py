@@ -42,7 +42,7 @@ async def submit_request(tab, radio_id, label, super_scraper):
     time.sleep(0.5)
 
     if SuperScraper.DRY_RUN:
-        await tab.take_screenshot(f"reklaimyours_dry_run_{label}.png")
+        await tab.take_screenshot(f"resources/screenshots/reklaimyours_dry_run_{label}.png")
         print(
             f"DRY RUN: would submit '{label}' for "
             f"{SuperScraper.FIRST_NAME} {SuperScraper.LAST_NAME} <{SuperScraper.EMAIL}>"
@@ -63,10 +63,10 @@ async def submit_request(tab, radio_id, label, super_scraper):
 
 async def main():
     options = ChromiumOptions()
-    options.binary_location = "/snap/bin/chromium"
+    super_scraper = SuperScraper()
+    options.binary_location = super_scraper.CHROMIUM_LOCATION
     options.add_argument("--no-sandbox")
     options.add_argument("--window-size=1280,2000")
-    super_scraper = SuperScraper()
 
     requests = list(REQUESTS)
     if SuperScraper.REMOVE_INFORMATION:

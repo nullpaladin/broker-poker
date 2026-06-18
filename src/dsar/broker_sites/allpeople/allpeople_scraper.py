@@ -14,9 +14,9 @@ URL = "https://allpeople.com/removal"
 
 async def main():
     options = ChromiumOptions()
-    options.binary_location = "/snap/bin/chromium"
-    options.add_argument("--no-sandbox")
     super_scraper = SuperScraper()
+    options.binary_location = super_scraper.CHROMIUM_LOCATION
+    options.add_argument("--no-sandbox")
 
     async with Chrome(options=options) as browser:
         tab = await browser.start()
@@ -40,8 +40,8 @@ async def main():
             )
             print("Pausing 5s for screenshot...")
             await asyncio.sleep(5)
-            await tab.take_screenshot("allpeople_dry_run.png")
-            print("Screenshot saved to allpeople_dry_run.png")
+            await tab.take_screenshot("resources/screenshots/allpeople_dry_run.png")
+            print("Screenshot saved to resources/screenshots/allpeople_dry_run.png")
             return
 
         print(f"\nEmail and agreement filled for {SuperScraper.EMAIL}.")

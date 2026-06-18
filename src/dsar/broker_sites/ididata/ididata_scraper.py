@@ -112,7 +112,7 @@ async def submit_request(tab, url, label, super_scraper, dob_day, dob_month, dob
         submit_btn = await tab.find(tag_name="button", text="Submit Request", raise_exc=False)
         if submit_btn:
             await submit_btn.scroll_into_view()
-        await tab.take_screenshot(f"ididata_dry_run_{label}.png")
+        await tab.take_screenshot(f"resources/screenshots/ididata_dry_run_{label}.png")
         print(
             f"DRY RUN: would submit '{label}' for "
             f"{SuperScraper.FIRST_NAME} {SuperScraper.LAST_NAME} <{SuperScraper.EMAIL}>"
@@ -127,10 +127,10 @@ async def submit_request(tab, url, label, super_scraper, dob_day, dob_month, dob
 
 async def main():
     options = ChromiumOptions()
-    options.binary_location = "/snap/bin/chromium"
+    super_scraper = SuperScraper()
+    options.binary_location = super_scraper.CHROMIUM_LOCATION
     options.add_argument("--no-sandbox")
     options.add_argument("--window-size=1280,4000")
-    super_scraper = SuperScraper()
 
     if not SuperScraper.LAST_FOUR_SSN:
         print("LAST_FOUR_SSN is required for ididata.com — set it in .env and retry.")

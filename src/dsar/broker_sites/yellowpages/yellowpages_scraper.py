@@ -122,8 +122,8 @@ async def fill_and_submit(tab, request_type_label, screenshot_label, super_scrap
         if captcha_field:
             await captcha_field.scroll_into_view()
         await asyncio.sleep(1)
-        await tab.take_screenshot(f"yellowpages_dry_run_{screenshot_label}.png")
-        print(f"Screenshot saved to yellowpages_dry_run_{screenshot_label}.png")
+        await tab.take_screenshot(f"resources/screenshots/yellowpages_dry_run_{screenshot_label}.png")
+        print(f"Screenshot saved to resources/screenshots/yellowpages_dry_run_{screenshot_label}.png")
         return
 
     print(f"\nForm filled for '{request_type_label}'.")
@@ -140,10 +140,10 @@ async def fill_and_submit(tab, request_type_label, screenshot_label, super_scrap
 
 async def main():
     options = ChromiumOptions()
-    options.binary_location = "/snap/bin/chromium"
+    super_scraper = SuperScraper()
+    options.binary_location = super_scraper.CHROMIUM_LOCATION
     options.add_argument("--no-sandbox")
     options.add_argument("--window-size=1280,3000")
-    super_scraper = SuperScraper()
 
     # (aria-label, screenshot label)
     requests = [("Data Request", "access")]

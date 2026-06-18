@@ -25,10 +25,10 @@ DELETE_CHECKBOX_ID = "choice_11_5_2"
 
 async def main():
     options = ChromiumOptions()
-    options.binary_location = "/snap/bin/chromium"
+    super_scraper = SuperScraper()
+    options.binary_location = super_scraper.CHROMIUM_LOCATION
     options.add_argument("--no-sandbox")
     options.add_argument("--window-size=1280,3000")
-    super_scraper = SuperScraper()
 
     async with Chrome(options=options) as browser:
         tab = await browser.start()
@@ -72,8 +72,8 @@ async def main():
             if submit_btn:
                 await submit_btn.scroll_into_view()
             await asyncio.sleep(2)
-            await tab.take_screenshot("affinityanswers_dry_run.png")
-            print("Screenshot saved to affinityanswers_dry_run.png")
+            await tab.take_screenshot("resources/screenshots/affinityanswers_dry_run.png")
+            print("Screenshot saved to resources/screenshots/affinityanswers_dry_run.png")
             return
 
         submit_btn = await tab.find(id="gform_submit_button_11", raise_exc=False)

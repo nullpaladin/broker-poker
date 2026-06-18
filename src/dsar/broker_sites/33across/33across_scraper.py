@@ -38,7 +38,7 @@ async def submit_request(tab, request_type, label, super_scraper):
     time.sleep(0.5)
 
     if SuperScraper.DRY_RUN:
-        await tab.take_screenshot(path=f"validation/33across_{request_type}_dry_run.png")
+        await tab.take_screenshot(path=f"resources/screenshots/33across_{request_type}_dry_run.png")
         print(f"DRY RUN: would submit '{label}' for {SuperScraper.EMAIL}")
         await asyncio.sleep(2)
         return
@@ -52,9 +52,9 @@ async def submit_request(tab, request_type, label, super_scraper):
 
 async def main():
     options = ChromiumOptions()
-    options.binary_location = "/snap/bin/chromium"
-    options.add_argument("--no-sandbox")
     super_scraper = SuperScraper()
+    options.binary_location = super_scraper.CHROMIUM_LOCATION
+    options.add_argument("--no-sandbox")
 
     requests = list(REQUESTS)
     if SuperScraper.REMOVE_INFORMATION:

@@ -21,9 +21,9 @@ DO_NOT_SELL_CHECKBOX_XPATH = '//input[@name="gender"]'
 
 async def main():
     options = ChromiumOptions()
-    options.binary_location = "/snap/bin/chromium"
-    options.add_argument("--no-sandbox")
     super_scraper = SuperScraper()
+    options.binary_location = super_scraper.CHROMIUM_LOCATION
+    options.add_argument("--no-sandbox")
 
     async with Chrome(options=options) as browser:
         tab = await browser.start()
@@ -44,7 +44,7 @@ async def main():
         time.sleep(0.5)
 
         if SuperScraper.DRY_RUN:
-            await tab.take_screenshot(path="validation/parasolleads_dry_run.png")
+            await tab.take_screenshot(path="resources/screenshots/parasolleads_dry_run.png")
             print(f"DRY RUN: would submit opt-out for {SuperScraper.EMAIL}")
             await asyncio.sleep(3)
             return

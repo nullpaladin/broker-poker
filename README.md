@@ -77,16 +77,21 @@ Broker Poker is an application that assists users to receive a copy of and delet
   - **CAPTCHA solution required**
   - URL: https://privacyportal-cdn.onetrust.com/dsarwebform/b38ccfa3-c14a-451e-bf1d-974d1e278b7c/6214ac53-9059-474d-a847-800250556e9d.html
   - Note: OneTrust CDN Angular DSAR form. Exercises Do Not Sell, Access, and Delete (gated). Subject type and request type are Angular role="button" divs (click_using_js). State is a text input (full state name). reCAPTCHA v2 checkbox requires manual solve.
-- [ ] automotivemastermind.com
+- [x] automotivemastermind.com
   - URL: https://privacyportal.onetrust.com/webform/5cb57702-8ef7-437e-a62b-408fe78cd310/93391c3d-d6c8-45b1-a169-39a0b7f9fb74
-- [ ] babelstreet.com
+  - DNS URL: https://privacyportal.onetrust.com/webform/5cb57702-8ef7-437e-a62b-408fe78cd310/e5f5cb47-9b36-4ba9-920b-fe50ef4dc0c5
+  - Note: S&P Global OneTrust Angular portal. Two forms: (1) DNS form (no CAPTCHA) — Do Not Sell / Opt-Out of Targeted Advertising, auto-submitted; (2) Main form (reCAPTCHA v2 manual) — Access, Correct, Data Portability, Opt-Out of Profiling, and Delete (gated). Subject type "Customer". Division = "Not Sure". Country + State autocomplete (click + keyboard). State appears after Country; request types appear after Subject Type.
+- [x] babelstreet.com
   - URL: https://privacyportal.onetrust.com/webform/43f52ed9-df36-44dc-94b6-ce2f8458ca29/2ddc0d62-7d6a-4de2-b5c4-9f9f68116970
+  - Note: OneTrust Angular portal. Exercises Access, Edit/Update, Object to Processing, Data Portability, Do Not Sell/Share, and Delete (gated) — all multi-selected in one submission. Subject type "Other". State and Country are independent autocompletes (both visible from load). Phone country code vt-input-8 (type "1"). Confirm Email required. formField78DSARElement = Today's Date (type MM/DD/YYYY). captchaCode image CAPTCHA — manual entry required in live mode.
 - [ ] bi2technologies.com
   - URL: https://bi2technologies.com/contact-us/
 - [ ] billtrust.com
   - URL: https://privacyportal.onetrust.com/webform/82a6a736-b3a7-4e87-a2fd-04a39b7d2b19/2f5dc7b8-7698-4623-82d2-b2b969ef901e
-- [ ] blackbaud.com
+  - Note: URL redirects to Billtrust's privacy policy page instead of DSAR form — form may have moved. Needs fresh URL lookup.
+- [x] blackbaud.com
   - URL: https://blackbaud-privacy.my.onetrust.com/webform/170c909c-5ed2-49f1-a59c-2a44be2f6f27/de22df57-d96c-480a-afb0-ac090b928192
+  - Note: Custom OneTrust Angular portal. formField100DSARElement = "Are you an authorized agent?" Yes/No listbox — select "No". Country + State independent autocompletes. Consumer subject type. Request types: Access, Opt-out, Correction, Deletion (gated). No phone field. Confirm email required. Image CAPTCHA (manual). formFields 93/98/101/102 are display text only.
 - [ ] bridg.com
   - URL: https://datagrail.cardlytics.com/
 - [ ] catalist.us
@@ -108,8 +113,9 @@ Broker Poker is an application that assists users to receive a copy of and delet
   - Note: SPA — curl returns no form HTML. Needs pydoll.
 - [ ] clearview.ai
   - URL: https://www.clearview.ai/privacy-and-requests
-- [ ] clientcommand.com
+- [x] clientcommand.com
   - URL: https://privacyportal-cdn.onetrust.com/dsarwebform/555c3377-7eb2-4e7a-bf30-c408de4ab483/70df6685-8289-4d72-a9d7-9a736b3b837f.html
+  - Note: OneTrust CDN Angular form (Summit Resources, LLC d/b/a Client Command). Subject "Marketing Recipient". Request type buttons (Know/Access, Opt-Out, Deletion) only appear after all personal info fields (including state autocomplete) are filled. One submission per right. State is an autocomplete combobox (ArrowDown+Enter). Phone country code vt-input-9 (type "1" for US +1). captchaCode image CAPTCHA requires manual entry in live mode.
 - [ ] connectedinvestors.com
   - URL: https://firstam.service-now.com/x_farf2_dp_request_ci_opt_out.do?sysparm_id=fd58b253875b219095280ed7dabb359a
 - [ ] corporationwiki.com
@@ -126,23 +132,26 @@ Broker Poker is an application that assists users to receive a copy of and delet
 - [ ] datonics.com
   - URL: https://www.datonics.com/privacy/privacy-choices
   - Note: SPA — curl returns no form HTML. Needs pydoll.
-- [ ] deeprootanalytics.com
+- [x] deeprootanalytics.com
   - URL: https://privacy.deeprootanalytics.com/
+  - Note: Ethyca/Fides portal. Cards: Access, Delete (gated), Opt-out (unavailable — "Consent management is unavailable in your area"). Each card navigates to full form (email, first/last name, addr1, city, state text input, zip; phone optional). After Continue: email verification code sent (id="code", "Submit code" button). No CAPTCHA. Live mode prompts user to enter code from inbox.
 - [ ] deloitte.com
   - URL: https://datasubject.deloitte.com/
 - [x] directmail.com
   - **CAPTCHA solution required**
   - URL: https://www.directmail.com/mail_preference/
   - Note: reCAPTCHA v2 requires manual solve or 2captcha (site key: 6Le9aeApAAAAAMRr0iCDa65cZ1iGkHUI1FwEAKZH). Step 2 category opt-out is automated.
-- [ ] disqus.com
+- [x] disqus.com
   - URL: https://privacyportal-cdn.onetrust.com/dsarwebform/bc2d3301-11a5-4de5-b15e-ce796187a352/9a049fa1-37af-4598-a87a-d0df2e2d904b.html
-- [ ] dstillery.com
+  - Note: OneTrust CDN Angular form. Exercises Access, Opt-Out of Sale/Sharing, Opt-Out of Sensitive PI, and Delete (gated on REMOVE_INFORMATION). Subject type "Disqus User". Country and state both use click+keyboard+find(text=) autocomplete pattern. State field only appears after country is selected. reCAPTCHA v2 requires manual solve before submit.
+- [x] dstillery.com
   - URL: https://privacyportal-eu-cdn.onetrust.com/dsarwebform/246426b7-49c6-4bf5-879b-d3fdd4cbc15d/35502283-7b19-4b67-b3e0-ede06d3820c5.html
-- [ ] eltoro.com
+  - Note: OneTrust EU CDN Angular form. Exercises Access, Opt-Out, and Delete (gated on REMOVE_INFORMATION). Subject type "A Consumer". Fields: firstName, lastName, email only — no country/state/phone/address. reCAPTCHA v2 requires manual solve before submit.
+- [x] eltoro.com
   - Right to Access URL: https://eltoro.com/access-form/
   - Right to Opt-Out URL: https://eltoro.com/do-not-sell-my-personal-information/
   - Right to Delete URL: https://eltoro.com/access-deletion-form/
-  - Note: SPA — curl returns no form HTML on opt-out URL. Needs pydoll.
+  - Note: Each eltoro.com page embeds a separate OneTrust Angular portal (privacyportal.onetrust.com). Scraper navigates directly to the embedded form URLs. Access: all 4 sub-types (Confirm, Categories, Sold/Shared, Pieces) in one submission with reCAPTCHA v2 (manual solve). Opt-Out: Limit Sensitive + Do Not Sell/Share in one submission with image CAPTCHA (captchaCode). Delete (gated): reCAPTCHA v2 (manual solve). Email verification required within 5 days. No phone field.
 - [x] enformion.com
   - **CAPTCHA solution required**
   - URL: https://www.enformion.com/opt-out/
@@ -177,8 +186,9 @@ Broker Poker is an application that assists users to receive a copy of and delet
   - TODO: Remove from list?
   - Only Opt-Out/Delete: https://growinglibraries.com/do-not-sell
   - Note: SPA — curl returns no form HTML. Needs pydoll.
-- [ ] hartehanks.com
+- [x] hartehanks.com
   - URL: https://privacy-in-action.hartehanks.com/
+  - Note: Custom vt-autocomplete OneTrust portal. Subject type "Individual" via ArrowDown+Enter. Country via ArrowDown+Enter. State via JS native setter + vt-option click (full names). Text fields via JS Angular InputEvent dispatch. Request types are toggle buttons (role=option multi-select). After "Request My Data": infoRequestOptionDSARElement sub-field for which category of data to receive. After "Delete Data": deleteRequestConfirmation sub-field for "Yes". reCAPTCHA v2 manual. Exercises Request My Data (Access), Do Not Sell, Delete (gated).
 - [x] hibu.com
   - URL: https://hibu.com/legal/privacy-form
   - Note: Server-rendered POST form, no captcha. Exercises Access, Opt-Out (Sale/Share), and Delete (gated on REMOVE_INFORMATION). "Correct my Personal Information" is on the site but requires specifying what to correct — not automated. Visitor type fixed to "Visitor / User of hibu.com or yellowbook.com".
@@ -186,12 +196,14 @@ Broker Poker is an application that assists users to receive a copy of and delet
   - URL: https://preferences.hubspot.com/?locale=en
 - [ ] ice.com
   - URL: https://ice-privacy.my.onetrust.com/webform/cca3ac39-00b6-45f4-819b-bec660878b46/124d1692-407b-4384-9036-bef3ece530e3
-- [ ] ididata.com
+- [x] ididata.com
   - Right to Access URL: https://www.ididata.com/personal-information-request/
   - Right to Opt-Out URL: https://www.ididata.com/do-not-sell-my-personal-information/
   - Right to Delete URL: https://www.ididata.com/deletion-request/
-- [ ] inmar.com
+  - Note: Salesforce Web-to-Case forms (one per right type). Minnesota supported. Fields: name, address, state (full name), zip, phone, email, last4ss (LAST_FOUR_SSN required), DOB month/day/year selects, lived6Months (Yes), deliveryChoice (email, Access only). hp-prefixed selects are honeypots — left empty. hplegalAgree is a honeypot checkbox — left unchecked. reCAPTCHA v2 manual solve.
+- [x] inmar.com
   - URL: https://privacyportal-cdn.onetrust.com/dsarwebform/fa9f2f77-33ff-473b-ae55-579e2e693a91/ea2fadbb-3208-459b-8ed6-c975b6a9901c.html
+  - Note: OneTrust CDN Angular form (same URL as owneriq.com). Exercises Access My Information and Delete My Information (gated on REMOVE_INFORMATION) — no Opt-Out. Subject: "Consumer located in CA, CO, CT, DE, IN, IA, KY, MD, MN, MT, NE, NH, NJ, OR, RI, TN, TX, UT, or VA". Delivery "Online" (Access only — no delivery selector for Delete). formField20DSARElement = "I am submitting this request as:" (optional, type "Consumer"). formField21DSARElement = phone. Country: type + find(text=). State: ArrowDown+Enter. On-behalf-of question: click "No". Delete additionally: "Are you sure you want to delete your data?" → click last "Yes" (find_all to skip on-behalf-of Yes). reCAPTCHA v2. Two-step email verification after submission.
 - [ ] inmarket.com
   - URL: https://preferences.inmarket.com/?locationCode=US-MN
   - Note: SPA — curl returns no form HTML. Needs pydoll.
@@ -199,9 +211,9 @@ Broker Poker is an application that assists users to receive a copy of and delet
   - URL: https://consumer.intellicorp.net/Criteria
 - [ ] intelius.com
   - URL: https://app.intelius.com/privacy-center/
-- [ ] jmr-media.com
+- [x] jmr-media.com
   - URL: https://jmr-media.com/do-not-sell
-  - Note: Opt-out only (Do Not Sell). SPA with Netlify-registered hidden forms. Fields: firstName, lastName, email. No captcha. POST to Netlify endpoint with form-name=donotsell.
+  - Note: React/Next.js form. Exercises Opt-Out of Sale/Share, Limit Sensitive PI, Access, and Delete (gated on REMOVE_INFORMATION). Request type via radio buttons (name=requestType). Native <select id="state"> with 2-letter abbreviation values. Cloudflare Turnstile auto-completes in headless Chromium. Honeypot field id="website" left untouched.
 - [ ] jobot.com
   - URL: https://forms.gle/y8LzfvuoJWRAgqNL9
 - [x] jungroup.com
@@ -217,8 +229,9 @@ Broker Poker is an application that assists users to receive a copy of and delet
   - Note: Opt-Out only by Mobile Ad ID (ADVERTISING_ID required, UUID format). No Access or Delete form. reCAPTCHA v2 checkbox requires manual solve; submit button disabled until reCAPTCHA callback enables it.
 - [ ] leadloft.com
   - URL: https://www.leadloft.com/user-agreements/personal-data
-- [ ] leadpost.com
+- [x] leadpost.com
   - URL: https://client.leadpost.com/PrivacyRequest
+  - Note: Server-rendered POST form. Exercises Opt-Out (future data collection), Access (copy of data + list of recipients), and Delete (gated). State requires 2-letter abbreviation. reCAPTCHA v2 requires manual solve before submit. Single submission for all rights.
 - [ ] lightboxre.com
   - URL: https://urldefense.proofpoint.com/v2/url?u=https-3A__my.datasubject.com_16BXQXSvkBnuN4W2w_51306&d=DwMFAg&c=euGZstcaTDllvimEN8b7jXrwqOf-v5A_CdpgnVfiiMM&r=wUxcY8xds7NwcPyJ-9PjbzzSWU5GA_GcSHVVxAQ-_ck&m=QP3FQwlf_Gn97KYLT2H1snnHVQkjfxCiTy2pY0dms5U21w9wQ-LaUqOvy8LubeLm&s=xCInMnbg7DMZHZqxuo9y-iQLUh5jfATJCSvt27W0ROM&e=
 - [ ] lightcast.io
@@ -226,15 +239,17 @@ Broker Poker is an application that assists users to receive a copy of and delet
   - Note: No Minnesota-specific choices, just a general thing. Will need to add in text
 - [ ] liveramp.com
   - URL: https://liveramp.com/privacy/my-privacy-choices/
-- [ ] madisonlogic.com
+- [x] madisonlogic.com
   - URL: https://madisonlogic-privacy.my.onetrust.com/webform/b7449bea-44c6-4823-a2ac-30a8f33047d0/9a375b0c-9030-44ce-bfd3-217fd7a71993
+  - Note: Custom OneTrust portal. Country must be filled first to reveal State, subject type ("Data Subject"), and request type buttons. Both the main request type buttons and opt-out sub-option buttons are SINGLE-SELECT — one submission per right. "Opt out" reveals two sub-options ("Partner Services Marketing", "Personalized Content"), each requiring a separate submission. "Data Deletion" shows a Yes/No confirmation; click Yes. requestDetailsDSARElement is always required. Phone country code vt-input-7. captchaCode image CAPTCHA. Data Deletion gated on REMOVE_INFORMATION.
 - [ ] malvernmedia.com
   - URL: https://privacyportal.privacypillar.com/dsar/form?formid=6e6ff4b8-2296-4589-ae7f-563fa743ec2d&orgid=369c8ff9-8ffb-4308-8362-f01691e77db8&propid=64c8904f-8bac-4dd9-8e6c-d052be1918a2&status=publish
 - [ ] mchdata.com
   - URL: https://www.mchdata.com/about/ccpaemail
   - Note: ASP.NET server-rendered form with __RequestVerificationToken. reCAPTCHA v2 (site key: 6LdxH94UAAAAAHLdMKLtxaN-s7R1oW0WGdj81bYZ). Only email + IsCaliforniaResident radio — California-focused, no Minnesota option.
-- [ ] mediaocean.com
+- [x] mediaocean.com
   - URL: https://www.mediaocean.com/your-privacy-rights
+  - Note: Marketo form (mktoForm_3843). Exercises Access (Obtain Info), Opt-Out (Sale), and Delete (gated). Fields: FirstName, LastName, Email, State (full name), areYoutheConsumer ("Yes"), cCPARequest (select). One submission per right type. No CAPTCHA detected.
 - [ ] messagedigital.com
   - URL: https://messagedigital.com/my-data
   - Note: SPA — curl returns no form HTML. Needs pydoll.
@@ -244,28 +259,35 @@ Broker Poker is an application that assists users to receive a copy of and delet
 - [ ] mrginc.com
   - URL: https://www.mrginc.com/do-not-sell-my-personal-information
   - Note: SPA — curl returns no form HTML. Needs pydoll.
-- [ ] narvar.com
+- [x] narvar.com
   - URL: https://narvar.my.onetrust.com/webform/04b3731f-2a9a-42ce-bd6b-106d4b4ec3bf/a7c944bf-3cec-4f00-9dc5-dea5bf2b6f4f
+  - Note: Custom OneTrust portal. Subject "End consumer". Exercises Access, Portability, Rectification, Restriction unconditionally; Deletion gated on REMOVE_INFORMATION — all in one submission. Only email required (no name/address). formField78DSARElement = "Order number or Email address" (optional, left blank). reCAPTCHA v2 — manual solve before submit.
 - [ ] nationalopinioninstitute.com
   - URL: https://privacyportal.onetrust.com/webform/77dff651-9f08-40cd-99fe-a7c487b2504d/afcce4ab-fd72-4990-a972-58e24d9110a7
-- [ ] nexxagroup.com
+  - Note: "The requested content is no longer available" — form removed. Needs fresh URL lookup.
+- [x] nexxagroup.com
   - URL: https://privacyportal.onetrust.com/webform/c02129bc-bbab-43a6-a0b4-175489cb893e/156ac96a-9d7e-4fe6-bab8-a44df779202b
-- [ ] nexxen.com
+  - Note: OneTrust Angular portal. Subject type "Myself". Exercises Access, Do Not Sell/Share, and Delete (gated) — multi-selected in one submission. No Correct right available. Country and State are independent autocompletes; Country may pre-fill via IP. Phone country code vt-input-10 (type "1"). Acknowledgement section is informational text (no checkbox). captchaCode image CAPTCHA — manual entry required in live mode.
+- [x] nexxen.com
   - URL: https://nexxen.com/privacy-data-subject-rights-request/
+  - Note: OneTrust Angular portal (privacyportal.onetrust.com) embedded on the page. Form requires one separate submission per right (stated explicitly). Country → State autocomplete reveals subject type ("Customer"), request types, and acknowledgement ("Yes"). Exercises Access/Portability, Correct, Do Not Sell/Share, Opt-out Sensitive, Opt-out Profiling/Ads unconditionally; Delete gated on REMOVE_INFORMATION. reCAPTCHA v2 — manual solve in live mode.
 - [ ] neighbor.report
   - URL: https://neighbor.report/remove
   - Note: SPA — curl returns no form HTML. Needs pydoll.
 - [ ] oracle.com
   - URL: https://www.oracle.com/legal/data-privacy-inquiry-form/
-- [ ] outbrain.com
+- [x] outbrain.com
   - URL: https://dsr.outbrain.com/recommendations-settings/data-rights/en
-- [ ] owneriq.com
+  - Note: Device-based privacy portal only. The opt-out toggle operates on the current browser/device (cookie-based) and the "My Data Rights" section requires a stored device profile to function — the Proceed verification modal does not dismiss in headless Chrome without one. No traditional email/name DSAR form exists on this portal. Cannot be meaningfully automated.
+- [x] owneriq.com
   - URL: https://privacyportal-cdn.onetrust.com/dsarwebform/fa9f2f77-33ff-473b-ae55-579e2e693a91/ea2fadbb-3208-459b-8ed6-c975b6a9901c.html
+  - Note: OneTrust CDN Angular form (same URL as inmar.com). Exercises Access and Delete (gated on REMOVE_INFORMATION) — no Opt-Out available. Subject type is a long consumer string covering multiple US states. Delivery method "Online" must be selected. Phone required (formField21DSARElement). Two-step email verification required after submission.
 - [x] parasolleads.com
   - URL: https://www.parasolleads.com/ccpa-opt-out-form.php
   - Note: Opt-out only (Do Not Sell). Server-rendered POST form, no captcha. Address/City/State fields share name="LastName" internally — positional XPaths used.
-- [ ] path2response.com
+- [x] path2response.com
   - URL: https://privacyportal-cdn.onetrust.com/dsarwebform/2de26f06-de6f-45a7-8e1d-7d1148a3f301/draft/7a5dc7d1-cc7e-43a8-9f24-702807deb65b.html
+  - Note: OneTrust CDN Angular form. Exercises Do Not Sell or Share / Opt-Out, Access My Data, and Delete My Data (gated). No subject type step. formField17DSARElement = "Are you submitting this request for yourself?" (autocomplete: ArrowDown+Enter for "Yes"). Country field uses ArrowDown+Tab (not Enter — Enter doubles the text on this form). State uses ArrowDown+Enter. Phone country code vt-input-5. Affirmation "Yes" button required at bottom. reCAPTCHA v2 requires manual solve before submit.
 - [ ] pch.com
   - URL: https://accounts.pch.com/privacy/rtc
 - [ ] phonebooks.com
@@ -279,8 +301,9 @@ Broker Poker is an application that assists users to receive a copy of and delet
   - **CAPTCHA solution required**
   - URL: https://optout.popacta.com/contact-us
   - Note: General DSAR contact form (no right-type picker); rights expressed in free-text message (250-char limit). reCAPTCHA v3 invisible auto-injects token via page JS before submit. Exercises Access, Opt-Out, and Delete (gated).
-- [ ] propertyradar.com
+- [x] propertyradar.com
   - URL: https://privacyportal.onetrust.com/webform/c3eb779a-028a-4045-aefc-ac78be730689/6f6c2bef-b565-4753-adc6-95585d7a9486
+  - Note: OneTrust portal. No subject type step — uses "Consumer/Individual" submitter type. Exercises Do Not Sell, Access (Limited States), Correct (Limited States) unconditionally; Delete (Limited States) gated on REMOVE_INFORMATION. All rights in one submission. State uses formField16DSARElement (autocomplete: ArrowDown+Enter). Phone country code vt-input-5. captchaCode image CAPTCHA. File upload optional (skipped).
 - [ ] propertyreach.com
   - URL: https://www.propertyreach.com/privacy-rights
 - [ ] publicdatausa.com
@@ -292,8 +315,9 @@ Broker Poker is an application that assists users to receive a copy of and delet
   - Note: Server-rendered form covering doNotSell, delete, and copy (access). Fields: requestType select, customerId (unclear), firstName, obfuscated lastName field (name="f3bcaa1e009cd87d2" — anti-scraping), city, States select (full state names as values). reCAPTCHA (data-action="pis-opt-out-search" suggests v3). Needs 2captcha.
 - [ ] pubmatic.com
   - URL: ??? Look through emails
-- [ ] qualcomm.com
+- [x] qualcomm.com
   - URL: https://privacyportal.onetrust.com/webform/b0a5f2cc-0b29-4907-89bf-3f6b380a03c8/7ab89abb-0d42-492a-a324-0570883e2c11
+  - Note: OneTrust portal. Subject type "Other". After clicking "Other", formField21DSARElement appears (required: relationship explanation) filled with "Consumer / member of the public". Request type buttons are SINGLE-SELECT despite "(s)" label — one submission per right. Requires 2s wait after clicking "Other" for Angular re-render before request type buttons register clicks. Exercises Access, Data Portability, Opt out, Object to Processing, Update Data (Correct), Review Automated Decision per submission; Data Deletion gated on REMOVE_INFORMATION. No image CAPTCHA — reCAPTCHA v2 requires manual solve. Email verification required within 30 days.
 - [ ] quantcast.com
   - URL: https://www.quantcast.com/privacy/data-subject-rights/
 - [ ] quinstreet.com
@@ -305,10 +329,12 @@ Broker Poker is an application that assists users to receive a copy of and delet
 - [x] recordsfinder.com
   - URL: https://recordsfinder.com/optout/
   - Note: Opt-out only — no Right to Access or Right to Delete form available on site.
-- [ ] reklaimyours.com
+- [x] reklaimyours.com
   - URL: https://www.reklaimyou.com/optout
-- [ ] reonomy.com
+  - Note: React form, no CAPTCHA. Exercises Do Not Sell/Share, Access, and Delete (gated). One submission per right type. Radio buttons are custom role="radio" button elements (click_using_js). Jurisdiction set to "other" (Minnesota not listed).
+- [x] reonomy.com
   - URL: https://privacyportal-cdn.onetrust.com/dsarwebform/ed2a4eae-cadd-4d40-9f21-cf27556d3a21/49fbe5ce-5ee2-487b-9b4f-bfdab733819b.html
+  - Note: California-focused DSAR form. Exercises Access My Information, Do Not Sell My Information, and Delete My Information (gated). Subject "California Consumer". Delivery "Online". One submission per right. State field has non-standard ID formField16DSARElement (autocomplete: ArrowDown+Enter). Phone country code vt-input-8 (type "1" → auto-populates US +1). Acknowledgement is display text only (no checkbox). captchaCode image CAPTCHA requires manual entry in live mode.
 - [ ] refinitiv.com
   - URL: https://privacyportal-de.onetrust.com/webform/5f7a2da0-bed0-45e8-ac2c-c1f297e2efdc/4ae30ef5-8107-4353-a0b5-1bf34dd647f6
 - [ ] revenuebase.ai
@@ -318,10 +344,12 @@ Broker Poker is an application that assists users to receive a copy of and delet
 - [ ] rpmleader.com
   - URL: https://rpmleader.com/unsubscribe
   - Note: curl returns 1 form element (email unsubscribe only). Not a full DSAR form — opt-out/unsubscribe only.
-- [ ] rrd.com
+- [x] rrd.com
   - URL: https://privacyportal.onetrust.com/webform/45e4be25-919b-483f-9f95-12809576a2b3/6e633594-9a81-48bb-97ab-6fb29bf46019
-- [ ] samba.tv
+  - Note: OneTrust portal (Valassis, an RRD Company). One submission covers all rights (multi-select). Subject "Consumer". emailDSARElement = communication/reply-to email; formField87DSARElement = consumer email for data lookup (both filled with EMAIL). State (stateDSARElement) appears after Country is selected. Phone country code vt-input-12. Exercises Opt-Out (Do Not Sell, Targeted Advertising, Profiling, Sensitive), Correct, Know (Categories + Specific Pieces), Copy/Access. Delete gated on REMOVE_INFORMATION. captchaCode image CAPTCHA requires manual entry in live mode.
+- [x] samba.tv
   - URL: https://privacyportal-cdn.onetrust.com/dsarwebform/87c5ee85-893d-4972-ba26-2e82b743d041/d84d9664-facb-4de3-85fd-a2e339b73dbf.html
+  - Note: OneTrust CDN Angular form. Exercises Do Not Sell, Object to Processing, Access, and Delete (gated on REMOVE_INFORMATION). Subject "Myself " (trailing space in aria-label). Required "Do you have a Samba Enabled Smart TV?" question answered No. Country autocomplete; phone country code vt-input-7 (type "1" → auto-selects United States (+1)). captchaCode image CAPTCHA requires manual entry in live mode.
 - [ ] seekout.com
   - URL: https://www.seekout.com/privacy/choices/
   - Note: SPA — curl returns no form HTML. Needs pydoll.
@@ -335,26 +363,32 @@ Broker Poker is an application that assists users to receive a copy of and delet
   - URL: https://thatsthem.com/optout
 - [ ] spycloud.com
   - URL: https://spycloud.com/legal/dsar/
-- [ ] spydailer.com
-  - URL: https://www.spydialer.com/Consumers/
+- [x] spydailer.com
+  - URL: https://www.spydialer.com/Consumers/wizards.aspx
+  - Rights: Delete only (removal tool — no separate Access/Opt-Out form)
+  - Wizard: navigate directly to wizards.aspx; select state (MN abbreviation via JS); reCAPTCHA v2 manual; CONTINUE → records list → Delete All → confirm
+  - Note: START button on /Consumers/ opens wizard in same page, but direct navigation to wizards.aspx is reliable
 - [ ] swoop.com
   - URL: https://swoop.com/your-privacy-choices/
   - Note: curl returns Gravity Forms forms but they are newsletter/search only — no DSAR form in the server-rendered HTML. Needs pydoll to inspect rendered content.
-- [ ] system1.com
-  - URL: https://system1.com/terms/privacy-policy/privacy-inquiries
+- [x] system1.com
+  - URL: https://privacyportal.onetrust.com/webform/f25d1283-339b-438f-9445-922b74e13939/a65f494a-fd3d-4117-8051-f2c0f0d66133
+  - Note: OneTrust portal (embedded as iframe on System1's privacy-inquiries page). Exercises Do Not Sell, Disclosure of Information We Share (access), and Data Deletion (gated). Country uses ArrowDown+Enter. Request types are dropdown options (not role=button). formField50DSARElement = "Which website did you visit?" (filled with "system1.com"). No state field. reCAPTCHA v2 manual solve. One submission per right type.
 - [ ] t-mobile.com
   - URL: https://privacyportal-t-mobile.my.onetrust.com/webform/d4a925f0-4ebf-40ba-817b-bccc309e602f/7831d667-1ebc-4b1e-a941-e545cb0d0523
 - [ ] teads.com
   - TODO: Privacy policy says email, look through emails
-- [ ] techtarget.com
+- [x] techtarget.com
   - URL: https://techtarget.zendesk.com/hc/en-us/requests/new?ticket_form_id=360004852434
+  - Note: Zendesk CCPA form. Issue type select first (360004852434 = CCPA). Request Type uses Zendesk "Nesty" tagger widget (hidden input + a.nesty-input trigger + li items with tagger value as id). Open dropdown via JS (nextElementSibling.click()), click li by id for access/optout; for delete expand "Right to be DELETED" nesty-expand li via JS then click sub-option by id. No CAPTCHA. Exercises Access, Opt-Out of Sale/Sharing, Delete (gated).
 - [ ] thebridgecorp.com
   - URL: https://www.thebridgecorp.com/opt-out/
   - Note: The /opt-out/ page contains only Complianz cookie-consent checkboxes (functional/preferences/statistics/marketing) — not a DSAR form. Actual DSAR mechanism unclear; may require email.
 - [ ] transunion.com
   - URL: https://service.transunion.com/dss/ccpa_optout.page
-- [ ] tunnldata.com
+- [x] tunnldata.com
   - URL: https://privacy.tunnldata.com/
+  - Note: Ethyca/Fides portal. Cards: "Access your data" and "Delete your data and Opt Out of Data Sale" (gated on REMOVE_INFORMATION). Fields: email, first/last name, addr1, city, state (text), zip; phone optional (phone_num for Access, phone for Delete). No CAPTCHA. Email verification code required after submission. Correct is email-only (privacy_correction@tunnldata.com) — not automated.
 - [ ] upwave.com
   - URL: https://surveywall-api.survata.com/opt-out/opt-out
 - [ ] usa-people-search.com
@@ -372,11 +406,12 @@ Broker Poker is an application that assists users to receive a copy of and delet
   - TODO: Look without a VPN, it only lets you do this 
 - [ ] vrtcal.com
   - URL: # TODO: No DSAR? It's per-device opt out but what about Right to Access and whatnot?
-- [ ] wiland.com
-  - Right to Access URL :https://privacyportal.onetrust.com/webform/7567ece3-2d27-4ee0-a506-1153cb7a62b7/a1e6c0c7-b7ff-45f9-9c62-7f1eb47a6e77 
-  - Right to Opt-Out URL: https://privacyportal.onetrust.com/webform/7567ece3-2d27-4ee0-a506-1153cb7a62b7/718ad3c3-e1f5-4463-a301-2d6f84938588
-  - Right to Delete URL: https://privacyportal.onetrust.com/webform/7567ece3-2d27-4ee0-a506-1153cb7a62b7/718ad3c3-e1f5-4463-a301-2d6f84938588
-- [ ] yellowpages.com
+- [x] wiland.com
+  - Right to Access URL: https://privacyportal.onetrust.com/webform/7567ece3-2d27-4ee0-a506-1153cb7a62b7/a1e6c0c7-b7ff-45f9-9c62-7f1eb47a6e77
+  - Right to Opt-Out / Right to Delete URL: https://privacyportal.onetrust.com/webform/7567ece3-2d27-4ee0-a506-1153cb7a62b7/718ad3c3-e1f5-4463-a301-2d6f84938588
+  - Note: Custom OneTrust forms (no country/state autocomplete). State field (formField79DSARElement) requires 2-letter abbreviation — converted from STATE env var. Access form has Electronic Delivery option (default) and optional file upload (skipped). Delete/Opt-Out URL also covers Correct per Wiland privacy page. Email uses id="email" not emailDSARElement. Authorization checkbox clicked via aria-label. captchaCode image CAPTCHA requires manual entry in live mode. Delete/Opt-Out gated on REMOVE_INFORMATION.
+- [x] yellowpages.com
   - URL: https://privacyportal-cdn.onetrust.com/dsarwebform/dd6500c7-03cb-45b0-8bed-97ece55a892d/cfcefb69-41db-4aee-bd00-c702df72ee0f.html
+  - Note: OneTrust CDN Angular form (Thryv, Inc.). Subject "Myself" + role "Consumer" + site picker "I am not a registered user of any of these sites or apps." Data Request sub-options (categories, specific pieces, 3rd parties) all selected. Opt-Out expressed in Additional Request Information (no dedicated button). Delete gated on REMOVE_INFORMATION. Country and state autocomplete use ArrowDown+Enter keyboard nav. captchaCode image CAPTCHA requires manual entry in live mode.
 - [ ] youradv.com
   - URL: https://bigidprivacy.cloud/consumer/#/fHveyhjnOM/10004

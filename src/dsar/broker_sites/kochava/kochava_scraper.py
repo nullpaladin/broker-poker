@@ -42,8 +42,8 @@ async def main():
             print(
                 f"DRY RUN: would submit opt-out for MAID={SuperScraper.ADVERTISING_ID}"
             )
-            await tab.take_screenshot("kochava_dry_run.png")
-            print("Screenshot saved to kochava_dry_run.png")
+            await tab.take_screenshot("resources/screenshots/kochava_dry_run.png")
+            print("Screenshot saved to resources/screenshots/kochava_dry_run.png")
             return
 
         print(f"\nMAID field filled: {SuperScraper.ADVERTISING_ID}")

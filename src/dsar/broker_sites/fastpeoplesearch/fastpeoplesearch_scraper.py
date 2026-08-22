@@ -17,10 +17,10 @@ URL = "https://www.fastpeoplesearch.com/removal"
 
 async def main():
     opts = ChromiumOptions()
-    opts.binary_location = "/snap/bin/chromium"
+    super_scraper = SuperScraper()
+    opts.binary_location = super_scraper.CHROMIUM_LOCATION
     opts.add_argument("--no-sandbox")
     opts.add_argument("--window-size=1280,900")
-    super_scraper = SuperScraper()
 
     async with Chrome(options=opts) as browser:
         tab = await browser.start()

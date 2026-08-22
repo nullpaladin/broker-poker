@@ -69,10 +69,10 @@ async def _js_fill(tab, field_id, value):
 
 async def main():
     options = ChromiumOptions()
-    options.binary_location = "/snap/bin/chromium"
+    super_scraper = SuperScraper()
+    options.binary_location = super_scraper.CHROMIUM_LOCATION
     options.add_argument("--no-sandbox")
     options.add_argument("--window-size=1280,3000")
-    super_scraper = SuperScraper()
 
     rights = list(ALWAYS_RIGHTS)
     if _is_remove_information():

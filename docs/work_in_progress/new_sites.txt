@@ -1,0 +1,545 @@
+just ignore list:
+- citydata.ai
+- privco.com
+- connextdigital.com (deadge)
+- ncsolutions.com (purchased by circana and they're "not a data broker")
+- edvisors.com (literally just FAFSA help)
+- buildertrend.com
+- foursquare.com (CRM / tool)
+- date-detective.app (dead / site is fucked) 
+- semasio.com (part of samba)
+- forewarn.com (GLBA protection)
+- biointelli.com (scientific researcher finder, privacy policy sucks)
+- privaterecords.com (dead)
+- prodpro.com (hollywood business contacts)
+- t-mobile.com (advertising but it's hard if not impossible to do for just their advertising marketplace without an account)
+- sms-inc.com (dead)
+- sovrn.com (cookies only)
+- captifytechnologies.com (cookies only)
+- upscapital.com (not a data broker)
+- famousbirthdays.com (just celebs)
+- kbsynergy.com
+- forddirect.com (just ford and lincoln cars)
+
+
+misc:
+- magnite.com
+  - email on the spreadsheet is right, but I emailed them again in late July. Wait on any decisions until I hear back or 45 days has passed.
+- home.neustar
+  - Add to spreadsheet
+- nationalpublicdata.com
+  - Not the same as the breach broker, but still should add to the people search opt out guide
+- nuwber.com
+  - Emailed the exact same email as in the privacy policy but it did fucking nothing
+  - Will either need to call 844.912.1292 or try to figure something else out
+  - The phone number -> grandpa thing is here, not sure if the underlying data is actually truthfinder.com
+    - Speaking of, I think there's probably some underlying data there that's still present
+- enigma.com
+  - I sent them a proper email but they never wrote me back
+    - privacy@enigma.com
+- roundsky.com
+  - Everything goes through the email that I used, never got a response
+    - legal@roundsky.com
+- nielsen.com
+  - DSAR just redirects to google.com ????
+    - https://privacyportalde-cdn.onetrust.com/dsarwebform/70b0083d-d519-4ad2-84ca-96b7c5f8e1a9/9810a8bc-e54d-4d70-bac0-5e4d781ef5b9.html
+    - Sent an email to figure this out
+- accurateappend.com
+  - They have a DSAR for opt-out but seemingly no way to do Right to Access or other rights.
+  - Email I sent them was not enough for even an opt-out as far as I know
+  - Right to Opt Out DSAR: https://clients.accurateappend.com/public/optout/capture
+- recruitbot.com
+  - Email I used matches what they have on the privacy policy, never got back to me
+  - DSAR for opt out is on the privacy policy page but is 404'd
+  - They have a phone number at 888.481.6811
+- fifty.io
+  - I have the right email, but it's all social media collection which isn't something you can really do anything with.
+    - Should broker-poker have a thing for social media profiles?
+- exactdata.com
+  - They're data-axle.com
+- bdex.com
+  - Email didn't work, may need to call them
+  - privacy@bdex.com
+  - 917.410.6616
+- locatesmarter.com
+  - They allegedly have DSARs but they don't seem to actually be available.
+  - Phone number: 877.814.2268
+  - Right to Access / Delete: https://locatesmarter.com/request-to-know-or-delete-my-personal-information/
+  - Right to Opt-Out: https://locatesmarter.com/request-to-opt-out-do-not-sell-my-personal-information/
+- brightcheck.com
+  - support@brightswipe.com
+  - No CDP language in the privacy policy
+- deepsync.com
+  - Has a DSAR but no Right to Access
+    - privacy.deepsync.com
+  - phone number: 800.371.7080
+  - Email was correct but never got a response back, privacy.compliance@deepsync.com
+- semcasting.com
+  - Email is the correct way to do it, email given was correct, never given a response
+  - Has ZERO right to access requests processed, it's fucked.
+  - "If you have an unresolved privacy or data use concern that we have not addressed satisfactorily"
+    - https://feedback-form.truste.com/watchdog/request
+- speedeondata.com
+  - Has a DSAR but no Right to Access
+    - https://optout.speedeondata.com/
+  - phone number 866.647.9219
+- clickagy.com
+  - DSAR is for on-device cookies / maybe MAIDs
+    - https://www.clickagy.com/privacy-center/request/
+  - Call 833.737.1973
+- videoamp.com
+  - "There are no rights available in the location you are currently in"
+  - https://videoamp.com/your-privacy-choices
+- dataskip.io
+  - No DSAR, never got a response from the proper email address
+  - support@dataskip.io
+- cadent.tv
+  - May not be possible to automate, requires email verification
+  - https://privacy.cadent.tv/privacy/#/verify-email
+- videoamp.com
+  - Minnesota doesn't work with the DSAR, sent a detailed email with other locations
+  - privacy@videoamp.com
+- veraset.com
+  - CA privacy notice are straight up not available on the website.
+    - No DSAR
+  - Never got a response from their email (correct)
+    - privacy@veraset.com
+- growbots.com
+  - Correct email, email is the proper venue, they never responded
+  - privacy@growbots.com
+- similarweb.com
+  - Correct email, email is the proper venue, they never responded
+  - legal@similarweb.com
+- bidmachine.com
+  - Email does not exist
+    - legal@bidmachine.com
+- realsourcedata.com
+  - DSAR for opt-out, but email for everything else.
+  - Never responded to me for my email, they don't do Right to Access.
+  - Right to Opt-Out: https://www.realsourcedata.com/do-not-sell-my-personal-information
+- evorra.com
+  - Has an email-only opt out but they do process MAIDs
+  - No right to access or anything
+  - Sent an email and they never responded
+- omginc.xyz
+  - Never responded to my email
+  - privacy@omginc.xyz
+- wealthfeed.com
+  - Never responded to my email
+  - privacy@wealthfeed.com
+
+straight up just need to redo:
+- mobilewalla.com
+  - privacy@mobilewalla.com
+  - Needed to give MAIDs and just never did
+- redmob.io
+  - privacy@redmob.io
+    - I'm pretty damn sure they never responded, but should do it again with MAIDs
+- modfxlabs.com
+  - mandeep@modfxlabs.com
+    - subject: "ModFx Labs - Opt-Out Request {MAID}"
+    - pray that it doesn't require that subject
+- realintent.co
+  - contact@RealIntent.co
+  - I don't think I ever got anything back, but their sold data section in privacy policy is fucked.
+    - DSAR only allows for opt out. NOTHING else.
+- retention.com
+  - support@retention.com
+    - No reply, let's make sure it actually works. DSAR on site is only for remove / opt-out
+- opensend.com
+  - privacy@opensend.com
+  - Got a delivery failure on the email, try again and send a complaint / find other email if that doesn't work.
+- venntel.com
+  - They have DSARs, and apparently their email works but I never sent them MAIDs
+  - Right to Know requires IP address and 3 recent physical addresses. What the fuck.
+- beeswax.com
+  - Never got a reply, email should be good. Maybe need MAIDs.
+    - privacy@beeswax.com
+- pubmatic.com
+  - Need to send another with MAIDs
+  - pubmaticprivacy@pubmatic.com
+- privatereports.com
+  - Has to be done manually
+  - Right to Opt-Out & Delete: https://www.privatereports.com/api/helper/optOutLight/search
+- traackr.com
+  - legal@traackr.com (everything but opt-out)
+  - datarequest@traackr.com (opt-out only)
+  - Need to add DSARs
+- disconetwork.com 
+  - privacy@disconetwork.com 
+  - Needs DSARs probably, no previous response 
+- mrss.com
+  - No Right to Access
+  - https://www.mrss.com/my-personal-information/
+  - right email, never got a response
+- keywordconnects.com
+  - Gave me a receipt but no actual response. Sent another email asking them what's going on.
+  - privacy@keywordconnects.com
+- fourleafdata.com
+  - No response, correct email
+  - privacy@fourleafdata.com
+
+
+
+emails:
+- appscience.ai (sabio.inc)
+  - privacy@appscience.inc
+- theswarm.com
+  - privacy@theswarm.com
+- monevo.com
+  - compliance@monevo.com
+- flashintel.ai (flashlabs.ai and myflashcloud.com)
+  - privacy@myflashcloud.com
+- wunderkind.co
+  - privacyrequests@wunderkind.co
+- l2-data.com
+  - privacy@L2Political.com
+- reveliolabs.com
+  - info@reveliolabs.com
+- onspotdata.com
+  - privacy@onspotdata.com
+  - This is sus since their opt out email is one I used. I didn't use the exact subject which may be why. Investigate.
+  - email: optout@onspotdata.com ; subject: "Privacy Opt-Out Request"
+- dresdendirect.com
+  - info@nsightful.com
+- verisk.com
+  - privacy@verisk.com
+- snov.io
+  - help@snov.io
+- vrtcal.com
+  - info@vrtcal.com
+- kargo.com
+  - privacyinfo@kargo.com
+- alikeaudience.com
+  - privacy@alikeaudience.com
+- popacta.com
+  - contact@popacta.com
+- outbrain.com
+  - ob-privacy@teads.com
+- uspeoplesearch.com
+  - contact@uspeoplesearch.com
+- reklaimyours.com
+  - privacy@reklaimyours.com
+- loopme.com
+  - privacy@loopme.com
+- sheerid.com
+  - privacy@sheerid.com
+- firstorion.com
+  - privacy@firstorion.com
+- sharethrough.com
+  - dataprotection@sharethrough.com
+- kezzler.com (was scanbuy.com)
+  - privacy@kezzler.com
+- attribits.com
+  - compliance@allgoodmediagroup.com
+- ekata.com (owned by mastercard.com)
+  - privacyanddataprotection@mastercard.com
+    - Don't do this for my account but do add it to the list
+- freehweel.com
+  - legalnotices@freewheel.tv
+
+
+DSARs:
+- m1data.com
+  - https://m1-data.com/unsubscribe/ (Right to Access, Delete, Do Not Sell)
+- sabio.inc
+  - https://www.sabioctv.com/do-not-sell-my-info
+  - Sabio IS appscience, but they may have separate dbs or something
+- risk.lexisnexis.com
+  - https://consumer.risk.lexisnexis.com/request#privacy
+- censia.com
+  - https://docs.google.com/forms/d/1VhF33VAQG4AmUqBWf7e3m8fw17h9ek64EtQXnuuBQcA/viewform?edit_requested=true
+- decisionlinks.com
+  - https://www.decisionlinks.com/legal-pages/your-privacy-choices
+- audigent.com
+  - https://app.sixfifty.com/request-easy/653b-4813/questions/5359740
+- grassrootsanalytics.com
+  - https://www.grassrootsanalytics.com/california-consumer-privacy-act-ccpa
+- slashdotmedia.com
+  - https://privacyportal.onetrust.com/webform/611e70e2-1994-43ff-b07b-646df870db4b/f4165d65-f39c-4ea5-8628-163090b74137
+- liftbasedata.com
+  - https://www.liftbasedata.com/request-to-know/liftbase/
+- merkle.com
+  - https://www.merkle.com/en/privacy-policy/data-product-privacy-notice/control-your-personal-information.html
+- datonics.com
+  - https://www.datonics.com/privacy/privacy-choices
+- intentiq.com
+  - Right to Know
+    - https://www.intentiq.com/opt-out/information-about-your-mobile-device/?
+  - Right to Opt Out
+    - https://www.intentiq.com/opt-out/opt-out-via-mobile-device/
+- trueblueanalytics.org
+  - https://trueblueanalytics.org/dont-sell
+- throtle.io
+  - https://privacyportal.onetrust.com/webform/07e8dc4d-6686-403e-9b11-39fe7347d2f4/2f999bd2-c826-498c-a504-894eaf543b6f
+- cuebiq.com
+  - https://cuebiq.com/privacy-request/
+    - Sent in on 2026-08-08
+  - Note for LLM: The best way to submit multiple MAIDs is to use the browser's "back" button then hit refresh (f5 or similar). That will keep everything the same but allow you to submit another request after replacing the MAID with the next value.
+- minerva.io
+  - https://preferences.minerva.io/
+- precisely.com
+  - Two DSARs, one for Precisely and one for PlaceIQ
+    - precisely
+      - https://privacyportal-eu.onetrust.com/webform/d88b298e-1f7e-420f-949c-fedc475c1e77/draft/9c253316-9abf-49fb-a3e1-a4e214c4cf41
+    - placeiq
+      - https://privacyportal-eu.onetrust.com/webform/d88b298e-1f7e-420f-949c-fedc475c1e77/83126462-6c9f-4d90-9077-f029b129a2a6
+- anchorcomputer.com
+  - https://ecom2.anchorcomputer.com/privacyrequest
+- clearview.ai
+  - This is really, really complex since there's like 6 links for every state. Will need some sort of map inside the scraper for this.
+    - MAYBE they're mostly the same. Try to deduplicate.
+    - https://www.clearview.ai/privacy-and-requests
+- groundtruth.com
+  - https://share.hsforms.com/1BoOyoq-ASaS-3zNW4dh5Agnn8aa
+- datasys.com
+  - https://datasys.com/privacy/my-privacy-choices
+- ariza.com
+  - https://submit-irm.trustarc.com/services/validation/0a80503b-1d56-4d50-a898-4377a0227dab
+- thedatatrust.com
+  - https://thedatatrust.com/your-privacy-choices/
+- matchbookdata.com
+  - https://www.matchbookdata.com/your-privacy-choices/
+- outlogic.io
+  - https://outlogic.io/opt-out-form/
+- marketops.com
+  - https://marketops.com/data-inquiries/
+- dtn.com
+  - https://www.dtn.com/do-not-sell-my-information-form/
+- blackbaud.com
+  - https://blackbaud-privacy.my.onetrust.com/webform/170c909c-5ed2-49f1-a59c-2a44be2f6f27/de22df57-d96c-480a-afb0-ac090b928192
+- affinity.solutions
+  - https://affinitysolutions-privacy.my.onetrust.com/webform/a564cfa1-53bf-4c10-bf95-cd907432d7e8/7e4e6bf3-6562-454e-8c73-6a7bd1f4b336
+- quad.com
+  - https://privacyportal.onetrust.com/webform/9bbdeb31-9ca4-4397-b421-b165438ad177/1ca01042-21a7-4307-8b42-a6c7439c9685#xd_co_f=NjJjZjJhZTUtN2I3Yy00NmNkLTlhYTAtYmM2OWQ1N2Y3MGFk~
+- mailinglists.com
+  - Do not sell / delete
+    - https://41b1vr.share-na2.hsforms.com/2mF48cI-GSjaSTP9FG8gkjA
+  - Email for everything else???
+    - privacy@mailinglists.com
+- costar.com
+  - https://privacy.costar.com/DSAR-submission
+    - 2026-08-08: "This form is temporarily unavailable" -- submit complaint if this isn't working later on
+- fideo.ai
+  - https://app.fideo.ai/your-privacy-choices
+- leadmemedia.com
+  - https://policy.leadmemedia.com/States/privacyrequestform.html
+- rrd.com
+  - https://privacyportal.onetrust.com/webform/45e4be25-919b-483f-9f95-12809576a2b3/6e633594-9a81-48bb-97ab-6fb29bf46019
+- propertyradar.com
+  - https://privacyportal.onetrust.com/webform/c3eb779a-028a-4045-aefc-ac78be730689/6f6c2bef-b565-4753-adc6-95585d7a9486
+- paramountdirectmarketing.com
+  - https://paramountdirectmarketing.com/do-not-sell-non-ca
+  - JUST right to opt out and delete. Right to Access is CALIFORNIA ONLY. Send a consumer complaint.
+    - https://paramountdirectmarketing.com/do-not-sell-ca
+- equifax.com
+  - https://myprivacy.equifax.com/opt-in-opt-out/personal-info
+- nextroll.com
+  - https://nextroll-privacy.relyance.ai/#/?locale=en-US
+- pacificeast.com
+  - https://www.pacificeast.com/contact-us-privacy/
+- claritas.com
+  - https://privacyportal.onetrust.com/webform/68582716-6ce4-4f6e-bf08-78371b5f3292/6c7dc52d-0e2b-481f-9256-0755179e3783
+- narvar.com
+  - https://narvar.my.onetrust.com/webform/04b3731f-2a9a-42ce-bd6b-106d4b4ec3bf/a7c944bf-3cec-4f00-9dc5-dea5bf2b6f4f
+- datadelivers.com
+  - https://dsr.trustsuperset.com/?orgId=275d6c62-eb0f-4f8a-80c2-b72573902714
+- greatlakeslists.com
+  - https://greatlakeslists.com/do-not-sell-ca
+- veeva.com
+  - https://privacyportal.onetrust.com/webform/3d676ed2-16b1-4c48-97f8-a911923a3adf/a0df0a98-d990-40ff-9bdb-35b5f9e06620
+- path2response.com
+  - https://privacyportal-cdn.onetrust.com/dsarwebform/2de26f06-de6f-45a7-8e1d-7d1148a3f301/draft/7a5dc7d1-cc7e-43a8-9f24-702807deb65b.html
+- brooksim.com
+  - https://www.brooksim.com/privacy-form
+- mediawallah.com
+  - https://mediawallah.com/donotsell/
+- altairdata.com
+  - https://datacloudhome.atlassian.net/servicedesk/customer/portal/12
+- belardiwong.com
+  - Right to Access: https://privacyportal.onetrust.com/webform/3d2d5e0c-bd98-46b8-906c-ede68a6f6a80/db862165-db28-4966-885c-8ace2d0c1512
+  - Right to Opt-Out: https://privacyportal.onetrust.com/webform/3d2d5e0c-bd98-46b8-906c-ede68a6f6a80/400f54ed-fcbb-4749-ab5b-32f491c72390
+  - Righ tto Delete: https://privacyportal.onetrust.com/webform/3d2d5e0c-bd98-46b8-906c-ede68a6f6a80/dd119353-8970-4dbf-ac1d-b6406173c7bb
+- adstradata.com
+  - Right to Opt-Out: https://privacyportal.onetrust.com/webform/3d2d5e0c-bd98-46b8-906c-ede68a6f6a80/f4d95cf7-f075-42c1-a3d9-8d886b985ac4
+  - Right to Access: https://privacyportal.onetrust.com/webform/3d2d5e0c-bd98-46b8-906c-ede68a6f6a80/f4d95cf7-f075-42c1-a3d9-8d886b985ac4
+  - Right to Delete: https://privacyportal.onetrust.com/webform/3d2d5e0c-bd98-46b8-906c-ede68a6f6a80/f4d95cf7-f075-42c1-a3d9-8d886b985ac4
+- infillion.com
+  - https://privacyportal.onetrust.com/webform/f7e3f6db-ed65-4759-a3f5-3b5c8b7e9bff/draft/9949a1a8-aa69-4848-a93f-d093d877a981
+- lsmapps.com
+  - https://lsmapps.com/opt-out
+- alliantinsight.com
+  - Right to Access: https://privacyportal-cdn.onetrust.com/dsarwebform/591ac1c1-3a1e-496f-9e43-ff4afb5fef85/ed491735-e5be-4f7b-80dd-153c159744b2.html
+  - Right to Delete: https://privacyportal-cdn.onetrust.com/dsarwebform/591ac1c1-3a1e-496f-9e43-ff4afb5fef85/604f597f-4486-46cd-99d2-ffa1218c7d6b.html
+  - Right to Opt Out: https://privacyportal-cdn.onetrust.com/dsarwebform/591ac1c1-3a1e-496f-9e43-ff4afb5fef85/2b52262e-8ada-4725-b86e-e4b960336f96.html
+- salutarydata.com
+  - Right to Access: Apparently it's an email but their email service is totally busted I think
+    - Call them at 617.917.4084
+  - Right to Opt-Out: https://salutarydata.com/privacy-opt-out-and-disclosure-form/
+  - Right to Delete: Does not exist? Privacy policy points to opt out form but that form has no "deletion" language at all.
+- wiland.com
+  - Right to Access: https://privacyportal.onetrust.com/webform/7567ece3-2d27-4ee0-a506-1153cb7a62b7/a1e6c0c7-b7ff-45f9-9c62-7f1eb47a6e77
+  - Right to Opt-Out: https://privacyportal.onetrust.com/webform/7567ece3-2d27-4ee0-a506-1153cb7a62b7/a5485eb1-f1ee-4a9f-9ed4-2b8ee48b550f
+  - Right to Delete: https://privacyportal.onetrust.com/webform/7567ece3-2d27-4ee0-a506-1153cb7a62b7/718ad3c3-e1f5-4463-a301-2d6f84938588
+- instantly.ai
+  - Right to Access: https://app.instantly.ai/privacy/data-request
+  - Right to Opt-Out & Delete: https://app.instantly.ai/privacy/opt-out
+- richmediallc.com
+  - https://privacy.richmediallc.com/
+- webbula.com
+  - SHOULD HAVE A WEB FORM but it's broken in firefox and chromium. Might have to call them at 888.993.2285 ext 4 to figure this out
+  - Right to Access: https://webbula.com/ca-eu-data-request/
+  - Right to Opt-Out and Delete: https://webbula.com/opt-out-request/#OptOut
+- leadpost.com
+  - https://app.leadpost.com/OptOut/PrivacyRequest
+- 33across.com
+  - Right to Access: https://udp.33across.com/udp_opt_out/submit_request?type=access
+  - Right to Opt-Out (email): https://udp.33across.com/udp_opt_out/email_opt_out
+  - Right to Opt-Out (do not sell): https://udp.33across.com/udp_opt_out/submit_request?type=donotsell
+  - Right to Delete: https://udp.33across.com/udp_opt_out/submit_request?type=delete
+- awl.com
+  - Right to Access: https://privacyportal-eu.onetrust.com/webform/031dc37f-2093-4055-9d04-22f83329fe9f/a4fb8ed6-8389-4a17-a3be-ca808c6b300e
+  - Right to Delete: https://privacyportal-eu.onetrust.com/webform/031dc37f-2093-4055-9d04-22f83329fe9f/a4fb8ed6-8389-4a17-a3be-ca808c6b300e
+  - Right to Opt-Out: https://privacyportal-eu.onetrust.com/webform/031dc37f-2093-4055-9d04-22f83329fe9f/a4fb8ed6-8389-4a17-a3be-ca808c6b300e
+- audisense.com
+  - https://www.audiense.com/legal/consumer-personal-information-requests/
+- lead411.com
+  - https://www.lead411.com/your-privacy-choices/
+- whitepages.com
+  - https://whitepagesprivacy.zendesk.com/hc/en-us/requests/new
+- unacast.com (gravy analytics)
+  - Right to Access: https://www.unacast.com/request-your-information
+  - Right to Delete & Opt-Out: https://www.unacast.com/opt-out
+- rayinsights.com
+  - https://www.rayinsights.com/privacy-notice/consumer-choice-portal/
+- grin.co
+  - https://grin.co/data-privacy-form/
+- verve.com
+  - https://verve.com/data-subject-request-form/
+- seekout.com
+  - https://www.seekout.com/privacy/choices/
+- atdata.com
+  - https://privacyportal-cdn.onetrust.com/dsarwebform/b38ccfa3-c14a-451e-bf1d-974d1e278b7c/6214ac53-9059-474d-a847-800250556e9d.html
+- datapartners.com
+  - Right to Access: https://www.datapartners.com/information-access-request/
+  - Right to Opt-Out: https://www.datapartners.com/opt-out-request/
+  - Right to Delete: https://www.datapartners.com/delete-my-information-request/
+- rooftopmedia.ai
+  - https://www.rooftopmedia.ai/data-privacy.html
+- finthrive.com
+  - https://privacyportal.onetrust.com/webform/e2abd578-6539-47f6-9895-b18d23b76ac4/c3d22390-d038-4464-83d3-3f0c91c76a01
+- roq.ad
+  - https://roq.ad/privacy-form
+- spyfly.com
+  - https://www.spyfly.com/help-center/privacy-requests
+- hightouch.com
+  - https://preferences.hightouch.com/
+- ventiveiq.com
+  - https://privacyportal.privacypillar.com/dsar/form?orgid=0c31c814-ea86-461f-8ccb-294f05bc74c3&propid=cc95835d-7719-4336-b0c4-18146e5d000a&formid=4348f332-6917-4566-8c56-6fc9eb57097f&status=publish
+- resonate.com
+  - https://www.resonate.com/submit-consumer-privacy-request/
+- vendelux.com
+  - https://vendelux.com/privacy-center
+- lightcast.io
+  - https://lightcast.io/legal/privacy-request
+- bridg.com
+  - https://datagrail.bridg.com/
+- affinityanswers.com
+  - https://www.affinityanswers.com/your-privacy-choices/
+- ididata.com
+  - Right to Access: https://www.ididata.com/personal-information-request/
+  - Right to Deletion: https://www.ididata.com/deletion-request/
+  - Right to Opt-Out: https://www.ididata.com/do-not-sell-my-personal-information/
+  - Right to Correction: https://www.ididata.com/correction-request/
+  - Right to Appeal: https://www.ididata.com/appeal/
+- uplead.com
+  - https://www.uplead.com/opt-out/
+- adara.com
+  - Merged with sojern.com, need to make a new spreadsheet entry
+  - https://www.sojern.com/privacy/opt-out-data
+- choreograph.com
+  - Right to Access: https://amer-cpp.choreograph.com/data-points
+  - Right to Delete: https://amer-cpp.choreograph.com/manage-your-data/opt-out-delete
+  - Right to Opt-Out: https://amer-cpp.choreograph.com/manage-your-data/do-not-sell
+- evs7.com
+  - https://www.evs7.com/personal-information-request
+- demandscience.com
+  - https://portal.privacyengine.io/app/0CEB4BAE-BBE7-4DD9-BD70-4E2DBB01D64D/4F5BED3F-8BFB-4BF4-A1F8-8A2261BDE0CE
+- 360mediadirect.com
+  - https://360-media-direct.privacy.saymine.io/360_Media_Direct
+- bbdirect.com
+  - Right to Opt-Out only, they're a service provider so it's this or nothing.
+  - https://www.bbdirect.com/resources/privacy-compliance.html
+- publicdatacheck.com
+  - https://www.publicdatacheck.com/help-center/privacy-requests
+- issgovernance.com
+  - https://www.iss-stoxx.com/legal/ccpa/
+- publicinfoservices.com
+  - https://www.publicinfoservices.com/help-center/privacy-requests
+- connectedinvestors.com
+  - https://firstam.service-now.com/x_farf2_dp_request_ci_opt_out.do?sysparm_id=fd58b253875b219095280ed7dabb359a
+- emailindustries.com
+  - https://privacyportal.onetrust.com/webform/f73513a8-7a10-4a9d-939a-703f8d994839/262761ab-edc4-440a-8e56-e6348b131382
+- thomsonreuters.com
+  - https://privacyportal.onetrust.com/webform/dbf5ae8a-0a6a-4f4b-b527-7f94d0de6bbc/23dce484-737f-4d47-a389-2e990f683e8c
+- careerbuilder.com
+  - https://www.careerbuilder.com/privacy/
+- delivr.ai
+  - https://www.delivr.ai/privacy
+- mediaocean.com
+  - https://www.mediaocean.com/your-privacy-rights
+- usdatacorporation.com
+  - https://www.usdatacorporation.com/opt-out
+- searchpublicrecords.com
+  - https://www.searchpublicrecords.com/help-center/privacy-requests
+  - Cloudflare virtual queue, may not be possible
+- jmr-media.com
+  - https://jmr-media.com/do-not-sell
+- eltoro.com
+  - Right to Access: https://eltoro.com/access-form/
+  - Right to Opt-Out: https://eltoro.com/do-not-sell-my-personal-information/
+  - Right to Delete: https://eltoro.com/access-deletion-form/
+- information.com
+  - https://information.com/privacy-rights/
+- inboundinsight.com
+  - https://dsr.trustsuperset.com/?orgId=2183d64e-c307-4322-938f-5711d839719e
+- atom.com
+  - https://app.termly.io/dsar/62c9d984-30c8-4068-ad84-749ed5ecb452
+- informa.com
+  - https://privacy.informa.com/policies/en/
+- fraiser.org
+  - https://www.fraiser.org/data-request-form
+- datanyze.com
+  - Right to Access: https://privacyrequest.zoominfo.com/access/verify?origin=datanyze
+  - Right to Opt-Out & Delete: https://privacyrequest.zoominfo.com/remove/verify?origin=datanyze
+- perion.com
+  - https://forms.monday.com/forms/2e643e95786ac0c2cdf2dca015d20c68?r=use1
+- pulsepoint.com
+  - https://mynt-test-privacy.my.onetrust.com/webform/ebe19500-bc8d-487f-9d89-98fde8b270e2/bac5d2a2-fd3e-4830-99b6-bd2a69fec1c9
+- kidslivesafe.com
+  - https://www.kidslivesafe.com/help-center/privacy-requests
+- clientcommand.com
+  - https://privacyportal-cdn.onetrust.com/dsarwebform/555c3377-7eb2-4e7a-bf30-c408de4ab483/70df6685-8289-4d72-a9d7-9a736b3b837f.html
+- completemailinglists.com
+  - https://www.completemailinglists.com/consumer-privacy-request
+- windfall.com
+  - https://my.datasubject.com/AkrxLuYOww/60579
+- preqin.com
+  - https://preqin.com/policies/data-rights
+- statsocial.com
+  - Right to Access: https://www.statsocial.com/datarequest
+  - Right to Opt-Out & Delete: https://www.statsocial.com/optout/
+- civisanalytics.com
+  - https://docs.google.com/forms/d/e/1FAIpQLSfvUYww9wEK9Y4F6VY3nQtm0bBS8QTdcDthet6WAKDYqnnwHA/viewform
+- i-360.com
+  - https://privacyportal.onetrust.com/webform/94afa614-d9cb-419b-99f1-20c87afaca7f/7527122f-48fe-46ad-bd59-6d69a33ac4db
+- healthcare.com
+  - https://www.healthcare.com/data-request/request-form/
+- zetaglobal.com
+  - https://privacyportal-cdn.onetrust.com/dsarwebform/bc2d3301-11a5-4de5-b15e-ce796187a352/d0720d0f-d427-4a7d-a773-5d6793229f15.html
+- disqus.com
+  - https://privacyportal-cdn.onetrust.com/dsarwebform/bc2d3301-11a5-4de5-b15e-ce796187a352/9a049fa1-37af-4598-a87a-d0df2e2d904b.html
+- media.net
+  - https://www.media.net/preferences/
+- demyst.com
+  - https://demyst.com/personal-information-request-california

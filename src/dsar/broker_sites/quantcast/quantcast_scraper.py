@@ -18,11 +18,6 @@ from src.dsar.super_scraper import SuperScraper
 URL = "https://data-access.quantserve.com/gdpr/"
 
 
-def _is_remove_information():
-    v = SuperScraper.REMOVE_INFORMATION
-    return isinstance(v, str) and v.strip().upper() in ("TRUE", "1", "YES")
-
-
 async def _submit_right(tab, super_scraper, radio_value, label):
     """Select radio, check confirmation, take screenshot or await manual submit."""
     radio = await tab.find(
@@ -41,11 +36,11 @@ async def _submit_right(tab, super_scraper, radio_value, label):
 
     if SuperScraper.DRY_RUN:
         await asyncio.sleep(1)
-        await tab.take_screenshot(f"quantcast_dry_run_{radio_value}.png")
+        await tab.take_screenshot(path=f"resources/screenshots/quantcast_dry_run_{radio_value}.png")
         print(
             f"DRY RUN: would submit quantcast '{label}' (cookie-based, no personal info)"
         )
-        print(f"Screenshot saved to quantcast_dry_run_{radio_value}.png")
+        print(f"Screenshot saved to resources/screenshots/quantcast_dry_run_{radio_value}.png")
         return
 
     print(
@@ -77,7 +72,7 @@ async def main():
         await _submit_right(tab, super_scraper, "retrieval", "Access")
 
         # DELETION (gated)
-        if _is_remove_information():
+        if SuperScraper.REMOVE_INFORMATION:
             await tab.go_to(URL)
             await asyncio.sleep(5)
             await _submit_right(tab, super_scraper, "deletion", "Delete")

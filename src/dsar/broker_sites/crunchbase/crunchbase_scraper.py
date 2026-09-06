@@ -1,121 +1,103 @@
-# crunchbase.com — DataGrail Privacy Request Center.
-# URL pre-fills country (United States) and state (MN) via locationCode param.
-# Request types: Access, Opt Out, Transfer, Update Inaccuracies — always.
-# Deletion gated on REMOVE_INFORMATION.
-# Each type: click "Start X Request" card, fill form, select relationship "Other" via role=option,
-#   click "Review Request", then "Submit Request" in live mode.
-# No CAPTCHA. Two-step email verification after submission.
+# crunchbase.com — same DataGrail Privacy Request Center template as
+# bridg.com elsewhere in this repo (identical field names/ids: first_name,
+# last_name, email_address, mui-component-select-data_subject_relationship
+# with data-value="customer", MUI Autocomplete State picker). Country/State
+# default correctly to United States/the configured STATE without needing to
+# touch them, but this scraper sets them explicitly anyway for correctness
+# regardless of what the page happens to default to. Exercises Access and
+# Opt Out unconditionally; Deletion gated on REMOVE_INFORMATION (Transfer
+# and Update Inaccuracies also exist as cards but aren't exercised — not a
+# core Access/Opt-Out/Delete right). No captcha observed.
 import asyncio
-import time
-
-from pydoll.browser.chromium import Chrome
-from pydoll.browser.options import ChromiumOptions
-from pydoll.constants import Key
 
 from src.dsar.super_scraper import SuperScraper
 
-URL = "https://preferences.crunchbase.com/?locationCode=US-MN"
+from pydoll.browser.chromium import Chrome
+from pydoll.browser.options import ChromiumOptions
 
-ALWAYS_REQUESTS = [
-    ("Start Access Request", "access"),
-    ("Start Opt Out Request", "optout"),
-    ("Start Transfer Request", "transfer"),
-    ("Start Update Inaccuracies Request", "update"),
-]
-DELETE_REQUEST = ("Start Deletion Request", "delete")
+URL = "https://preferences.crunchbase.com/"
+
+RIGHTS = ["Access Request", "Opt Out Request"]
+DELETE_RIGHT = "Deletion Request"
 
 
-async def _select_relationship(tab):
-    # Options: Business Contact(1), Customer(2), Employee(3), Former Employee(4),
-    #          Job Applicant(5), Other(6) — press ArrowDown 6 times, then Enter
-    rel = await tab.find(name="data_subject_relationship", raise_exc=False)
-    if not rel:
-        return
-    await rel.click()
-    await asyncio.sleep(0.5)
-    for _ in range(6):
-        await tab.keyboard.press(Key.ARROWDOWN)
-        await asyncio.sleep(0.1)
-    await tab.keyboard.press(Key.ENTER)
-    await asyncio.sleep(0.5)
-
-
-async def _submit_request(tab, btn_text, label, super_scraper):
+async def submit_request(tab, right, super_scraper):
     await tab.go_to(URL)
-    await asyncio.sleep(8)
-
-    start_btn = await tab.find(text=btn_text, raise_exc=False)
-    if not start_btn:
-        print(f"{super_scraper.OOPS} '{btn_text}' button not found for {label}")
-        return
-    await start_btn.scroll_into_view()
-    await asyncio.sleep(0.5)
-    await start_btn.click_using_js()
     await asyncio.sleep(5)
 
-    fn = await tab.find(name="first_name", raise_exc=False)
-    if fn:
-        await fn.click()
-        await tab.keyboard.type_text(SuperScraper.FIRST_NAME)
-    await asyncio.sleep(0.3)
+    state_field = await tab.find(id="privacy-request-center-region-picker", raise_exc=False)
+    if state_field:
+        await state_field.click()
+        await tab.keyboard.type_text(SuperScraper.STATE)
+        await asyncio.sleep(1.5)
+        state_opt = await tab.find(xpath=f"//li[@role='option' and @aria-label='{SuperScraper.STATE}']", raise_exc=False)
+        if state_opt:
+            await state_opt.click()
+            await asyncio.sleep(0.5)
 
-    ln = await tab.find(name="last_name", raise_exc=False)
-    if ln:
-        await ln.click()
-        await tab.keyboard.type_text(SuperScraper.LAST_NAME)
-    await asyncio.sleep(0.3)
+    start_btn = await tab.find(text=f"Start {right}", raise_exc=False)
+    if not start_btn:
+        print(f"{super_scraper.OOPS} 'Start {right}' button not found")
+        return
+    await start_btn.click()
+    await asyncio.sleep(2)
 
-    em = await tab.find(name="email_address", raise_exc=False)
-    if em:
-        await em.click()
-        await tab.keyboard.type_text(SuperScraper.EMAIL)
-    await asyncio.sleep(0.3)
+    first = await tab.find(xpath="//input[@name='first_name']", raise_exc=False)
+    last = await tab.find(xpath="//input[@name='last_name']", raise_exc=False)
+    email = await tab.find(xpath="//input[@name='email_address']", raise_exc=False)
+    if first:
+        await first.type_text(SuperScraper.FIRST_NAME)
+    if last:
+        await last.type_text(SuperScraper.LAST_NAME)
+    if email:
+        await email.type_text(SuperScraper.EMAIL)
 
-    await _select_relationship(tab)
+    relationship = await tab.find(id="mui-component-select-data_subject_relationship", raise_exc=False)
+    if relationship:
+        await relationship.click()
+        await asyncio.sleep(1)
+        customer_opt = await tab.find(xpath="//li[@data-value='customer']", raise_exc=False)
+        if customer_opt:
+            await customer_opt.click()
+            await asyncio.sleep(0.5)
+
+    label = right.lower().replace(" ", "_")
 
     if SuperScraper.DRY_RUN:
-        print(
-            f"DRY RUN: would submit '{label}' for "
-            f"{SuperScraper.FIRST_NAME} {SuperScraper.LAST_NAME} <{SuperScraper.EMAIL}>"
-        )
+        print(f"DRY RUN: would submit '{right}' for {SuperScraper.FIRST_NAME} {SuperScraper.LAST_NAME}")
         await asyncio.sleep(1)
-        await tab.take_screenshot(f"crunchbase_dry_run_{label}.png")
-        print(f"Screenshot saved to crunchbase_dry_run_{label}.png")
+        await tab.take_screenshot(path=f"resources/screenshots/crunchbase_dry_run_{label}.png")
+        print(f"Screenshot saved to resources/screenshots/crunchbase_dry_run_{label}.png")
         return
 
-    review = await tab.find(text="Review Request", raise_exc=False)
-    if review:
-        await review.click()
-        await asyncio.sleep(3)
+    review_btn = await tab.find(text="Review Request", raise_exc=False)
+    if review_btn:
+        await review_btn.click()
+        await asyncio.sleep(2)
 
-    submit = await tab.find(text="Submit Request", raise_exc=False)
-    if submit:
-        await submit.click()
-        await asyncio.sleep(5)
-
-    source = await tab.page_source
-    if any(w in source.lower() for w in ("thank", "success", "received", "submitted", "confirmation", "verify")):
-        print(f"Submitted '{label}' for {SuperScraper.FIRST_NAME} {SuperScraper.LAST_NAME}")
-        print(f"  Note: Check your email ({SuperScraper.EMAIL}) for a verification link to complete the request.")
+    submit_btn = await tab.find(text="Submit Request", raise_exc=False)
+    if submit_btn:
+        await submit_btn.click()
+        await asyncio.sleep(2)
+        print(f"Submitted '{right}' for {SuperScraper.FIRST_NAME} {SuperScraper.LAST_NAME}")
     else:
-        print(f"{super_scraper.OOPS} Confirmation unclear for '{label}' — verify in browser")
+        print(f"{super_scraper.OOPS} Submit Request button not found for '{right}'")
 
 
 async def main():
-    opts = ChromiumOptions()
-    opts.binary_location = "/snap/bin/chromium"
-    opts.add_argument("--no-sandbox")
-    opts.add_argument("--window-size=1280,900")
+    options = ChromiumOptions()
     super_scraper = SuperScraper()
+    options.binary_location = super_scraper.CHROMIUM_LOCATION
+    options.add_argument("--no-sandbox")
 
-    requests = list(ALWAYS_REQUESTS)
+    rights = list(RIGHTS)
     if SuperScraper.REMOVE_INFORMATION:
-        requests.append(DELETE_REQUEST)
+        rights.append(DELETE_RIGHT)
 
-    async with Chrome(options=opts) as browser:
+    async with Chrome(options=options) as browser:
         tab = await browser.start()
-        for btn_text, label in requests:
-            await _submit_request(tab, btn_text, label, super_scraper)
+        for right in rights:
+            await submit_request(tab, right, super_scraper)
 
 
 asyncio.run(main())

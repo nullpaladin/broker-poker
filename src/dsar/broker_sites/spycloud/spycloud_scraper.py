@@ -28,11 +28,6 @@ ALWAYS_RIGHTS = [
 DELETE_RIGHT = "Delete my personal information"
 
 
-def _is_remove_information():
-    v = SuperScraper.REMOVE_INFORMATION
-    return isinstance(v, str) and v.strip().upper() in ("TRUE", "1", "YES")
-
-
 async def _fill_step2(tab, super_scraper):
     """Fill step 2 personal info fields. Returns True on success."""
     email_field = await tab.find(id="email", raise_exc=False)
@@ -66,13 +61,13 @@ async def _fill_step2(tab, super_scraper):
 
 async def main():
     options = ChromiumOptions()
-    options.binary_location = "/snap/bin/chromium"
+    super_scraper = SuperScraper()
+    options.binary_location = super_scraper.CHROMIUM_LOCATION
     options.add_argument("--no-sandbox")
     options.add_argument("--window-size=1280,3000")
-    super_scraper = SuperScraper()
 
     rights = list(ALWAYS_RIGHTS)
-    if _is_remove_information():
+    if SuperScraper.REMOVE_INFORMATION:
         rights.append(DELETE_RIGHT)
 
     async with Chrome(options=options) as browser:
@@ -97,12 +92,12 @@ async def main():
             if SuperScraper.DRY_RUN:
                 await asyncio.sleep(1)
                 safe_name = right.replace(" ", "_").replace("/", "_")[:30]
-                await tab.take_screenshot(f"spycloud_dry_run_{safe_name}.png")
+                await tab.take_screenshot(path=f"resources/screenshots/spycloud_dry_run_{safe_name}.png")
                 print(
                     f"DRY RUN: would submit spycloud '{right}' for "
                     f"{SuperScraper.FIRST_NAME} {SuperScraper.LAST_NAME} <{SuperScraper.EMAIL}>"
                 )
-                print(f"Screenshot saved to spycloud_dry_run_{safe_name}.png")
+                print(f"Screenshot saved to resources/screenshots/spycloud_dry_run_{safe_name}.png")
                 continue
 
             print(

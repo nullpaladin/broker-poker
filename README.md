@@ -61,6 +61,22 @@ Broker Poker is an application that assists users to receive a copy of and delet
 - [x] allpeople.com
   - URL: https://allpeople.com/removal
   - Note: Opt-out/removal only (no separate Access or Delete form). Scraper fills email and agreement checkbox; user must solve reCAPTCHA v2 (site key: 6LfrfkwUAAAAAOzaM6N-Jk-uT3p-KYjf9sO_zwZB), then manually find and click "Remove" on their specific record. Email confirmation link required to complete removal.
+- [ ] privatereports.com
+  - URL: https://www.privatereports.com/api/helper/optOutLight/search
+  - Note: Name/state search-first removal flow, same shape as telephonedirectories.us below — you must locate your own specific listing among possible matches (disambiguated by city/zip/phone) before a removal can be requested; there's no direct name+identity submission that removes a known record. Only useful after finding your record on the site manually.
+- [ ] cadent.tv
+  - URL: https://privacy.cadent.tv/privacy/#/verify-email
+  - Note: The privacy portal is gated behind a real email-verification link before any DSAR form is reachable — visiting the URL directly (even after answering the "Are you a US based user?" radio) only ever shows the static "Email Verification" / "Can't access your email? Contact Customer Support" screen, never the actual request form. Requires clicking a link sent to a real inbox this repo doesn't have access to — cannot be automated.
+- [ ] pubmatic.com
+  - URL: https://pubmatic.com/legal/dsr-notice/
+  - Note: Access/Delete/Correct requests require manually screenshotting your own browser cookies and/or mobile Advertising Identifier plus your IP address, then emailing or calling those in (pubmaticprivacy@pubmatic.com / dpo@pubmatic.com / 855-550-0007) — no webform exists at all. Opt-out is a bare cookie-preference banner with no name/email submission either. Nothing here is fillable by this repo's identity-field-based approach — cannot be automated.
+- [ ] venntel.com
+  - Opt-Out & Delete URL: https://venntel.com/opt-out
+  - Right to Know URL: https://venntel.com/right-to-know-request
+  - Note: Both pages embed their actual request form (Email + Mobile Advertising ID, visible on-page) via HubSpot's `hbspt.forms.create()` — a src-less `<iframe class="hs-form-iframe">` that never gets a navigable URL, the same genuine blocker documented for unacast.com elsewhere in this repo (`tab.get_frame()` requires a valid `src` and raises `InvalidIFrame` without one). A separate, unrelated Webflow "Contact-2" form exists in the DOM on both pages but is fully hidden (zero-size, `visible: false` on every field) — not the real form, a leftover template component. Not automatable; privacy@venntel.com offered as an alternative.
+- [ ] disconetwork.com
+  - URL: https://disconetwork.com/privacy-policy
+  - Note: Privacy policy only links to a generic "Do Not Sell My Data" support article (support.disconetwork.com, Zendesk-hosted) — that subdomain is blocked by a persistent Cloudflare "Performing security verification" challenge, no content reachable. No separate DSAR webform found anywhere else on the main site. Not automatable as-is.
 - [ ] tapad.com
   - URL: https://crportal.tapad.com/#/email (email-based requests)
   - Note: Scraper incomplete — Data Access and Deletion require a mouse-drawn signature in a canvas element that is not yet automated. Opt-Out works without a signature.
@@ -70,97 +86,241 @@ Broker Poker is an application that assists users to receive a copy of and delet
 
 
 ## Automated sites
-- [ ] 01advertising.com
-  - URL: https://www.01advertising.com/legal/dsar/
+- [x] 01advertising.com
+  - **CAPTCHA solution required**
+  - URL: https://www.01advertising.com/legal/dsar/ (hands off to https://app.termly.io/dsar/d1321341-0e82-4d8c-afaf-c4940d46c171)
+  - Note: /legal/dsar/ is a static landing page linking to a generic Termly DSAR form. Termly's standard template: Name/Email, identity_type radio (defaults "personal"), a law combobox (defaulted CCPA), then a single-select "action" radio group revealed after picking a law. Exercises request_to_know (Access) and request_to_opt_out unconditionally; request_to_delete gated on REMOVE_INFORMATION. All three "I confirm that" attestation checkboxes are checked regardless of action. app.termly.io sits behind a Cloudflare Turnstile checkbox challenge that gates the entire form — solve it manually before the form fields become reachable. (Likely reusable pattern: other Termly customers probably share the same field names.)
 - [x] 33across.com
   - Right to Access URL: https://udp.33across.com/udp_opt_out/submit_request?type=access
   - Right to Opt-Out URL: https://udp.33across.com/udp_opt_out/submit_request?type=donotsell
   - Right to Delete URL: https://udp.33across.com/udp_opt_out/submit_request?type=delete
   - Note: Exercises Right to Access, Do Not Sell/Share, and Right to Delete (gated on REMOVE_INFORMATION). Server-rendered POST form. No captcha. Only requires email.
+- [x] 360mediadirect.com
+  - URL: https://360-media-direct.privacy.saymine.io/360_Media_Direct
+  - Note: Saymine.io privacy center. Single-select request-type radios (one submission per right): Access ("Get a copy of my data"), Opt-Out of Sale, Correct ("Right to edit"), Opt-Out of Mail unconditionally; Delete gated on REMOVE_INFORMATION. Country preset to United States. State is a checkbox-driven custom dropdown (click label to open, click li[data-label]). Required "brand you are contacting us about" question answered with "360 Media Direct" itself (no way to infer which sub-brand — bPerx, Subco, ClicknRead, WRSS, AdSmith — applies). Required perjury declaration ("YES") radio. reCAPTCHA is invisible v3 (badge only) — auto-resolves, no manual solve needed.
 - [ ] absolutepeoplesearch.com
-  - **CAPTCHA solution required**
   - URL: https://absolutepeoplesearch.com/public.php?funct=optout&fname=&mname=&lname=&number=&profile_id=&state=
-- [ ] acxiom.com
-  - URL: https://www.acxiom.com/optout/
+  - Note: Entire domain (including the bare homepage, not just this URL) returns a Cloudflare WAF "Sorry, you have been blocked" hard block — no page content is reachable at all, so there's nothing to build a scraper against.
+- [x] acxiom.com
+  - **CAPTCHA solution required**
+  - URL: https://www.acxiom.com/optout/ (real form embedded from https://isapps.acxiom.com/optout/optout.aspx)
+  - Note: The public page embeds the actual form in an iframe; navigating directly to the iframe's src frame-busts back to the outer page, so it's driven in place as an iframe element instead. Legacy ASP.NET WebForms opt-out portal: "Select opt out segment" looks like a multi-chip widget but only ever keeps the most recently clicked chip (confirmed empirically) — it's actually single-select, so this is one full add+submit pass per segment (Mailing Addresses/Phone Numbers/Email Addresses). Each pass: Identity set to "Submitter" (Me), First/Last Name added via its own Add button, then the segment-specific field(s) (Street/City/State/Zip for Mail, Area Code+Phone for Phone, Email for Email) added via their own Add button. Mail additionally triggers a USPS address-standardization popup — accepted via its "Select" (SelectCorrected2) button. No separate Access/Delete request exists on this portal (handled elsewhere via a marketing-form email flow) — only Opt-Out is exercised. Ends in a reCAPTCHA that requires a manual solve in live mode.
+- [x] adara.com
+  - **CAPTCHA solution required**
+  - URL: https://privacy.sojern.com/ (embedded via iframe on https://www.sojern.com/privacy/opt-out-data)
+  - Note: Merged with sojern.com — DSAR now lives at privacy.sojern.com. Server-rendered POST form. id_type radio (cookie/mobile/email/ip) set to "email". Exercises Export (Access) and Opt Out unconditionally; Delete gated on REMOVE_INFORMATION. Cloudflare Turnstile checkbox does not auto-resolve — requires manual solve before submit will succeed server-side.
 - [x] addresssearch.com
   - URL: https://www.addresssearch.com/remove-info.php
+- [x] adstradata.com
+  - **CAPTCHA solution required**
+  - URL: https://privacyportal.onetrust.com/webform/3d2d5e0c-bd98-46b8-906c-ede68a6f6a80/f54a1b10-bb5d-4c99-9521-3e08dc527583
+  - Note: The URL originally on file (…/f4d95cf7-…) is actually Adstra's "Authorized Agent Portal" — a dead end with no fields for a consumer submitting their own request. Correct self-service URL found via the "Do Not Sell My Personal Information" footer link on the privacy policy page. Custom OneTrust Angular DSAR portal; single combined form (Access + Do Not Sell/Share in one submission, no request-type picker). No Delete option offered. No subject-type step. Country/State are vt-autocomplete comboboxes (type then ArrowDown+Enter). captchaCode is a BotDetect image CAPTCHA requiring manual entry in live mode.
+- [x] affinity.solutions
+  - **CAPTCHA solution required**
+  - URL: https://affinitysolutions-privacy.my.onetrust.com/webform/a564cfa1-53bf-4c10-bf95-cd907432d7e8/7e4e6bf3-6562-454e-8c73-6a7bd1f4b336
+  - Note: Custom OneTrust Angular portal. Affinity doesn't collect data directly from consumers — the entire form's stated purpose is to delete/stop-using data, with no separate non-destructive Access alternative, so the whole submission is gated on REMOVE_INFORMATION. Subject-type step: "Myself". Country/State are vt-autocomplete comboboxes (type then ArrowDown+Enter). Email verification required after submission. captchaCode is a BotDetect image CAPTCHA requiring manual entry in live mode.
 - [x] affinityanswers.com
   - URL: https://www.affinityanswers.com/your-privacy-choices/
   - **CAPTCHA solution required**
   - Note: Gravity Forms POST; residency select uses full state name (all US states listed). Exercises Access, Correct, Opt-Out of Sale, Opt-Out of Targeted Advertising, and Delete (gated). reCAPTCHA v3 invisible auto-resolves. input_13 is a honeypot — left empty.
-- [ ] altisource.com
+- [x] alliantinsight.com
+  - **CAPTCHA solution required**
+  - Right to Access URL: https://privacyportal-cdn.onetrust.com/dsarwebform/591ac1c1-3a1e-496f-9e43-ff4afb5fef85/ed491735-e5be-4f7b-80dd-153c159744b2.html
+  - Right to Delete URL: https://privacyportal-cdn.onetrust.com/dsarwebform/591ac1c1-3a1e-496f-9e43-ff4afb5fef85/604f597f-4486-46cd-99d2-ffa1218c7d6b.html (gated on REMOVE_INFORMATION)
+  - Right to Opt Out URL: https://privacyportal-cdn.onetrust.com/dsarwebform/591ac1c1-3a1e-496f-9e43-ff4afb5fef85/2b52262e-8ada-4725-b86e-e4b960336f96.html
+  - Note: Three separate OneTrust CDN forms, one right per URL. Country (Access/Delete only) and State are vt-autocomplete comboboxes (type then ArrowDown+Enter); State field id is stateDSARElement on Access/Delete but formField21DSARElement on Opt-Out. Phone only present on Access/Delete. reCAPTCHA v2 checkbox requires manual solve. After submission Alliant runs its own knowledge-based identity-verification quiz that cannot be automated — the user must answer it manually.
+- [x] altairdata.com
+  - **CAPTCHA solution required**
+  - URL: https://datacloudhome.atlassian.net/servicedesk/customer/portal/12/group/35/create/158
+  - Note: Jira Service Management customer portal. The "Individual" request form requires attesting "this is an individual, manual submission... not automated" before it will accept the request; a separate "Automation Request Form" exists but is a B2B integration-request form (asks for Company Name, no consumer PII fields) rather than an actual opt-out mechanism. Since neither path lets a script honestly both fill and submit, the scraper fills every field (name, address, opt-out/deletion checkboxes — deletion gated on REMOVE_INFORMATION) but deliberately stops short of checking the attestation or clicking Submit; a human must review, check the attestation, solve the reCAPTCHA, and submit manually.
+- [x] altisource.com
   - URL: https://www.altisource.com/contact-us/
+  - Note: Single Gravity Forms contact form whose visible fields change based on a "Select One" reason dropdown; choosing "Privacy Data (Access/Delete)" reveals First/Last Name, Email, Phone, Company, a required "Area of Interest" checkbox group (a leftover from the generic contact-form template — none of its business-line options are relevant, first one ticked purely to satisfy validation), and a free-text Message where the specific ask (Access + Do Not Sell, plus Delete gated on REMOVE_INFORMATION) is stated since there's no dedicated right-type selector. The Phone field has a JS input mask that corrupts simulated keystrokes (only the last few digits land) — set via the native input-value setter + input/change/blur event dispatch instead. No captcha.
 - [x] analytics-iq.com
   - **CAPTCHA solution required**
   - URL: https://privacyportal.onetrust.com/webform/f6a59500-f900-4652-b030-0cd51afe15a5/87ca07e4-e06c-4ad8-9aa6-ccbbaa8750c1
   - Note: OneTrust Angular portal. Exercises Do Not Sell/Share, Access (state residents), Correct, Opt-Out of Targeted Advertising, Limit Sensitive, and Delete (gated). No subject type step. Country and state are autocomplete comboboxes (type then click first visible role=option). captchaCode text input requires manual entry in live mode.
-- [ ] applecart.co
-  - URL: http://applecart.co/privacyrights
+- [x] anchorcomputer.com
+  - URL: https://ecom2.anchorcomputer.com/privacyrequest
+  - Note: Server-rendered ASP.NET POST form, no captcha. Single submission, rights selected via checkboxes: Access ("Request full report", labeled CA-residents-only but not enforced client-side) and Opt-Out ("Do not sell my data") unconditionally; Delete gated on REMOVE_INFORMATION. Date of Birth is a native HTML5 date input requiring YYYY-MM-DD — converted from the .env DD/MM/YYYY format before setting via JS (a plain string set silently no-ops on native date inputs otherwise). SSN last-4 optional, filled only if LAST_FOUR_SSN is set.
+- [x] applecart.co
+  - URL: https://www.applecart.co/privacyrights2 (self-submission form; /privacyrights is the agent-on-behalf-of variant)
+  - Note: HubSpot form embedded in an iframe (no frame-busting, unlike acxiom.com). Only residents of CA/CO/CT/UT/VA/OR/TX/MT/DE/IA/NE/NH/NJ/MD/MN/TN are accepted — scraper aborts if configured STATE isn't one of them. Selecting a State reveals a second, single-select Request Type dropdown (conditional field, absent from the DOM before that): exercises "Request a copy..." (Access) and "Opt out of the sale..." unconditionally; "Delete my personal information" gated on REMOVE_INFORMATION — one submission per right. A required text field (labeled with the full perjury-declaration paragraph) takes your full legal name as a signature. Ends in an invisible reCAPTCHA v2 that may require a manual challenge in live mode.
+- [x] ariza.com (branded "Azira")
+  - **CAPTCHA solution required**
+  - URL: https://submit-irm.trustarc.com/services/validation/0a80503b-1d56-4d50-a898-4377a0227dab
+  - Note: TrustArc IRM form. react-select comboboxes for "I am" (Individual/Agent), "Resident of" (state/country), "Type of Request" (single-select, one submission per right — options only populate after Resident of is chosen). Exercises Access, Opt-Out/Unsubscribe, Do Not Sell/Share, Withdraw Consent, Limit Sensitive PI, Correct unconditionally; Delete gated on REMOVE_INFORMATION. MAID optional via ADVERTISING_ID. First/Last Name, Email, MAID, and the consent checkbox all have ids starting with a digit, which breaks `tab.find(id=...)`'s unescaped CSS selector (same class of bug as the colon-id case elsewhere in this repo) — targeted by xpath instead; the consent checkbox is additionally a custom-styled hidden input, set via JS rather than `.click()`. reCAPTCHA v2 manual solve. The PerimeterX-style "confirm you are human" interstitial seen during earlier development turned out to be a rapid-testing artifact, not a permanent block — a later clean session completed and screenshot-verified all fields correctly.
 - [x] atdata.com
   - **CAPTCHA solution required**
   - URL: https://privacyportal-cdn.onetrust.com/dsarwebform/b38ccfa3-c14a-451e-bf1d-974d1e278b7c/6214ac53-9059-474d-a847-800250556e9d.html
   - Note: OneTrust CDN Angular DSAR form. Exercises Do Not Sell, Access, and Delete (gated). Subject type and request type are Angular role="button" divs (click_using_js). State is a text input (full state name). reCAPTCHA v2 checkbox requires manual solve.
+- [x] atom.com
+  - **CAPTCHA solution required**
+  - URL: https://app.termly.io/dsar/62c9d984-30c8-4068-ad84-749ed5ecb452
+  - Note: Same generic Termly DSAR template documented at 01advertising.com — Name/Email, identity_type defaulted "personal", law combobox defaulted CCPA, then a single-select `action` radio group revealed only after picking a law. Exercises request_to_know (Access) and request_to_opt_out unconditionally; request_to_delete gated on REMOVE_INFORMATION. All three attestation checkboxes checked regardless of action. (An earlier version of this scraper, written while app.termly.io was mid-Cloudflare-block during dev testing, missed the action radios entirely and fell back to a vague free-text description — rewritten once the block cleared and the real structure could be confirmed.) app.termly.io sits behind a Cloudflare Turnstile that gates the whole form under repeated testing traffic — solve manually if encountered.
+- [x] audigent.com
+  - **CAPTCHA solution required**
+  - URL: https://app.sixfifty.com/request-easy/653b-4813/questions/5359740
+  - Note: SixFifty "Request Easy" multi-step wizard. Every question is a custom-styled radio group — the real input is hidden (opacity-0, not click()-able); click the enclosing label instead. Flow: state/region -> request-type (single-select, one submission per right: "Right to Know - Specific" for Access, "Do Not Sell My Data" for Opt-Out unconditionally; "Delete My Data" gated on REMOVE_INFORMATION) -> some rights (observed on Opt-Out, not Access) insert an extra "yourself or an authorized agent" question, handled conditionally -> "Do you know your online identifier?" (the ad.gt cookie ID/MAID Audigent actually keys records by) answered "I do not have this information at this time" since ADVERTISING_ID is a placeholder rather than a real device identifier -> Full Name + Email (the only point personal identity is collected). Ends in a reCAPTCHA requiring a manual solve in live mode.
+- [x] audisense.com (Audiense; form hosted by Buxton)
+  - URL: https://www.audiense.com/legal/consumer-personal-information-requests/
+  - Note: Server-rendered form posting to privacy.buxtonco.com. Single submission, rights via checkboxes (IsRightToKnow, IsRightToAccess, IsOptOutRequest unconditionally; IsDeleteRequest gated on REMOVE_INFORMATION). Cookie consent (WP Consent Wall) renders in a shadow root on #wpconsent-container — dismissed via a direct script since it's not reachable through normal DOM queries. reCAPTCHA Enterprise is invisible and auto-resolves. **Cannot be fully automated**: the form requires uploading two forms of photo ID (at least one government-issued) to verify identity — this tool has no access to such documents, so the scraper fills every other field and stops there; a human must attach their own ID photos, pick the correct Company (Buxton vs Elevar — unclear which applies), and submit manually.
 - [x] automotivemastermind.com
   - URL: https://privacyportal.onetrust.com/webform/5cb57702-8ef7-437e-a62b-408fe78cd310/93391c3d-d6c8-45b1-a169-39a0b7f9fb74
   - DNS URL: https://privacyportal.onetrust.com/webform/5cb57702-8ef7-437e-a62b-408fe78cd310/e5f5cb47-9b36-4ba9-920b-fe50ef4dc0c5
   - Note: S&P Global OneTrust Angular portal. Two forms: (1) DNS form (no CAPTCHA) — Do Not Sell / Opt-Out of Targeted Advertising, auto-submitted; (2) Main form (reCAPTCHA v2 manual) — Access, Correct, Data Portability, Opt-Out of Profiling, and Delete (gated). Subject type "Customer". Division = "Not Sure". Country + State autocomplete (click + keyboard). State appears after Country; request types appear after Subject Type.
+- [x] awl.com
+  - **CAPTCHA solution required**
+  - URL: https://privacyportal-eu.onetrust.com/webform/031dc37f-2093-4055-9d04-22f83329fe9f/a4fb8ed6-8389-4a17-a3be-ca808c6b300e
+  - Note: Custom OneTrust EU portal (All Web Leads). One URL covers all rights via a single form — subject-type button aria-label is "For Myself"; request type is single-select (one submission per right): "Request to Know" (Access) and "Request to Delete" (gated on REMOVE_INFORMATION). No opt-out option available. No address/state fields — just name, date of birth (MM/DD/YYYY), phone, email, and request details. reCAPTCHA v2 checkbox requires manual solve.
 - [x] babelstreet.com
   - URL: https://privacyportal.onetrust.com/webform/43f52ed9-df36-44dc-94b6-ce2f8458ca29/2ddc0d62-7d6a-4de2-b5c4-9f9f68116970
   - Note: OneTrust Angular portal. Exercises Access, Edit/Update, Object to Processing, Data Portability, Do Not Sell/Share, and Delete (gated) — all multi-selected in one submission. Subject type "Other". State and Country are independent autocompletes (both visible from load). Phone country code vt-input-8 (type "1"). Confirm Email required. formField78DSARElement = Today's Date (type MM/DD/YYYY). captchaCode image CAPTCHA — manual entry required in live mode.
-- [ ] bi2technologies.com
+- [x] bbdirect.com
+  - URL: https://www.bbdirect.com/resources/privacy-compliance.html
+  - Note: Cognito Forms opt-out compliance form. Right to Opt-Out only, they're a service provider so it's this or nothing — REMOVE_INFORMATION doesn't apply. State is an Element-UI combobox (click, type, click matching li.el-select-dropdown__item). reCAPTCHA Enterprise is invisible (badge hidden) and auto-resolves — no manual solve needed.
+- [x] belardiwong.com
+  - **CAPTCHA solution required**
+  - Right to Access URL: https://privacyportal.onetrust.com/webform/3d2d5e0c-bd98-46b8-906c-ede68a6f6a80/db862165-db28-4966-885c-8ace2d0c1512
+  - Right to Opt-Out URL: https://privacyportal.onetrust.com/webform/3d2d5e0c-bd98-46b8-906c-ede68a6f6a80/400f54ed-fcbb-4749-ab5b-32f491c72390
+  - Right to Delete URL: https://privacyportal.onetrust.com/webform/3d2d5e0c-bd98-46b8-906c-ede68a6f6a80/dd119353-8970-4dbf-ac1d-b6406173c7bb
+  - Note: Three separate OneTrust forms (same portal id as adstradata.com, but this one is a working consumer-facing deployment, not the authorized-agent dead end). Country/State are vt-autocomplete comboboxes (type then ArrowDown+Enter). Two-step email verification required after submission. captchaCode is a BotDetect image CAPTCHA requiring manual entry in live mode.
+- [x] bi2technologies.com
   - URL: https://bi2technologies.com/contact-us/
-- [ ] billtrust.com
+  - Note: Plain Contact Form 7 (WordPress) contact form, no dedicated DSAR portal — the specific ask (Access + Do Not Sell/Share, Delete gated on REMOVE_INFORMATION) is stated in the free-text message since there's no right-type picker. Every field, once given a value that dispatches an 'input' or 'change' event (via type_text() or a native-setter dispatch), gets silently reset back to empty by page-level JS ~750ms later — reproduced even on a single untouched field with no other interaction. Fixed by setting the value via the native setter with no event dispatched at all; a plain HTML form reads .value directly at submit time, so no event is actually needed. reCAPTCHA is invisible — no manual solve observed.
+- [x] billtrust.com
   - URL: https://privacyportal.onetrust.com/webform/82a6a736-b3a7-4e87-a2fd-04a39b7d2b19/2f5dc7b8-7698-4623-82d2-b2b969ef901e
-  - Note: URL redirects to Billtrust's privacy policy page instead of DSAR form — form may have moved. Needs fresh URL lookup.
+  - Note: Loads fine now (earlier "redirects to privacy policy" note was stale). Standard OneTrust webform (privacyportal.onetrust.com/webform/, distinct from the Angular CDN forms elsewhere in this repo but reusing the same *DSARElement id convention). Country/State are vt-autocomplete comboboxes. "I am a(n)" and "Select request type(s)" are already-visible option boxes (role="option" divs, no dropdown to open) — click_using_js() on the matching aria-label. "I am a(n)" defaults to "Customer", which reveals a required "Products" picker defaulted to "Billtrust Collections". Despite the plural "type(s)" label, request type is single-select (confirmed via aria-selected) — one submission per right: Info Request (Access) and Do Not Sell My Information unconditionally; Data Deletion gated on REMOVE_INFORMATION. Required free-text "Request Details" states the specific ask. reCAPTCHA v2 requires manual solve.
 - [x] blackbaud.com
   - URL: https://blackbaud-privacy.my.onetrust.com/webform/170c909c-5ed2-49f1-a59c-2a44be2f6f27/de22df57-d96c-480a-afb0-ac090b928192
   - Note: Custom OneTrust Angular portal. formField100DSARElement = "Are you an authorized agent?" Yes/No listbox — select "No". Country + State independent autocompletes. Consumer subject type. Request types: Access, Opt-out, Correction, Deletion (gated). No phone field. Confirm email required. Image CAPTCHA (manual). formFields 93/98/101/102 are display text only.
-- [ ] bridg.com
-  - URL: https://datagrail.cardlytics.com/
-- [ ] catalist.us
+- [x] bridg.com
+  - URL: https://datagrail.bridg.com/ (the on-file datagrail.cardlytics.com URL 404s — found via bridg.com's own /privacy-policy/ page)
+  - Note: DataGrail Privacy Request Center. Country defaults to United States; State is a MUI Autocomplete typeahead. Each of 5 landing-page cards (Access/Deletion/Opt Out/Transfer/Correction) opens its own simple form: First/Last/Email, a "Data subject's relationship with Bridg" select defaulted to "Customer", optional comments, then Review Request -> Submit Request. Exercises Access and Opt Out unconditionally; Deletion gated on REMOVE_INFORMATION. Text fields have React useId()-style colon ids — targeted by name attribute via xpath rather than id=. No captcha.
+- [x] brooksim.com
+  - **CAPTCHA solution required**
+  - URL: https://dsr.trustsuperset.com/?orgId=2dc76d0a-78d2-4492-9fc1-39da892fc0d5 (the embed at https://www.brooksim.com/privacy-form doesn't reliably render in headless Chrome — go directly to the underlying form)
+  - Note: Trust Superset DSR platform (also used by datadelivers.com, inboundinsight.com). Request Type is single-select (one submission per right): Rectification, Restrict Processing, Data Portability, Not be Subject to Automated Decision-Making, Opt-out of Sales, Limit Sensitive PI unconditionally; Erasure (Delete) gated on REMOVE_INFORMATION. No dedicated Access option offered. Selecting Rectification reveals an additional required "Information to Rectify" textarea. Cloudflare Turnstile requires manual solve in live mode.
+- [x] careerbuilder.com
+  - URL: https://www.careerbuilder.com/privacy/
+  - Note: Server-rendered form, no captcha. One submission per request type select value: "access" (Access) and "dns" (Do Not Sell/Share) unconditionally; "deletion" gated on REMOVE_INFORMATION. Relation defaults to "Other" (no job-seeker/employee relationship to CareerBuilder assumed). Address is a single free-text textarea, not split into street/city/state/zip.
+- [x] catalist.us
   - URL: https://catalist.us/your-privacy-choices/
+  - Note: Gravity Forms privacy request form. "In which state do you reside?" only names ~15 states explicitly plus "Any other state" (used here, since a typical STATE value like Minnesota isn't named) — this reveals a duplicated set of near-identical fields per residency choice, with only the matching one enabled. For "Any other state" the "I would like to" select offers only ONE option ("delete and opt out of the sale of my personal information", a bundled right) — no separate Access/Opt-Out-only choice exists for non-enumerated states, so this scraper only submits when REMOVE_INFORMATION is set and otherwise reports there's nothing to submit (a real limitation of the form, not something to route around by misrepresenting the requester's state). Required declaration checkbox, First/Last/Address/City/State(abbreviated)/Zip/Birthdate(mm/dd/yyyy)/Email/Phone. Ends in a "Send Verification Code" (OTP) step gating the real Submit — fills everything else and stops there regardless of DRY_RUN, since sending the code is a real side effect.
+- [x] censia.com
+  - URL: https://docs.google.com/forms/d/1VhF33VAQG4AmUqBWf7e3m8fw17h9ek64EtQXnuuBQcA/viewform?edit_requested=true
+  - Note: Google Form ("Remove My Data"). Text fields lack a direct aria-label (Google Forms wires them via aria-labelledby to the question heading) — targeted by xpath scoped to each role="listitem" container instead. Rights are one multi-select checkbox group (checkboxes do carry aria-label directly): "Access my PI" and "Do not sell my PI" unconditionally; the third option is left labeled "Option 3" by Censia itself (a form-authoring mistake) but sits in the Access/Opt-Out/Delete triad position, so it's treated as Delete and gated on REMOVE_INFORMATION. No CAPTCHA.
+- [x] choreograph.com
+  - Right to Access URL: https://amer-cpp.choreograph.com/data-points
+  - Right to Delete URL: https://amer-cpp.choreograph.com/manage-your-data/opt-out-delete
+  - Note: Both pages gated by the same two react-select comboboxes (country, then — for United States — state), no typing needed. /data-points (Access) reveals First/Last/Email/Address/City/Zip/Phone but ALSO a required government-ID upload to verify identity before Choreograph will return data — no legitimate document to provide, so this scraper fills every other field and stops there for manual ID upload + submit. /manage-your-data/opt-out-delete reveals three buttons (do not sell/opt out/delete and opt out) each with the same simple field set and no ID requirement (device-level opt-outs, not an access request) — Do Not Sell and Opt Out exercised unconditionally, Delete gated on REMOVE_INFORMATION. reCAPTCHA present on both pages, may need manual solve.
+  - Right to Opt-Out URL: https://amer-cpp.choreograph.com/manage-your-data/do-not-sell
+  - Note: All three pages gate behind a react-select "select your country of residence" combobox with no visible name/address fields even after country selection — no traditional form appeared during investigation (possibly identity-graph/MAID-based rather than name-based). Needs a fresh, more thorough investigation pass; not attempted further.
 - [x] civicelement.com
   - URL: https://www.civicelement.com/privacy-policy-request
   - Note: Webflow form, no captcha. Exercises Right to Access, Opt-Out of Sales/Sharing, Opt-Out of Sensitive Data Processing, and Right to Delete (gated). Phone number required. Submits once per request type (select only allows one at a time). First/last name and phone/email fields share HTML name attributes — targeted by CSS class.
-- [ ] civisanalytics.com
+- [x] civisanalytics.com
   - URL: https://docs.google.com/forms/d/e/1FAIpQLSfvUYww9wEK9Y4F6VY3nQtm0bBS8QTdcDthet6WAKDYqnnwHA/viewform
-- [ ] classfinders.com
-  - URL: https://www.classfinders.com/name_removal.php
-  - Note: SPA — curl returns no form HTML. Needs pydoll.
+  - Note: Google Form. First question is residency (single-select radio, one option per covered state: CA/CO/CT/DE/IN/IA/KY/MD/MT/NH/NJ/OR/RI/TN/UT/VA, plus non-U.S. and "None of the above."). A typical STATE (e.g. Minnesota) isn't covered — "None of the above." is answered honestly rather than picking a covered state to unlock more fields. Selecting a covered state reveals a fuller self/agent + presumably name/email/request-type flow (not built here, since it doesn't apply); "None of the above." instead skips straight to a single perjury-declaration Attestation checkbox and Submit — no identifying fields are collected at all for non-covered-state residents, a genuine limitation of the form rather than something to route around.
+- [x] claritas.com
+  - **CAPTCHA solution required**
+  - URL: https://privacyportal.onetrust.com/webform/68582716-6ce4-4f6e-bf08-78371b5f3292/6c7dc52d-0e2b-481f-9256-0755179e3783
+  - Note: Custom OneTrust Angular portal. Two single-select request-type buttons (one submission per right): "Data Request" (Access) and "Request to be Deleted from Database" (Delete, gated on REMOVE_INFORMATION) — no Opt-Out option. No subject-type step. State is a plain text field requiring the 2-letter code (not autocomplete). A required "Contact Preference" button group (Voice/Text) appears after phone — defaulted to Text. Optional file upload (photo ID/utility bill) left unfilled. Correction requests are email-only (privacyinfo@claritas.com). reCAPTCHA v2 requires manual solve.
 - [x] clarivate.com
   - **CAPTCHA solution required**
   - URL: https://privacyportal.onetrust.com/webform/7636e208-dda4-4218-8026-e1bc155873fc/ae937376-9b21-4996-9327-81eaaa1b20f9
   - Note: OneTrust Angular portal with reCAPTCHA v2 (manual solve). No explicit right-type picker — single general DSAR form. Fields appear dynamically: Country → State → "This request is for" (data subject role, defaults to "Customer"). All autocomplete dropdowns require type-then-JS-click (pydoll find() matches hidden elements).
-- [ ] clearbit.com
+- [ ] classfinders.com
+  - URL: https://www.classfinders.com/name_removal.php
+  - Note: Entire domain (including the bare homepage) returns a CloudFront 403 "request blocked" hard error — no page content is reachable at all via pydoll either, so there's nothing to build a scraper against.
+- [x] clearbit.com
   - URL: https://preferences.clearbit.com/
-  - Note: SPA — curl returns no form HTML. Needs pydoll.
-- [ ] clearview.ai
-  - URL: https://www.clearview.ai/privacy-and-requests
+  - Note: Same DataGrail Privacy Request Center template as bridg.com elsewhere in this repo (identical field names/ids and relationship-select data-value="customer"). Exercises Access and Opt Out unconditionally; Deletion gated on REMOVE_INFORMATION. No captcha.
+- [x] clearview.ai
+  - URL: https://www.clearview.ai/privacy-and-requests (scraper navigates directly to the underlying OneTrust webform: https://privacyportal.onetrust.com/webform/1fdd17ee-bd10-4813-a254-de7d5c09360a/7c79cae5-6e86-4d8d-b409-7a932c09b942)
+  - Note: The marketing page's per-state buttons (Access/Delete/Do Not Sell/Correct/etc.) all share the same target="_blank" webform URL per state. That form: State (vt-autocomplete) reveals a genuinely multi-select "Select request type(s)" grid — Access and Do not Sell/Share exercised unconditionally, Delete/Opt-Out gated on REMOVE_INFORMATION — then Email. Critically, it ALSO requires uploading a clear photo of your face (a redacted government ID if requesting Access) since Clearview identifies people by image, not name/email — there's no legitimate photo for a scraper to supply, so this fills everything else (including the required "I acknowledge" listbox option) and stops there for manual photo upload + submit.
+- [x] clickagy.com
+  - Access URL: https://www.clickagy.com/privacy-center/request/
+  - Opt-Out URL: https://www.clickagy.com/privacy-center/no-resell/
+  - Note: Device/cookie-based tracking, not account-based. The Access page runs its own client-side device check first and, for a clean browser profile with no prior ad-tech history, replaces the entire email+CAPTCHA request form with a "Clickagy has no data associated with your device" banner — the form is not exercisable in that case (scraper detects and reports this rather than treating it as a failure). Opt-Out only asks a California-resident radio (for statistics, honored "regardless of location" per the site) — no identity fields, no CAPTCHA, fully automatable including real submission.
 - [x] clientcommand.com
   - URL: https://privacyportal-cdn.onetrust.com/dsarwebform/555c3377-7eb2-4e7a-bf30-c408de4ab483/70df6685-8289-4d72-a9d7-9a736b3b837f.html
   - Note: OneTrust CDN Angular form (Summit Resources, LLC d/b/a Client Command). Subject "Marketing Recipient". Request type buttons (Know/Access, Opt-Out, Deletion) only appear after all personal info fields (including state autocomplete) are filled. One submission per right. State is an autocomplete combobox (ArrowDown+Enter). Phone country code vt-input-9 (type "1" for US +1). captchaCode image CAPTCHA requires manual entry in live mode.
-- [ ] connectedinvestors.com
+- [x] completemailinglists.com
+  - URL: https://www.completemailinglists.com/consumer-privacy-request
+  - Note: HubSpot form. All rights AND the requestor-type share one combined multi-select checkbox group: Access, Opt Out of Sale/Sharing, Limit Sensitive PI Use, Correct, and "INDIVIDUAL requestor" unconditionally; Delete gated on REMOVE_INFORMATION. Single submission. Zip field name is literally "0-2/zip" (a HubSpot quirk). Optional file upload for requestor authorization — left unfilled. reCAPTCHA is HubSpot's own hidden integration, no manual solve needed.
+- [x] connectedinvestors.com
+  - **CAPTCHA solution required**
   - URL: https://firstam.service-now.com/x_farf2_dp_request_ci_opt_out.do?sysparm_id=fd58b253875b219095280ed7dabb359a
+  - Note: First American's shared ServiceNow "Consumer Privacy Request Form". All field ids contain a colon, breaking `tab.find(id=...)` — targeted by xpath. Selecting a state (MN, "Type of service used" defaults to "Connected Investors") triggers a several-second server round-trip that populates two otherwise-empty dependent selects ("Request Submitted by" = Self (Consumer), "Select the request type"). Single-select request type (one submission per right): "Access Personal Data" unconditionally; "Delete Personal Information" gated on REMOVE_INFORMATION (no Do Not Sell/Opt-Out option exists). Phone Number intermittently renders `type="hidden"` depending on async re-render timing — may need to be filled in manually if still empty when reviewing. The acknowledgement checkbox renders at 1x1px and needs a JS set+dispatch rather than `.click()`. Access requests additionally note that identity is verified via a separate "Consumer Declaration Form" (linked from the page) requiring a signed declaration under penalty of perjury — not automated here. reCAPTCHA v2 requires manual solve.
 - [ ] corporationwiki.com
   - URL: https://www.corporationwiki.com/profiles/public
+  - Note: Entire domain (including the bare homepage) is behind a persistent Cloudflare "Performing security verification" managed challenge — confirmed consistently across multiple attempts, not a rapid-testing artifact. No page content is reachable at all, so there's nothing to build a scraper against. (The on-file URL itself is also a "/profiles/public" listing page, not an actual opt-out form, so a working URL would need to be found first regardless.)
+- [ ] costar.com
+  - URL: https://privacy.costar.com/DSAR-submission
+  - Note: 2026-08-08: "This form is temporarily unavailable" -- submit complaint if this isn't working later on. Still true as of this pass: Akamai edge returns a hard "Access Denied" (no form rendered at all, not a CAPTCHA) — nothing to fill. Re-check later.
 - [ ] criminalpages.com
   - URL: http://members.criminalpages.com/opt-out
-- [ ] crunchbase.com
+  - Note: Entire domain (members subdomain, www, and apex) serves an invalid/mismatched TLS certificate (ERR_CERT_COMMON_NAME_INVALID / ERR_CERT_AUTHORITY_INVALID) — the browser refuses the connection outright, so no page content is reachable at all.
+- [x] crunchbase.com
   - URL: https://preferences.crunchbase.com/
-- [ ] databaseusa.com
+  - Note: Same DataGrail Privacy Request Center template as bridg.com/clearbit.com elsewhere in this repo (identical field names/ids). Exercises Access and Opt Out unconditionally; Deletion gated on REMOVE_INFORMATION. No captcha.
+- [x] cuebiq.com
+  - **CAPTCHA solution required**
+  - URL: https://cuebiq.com/privacy-request/
+  - Note: Gravity Forms MAID-based request (no name/address fields). "I wish to:" radio is single-select (one submission per right): Opt-Out and Access unconditionally; Erase/Delete gated on REMOVE_INFORMATION. Type of ID defaults to GAID (Android) — change to IDFA manually for an Apple identifier. "Authorized Agent" checkbox answered No. reCAPTCHA requires manual solve. Prior research notes: to submit multiple MAIDs, use the browser's back button then refresh rather than resubmitting from scratch — not automated here since SuperScraper only holds one ADVERTISING_ID.
+- [x] databaseusa.com
   - URL: https://privacycompliance.biz/databaseusa-mcdpa/
+  - Note: Contact Form 7 "MCDPA Request Page" (Minnesota Consumer Data Privacy Act) — a single generic Email/Full Name/State submission covers all 7 MCDPA rights at once (no discrete right-type picker). The CF7 form key is literally "email-authentication" — submitting emails a verification link, so this scraper fills the fields and stops there regardless of DRY_RUN; clicking Send and following the emailed link must be done manually.
 - [ ] datadecisionsgroup.com
   - URL: https://datadecisionsgroup.com/preferences
-  - Note: SPA — curl returns no form HTML. Needs pydoll.
-- [ ] datonics.com
+  - Note: Ketch Preference Center widget. The page's own copy says the "Data Subject Rights" tab "may not be visible to visitors outside of the United States" — confirmed only a single "Welcome" tab renders in the DOM at all (no DSAR tab/form present anywhere), meaning Ketch's IP geolocation isn't classifying this environment's outbound connection as US-based. There's no form to build a scraper against until that tab actually renders, which isn't reliably reproducible from here.
+- [x] datadelivers.com
+  - **CAPTCHA solution required**
+  - URL: https://dsr.trustsuperset.com/?orgId=275d6c62-eb0f-4f8a-80c2-b72573902714
+  - Note: Trust Superset DSR platform (same as brooksim.com, inboundinsight.com). Request Type is single-select (one submission per right): Rectification, Restrict Processing, Data Portability, Not be Subject to Automated Decision-Making, Opt-out of Sales, Limit Sensitive PI unconditionally; Erasure (Delete) gated on REMOVE_INFORMATION. No dedicated Access option offered. Selecting Rectification reveals an additional required "Information to Rectify" textarea. Cloudflare Turnstile requires manual solve in live mode.
+- [ ] datanyze.com
+  - Right to Access URL: https://privacyrequest.zoominfo.com/access/verify?origin=datanyze
+  - Right to Opt-Out & Delete URL: https://privacyrequest.zoominfo.com/remove/verify?origin=datanyze
+  - Note: Both URLs are entirely covered by a ZoomInfo-hosted "Press & Hold to confirm you are human" PerimeterX-style gesture challenge (not a simple checkbox reCAPTCHA) — no form content of any kind is reachable behind it in an automated session. Same class of blocker documented elsewhere in this repo for ariza.com/oracle.com/liveramp.com. Left unchecked rather than attempting to programmatically defeat the anti-bot gesture challenge.
+- [x] datapartners.com
+  - **CAPTCHA solution required**
+  - Right to Access URL: https://www.datapartners.com/information-access-request/
+  - Right to Opt-Out URL: https://www.datapartners.com/opt-out-request/
+  - Note: Two separate Zoho CRM webforms with opaque but stable custom field ids (CASECF1, CASECF2, ...). Required: Subject (free text), Privacy Submitter ("Submitted by the Individual Requesting"), First/Last Name, Email, State. Optional Phone/Address/City/Zip filled when available; the "2nd/3rd" alias variants of every field are left blank. Each page has its own BotDetect-style image CAPTCHA (name="enterdigest") requiring manual entry in live mode.
+  - Right to Delete URL: https://www.datapartners.com/delete-my-information-request/
+- [x] datasys.com
+  - URL: https://datasys.com/privacy/my-privacy-choices (real wizard at https://privacy.datasys.com)
+  - Note: /privacy/my-privacy-choices is a marketing/FAQ page; its "Make a Privacy Request" button links out to the actual 4-step wizard. Step 1: request type radio (single-select, one submission per right: Opt-Out and Access/Know My Data unconditionally, Delete My Data gated on REMOVE_INFORMATION). Step 2: submitter type ("Myself" used here). Step 3: First/Last/Email/Phone/Address/City/State/Zip. Step 4: Review & Submit with a required attestation checkbox. Every radio's real input is visually hidden inside a clickable `<label>` — click the label, not the input. No captcha anywhere in the flow.
+- [x] datonics.com
+  - **CAPTCHA solution required**
   - URL: https://www.datonics.com/privacy/privacy-choices
-  - Note: SPA — curl returns no form HTML. Needs pydoll.
+  - Note: Squarespace-built form. Email, "Resident of" (state select), "Type of Request" (single-select, one submission per right: Opt-Out and Access unconditionally, Delete gated on REMOVE_INFORMATION), optional Mobile Advertising ID, and a required "Resident Certification" radio (attesting residency vs. authorized agent). reCAPTCHA badge may require manual solve.
+- [x] decisionlinks.com
+  - **CAPTCHA solution required**
+  - URL: https://www.decisionlinks.com/legal-pages/your-privacy-choices
+  - Note: Webflow site, two separate GET forms on one page reusing the same template — checkbox ids (Agency/Brand/DSP/DMP) are identical across both forms but carry different visible labels, and one text field's id is mislabeled ("Contact-Company-Name" actually displays as "State of Residence"). Form 1 "Opt-Out Request Form": always submitted; DMP checkbox is labeled "Opt-Out of All the Above" so it alone covers Sale/Sharing, Targeted Advertising, and Profiling. Form 2 "General Data Rights Request Form": Access/Correct/Data Portability checked unconditionally, Delete checked only when REMOVE_INFORMATION is set. Both forms have a reCAPTCHA v2 checkbox requiring manual solve.
+- [x] deepsync.com
+  - **CAPTCHA solution required**
+  - Opt-Out/Delete URL: https://privacy.deepsync.com
+  - Access/Correct URL: https://privacy.deepsync.com/request/data (only reachable via the "Data Access Request" footer link — not linked from the opt-out page itself)
+  - Note: Two separate custom pages, both Cloudflare Turnstile. Opt-out page checkboxes (sale/share, targeted ads, profiling, sensitive-info use) checked unconditionally; delete gated on REMOVE_INFORMATION. Access page needs Date of Birth via three month/day/year selects that populate a hidden field via change events; all six "information type" checkboxes checked as the access request; Correct left unchecked (no concrete inaccuracy). State selects use 2-letter abbreviations (unlike most forms in this repo). Both forms filled completely and left for manual CAPTCHA solve.
 - [x] deeprootanalytics.com
   - URL: https://privacy.deeprootanalytics.com/
   - Note: Ethyca/Fides portal. Cards: Access, Delete (gated), Opt-out (unavailable — "Consent management is unavailable in your area"). Each card navigates to full form (email, first/last name, addr1, city, state text input, zip; phone optional). After Continue: email verification code sent (id="code", "Submit code" button). No CAPTCHA. Live mode prompts user to enter code from inbox.
-- [ ] deloitte.com
+- [x] delivr.ai
+  - URL: https://www.delivr.ai/privacy
+  - Note: The "Submit a Request" button opens an in-page modal (not the non-interactive "Submit a Data Subject Request" paragraph text above it): Request Type (single-select radio — view/delete/change/do_not_sell), Email, First Name, Last Name, Submit Request. Exercises "view" (Access) and "do_not_sell" (Opt-Out) unconditionally; "delete" gated on REMOVE_INFORMATION. No captcha.
+- [x] deloitte.com
+  - **CAPTCHA solution required**
   - URL: https://datasubject.deloitte.com/
-  - Note: ANTI-BOT. DataDome WAF blocks all automation.
+  - Note: The previously-documented DataDome WAF block had cleared on retry (same "bot-check interstitials aren't always permanent" pattern as ariza.com/atom.com elsewhere in this repo). "Request Form" -> "Myself" reveals the entire form at once: Contact Info, "Relationship to Deloitte" (checkboxes, select-all-that-apply — "Subscriber to Deloitte US marketplace information..." used as the closest generic analog since none really fit a data broker's non-customer subject), "Request Type" (ALSO select-all-that-apply, unlike most sites here — Access and Opt-Out of sale checked unconditionally, Delete gated on REMOVE_INFORMATION, all in ONE submission), then required Confirmation/Acceptance checkboxes. Native `.click()` is unreliable on these Angular custom checkboxes (only some register) — set via JS instead. reCAPTCHA v2 requires manual solve.
+- [x] demandscience.com
+  - URL: https://portal.privacyengine.io/app/0CEB4BAE-BBE7-4DD9-BD70-4E2DBB01D64D/4F5BED3F-8BFB-4BF4-A1F8-8A2261BDE0CE
+  - Note: PrivacyEngine-hosted webform. "I am making this request on behalf of" defaults to "Myself". First/Last Name, Business Email, "company you work for" (COMPANY_NAME, required despite being a consumer form), Country of Residence. "Privacy Request Type" is single-select (one submission per right): "know what data you hold" (Access) and "opt-out" unconditionally; "data to be deleted" gated on REMOVE_INFORMATION. Radios use opaque numeric names/values and a broken label-for linkage — set via JS rather than a label click. No captcha.
+- [ ] demyst.com
+  - URL: https://demyst.com/personal-information-request-california
+  - Note: This URL and the other DSAR-related URL linked from demyst.com's own privacy policy (/data-subject-action-request) both return a hard 403 Forbidden, while general pages (homepage, /privacy-policy) load fine — looks like a WAF rule specifically targeting DSAR-form paths rather than a generic bot-check, so there's currently no reachable form to build a scraper against.
 - [x] directmail.com
   - **CAPTCHA solution required**
   - URL: https://www.directmail.com/mail_preference/
@@ -171,11 +331,18 @@ Broker Poker is an application that assists users to receive a copy of and delet
 - [x] dstillery.com
   - URL: https://privacyportal-eu-cdn.onetrust.com/dsarwebform/246426b7-49c6-4bf5-879b-d3fdd4cbc15d/35502283-7b19-4b67-b3e0-ede06d3820c5.html
   - Note: OneTrust EU CDN Angular form. Exercises Access, Opt-Out, and Delete (gated on REMOVE_INFORMATION). Subject type "A Consumer". Fields: firstName, lastName, email only — no country/state/phone/address. reCAPTCHA v2 requires manual solve before submit.
+- [x] dtn.com
+  - URL: https://www.dtn.com/do-not-sell-my-information-form/
+  - Note: Gravity Forms request form. All rights are one multi-select checkbox group in a single submission: Do Not Sell/Share, Limit Sensitive PI, Access/Correct, Object to Processing, Data Portability, Withdraw Consent unconditionally; Delete gated on REMOVE_INFORMATION. In place of a CAPTCHA, a randomized arithmetic question ("What is X+Y?") is presented via a select of multiple-choice answers — solved dynamically by parsing the text and picking the matching option. A OneTrust cookie-consent modal auto-opens over the form on load and must be dismissed via its aria-label="Close" (×) button before anything else is clickable.
 - [x] eltoro.com
   - Right to Access URL: https://eltoro.com/access-form/
   - Right to Opt-Out URL: https://eltoro.com/do-not-sell-my-personal-information/
   - Right to Delete URL: https://eltoro.com/access-deletion-form/
   - Note: Each eltoro.com page embeds a separate OneTrust Angular portal (privacyportal.onetrust.com). Scraper navigates directly to the embedded form URLs. Access: all 4 sub-types (Confirm, Categories, Sold/Shared, Pieces) in one submission with reCAPTCHA v2 (manual solve). Opt-Out: Limit Sensitive + Do Not Sell/Share in one submission with image CAPTCHA (captchaCode). Delete (gated): reCAPTCHA v2 (manual solve). Email verification required within 5 days. No phone field.
+- [x] emailindustries.com
+  - **CAPTCHA solution required**
+  - URL: https://privacyportal.onetrust.com/webform/f73513a8-7a10-4a9d-939a-703f8d994839/262761ab-edc4-440a-8e56-e6348b131382
+  - Note: Custom OneTrust Angular portal (branded "Kickbox"). Single generic submission, no request-type picker — the right is expressed via free-text Request Details, which mentions deletion only when REMOVE_INFORMATION is set. Country/State are optional vt-autocomplete comboboxes (type then ArrowDown+Enter). captchaCode is a BotDetect image CAPTCHA requiring manual entry.
 - [x] enformion.com
   - **CAPTCHA solution required**
   - URL: https://www.enformion.com/opt-out/
@@ -184,40 +351,82 @@ Broker Poker is an application that assists users to receive a copy of and delet
   - **CAPTCHA solution required**
   - URL: https://legal.epsilon.com/dsr
   - Note: Exercises Do Not Sell, Do Not Share, Access, Correct, Opt-Out of Profiling, Opt-Out of Sensitive Data, and Delete (gated on REMOVE_INFORMATION). Custom React form; country select reveals request-type radios and personal info fields. State dropdown only includes US privacy-law states. reCAPTCHA v2 invisible requires manual solve before submit. Date of Birth fields present but optional.
+- [x] equifax.com
+  - URL: https://myprivacy.equifax.com/opt-in-opt-out/personal-info
+  - Note: Angular 2-step wizard ("Info" -> "Verify") covering Right to Limit Use of sensitive PI, Opt-Out of sharing/sale, and Opt-In. Ketch cookie banner covers the form — dismissed via aria-label="close banner". State select uses Angular-generated composite option values (e.g. "0: AK") — matched by visible text, not guessed. SSN/ITIN skipped (only LAST_FOUR_SSN available). Scraper fills the Info step and clicks through, but Equifax performs a real-time identity check against actual credit-bureau records before advancing to Verify — placeholder test data gets rejected with a "Please give us a call" page, so the Verify step and whatever right-selection UI lives beyond it could not be observed. A real user's genuine details should pass through; that step onward needs manual completion.
+- [x] evs7.com
+  - URL: https://www.evs7.com/personal-information-request
+  - Note: Contact Form 7 (WordPress). Single submission, rights via checkbox group: Access ("view the information") and Opt-Out ("not be sold") unconditionally; Delete gated on REMOVE_INFORMATION. State select uses full state names as values. reCAPTCHA is invisible (badge only) and auto-resolves.
 - [ ] facecheck.id
   - URL: https://facecheck.id/en/RemoveMyPhotos
+  - Note: A facial-recognition search engine (like clearview.ai elsewhere in this repo). Removal isn't a form submission — it requires first searching your own face to locate your specific photos in their index, then verifying identity via either a live selfie capture (biometric, instant) or an uploaded ID document (manual review). There's no legitimate photo/selfie/ID for a scraper to supply, and the whole flow is per-photo-result rather than a generic request form, so this is a manual-only process.
 - [ ] faraday.io
   - URL: https://faraday.ai/privacy-options
+  - Note: The page's own copy says "please submit a request by entering your email below," but no email field or any `<input>` element renders anywhere on the page (confirmed via a JS count of all inputs = 0, even after a 10s wait) — the actual request widget appears to be missing/broken/geo-gated for this session, so there's no reachable form to build a scraper against.
 - [ ] fastpeoplesearch.com (Mississippi Tornado Alley LLC, who owns a number of other sites)
   - URL: https://www.fastpeoplesearch.com/removal
-  - Note: SPA — curl returns no form HTML. Needs pydoll.
-- [ ] firstorion.com
-  - TODO: privacy policy says email, need to look through emails
+  - Note: The entire page is stuck behind a Cloudflare Turnstile "Verify you are human" checkbox gating a "Loading Search Results..." placeholder — no form or search field is reachable behind it (confirmed after a 15s wait, no change). Likely a name-search-based removal flow (find your own listing first, same pattern as allpeople.com elsewhere in this repo) rather than a generic request form, but there's nothing to interact with until the Turnstile passes.
+- [x] fideo.ai
+  - URL: https://app.fideo.ai/your-privacy-choices
+  - Note: Single-select radio wizard (one right per pass): Access, Correct, Do Not Sell, Limit Sharing of Sensitive Data unconditionally; Delete gated on REMOVE_INFORMATION. Every right requires OTP email/phone verification before any name/address collection — there is no unverified path. Scraper picks the right, confirms country (defaults to US), chooses "Use My Email", and types the email in, but stops before "Send Me A Code" (real email dispatch) regardless of DRY_RUN — the user must click Send, check their inbox, enter the code, and complete whatever form follows manually.
+- [x] finthrive.com
+  - **CAPTCHA solution required**
+  - URL: https://privacyportal.onetrust.com/webform/e2abd578-6539-47f6-9895-b18d23b76ac4/c3d22390-d038-4464-83d3-3f0c91c76a01
+  - Note: Custom OneTrust Angular portal. "State Selection" must be filled first to reveal subject-type ("Website Visitor" used) and request-type buttons. The form's disclaimer frames the process as CA-residents-only (submitting attests CA residency or acting as an agent for one) — same framing already used by reonomy.com's shipped scraper in this repo, followed here rather than introduced as a new exception. Request type is single-select (one submission per right): Know-Specific Pieces, Know-Categories & Sources, Correct, Opt-Out unconditionally; Delete gated on REMOVE_INFORMATION. Country/State (separate personal fields) are vt-autocomplete comboboxes. captchaCode is a BotDetect image CAPTCHA requiring manual entry.
+- [x] firstorion.com
+  - URL: https://privacy.firstorion.com/ (linked only from the footer of an otherwise-unrelated 404 page's "Do Not Sell My Info" link — no direct privacy-request URL exists on the main site)
+  - Note: "GET STARTED ONLINE" leads to First/Last/Email/Phone Number (the phone number being opted out — First Orion sells phone/name/address/carrier/line-type data, so the phone number IS the identifying record here), a single-select "What right do you want to exercise?" radio ("opt-out" bundles opt-out-of-sale with deletion, gated on REMOVE_INFORMATION; "data" is Access, exercised unconditionally), and a required attestation checkbox. The submit button is literally labeled "Send Confirmation" — it sends a real verification email/SMS/call, so this scraper fills the form and stops there regardless of DRY_RUN.
 - [ ] forddirect.com
   - URL: https://privacyportal.onetrust.com/webform/1d20b685-0942-4b4d-a0af-b799c97f5cf6/2e4928b6-d77a-4f76-9518-1bfb9721669d
-  - Note: only for ford owners more or less
-- [ ] fullcontact.com
+  - Note: only for ford owners more or less. Currently gated by a Cloudflare "Performing security verification" Turnstile challenge on this specific `privacyportal.onetrust.com` webform (distinct from the `privacyportal-cdn.onetrust.com` subdomain used successfully by other OneTrust scrapers in this repo) — confirmed persistent across two attempts with fresh Ray IDs a few seconds apart, not a rapid-testing artifact this time. No form content reachable behind it currently; worth a retry later.
+- [x] fraiser.org
+  - **CAPTCHA solution required**
+  - URL: https://my.datasubject.com/Azq9ITU2sQioIKhOV/44046 (embed at https://www.fraiser.org/data-request-form is a near-invisible height:0 iframe with no accessible content in the outer document — go directly to this URL)
+  - Note: Osano DataSubject portal (same platform as windfall.com). Jurisdiction auto-detects from STATE. One card/right per pass: Correct, Summarize (Access), Transfer (Portability), Do Not Sell/Share, Don't Use for Advertising, Third Parties Data Sold/Shared With, Opt-Out of Profiling unconditionally; Delete gated on REMOVE_INFORMATION. "I am submitting this request for" set to "Myself". Cloudflare Turnstile requires manual solve.
+- [x] fullcontact.com
   - URL: https://platform.fullcontact.com/your-privacy-choices
+  - Note: Three cards (Access/Do Not Sell or Share/Delete). "Access My Data" first asks country of residence (defaults United States, just click Continue); all three converge on an identity-verification step — "Use My Email" reveals an email field and a "Send Me A Code" button. Sending triggers a real OTP email, so this scraper fills the email and stops there regardless of DRY_RUN; entering the code and continuing must be done manually. Exercises Access and Do Not Sell/Share unconditionally; Delete gated on REMOVE_INFORMATION.
 - [ ] gm.com
   - URL: https://www.gm.com/consumer-privacy
-  - Note: Only for GM car owners
+  - Note: Only for GM car owners — skipped per user instruction, not applicable to a generic consumer persona. Also returns an Akamai "Access Denied" (edgesuite.net) block when loaded directly, so it may not even be reachable for a real submission attempt.
 - [x] govbackgroundchecks.com
   - TODO: This is just a truthfinder wrapper. Don't try again and remove from the spreadsheet.
   - URL: https://www.govbackgroundchecks.com/opt-out/
-- [ ] grin.co
+- [x] grassrootsanalytics.com
+  - **CAPTCHA solution required**
+  - URL: https://www.grassrootsanalytics.com/california-consumer-privacy-act-ccpa
+  - Note: Wix site, single submission. Rights via checkbox group: Access and Do Not Sell unconditionally; Delete gated on REMOVE_INFORMATION. Checkboxes are visually hidden — clicked via wrapping label. The "Do Not Sell" label is truncated on the live site itself (missing its final "n"). Wix's own CAPTCHA requires manual solve.
+- [ ] greatlakeslists.com
+  - URL: https://greatlakeslists.com/do-not-sell-ca
+  - Note: URL returns a hard 404 ("File or directory not found"). Homepage loads fine but has no obvious privacy/opt-out link. Needs a fresh URL lookup — not attempted further.
+- [x] grin.co
   - URL: https://grin.co/data-privacy-form/
-- [ ] growinglibraries.com
-  - TODO: Remove from list?
+  - Note: Redirects to a SayMine Angular portal (grin.privacy.saymine.io/Grin). "I would like to" (getcopy/donotsell/delete) is single-select, one submission per right. "What's your relationship with GRIN?" is answered with "Other..." (closest generic fit for a non-creator consumer) and two required acknowledgment radios are checked — all three of those use backend-generated UUID ids with no `for`-linked label, so they're selected by clicking the `<label>` whose visible text matches rather than by id. reCAPTCHA v2 checkbox present — **CAPTCHA solution required** in live mode; email verification also sent after submission.
+- [x] groundtruth.com
+  - URL: https://share.hsforms.com/1BoOyoq-ASaS-3zNW4dh5Agnn8aa
+  - Note: HubSpot form. No discrete right picker — a free-text Request Details field states which rights to exercise (deletion only mentioned when REMOVE_INFORMATION is set). MAID is required (location/mobile-ad data company). No CAPTCHA.
+- [x] growinglibraries.com
   - Only Opt-Out/Delete: https://growinglibraries.com/do-not-sell
-  - Note: SPA — curl returns no form HTML. Needs pydoll.
+  - Note: HubSpot form embedded directly in the page (not an iframe). Fields targeted by `name` (firstname/lastname/address/street_address_2/city/country/zip/email); phone has no `name` attribute so it's targeted by an `id^="phone-"` starts-with selector. Shipping State is a real `<select>` with full state names. Cookie-consent modal ("Decline") must be dismissed first. One combined "opt out of sale + remove data" checkbox, no separate Access request offered. reCAPTCHA v2 checkbox present — **CAPTCHA solution required** in live mode.
 - [x] hartehanks.com
   - URL: https://privacy-in-action.hartehanks.com/
   - Note: Custom vt-autocomplete OneTrust portal. Subject type "Individual" via ArrowDown+Enter. Country via ArrowDown+Enter. State via JS native setter + vt-option click (full names). Text fields via JS Angular InputEvent dispatch. Request types are toggle buttons (role=option multi-select). After "Request My Data": infoRequestOptionDSARElement sub-field for which category of data to receive. After "Delete Data": deleteRequestConfirmation sub-field for "Yes". reCAPTCHA v2 manual. Exercises Request My Data (Access), Do Not Sell, Delete (gated).
+- [x] healthcare.com
+  - URL: https://www.healthcare.com/data-request/request-form/
+  - Note: Server-rendered form, no captcha. Inquiry select is single-select (one submission per right): Access ("Right to know what information is collected") and Opt-Out unconditionally; Delete gated on REMOVE_INFORMATION. Per the form's own note, identification requires the exact email and phone number previously provided to healthcare.com — only works for an existing customer. Cookie consent banner must be dismissed first.
 - [x] hibu.com
   - URL: https://hibu.com/legal/privacy-form
   - Note: Server-rendered POST form, no captcha. Exercises Access, Opt-Out (Sale/Share), and Delete (gated on REMOVE_INFORMATION). "Correct my Personal Information" is on the site but requires specifying what to correct — not automated. Visitor type fixed to "Visitor / User of hibu.com or yellowbook.com".
-- [ ] hubspot.com
+- [x] hightouch.com
+  - URL: https://preferences.hightouch.com/
+  - Note: Previously a hard 500 server error; had cleared on retry. Same DataGrail Privacy Request Center template as bridg.com/clearbit.com/crunchbase.com (identical field names/ids). Unlike crunchbase.com, Opt-Out and Delete share one "Deletion or Opt Out Request" card with a sub-select ("Deletion"/"Opt Out") — that sub-select's id is a random per-site UUID, targeted positionally instead. Relationship ("Business Contact"/"Customer"/"Employee"/"Former Employee"/"Job Applicant"/"Other") answered "Other". Exercises Access and Opt Out unconditionally; Deletion gated on REMOVE_INFORMATION. No captcha observed.
+- [x] hubspot.com
   - URL: https://preferences.hubspot.com/?locale=en
+  - Note: Same DataGrail Privacy Request Center template as bridg.com/clearbit.com/crunchbase.com/hightouch.com. Unlike hightouch.com there's no combined "Deletion or Opt Out" card or sub-select — only Access/Deletion/Transfer/Update Inaccuracies, no standalone opt-out right offered at all. Relationship dropdown answered "Other". Exercises Access unconditionally; Deletion gated on REMOVE_INFORMATION. No captcha observed.
+- [x] i-360.com
+  - **CAPTCHA solution required**
+  - URL: https://privacyportal.onetrust.com/webform/94afa614-d9cb-419b-99f1-20c87afaca7f/7527122f-48fe-46ad-bd59-6d69a33ac4db
+  - Note: Custom OneTrust Angular portal. Subject type "Consumer". Request type is single-select out of 12 buttons — core rights exercised (Know categories/specific pieces, Update/correct, Object/restrict processing, Obtain+transmit to a third party, Opt-out of sale/sharing, Limit Sensitive PI) unconditionally; Erase gated on REMOVE_INFORMATION; "File a complaint"/"Raise concerns"/"Appeal" skipped as auxiliary contact options, not rights. Requires address, city, phone (with country code), and zip in addition to the usual name/email/state. reCAPTCHA v2 requires manual solve.
 - [x] ice.com
   - URL: https://ice-privacy.my.onetrust.com/webform/cca3ac39-00b6-45f4-819b-bec660878b46/124d1692-407b-4384-9036-bef3ece530e3
   - Note: Custom OneTrust Angular portal (ice-privacy.my.onetrust.com). Subject "Customer". Country + State autocompletes (stateDSARElement appears after country). Line of Service "Data Services" (formField85DSARElement). Request type SINGLE-SELECT — one submission per right: Info Request, Update Data, Object to Processing, Data Portability, Restrict Processing; Data Deletion gated on REMOVE_INFORMATION. First/Last Name via aria-label. Phone optional (formField82DSARElement). Request Details textarea required (requestDetailsDSARElement). BotDetect 6-char CAPTCHA (captchaCode) per submission.
@@ -226,90 +435,201 @@ Broker Poker is an application that assists users to receive a copy of and delet
   - Right to Opt-Out URL: https://www.ididata.com/do-not-sell-my-personal-information/
   - Right to Delete URL: https://www.ididata.com/deletion-request/
   - Note: Salesforce Web-to-Case forms (one per right type). Minnesota supported. Fields: name, address, state (full name), zip, phone, email, last4ss (LAST_FOUR_SSN required), DOB month/day/year selects, lived6Months (Yes), deliveryChoice (email, Access only). hp-prefixed selects are honeypots — left empty. hplegalAgree is a honeypot checkbox — left unchecked. reCAPTCHA v2 manual solve.
+- [x] inboundinsight.com
+  - **CAPTCHA solution required**
+  - URL: https://dsr.trustsuperset.com/?orgId=2183d64e-c307-4322-938f-5711d839719e
+  - Note: Trust Superset DSR platform (same as brooksim.com, datadelivers.com). Request Type is single-select (one submission per right): Rectification, Restrict Processing, Data Portability, Not be Subject to Automated Decision-Making, Opt-out of Sales, Limit Sensitive PI unconditionally; Erasure (Delete) gated on REMOVE_INFORMATION. No dedicated Access option offered. Selecting Rectification reveals an additional required "Information to Rectify" textarea. Cloudflare Turnstile requires manual solve in live mode.
+- [x] infillion.com
+  - **CAPTCHA solution required**
+  - URL: https://privacyportal.onetrust.com/webform/f7e3f6db-ed65-4759-a3f5-3b5c8b7e9bff/draft/9949a1a8-aa69-4848-a93f-d093d877a981
+  - Note: Custom OneTrust Angular portal, MAID-based (no address). "On behalf of" set to Myself. Request type single-select (one submission per right): Info Request (Access) and Do Not Sell unconditionally; Data Deletion gated on REMOVE_INFORMATION. MAID type defaults to GAID (Android) — change to IDFA manually for Apple. Authorized agent answered "No, the request is for myself". Country/State are vt-autocomplete comboboxes. reCAPTCHA v2 requires manual solve.
+- [x] informa.com
+  - URL: https://privacy.informa.com/policies/en/
+  - Note: Custom Informa portal (not OneTrust). The page is a long privacy policy with no visible form; a "Privacy Request" button opens a 2-step modal instead. Step 1 "I am a" defaults to "Recipient of Marketing Communications". Step 2 offers 5 request cards, one per pass: Obtain a copy of my data (Access), Update inaccuracies (Correct), Unsubscribe Request, Do Not Sell (CCPA/CPRA) unconditionally; Delete gated on REMOVE_INFORMATION. Every card immediately prompts for an email verification link — scraper types the email and stops there (Send Email triggers a real send regardless of DRY_RUN); the rest of the form only appears after clicking the emailed link, which must be done manually.
+- [x] information.com
+  - URL: https://information.com/privacy-rights/
+  - Note: Custom people-search privacy page with three cards, each revealing its own distinct-named inline form only after its own button is clicked (other cards' fields are absent from the DOM until clicked). Right To Know ("REQUEST A COPY"): First/Last/Email, always submitted. Right To Delete ("DELETE MY USER DATA"): First/Last/Email, gated on REMOVE_INFORMATION (cancels subscriptions, deletes account). Opt-Out ("EXERT RIGHT TO OPT-OUT", branded "Suppression Center"): email + acknowledge checkbox only, then a "Continue" button that emails a verification link — scraper fills the email/checkbox and stops there (sending is a real side effect regardless of DRY_RUN); the rest must be completed manually after clicking the emailed link.
 - [x] inmar.com
   - URL: https://privacyportal-cdn.onetrust.com/dsarwebform/fa9f2f77-33ff-473b-ae55-579e2e693a91/ea2fadbb-3208-459b-8ed6-c975b6a9901c.html
   - Note: OneTrust CDN Angular form (same URL as owneriq.com). Exercises Access My Information and Delete My Information (gated on REMOVE_INFORMATION) — no Opt-Out. Subject: "Consumer located in CA, CO, CT, DE, IN, IA, KY, MD, MN, MT, NE, NH, NJ, OR, RI, TN, TX, UT, or VA". Delivery "Online" (Access only — no delivery selector for Delete). formField20DSARElement = "I am submitting this request as:" (optional, type "Consumer"). formField21DSARElement = phone. Country: type + find(text=). State: ArrowDown+Enter. On-behalf-of question: click "No". Delete additionally: "Are you sure you want to delete your data?" → click last "Yes" (find_all to skip on-behalf-of Yes). reCAPTCHA v2. Two-step email verification after submission.
-- [ ] inmarket.com
+- [x] inmarket.com
   - URL: https://preferences.inmarket.com/?locationCode=US-MN
-  - Note: SPA — curl returns no form HTML. Needs pydoll.
+  - Note: Same DataGrail Privacy Request Center template as bridg.com/clearbit.com/crunchbase.com/hightouch.com/hubspot.com. `?locationCode=US-MN` pre-sets Country/State so the region picker never needs to be touched. Opt-Out and "Limit Sensitive PI" share one combined card with a single-select sub-dropdown; only Opt Out is exercised. MAID field (ADVERTISING_ID) present on that combined card only. Relationship answered "Other". Exercises Access and Opt Out unconditionally; Deletion gated on REMOVE_INFORMATION. No captcha observed.
+- [x] instantly.ai
+  - **CAPTCHA solution required**
+  - Right to Access URL: https://app.instantly.ai/privacy/data-request
+  - Right to Opt-Out & Delete URL: https://app.instantly.ai/privacy/opt-out (gated on REMOVE_INFORMATION — bundles Opt-Out and Delete into one submission with no way to select just one)
+  - Note: Two separate React (MUI) forms with react-select Country/State comboboxes (selecting Country reveals State). CAUTION: `tab.find(id=...)` fails on ids containing a colon (React's default `:rN:` id format) — pydoll builds an unescaped CSS selector `#{id}` and `#:r2:` is invalid CSS; every field is targeted by xpath instead. Cloudflare Turnstile requires manual solve.
+- [x] intelius.com
+  - URL: https://app.intelius.com/privacy-center/
+  - Note: Splits into "User Data Tools" (accordion: Right to Know/Opt Out/Correct/Delete) and a separate "Public Data Tools" background-report Suppression Tool (not covered — a distinct, more involved flow). Right to Correct has no form for non-customers (redirects to Delete instead), skipped. Right to Know (`retrievalEmail`) and Right to Delete (`deletionEmail`) both email a real link/confirmation on their action buttons, so this scraper fills the email and stops there regardless of DRY_RUN for both. Right to Opt Out opens an "Opt-out Preferences" modal with one "Do Not Sell or Share My Personal Information" checkbox + Save — a plain preference toggle (no email involved), so it follows the normal DRY_RUN-gated submit pattern. A second sub-form in the same section (name/DOB/city/state/email, to suppress your name from appearing as a relative/associate in *other* people's reports) is auxiliary and skipped. No captcha observed.
 - [ ] intellicorp
   - URL: https://consumer.intellicorp.net/Criteria
-- [ ] intelius.com
-  - URL: https://app.intelius.com/privacy-center/
+  - Note: A background-check CRA (Cisive/IntelliCorp), not a marketing data broker. Only offers a "Copy Request" (Access) for people who already had a background check authorized about them (job/rental/volunteer application) — no self-service Opt-Out/Delete. The full form requires a complete Social Security Number (this repo's persona only defines LAST_FOUR_SSN) and a final checkbox attesting "I hereby authorize IntelliCorp to release a copy of my background check report that I have requested" — an attestation a synthetic persona that never actually had a background check run can't honestly make. Genuine data/consent blocker, not a bot wall — left unchecked.
+- [ ] intentiq.com
+  - Right to Know URL: https://www.intentiq.com/opt-out/information-about-your-mobile-device/?
+  - Right to Opt-Out URL: https://www.intentiq.com/opt-out/opt-out-via-mobile-device/
+  - Note: Both pages are purely informational — no submittable form exists on either. They just explain how to look up your own MAID/IDFA on-device and point to the third-party thenai.org opt-out tool ("these websites and apps are not provided by or controlled by Intent IQ"). Nothing to automate on this domain.
+- [x] issgovernance.com
+  - URL: https://www.iss-stoxx.com/legal/ccpa/
+  - Note: Server-rendered CCPA form. Required "cal_resident" checkbox attests CA residency — same framing already used by reonomy.com/finthrive.com in this repo. No discrete right picker — a free-text "right_to_limit" textarea states the rights (deletion only mentioned when REMOVE_INFORMATION is set). CAUTION: click()-then-type silently fails on first_name/last_name on this page (focus never actually lands on the field — document.activeElement stays BODY — even though the identical approach works on email_address). All fields here are set via native input-value-setter + input/change event dispatch instead, which is reliable regardless of the click/focus issue. reCAPTCHA v3 is invisible and auto-resolves.
 - [x] jmr-media.com
   - URL: https://jmr-media.com/do-not-sell
   - Note: React/Next.js form. Exercises Opt-Out of Sale/Share, Limit Sensitive PI, Access, and Delete (gated on REMOVE_INFORMATION). Request type via radio buttons (name=requestType). Native <select id="state"> with 2-letter abbreviation values. Cloudflare Turnstile auto-completes in headless Chromium. Honeypot field id="website" left untouched.
-- [ ] jobot.com
+- [x] jobot.com
   - URL: https://forms.gle/y8LzfvuoJWRAgqNL9
+  - Note: Google Form. Jobot states it does not sell personal data, so there's no opt-out-of-sale option — only Know/Access/Delete/Correct/Portability checkboxes plus a required "relationship to Jobot" radio (answered "I have used Jobot to look for a job"). Text fields share `jsname="YPqjbf"` with no stable id, targeted positionally. Exercises Right to Know and Right of Access unconditionally; Right to Delete gated on REMOVE_INFORMATION.
 - [x] jungroup.com
   - URL: https://jungroup.com/optout
   - Note: Google Form (embedded iframe, navigated directly). Exercises Don't Sell/Share, View, Edit, Delete (gated on REMOVE_INFORMATION). Requires ADVERTISING_ID.
 - [ ] kbsynergy.com
   - TODO: Only seeing opt-out, need the rest of them. Look through emails
   - Right to Opt-Out: https://hiy.ywv.mybluehost.me/website_8088244e/privacy-policy-ccpa-do-not-sell-my-information/
+  - Note: The recorded opt-out URL is a hard 404 on the Bluehost-hosted site. The bare domain (kbsynergy.com, no www — www doesn't even resolve via DNS) returns a raw Apache 403 Forbidden with no page content at all (misconfigured server, not a bot-check). Nothing to automate; needs a fresh URL/domain lookup.
+- [x] kidslivesafe.com
+  - **CAPTCHA solution required**
+  - URL: https://www.kidslivesafe.com/help-center/privacy-requests
+  - Note: Single form, "Request Type" select (Do Not Sell My Info/Delete My Info/Request a Copy) — one submission per type. Last Name field's real name/id is a random hex string (anti-bot obfuscation), targeted positionally (3rd plain text input). Email only appears for "Request a Copy". Age is a numeric select (18-105); DATE_OF_BIRTH converted to age and clamped into range. Cloudflare Turnstile gates "Continue" — form filled completely, CAPTCHA left for manual solve. Exercises Do Not Sell and Request a Copy unconditionally; Delete gated on REMOVE_INFORMATION.
 - [ ] knowwho.com
   - URL: http://go.knowwho.com/lp-ccpa-request
+  - Note: `go.knowwho.com` (a Pardot landing-page domain) fails TLS handshake entirely — `curl -v` shows `TLSv1.3 (IN), TLS alert, handshake failure` on the server side, confirmed independent of Chromium (which reports `ERR_SSL_VERSION_OR_CIPHER_MISMATCH`). Plain HTTP 302-redirects to the broken HTTPS URL. Genuine server-side TLS misconfiguration, not a bot block — nothing to automate until it's fixed on their end.
 - [x] kochava.com
   - URL: https://www.kochava.com/opt-out-do-not-sell-request-process/
   - Note: Opt-Out only by Mobile Ad ID (ADVERTISING_ID required, UUID format). No Access or Delete form. reCAPTCHA v2 checkbox requires manual solve; submit button disabled until reCAPTCHA callback enables it.
-- [ ] leadloft.com
+- [x] l2-data.com
+  - URL: https://l2-data.com/optout1-667457/
+  - Note: Gravity Forms opt-out-only form, same platform as locatesmarter.com elsewhere in this repo. California residents are routed to a separate, un-automated mechanism instead — this form is for non-California opt-outs. Required consent checkbox certifies you are the individual whose information is being provided. Gravity Forms arithmetic CAPTCHA (e.g. "14 + 3 =", regenerated per load) is parsed and solved at runtime, not hardcoded — no manual CAPTCHA step needed.
+- [x] lead411.com
+  - **CAPTCHA solution required**
+  - URL: https://www.lead411.com/your-privacy-choices/
+  - Note: "Request Type" select offers Access/Opt-out of Sale/Know What Is Processed/Correct/Delete/Port — one submission per type; Know/Correct/Port skipped as auxiliary. Country=United States reveals a State select. Email + required "I Agree" checkbox (custom-styled, set via JS) + reCAPTCHA v2 gate the "Get Code" button, which emails a real verification code — form filled and stopped there regardless of DRY_RUN. Exercises Access and Opt-Out unconditionally; Delete gated on REMOVE_INFORMATION.
+- [x] leadloft.com
   - URL: https://www.leadloft.com/user-agreements/personal-data
+  - Note: Page states "We do not honor automated requests" — submission may simply be ignored, documented regardless. Only Delete/Rectify/Restrict Processing offered (no Access/Opt-Out-of-Sale); "Restrict Processing" used as the closest Opt-Out analog, "Rectify" skipped as auxiliary. Field ids are INVERTED: `id="Email"` is CSS-hidden (the actual spam trap) while `id="HoneyPot"` is the real, visible email field — filling "Email" would miss the real field and trip the trap. Submit button uses an auto-generated Webflow node id; targeted via the stable `wf-form-Personal-Data` form id (there's also an unrelated `id="submit"` elsewhere on the page for a newsletter CTA). Exercises Restrict Processing unconditionally; Delete gated on REMOVE_INFORMATION.
+- [x] leadmemedia.com
+  - **CAPTCHA solution required**
+  - URL: https://policy.leadmemedia.com/States/privacyrequestform.html
+  - Note: Single server-rendered form, select-all-that-apply checkboxes (DeleteInfo/NotSell/Access/Correct/Limit/NoTarget/ThirdParty) — one submission covers everything checked. Correct/Limit/NoTarget/ThirdParty skipped as auxiliary. State is free text (full name accepted). reCAPTCHA v2 present, form filled and left for manual solve. Exercises Opt-Out and Access unconditionally; Delete gated on REMOVE_INFORMATION.
 - [x] leadpost.com
   - URL: https://client.leadpost.com/PrivacyRequest
   - Note: Server-rendered POST form. Exercises Opt-Out (future data collection), Access (copy of data + list of recipients), and Delete (gated). State requires 2-letter abbreviation. reCAPTCHA v2 requires manual solve before submit. Single submission for all rights.
-- [ ] lightboxre.com
-  - URL: https://urldefense.proofpoint.com/v2/url?u=https-3A__my.datasubject.com_16BXQXSvkBnuN4W2w_51306&d=DwMFAg&c=euGZstcaTDllvimEN8b7jXrwqOf-v5A_CdpgnVfiiMM&r=wUxcY8xds7NwcPyJ-9PjbzzSWU5GA_GcSHVVxAQ-_ck&m=QP3FQwlf_Gn97KYLT2H1snnHVQkjfxCiTy2pY0dms5U21w9wQ-LaUqOvy8LubeLm&s=xCInMnbg7DMZHZqxuo9y-iQLUh5jfATJCSvt27W0ROM&e=
+- [x] liftbasedata.com
+  - **CAPTCHA solution required**
+  - URL: https://www.liftbasedata.com/request-to-know/liftbase/
+  - Note: Titled "Opt-Out Request" but rights are actually independent Yes/No selects further down a Gravity Forms form: Delete (gated on REMOVE_INFORMATION), "send summary of data categories" + "send summary of where shared" (together = Access, both Yes), Correct (skipped — the page itself even notes "LiftEngine will treat correction requests as a request to delete"). Single combined submission, not one per right. "Are you acting as an agency?" must be answered "No" first to reveal the rest of the form. Marital Status is a required Single/Married select with no neutral option — "Single" used arbitrarily. Both Cloudflare Turnstile and reCAPTCHA v2 present; form filled completely and left for manual solve.
+- [x] locatesmarter.com
+  - Request to Know or Delete URL: https://locatesmarter.com/request-to-know-or-delete-my-personal-information/
+  - Request to Opt-Out URL: https://locatesmarter.com/request-to-opt-out-do-not-sell-my-personal-information/
+  - Note: Two separate Gravity Forms, one per URL. The Know/Delete form's "know" (access) and "delete" checkboxes are both ticked in one combined submission (gated on REMOVE_INFORMATION for delete); minor/third-party sections skipped (self only). Opt-Out form only has self/minor/third-party toggles — self used. Both use an invisible reCAPTCHA v2 that auto-resolves without a visible challenge, so DRY_RUN is respected and real submission works when DRY_RUN is False. Note: Access requests additionally require a signed identity Declaration emailed/mailed separately before they'll disclose specific data — not automatable, described on-page after submission.
+- [x] lightboxre.com
+  - URL: https://my.datasubject.com/16BXQXSvkBnuN4W2w/51306 (recorded URL was a Proofpoint url-defense redirect wrapper around this)
+  - Note: Cards are Correct/Access/Delete/"Third parties your data was sold or shared with" — no explicit Opt-Out-of-Sale, so the sharing-disclosure card is used as the closest analog (same approach as liftbasedata.com elsewhere in this repo). Correct skipped as auxiliary. Address block ids are random per-field UUIDs, targeted by `name` instead. State is free text expecting the 2-letter abbreviation. No CAPTCHA observed. Exercises Access and third-party-sharing disclosure unconditionally; Delete gated on REMOVE_INFORMATION.
 - [x] lightcast.io
   - URL: https://privacyportal.onetrust.com/webform/0f61f895-d08d-410f-b96d-ecfd34fd42e3/4b91c2db-5fdc-4f47-8523-b9f01d9e92a3
   - Note: OneTrust Angular form. Country + State must be filled FIRST (selecting MN reveals MN-specific request type buttons). JS native value setter required for all text inputs (element.type_text doesn't trigger Angular ngModel). Rights: Right to Know/Access, Right to Object/Opt out of Sales, Right to Rectify/Correct, Right to Delete (gated). Subject type: "data owner / subject". BotDetect image CAPTCHA requires manual entry.
 - [ ] liveramp.com
   - URL: https://liveramp.com/privacy/my-privacy-choices/
-  - Note: ANTI-BOT. TrustArc forms (697ea013, bcdbaba0, ac603fe1) — Cloudflare challenge blocks all automated access after the first request. Only the opt-out form (ac603fe1) loads consistently; the access and correct forms (697ea013, bcdbaba0) trigger "Human Verification" on every attempt.
+  - Note: The main "Your Privacy Choices" page itself now loads fine (Ketch cookie-consent banner: dismiss via `#ketch-banner-button-secondary`, not a plain "Reject All" text match — that text also exists, invisible, elsewhere in the DOM). Only 2 distinct TrustArc IRM forms are actually linked, not 3: **697ea013** is shared by BOTH "Access or Request to Know" and "Deletion Request" (a react-select Angular form, container ids `00000000-0000-0000-0000-0000000010XX-select-container` — same scaffold as ariza.com elsewhere in this repo — with a "Type of Request" select presumably offering both Access and Delete options); **bcdbaba0** is the Correction form specifically (an Alpaca/JSON-schema form, `alpacaN` ids, "Type of Request" select showing only "Correct my information" — confirmed live). **ac603fe1** (Opt-Out) is the same react-select template as 697ea013. All three TrustArc URLs re-triggered a PerimeterX-style "Let's confirm you are human" wall (behind an English/language "Begin" gate first) after repeated exploration requests this session — reproducible, matches the same not-necessarily-permanent pattern seen on ariza.com/oracle.com. Retry in a fresh, low-frequency session: confirm the "I am" select's option text on 697ea013 (only got as far as confirming the container ids exist before the wall reappeared) and build all three (Opt-Out unconditional, Access unconditional, Delete gated on REMOVE_INFORMATION) using ariza.com's `_select_option` helper as the template.
+- [x] lsmapps.com
+  - **CAPTCHA solution required**
+  - URL: https://lsmapps.com/opt-out
+  - Note: Territory (US/EU/Other) gates the "Which right" select — US offers Know/Access, Deletion, Portability, Non-Discrimination, Rectification, Limit Sensitive PI, Opt-Out of Sale; single-select, auxiliary rights skipped. A `name="website"` text field has `tabIndex="-1"` — a honeypot despite the generic label, left blank. Custom text/image security-code CAPTCHA gates submission, form filled and left for manual entry. Exercises Access and Opt-Out of Sale unconditionally; Deletion gated on REMOVE_INFORMATION.
+- [x] m1data.com
+  - URL: https://m1-data.com/unsubscribe/
+  - Note: Right to Access, Delete, Do Not Sell — single-select radios, one submission per right. State is free text. A `name="website"` field (no visible label, height:0) is a honeypot, deliberately left blank. reCAPTCHA v2 present as a badge only (no visible checkbox challenge) — appears to be invisible/auto-resolving, same as other invisible-recaptcha sites elsewhere in this repo. Exercises Access and Opt-Out unconditionally; Delete gated on REMOVE_INFORMATION.
 - [x] madisonlogic.com
   - URL: https://madisonlogic-privacy.my.onetrust.com/webform/b7449bea-44c6-4823-a2ac-30a8f33047d0/9a375b0c-9030-44ce-bfd3-217fd7a71993
   - Note: Custom OneTrust portal. Country must be filled first to reveal State, subject type ("Data Subject"), and request type buttons. Both the main request type buttons and opt-out sub-option buttons are SINGLE-SELECT — one submission per right. "Opt out" reveals two sub-options ("Partner Services Marketing", "Personalized Content"), each requiring a separate submission. "Data Deletion" shows a Yes/No confirmation; click Yes. requestDetailsDSARElement is always required. Phone country code vt-input-7. captchaCode image CAPTCHA. Data Deletion gated on REMOVE_INFORMATION.
+- [x] mailinglists.com
+  - Right to Opt-Out/Delete URL: https://41b1vr.share-na2.hsforms.com/2mF48cI-GSjaSTP9FG8gkjA
+  - Note: HubSpot form. Everything else (Access, Correct) is email-only per the page itself — privacy@mailinglists.com. Only Opt-Out/Delete offered as a single-select radio (index 0/1) — one submission per right. Field ids are random hashes, targeted by stable `name` attributes instead. reCAPTCHA v2 present (standard hs-recaptcha-response pattern). Exercises Opt-Out unconditionally; Delete gated on REMOVE_INFORMATION.
 - [x] malvernmedia.com
   - URL: https://privacyportal.privacypillar.com/dsar/form?formid=6e6ff4b8-2296-4589-ae7f-563fa743ec2d&orgid=369c8ff9-8ffb-4308-8362-f01691e77db8&propid=64c8904f-8bac-4dd9-8e6c-d052be1918a2&status=publish
   - Note: PrivacyPillar Angular portal. Subject type "Other US State Resident" (label click). Request type radios are single-select — one submission per right. Fields: email, first_name, last_name, country (typeahead), address, city, state (typeahead), zip. 6-character alphanumeric image CAPTCHA (name="captchacode") — manual entry per submission in live mode. Exercises Right to Know, Right to Correct, Right to Opt-Out of Sale/Sharing, Right to Opt-Out of Cross-Behavioral Sale/Sharing, Right to Limit Sensitive PI; Delete gated on REMOVE_INFORMATION.
-- [ ] mchdata.com
+- [ ] marketops.com
+  - URL: https://marketops.com/data-inquiries/
+  - Note: The page's Gravity Forms shortcode (`[gravityform id="6" title="false" description="false"]`) is rendered as literal unprocessed text instead of an actual form — confirmed via DOM: 0 `<form>` elements, only 3 unrelated inputs (cookie-banner controls). Genuine site-side misconfiguration, not a bot block. Nothing to automate until it's fixed on their end; worth a retry later.
+- [x] matchbookdata.com
+  - URL: https://www.matchbookdata.com/your-privacy-choices/
+  - Note: Identifies consumers only by mobile Device ID (Advertising/Installation ID), not name/address — the entire form is just Device ID (ADVERTISING_ID) + Email. No separate control for Opt-Out vs. Deletion vs. Limit-Sensitive-PI; the page describes all three rights but funnels every request through this one form, so it's a single unconditional submission. Cookiebot consent banner dismissed first. No CAPTCHA observed.
+- [x] mchdata.com
+  - **CAPTCHA solution required**
   - URL: https://www.mchdata.com/about/ccpaemail
-  - Note: ASP.NET server-rendered form with __RequestVerificationToken. reCAPTCHA v2 (site key: 6LdxH94UAAAAAHLdMKLtxaN-s7R1oW0WGdj81bYZ). Only email + IsCaliforniaResident radio — California-focused, no Minnesota option.
+  - Note: ASP.NET page with several unrelated forms sharing generic field ids (login/signup/newsletter) — the real CCPA form is `id="email"` + `IsCaliforniaResident` radio (MCHCustomerBoolYes/No). Only Opt-Out-of-Sale offered, no Access/Delete. "No" is already the default radio; set explicitly anyway. reCAPTCHA v2 present, form filled and left for manual solve.
+- [ ] media.net
+  - URL: https://www.media.net/preferences/
+  - Note: The "Privacy Rights Requests" section is an `<iframe id="pr-iframe">` embedding `https://privacyrequest.net/privacy-request/?flavor=<hash>` — a generic third-party DSAR platform (not media.net-specific; worth recognizing on other sites too), navigable directly (doesn't frame-bust). It's a wizard: "I am from" (country, type "United States" then click the `li`) → "State" (same pattern, "Minnesota") → Next → reveals "I am a" (relationship radio) + "Choose a request type" (radio, single-select) + First/Last/Email/`name="website"` (honeypot, leave blank)/Request Details + Submit. Confirmed once live for Minnesota: "I am a" = Parent/Guardian of a Minor, Consumer, Consumer - Household, Minor; request types = Opt-Out (Targeted Advertising), Copy of Personal Data, Rectify, Delete, **Access Personal Data**, **Opt-Out (Do Not Sell My Personal Data)**, Opt-Out (Profiling), Lodge an Appeal — Access/Opt-Out(Do Not Sell)/Delete are the core rights to exercise, rest auxiliary. CAUTION: the DOM contains many other countries'/flavors' request-type blocks with duplicate/colliding ids (e.g. `request-to-access` reused with a different label elsewhere) — do NOT target by id; the live page must be walked through the wizard first and the resulting radios matched by their exact visible label text (confirmed unique per this MN flow: "Request to Access Personal Data", "Request to Opt-Out (Do Not Sell My Personal Data)", "Request to Delete Personal Data"). Repeated exploration this session also became flaky/unresponsive (Next button intermittently not found) after several rapid reloads — possibly self-triggered rate-limiting, same family as the ariza.com/liveramp.com pattern; retry in a fresh low-frequency session and build from the confirmed label text above.
 - [x] mediaocean.com
   - URL: https://www.mediaocean.com/your-privacy-rights
   - Note: Marketo form (mktoForm_3843). Exercises Access (Obtain Info), Opt-Out (Sale), and Delete (gated). Fields: FirstName, LastName, Email, State (full name), areYoutheConsumer ("Yes"), cCPARequest (select). One submission per right type. No CAPTCHA detected.
-- [ ] messagedigital.com
+- [x] mediawallah.com
+  - **CAPTCHA solution required**
+  - URL: https://mediawallah.com/donotsell/
+  - Note: Embeds a OneTrust dsarwebform Angular iframe, navigated to directly. "I am a (an)" and "Select request type(s)" are `role="option"` toggle groups — despite the plural label, empirically single-select (same as billtrust.com). "Customer" used for relationship. Country/State are custom autocompletes — typing alone auto-completes to the wrong entry and steals the next field's focus, so the matching dropdown option is clicked instead. reCAPTCHA v2 present, form filled and left for manual solve. Exercises Info Request (Access) and Do Not Sell unconditionally; Data Deletion gated on REMOVE_INFORMATION.
+- [x] merkle.com
+  - **CAPTCHA solution required**
+  - URL: https://www.merkle.com/en/privacy-policy/data-product-privacy-notice/control-your-personal-information.html
+  - Note: Custom OneTrust "webform" portal embedded in an iframe, navigated to directly. Request type/relationship/brand are `role="option"` toggle groups, single-select. State is a custom autocomplete combobox (click matching dropdown option, not plain type_text — same trap as mediawallah.com). BotDetect image CAPTCHA. Also sends an email-confirmation link (3-day validity) that must be clicked before the request is actually processed. Exercises Access and Do Not Share or Sell unconditionally; Delete gated on REMOVE_INFORMATION.
+- [x] messagedigital.com
+  - **CAPTCHA solution required**
   - URL: https://messagedigital.com/my-data
-  - Note: SPA — curl returns no form HTML. Needs pydoll.
-- [ ] mobilewalla.com
-  - URL: https://www.mobilewalla.com/california-residents-do-not-sell-my-personal-information
-  - Note: SPA — curl returns no form HTML. Needs pydoll.
-- [ ] mrginc.com
+  - Note: Embeds a OneTrust "webform" iframe, navigated to directly. CAUTION: the "Select request type" group and everything below it (relationship, name, perjury declaration) DOES NOT EXIST IN THE DOM until State is selected — inspecting the form before filling State misses the entire request section. State is a custom autocomplete combobox. Request type is single-select (Opt Out/Know-Access-Portability/Correct/Delete/Appeal); different rights reveal different follow-up fields (Access adds First/Last Name + a perjury "Yes" declaration; Opt-Out only asks Phone/Email). BotDetect image CAPTCHA. Exercises Know/Access/Data Portability and Opt Out unconditionally; Delete gated on REMOVE_INFORMATION.
+- [x] minerva.io
+  - URL: https://preferences.minerva.io/
+  - Note: Same DataGrail Privacy Request Center template as bridg.com/clearbit.com/crunchbase.com/hightouch.com/hubspot.com/inmarket.com. Separate Access/Deletion/Opt Out/Transfer/Update Inaccuracies cards, like crunchbase.com. Relationship answered "Other". Exercises Access and Opt Out unconditionally; Deletion gated on REMOVE_INFORMATION. No captcha observed.
+- [x] mobilewalla.com
+  - **CAPTCHA solution required**
+  - URL: https://www.mobilewalla.com/california-residents-do-not-sell-my-personal-information (links to the real form at /global-opt-out-request)
+  - Note: Select-all-that-apply checkboxes (Deletion/Opt-out/Access-Port/Limit Sensitive PI, no ids, targeted positionally) — one combined submission. Page states all requests get treated as deletion regardless of what's checked (can't verify identity), documented but doesn't change what's checked. Email + MAID (ADVERTISING_ID) required. Country/State plain selects. "verify-resident" radio (individual consumer selected). reCAPTCHA v2 present. Exercises Access/Port and Opt-Out unconditionally; Deletion checkbox gated on REMOVE_INFORMATION.
+- [x] mrginc.com
   - URL: https://www.mrginc.com/do-not-sell-my-personal-information
-  - Note: SPA — curl returns no form HTML. Needs pydoll.
+  - Note: Plain server-rendered form. Select-all-that-apply checkboxes (do_not_sell_info/delete_my_info/request_my_data) — one combined submission. State is free text. "CAPTCHA" is a dynamically-generated arithmetic question ("What is 4 + 10?", regenerated each load) — genuinely solved by parsing and computing, no manual step needed. Exercises Opt-Out and Access unconditionally; Delete checkbox gated on REMOVE_INFORMATION.
+- [x] mrss.com
+  - URL: https://www.mrss.com/my-personal-information/
+  - Note: M+R. Opt-out of sale only — no Right to Access anywhere on the site (confirmed by prior manual investigation). A CookieYes cookie-consent banner covers the page on load and must be dismissed (`.cky-btn-accept`, two instances in the DOM — matched by class rather than text/id) before proceeding, though it doesn't block field interaction either way. Only Email (required) and Phone collected; "on behalf of someone else" field left blank. reCAPTCHA Enterprise is invisible and auto-resolves — no manual solve needed.
 - [x] narvar.com
   - URL: https://narvar.my.onetrust.com/webform/04b3731f-2a9a-42ce-bd6b-106d4b4ec3bf/a7c944bf-3cec-4f00-9dc5-dea5bf2b6f4f
   - Note: Custom OneTrust portal. Subject "End consumer". Exercises Access, Portability, Rectification, Restriction unconditionally; Deletion gated on REMOVE_INFORMATION — all in one submission. Only email required (no name/address). formField78DSARElement = "Order number or Email address" (optional, left blank). reCAPTCHA v2 — manual solve before submit.
 - [ ] nationalopinioninstitute.com
   - URL: https://privacyportal.onetrust.com/webform/77dff651-9f08-40cd-99fe-a7c487b2504d/afcce4ab-fd72-4990-a972-58e24d9110a7
   - Note: "The requested content is no longer available" — form removed. Needs fresh URL lookup.
+- [ ] neighbor.report
+  - URL: https://neighbor.report/remove
+  - Note: Domain does not resolve at all (`ERR_NAME_NOT_RESOLVED` / DNS SERVFAIL for both bare and www). Dead domain, not a bot block — nothing to automate until/unless it comes back online.
+- [x] nextroll.com
+  - URL: https://nextroll-privacy.relyance.ai/#/?locale=en-US (links out to app.adroll.com/optout for the actual opt-out; the Relyance AI "Verify Identity" flow requires an AdRoll Advertiser Identifier only existing account holders have, so it's not exercised)
+  - Note: Primary consumer opt-out is a "Web Browser Opt-Out" Allow/Opt-Out toggle at app.adroll.com/optout (sets a local `opt_out` cookie, no PII/network submission — clicked unconditionally, confirmed via "Your browser is successfully opted-out" message). Secondary "Email Opt-Out" (business email, for the B2B "Contact Data" product) has reCAPTCHA v2 with no visible Submit button — appears to submit via the reCAPTCHA callback itself, filled and left for manual solve. No Access or Delete mechanism exists anywhere in this flow.
 - [x] nexxagroup.com
   - URL: https://privacyportal.onetrust.com/webform/c02129bc-bbab-43a6-a0b4-175489cb893e/156ac96a-9d7e-4fe6-bab8-a44df779202b
   - Note: OneTrust Angular portal. Subject type "Myself". Exercises Access, Do Not Sell/Share, and Delete (gated) — multi-selected in one submission. No Correct right available. Country and State are independent autocompletes; Country may pre-fill via IP. Phone country code vt-input-10 (type "1"). Acknowledgement section is informational text (no checkbox). captchaCode image CAPTCHA — manual entry required in live mode.
 - [x] nexxen.com
   - URL: https://nexxen.com/privacy-data-subject-rights-request/
   - Note: OneTrust Angular portal (privacyportal.onetrust.com) embedded on the page. Form requires one separate submission per right (stated explicitly). Country → State autocomplete reveals subject type ("Customer"), request types, and acknowledgement ("Yes"). Exercises Access/Portability, Correct, Do Not Sell/Share, Opt-out Sensitive, Opt-out Profiling/Ads unconditionally; Delete gated on REMOVE_INFORMATION. reCAPTCHA v2 — manual solve in live mode.
-- [ ] neighbor.report
-  - URL: https://neighbor.report/remove
-  - Note: SPA — curl returns no form HTML. Needs pydoll.
+- [x] nielsen.com
+  - **CAPTCHA solution required**
+  - URL: https://privacyportalde-cdn.onetrust.com/dsarwebform/70b0083d-d519-4ad2-84ca-96b7c5f8e1a9/9810a8bc-e54d-4d70-bac0-5e4d781ef5b9.html
+  - Note: OneTrust CDN webform, same template as zetaglobal.com elsewhere in this repo. A prior manual investigation recorded this URL as redirecting to google.com — no longer reproduces, the form now loads normally. "I am a (an)" has no generic consumer option — "Other" used. Country must be filled first to reveal State and "Select Request Type", which (unlike zetaglobal.com) is single-select here — one submission per right: Access unconditionally, Delete gated on REMOVE_INFORMATION; Correct/Other skipped. BotDetect image CAPTCHA requires manual entry.
 - [ ] oracle.com
   - URL: https://www.oracle.com/legal/data-privacy-inquiry-form/
-  - Note: ANTI-BOT. TrustArc form (submit-irm.trustarc.com/services/validation/742d5422). Cloudflare bot detection blocks automation after first session (same pattern as liveramp). Additionally, "United States" is absent from the country dropdown when typing — virtual scrolling renders only alphabetically-adjacent options, making US country selection unreliable.
+  - Note: TrustArc form, same react-select Angular scaffold as ariza.com/liveramp.com elsewhere in this repo (container ids `00000000-0000-0000-0000-0000000010XX-select-container`: 1004="Resident of", 1001="I Am", 1005="Type of Request"; text fields `...1002fn`/`...1002ln`/`...1003`). CSS class prefix here is `ta-upm-select__` (not plain `select__`) — a plain CSS selector like `.select__option` silently matches nothing; use `[class*="select__option"]` or the `ta-upm-` prefixed class directly. CONFIRMED (not just suspected) live this session: typing "United States" into the "Resident of" field returns zero matches for plain "United States" — only "United States Minor Outlying Islands" and "United States Virgin Islands" show up, a real site-side search bug, not a scraper artifact. No workaround found yet (short queries like "USA"/"US" untested due to hitting the block below); next attempt should try scrolling the unfiltered (untyped) option list via `menu.scrollTop` to reach "United States" alphabetically, or try typing only "United S" / "nited State" (avoiding whatever substring triggers the bad filter). Also CONFIRMED still prone to a PerimeterX-style "Let's confirm you are human" wall (behind an English/language "Begin" gate) after ~5 rapid requests this session — same family as liveramp.com/ariza.com/media.net's privacyrequest.net; retry in a fresh, low-frequency session.
 - [x] outbrain.com
   - URL: https://dsr.outbrain.com/recommendations-settings/data-rights/en
   - Note: Device-based privacy portal only. The opt-out toggle operates on the current browser/device (cookie-based) and the "My Data Rights" section requires a stored device profile to function — the Proceed verification modal does not dismiss in headless Chrome without one. No traditional email/name DSAR form exists on this portal. Cannot be meaningfully automated.
+- [x] outlogic.io
+  - URL: https://outlogic.io/opt-out-form/
+  - Note: Nearly identical to matchbookdata.com elsewhere in this repo (related vendor family) — identifies consumers only by Device ID (ADVERTISING_ID) + email. Page has two Gravity Forms; `gform_2` is the real opt-out form, `gform_3` an unrelated Contact Us form sharing the same generic `input_N` naming — resolved via `gform_2`'s own field ids. `gform_2`'s third field ("Name") is a honeypot (height:0, autocomplete="new-password"), left blank. Cookiebot banner dismissed first. No CAPTCHA on this form. Single unconditional opt-out submission, no request-type selector.
 - [x] owneriq.com
   - URL: https://privacyportal-cdn.onetrust.com/dsarwebform/fa9f2f77-33ff-473b-ae55-579e2e693a91/ea2fadbb-3208-459b-8ed6-c975b6a9901c.html
   - Note: OneTrust CDN Angular form (same URL as inmar.com). Exercises Access and Delete (gated on REMOVE_INFORMATION) — no Opt-Out available. Subject type is a long consumer string covering multiple US states. Delivery method "Online" must be selected. Phone required (formField21DSARElement). Two-step email verification required after submission.
+- [x] pacificeast.com
+  - **CAPTCHA solution required**
+  - URL: https://www.pacificeast.com/contact-us-privacy/
+  - Note: Formidable Forms, Opt-Out only (no Access/Delete). A trailing field has Formidable's `frm_verify` honeypot class, left blank. "Submission Confirmation" checkbox attests the request is NOT from an automated service — a real anti-automation claim, not a CAPTCHA (same as altairdata.com elsewhere in this repo) — deliberately left unchecked and the form stopped there regardless of DRY_RUN; a human must check it, solve the Cloudflare Turnstile, and submit themselves. "Identity & Authorization Confirmation" (a normal identity attestation) is checked.
+- [x] paramountdirectmarketing.com
+  - **CAPTCHA solution required**
+  - Right to Opt-Out/Delete (non-CA) URL: https://paramountdirectmarketing.com/do-not-sell-non-ca
+  - Right to Opt-Out/Delete (CA) URL: https://paramountdirectmarketing.com/do-not-sell-ca
+  - Note: Right to Access is CALIFORNIA ONLY and not covered by either form — send a consumer complaint instead. Non-CA form used (persona is Minnesota). Select "I am submitting this request for myself" first to reveal the form. Select-all-that-apply checkboxes (optOut/deleteInfo) — one combined submission. State is a 2-letter abbreviation select. Page warns submitted state is compared against connection geolocation for fraud prevention. reCAPTCHA v2 present, form filled and left for manual solve. Exercises Opt-Out unconditionally; Delete checkbox gated on REMOVE_INFORMATION.
 - [x] parasolleads.com
   - URL: https://www.parasolleads.com/ccpa-opt-out-form.php
   - Note: Opt-out only (Do Not Sell). Server-rendered POST form, no captcha. Address/City/State fields share name="LastName" internally — positional XPaths used.
@@ -318,22 +638,42 @@ Broker Poker is an application that assists users to receive a copy of and delet
   - Note: OneTrust CDN Angular form. Exercises Do Not Sell or Share / Opt-Out, Access My Data, and Delete My Data (gated). No subject type step. formField17DSARElement = "Are you submitting this request for yourself?" (autocomplete: ArrowDown+Enter for "Yes"). Country field uses ArrowDown+Tab (not Enter — Enter doubles the text on this form). State uses ArrowDown+Enter. Phone country code vt-input-5. Affirmation "Yes" button required at bottom. reCAPTCHA v2 requires manual solve before submit.
 - [ ] pch.com
   - URL: https://accounts.pch.com/privacy/rtc
-- [ ] phonebooks.com
-  - URL: https://www.phonebooks.com/privacy-rights
-  - Note: SPA — curl returns no form HTML. Needs pydoll.
-- [ ] peoplefinders.com
+  - Note: Redirects straight to www.pch.com (the public sweepstakes homepage) — the RTC page either requires an authenticated account session (`accounts.pch.com`) or the URL is stale. Needs a fresh URL lookup for a public/unauthenticated privacy-request form, if one exists.
+- [x] peoplefinders.com
+  - **CAPTCHA solution required**
   - Right to Access URL: https://www.peoplefinders.com/request-my-info
   - Right to Opt-Out, Delete URL: https://www.peoplefinders.com/opt-out
-  - Note: SPA — curl returns a JS app config blob with reCAPTCHA keys but no form HTML. Needs pydoll.
+  - Note: Opt-Out/Delete page is entirely covered by a full-page Cloudflare "Please complete the security challenge" — no content reachable at all, not attempted. Access page loads fine: "Request My Information" opens a 3-step wizard (Request My Info > Verify Identity > Confirmation); step 1 is just a relationship radio (custom-styled, real `<input>` hidden — click the label text via `click_using_js`, not the input) gated by reCAPTCHA v2 before "Continue" advances, so the real identity-verification form on step 2 is never reached. Scraper selects "my own information" and stops there.
+- [x] perion.com
+  - URL: https://forms.monday.com/forms/2e643e95786ac0c2cdf2dca015d20c68?r=use1
+  - Note: Monday.com form. Perion doesn't process direct identifiers, so a MAID (ADVERTISING_ID) is required to locate records. Both dropdowns are Downshift comboboxes whose real `<input>` can't be clicked directly (pydoll ElementNotVisible even though CSS reports visible) — click the input's ancestor `div.triggerWrapper_...` instead. "Request" is single-select despite plural "RIGHT(S)" wording. Text fields also drop their first few keystrokes unless clicked-then-paused before typing. Exercises Access and Opt-out of Sale unconditionally; Delete gated on REMOVE_INFORMATION. No CAPTCHA observed.
+- [ ] phonebooks.com
+  - URL: https://www.phonebooks.com/privacy-rights
+  - Note: Entire page is behind a Cloudflare "Performing security verification" interstitial — no content of any kind reachable in an automated session. Worth a retry later per the transient-block pattern seen elsewhere in this repo, but not attempted further this session.
 - [x] popacta.com
   - **CAPTCHA solution required**
   - URL: https://optout.popacta.com/contact-us
   - Note: General DSAR contact form (no right-type picker); rights expressed in free-text message (250-char limit). reCAPTCHA v3 invisible auto-injects token via page JS before submit. Exercises Access, Opt-Out, and Delete (gated).
+- [x] precisely.com
+  - **CAPTCHA solution required**
+  - Note: Two DSARs — one for Precisely, one for PlaceIQ.
+  - Precisely URL: https://privacyportal-eu.onetrust.com/webform/d88b298e-1f7e-420f-949c-fedc475c1e77/draft/9c253316-9abf-49fb-a3e1-a4e214c4cf41
+  - PlaceIQ URL: https://privacyportal-eu.onetrust.com/webform/d88b298e-1f7e-420f-949c-fedc475c1e77/83126462-6c9f-4d90-9077-f029b129a2a6
+  - Note: Both cascading OneTrust webforms — later fields only render once earlier ones are answered. Both have single-select "Privacy Right"/"Request Type" toggle groups (many options, one submission per right). Precisely: Myself/Country/State/relationship("Website Visitor")/right/name/email. PlaceIQ: State/submitter-type(autocomplete combobox, unlike Precisely's toggle)/relationship("Consumer")/right/name/email — selecting Opt-out here reveals an additional required MAID field (validates a strict UUID format; this repo's placeholder ADVERTISING_ID doesn't match it — a persona-data limitation for a real run, not a scraper bug). reCAPTCHA v2 on both. Exercises Access ("Right to Know - Categories") and Opt-Out unconditionally; Delete gated on REMOVE_INFORMATION.
+- [x] preqin.com
+  - **CAPTCHA solution required**
+  - URL: https://preqin.com/policies/data-rights (real form is an embedded iframe at https://portals.dporganizer.com/cbf39a0c-c047-4a7b-814d-c9d45754b4af)
+  - Note: New platform for this repo — DPOrganizer/DataGuard (Preqin is a BlackRock company). Portal states it's "dedicated to residents of California and Texas" — US State react-select offers ONLY those two; used "California" regardless of persona state, same closest-offered-jurisdiction precedent as reonomy.com/finthrive.com. "Type of request" is a genuinely multi-select react-select (Select all/Deselect all, chips) — all applicable rights in ONE submission, unlike most sites here. Options: Erasure, Data portability, Correction, Know or Access, Opt-out from Cross-Context Behavioral Advertising/Targeted Advertising, Opt-out from Sales of Personal Information. Correction skipped (no concrete inaccuracy to describe); Erasure gated on REMOVE_INFORMATION, rest unconditional. Required free-text "Additional comments" filled generically. Classic distorted-text image CAPTCHA (not reCAPTCHA/Turnstile) — manual solve required. Platform note: field ids are random per-instance UUIDs, but a stable `data-test="portal-input-N"` attribute identifies each field (0=State, 1=Request Type, 2=Name, 3=Email, 4=Comments) — reusable if this platform reappears.
 - [x] propertyradar.com
   - URL: https://privacyportal.onetrust.com/webform/c3eb779a-028a-4045-aefc-ac78be730689/6f6c2bef-b565-4753-adc6-95585d7a9486
   - Note: OneTrust portal. No subject type step — uses "Consumer/Individual" submitter type. Exercises Do Not Sell, Access (Limited States), Correct (Limited States) unconditionally; Delete (Limited States) gated on REMOVE_INFORMATION. All rights in one submission. State uses formField16DSARElement (autocomplete: ArrowDown+Enter). Phone country code vt-input-5. captchaCode image CAPTCHA. File upload optional (skipped).
 - [ ] propertyreach.com
   - URL: https://www.propertyreach.com/privacy-rights
+  - Note: Entire domain is behind a persistent Cloudflare "Performing security verification" managed challenge (confirmed across two separate attempts, ~12s apart) — no page content is reachable at all, so there's nothing to build a scraper against.
+- [x] publicdatacheck.com
+  - **CAPTCHA solution required**
+  - URL: https://www.publicdatacheck.com/help-center/privacy-requests
+  - Note: Identical white-label form template to kidslivesafe.com elsewhere in this repo (same field ids down to the obfuscated last-name field), different brand. "Request Type" select (Do Not Sell My Info/Delete My Info/Request a Copy) — one submission per type. First/Last/City/State/ZIP/Age always required; Email + optional Customer ID only appear for Delete/Request a Copy, which also open an "Are you a Customer?" modal after a real submit that tells non-customers they have nothing on file — a customer-only limitation for those two rights. Age select (18-105) derived from DATE_OF_BIRTH. Cloudflare Turnstile gates Continue. Exercises Do Not Sell and Request a Copy unconditionally; Delete gated on REMOVE_INFORMATION.
 - [ ] publicdatausa.com
   - URL: https://publicdatausa.com/optout
   - Note: SPA — curl returns only a captcha container div, no form fields. Needs pydoll.
@@ -343,41 +683,90 @@ Broker Poker is an application that assists users to receive a copy of and delet
   - Note: Server-rendered form covering doNotSell, delete, and copy (access). Fields: requestType select, customerId (unclear), firstName, obfuscated lastName field (name="f3bcaa1e009cd87d2" — anti-scraping), city, States select (full state names as values). reCAPTCHA (data-action="pis-opt-out-search" suggests v3). Needs 2captcha.
 - [ ] pubmatic.com
   - URL: ??? Look through emails
+  - Note: No DSAR/privacy-request URL found by guessing common paths (/privacy-rights-request/, /opt-out/, /dsar/ all 404; /legal/ lists policy documents only, no request form or link to one). Needs the actual URL sourced from correspondence/email as the existing TODO says — not attempted further via blind discovery.
+- [x] pulsepoint.com
+  - **CAPTCHA solution required**
+  - URL: https://mynt-test-privacy.my.onetrust.com/webform/ebe19500-bc8d-487f-9d89-98fde8b270e2/bac5d2a2-fd3e-4830-99b6-bd2a69fec1c9
+  - Note: Custom OneTrust Angular portal, MAID-based. "I am a (an)" toggle answered "Consumer" reveals "Select request type(s)" — despite the plural wording this is single-select (same misleading pattern as qualcomm.com), so one submission per right: Delete Personal Information/Access or Know/Correct Inaccurate Personal Information — no Opt-Out option. Country/State are vt-autocomplete comboboxes. "Mobile Advertiser ID or Cookie" required. BotDetect image CAPTCHA requires manual entry. Exercises Access or Know unconditionally; Delete gated on REMOVE_INFORMATION; Correct skipped (no concrete inaccuracy to describe).
+- [x] quad.com
+  - **CAPTCHA solution required**
+  - URL: https://privacyportal.onetrust.com/webform/9bbdeb31-9ca4-4397-b421-b165438ad177/1ca01042-21a7-4307-8b42-a6c7439c9685#xd_co_f=NjJjZjJhZTUtN2I3Yy00NmNkLTlhYTAtYmM2OWQ1N2Y3MGFk~
+  - Note: Custom OneTrust Angular portal (Quad/Graphics Inc.). No request-type picker at all — the page's own copy explains submitting covers both Opt-Out of Sale/Sharing/Targeted Advertising AND Limit Use of Sensitive PI simultaneously in one combined, always-submitted request; no Access or Delete option exists. State is a vt-autocomplete combobox; Address/Address Line 2/City/Zip optional. BotDetect image CAPTCHA requires manual entry. Optional file upload for supporting docs, left unfilled.
 - [x] qualcomm.com
   - URL: https://privacyportal.onetrust.com/webform/b0a5f2cc-0b29-4907-89bf-3f6b380a03c8/7ab89abb-0d42-492a-a324-0570883e2c11
   - Note: OneTrust portal. Subject type "Other". After clicking "Other", formField21DSARElement appears (required: relationship explanation) filled with "Consumer / member of the public". Request type buttons are SINGLE-SELECT despite "(s)" label — one submission per right. Requires 2s wait after clicking "Other" for Angular re-render before request type buttons register clicks. Exercises Access, Data Portability, Opt out, Object to Processing, Update Data (Correct), Review Automated Decision per submission; Data Deletion gated on REMOVE_INFORMATION. No image CAPTCHA — reCAPTCHA v2 requires manual solve. Email verification required within 30 days.
-- [ ] quantcast.com
-  - URL: https://www.quantcast.com/privacy/data-subject-rights/
-- [ ] quinstreet.com
+- [x] quantcast.com
+  - URL: https://www.quantcast.com/privacy/data-subject-rights/ (form actually lives at https://data-access.quantserve.com/gdpr/)
+  - Note: Cookie-based DSAR — no personal info fields at all, identifies the requester by browser cookies only (the request only covers data linked to that specific browser instance). Radios: ACCESS (request a copy) or DELETION (gated on REMOVE_INFORMATION) — one submission per right. A required "sole user of this browser" confirmation checkbox. `querySelectorAll` fails on this domain for unknown reasons but pydoll's CDP-level `tab.find()` by name/value works fine. reCAPTCHA v2 checkbox requires manual solve before the real Submit Request click.
+- [x] quinstreet.com
   - URL: https://privacy-central.securiti.ai/#/dsr/1b319101-f00c-470f-a7f0-26aa81f057b8
+  - Note: New platform for this repo — Securiti.ai (Formio-based). Opt-Out ONLY, no Access/Delete/Correct option exists. "I am submitting a request" answered "For Myself". The state-of-residence picker is split across two separate radio groups (different `name`s) laid out as two table columns ("I am a:" / "continued:") — functionally one combined choice; matched by rendered "{State} Resident" label text, whichever column it's in. Required Certification checkbox (perjury attestation of residency/accuracy) checked — true for a matching persona. CAUTION: Formio component ids embed a random PER-PAGE-LOAD session suffix (e.g. `eqtdwkp-esqnmev` one load, `eqtdwkp-ebrr2rg` the next) — never hardcode that suffix; match by the stable `name` attribute (e.g. `data[certification]`) or visible text instead. Invisible hCaptcha widget (`display:none`) auto-resolves in most cases — no manual solve built in, though it may occasionally challenge.
 - [ ] radaris.com
   - URL: https://radaris.com/control-privacy
+  - Note: Entire domain is behind a persistent Cloudflare "Performing security verification" managed challenge (confirmed across two attempts, ~12s apart) — no page content is reachable at all, so there's nothing to build a scraper against.
+- [x] rayinsights.com
+  - **CAPTCHA solution required**
+  - URL: https://www.rayinsights.com/privacy-notice/consumer-choice-portal/ (links out to separate Ninja Forms pages: https://www.rayinsights.com/ray-cdp-opt-out-and-delete-request/ and https://www.rayinsights.com/raycdp-data-request/)
+  - Note: "RayCDP Consumer Choice Portal" — Opt-out/Delete/Correct share one combined multi-select checkbox form (one submission); Data Request (Access) is a separate form. (A "Consumer Appeal Request" and a Canada-only "Canadian Resident Delete Request" also exist but are out of scope.) Ninja Forms quirk: numeric `nf-field-N` ids differ per page load but plain fields keep a stable `name` (email/fname/lname/address/city/zip/phone) — target by name. State select and the "I affirm I am the consumer..." attestation checkbox have no descriptive name — targeted structurally (the page's only `<select>`; the checkbox tied to that label text). Honeypot `nf-field-hp` left untouched. Attestation checkbox checked (true for a matching persona). reCAPTCHA v2 requires manual solve. Exercises Opt out of marketing and Access unconditionally; Delete my data gated on REMOVE_INFORMATION; Correct my data left unchecked (no concrete inaccuracy).
 - [ ] reachdata.com
   - URL: https://www.reachdata.com/contact
+  - Note: Entire domain is behind a persistent Cloudflare "Performing security verification" managed challenge (confirmed across two attempts, ~12s apart) — no page content is reachable at all. Separately, the on-file URL is only a generic contact page, not a privacy/DSAR-specific one — a working URL would need to be found first regardless.
+- [x] realsourcedata.com
+  - **CAPTCHA solution required**
+  - URL: https://www.realsourcedata.com/do-not-sell-my-personal-information
+  - Note: Opt-out only — no Right to Access anywhere on the site (confirmed by prior manual investigation). Form is a Tally.so embed inside an iframe with a real, populated `src` (reachable via `tab.get_frame()`, unlike HubSpot's src-less iframe elsewhere in this repo). Fields have no name/placeholder, only per-load-random UUID ids, so they're targeted by DOM order matched against the form's visible label order. reCAPTCHA v2 requires manual solve.
 - [x] recordsfinder.com
   - URL: https://recordsfinder.com/optout/
   - Note: Opt-out only — no Right to Access or Right to Delete form available on site.
+- [x] refinitiv.com
+  - **CAPTCHA solution required**
+  - URL: https://privacyportal-de.onetrust.com/webform/5f7a2da0-bed0-45e8-ac2c-c1f297e2efdc/4ae30ef5-8107-4353-a0b5-1bf34dd647f6
+  - Note: Custom OneTrust Angular portal for LSEG (London Stock Exchange Group, which owns Refinitiv) — this is their GENERAL DSR form; the page itself says not to use it for CCPA/POPIA-specific or World-Check-only requests (separate linked forms, out of scope here). Country defaults to United States; State optional autocomplete. "I am" grid has no generic-consumer option — "a person whose personal information is part of the content of our products and services" used as closest fit. "Does your request relate to TORA?" (a trading product) answered "No". No request-type picker — required free-text field states the right(s) (deletion mentioned only when REMOVE_INFORMATION set). BotDetect image CAPTCHA requires manual entry.
 - [x] reklaimyours.com
   - URL: https://www.reklaimyou.com/optout
   - Note: React form, no CAPTCHA. Exercises Do Not Sell/Share, Access, and Delete (gated). One submission per right type. Radio buttons are custom role="radio" button elements (click_using_js). Jurisdiction set to "other" (Minnesota not listed).
 - [x] reonomy.com
   - URL: https://privacyportal-cdn.onetrust.com/dsarwebform/ed2a4eae-cadd-4d40-9f21-cf27556d3a21/49fbe5ce-5ee2-487b-9b4f-bfdab733819b.html
   - Note: California-focused DSAR form. Exercises Access My Information, Do Not Sell My Information, and Delete My Information (gated). Subject "California Consumer". Delivery "Online". One submission per right. State field has non-standard ID formField16DSARElement (autocomplete: ArrowDown+Enter). Phone country code vt-input-8 (type "1" → auto-populates US +1). Acknowledgement is display text only (no checkbox). captchaCode image CAPTCHA requires manual entry in live mode.
-- [ ] refinitiv.com
-  - URL: https://privacyportal-de.onetrust.com/webform/5f7a2da0-bed0-45e8-ac2c-c1f297e2efdc/4ae30ef5-8107-4353-a0b5-1bf34dd647f6
-- [ ] revenuebase.ai
+- [x] resonate.com
+  - URL: https://www.resonate.com/submit-consumer-privacy-request/ (form is a lazy-loaded iframe at https://optout-form.reson8.com/)
+  - Note: The marketing page's raw HTML has no form fields until its iframe lazy-loads — navigate directly to the iframe src instead. Simple custom form (not OneTrust), no CAPTCHA observed. Fields have no id/name, only class (first_name/last_name/email/state). "Requested Action(s)" is genuinely multi-select (one combined submission): Access to Information and Opt Out of Sale unconditionally; Deletion of My Data gated on REMOVE_INFORMATION; Limit Use of Sensitive Info/Correct My Data/Port My Data left unchecked. "Designated Agent" checkbox left unchecked. "Resonate Identifier" is a disabled, auto-populate-only field (shows "Resonate Identifier not found" without a Resonate cookie) — not fillable.
+- [x] revenuebase.ai
   - URL: https://forms.gle/5Cab6bJcRtqVzAJS8
+  - Note: Google Form, DELETION-ONLY ("Data Removal Request Form", no Access/Opt-Out option) — the whole scraper is gated on REMOVE_INFORMATION. Text inputs/textareas share `jsname="YPqjbf"`, targeted positionally: [1] Email, [2] Full Legal Name, [3] Data Subject's Email, [4] State/Province (plain text, not a dropdown). Country (Q4) is a custom listbox/option combobox — click open, then click the "United States" option by `data-value`. Unlike jobot.com/jungroup.com, this instance's radio/checkbox elements DO carry stable `aria-label`s matching visible text — used directly. Reason checkbox: "Complying with a legal obligation (e.g., GDPR, CCPA, etc.)". Both "Confirmation of Understanding" checkboxes checked (true for a matching persona). Optional other-contact/date/additional-details/satisfaction-rating fields skipped. No CAPTCHA observed.
+- [x] richmediallc.com
+  - **CAPTCHA solution required**
+  - URL: https://privacy.richmediallc.com/
+  - Note: Custom server-rendered form (not OneTrust). Request Type is single-select (the page's own copy says to submit a separate request per right): Opt out of sale/share and Right to know unconditionally; Right to delete gated on REMOVE_INFORMATION. Limit Sensitive PI/Correct skipped (nothing concrete to describe). Postal Address/City/Zip optional but filled anyway. Cloudflare Turnstile requires manual solve.
+- [x] risk.lexisnexis.com
+  - **CAPTCHA solution required**
+  - URL: https://consumer.risk.lexisnexis.com/request#privacy
+  - Note: LexisNexis Risk Solutions' FCRA/state-privacy "Online Request Form". CASCADING FORM — an entire Opt-Out (Full/Partial/Opt-In radios)/Delete section is absent from the DOM until Residence_State is set (gated by per-state CSS classes); a separate "Opt-Out" nav page/button is a redundant, harder path (opens a new tab) — the same controls are reachable right here once State is filled. One checkbox ("Request Your Consumer Disclosure Report") covers BOTH the FCRA report and the state Privacy Act report for Access; "Full Opt-Out" radio used; "Delete My Personal Information" checkbox gated on REMOVE_INFORMATION. Requires either a full SSN or Driver's License Number+State to verify identity — this repo's persona only has LAST_FOUR_SSN, submitted as the best available data into the unqualified "SSN" field (a genuine data limitation for a real request). Two elements collide on id="State" in the raw markup (a dead commented-out input and the DL-issuer select) — the live resident-address select is `name="Residence_State"`, not id="State". reCAPTCHA v2 requires manual solve.
 - [ ] rooftopmedia.ai
   - https://www.consumerdataprotect.com/
+  - Note: Entire domain returns a hard Cloudflare WAF "Sorry, you have been blocked" error — no page content is reachable at all, so there's nothing to build a scraper against.
+- [x] roq.ad
+  - **CAPTCHA solution required**
+  - URL: https://roq.ad/privacy-form (form is a non-frame-busting iframe at https://roqad-privacy.my.onetrust.com/webform/bdcc4a2f-2458-4e17-96c3-cf88f7115dfc/dcc653f1-96d6-4d0f-ba5d-cb7f17fff0aa — shared ROQAD/Zeotap portal)
+  - Note: Custom OneTrust portal. "Select request type(s)" is genuinely multi-select (confirmed: picking a second option doesn't deselect the first) — one combined submission: Opt out and Info request unconditionally; Data deletion gated on REMOVE_INFORMATION; File a complaint skipped. "I am a (an)" answered "Consumer/ Data subject". Country is a vt-autocomplete combobox. Four optional device-id fields (Cookie ID/iOS IDFA/Android AAID/Hashed Email) — this repo's single ADVERTISING_ID filled into AAID (Android) as the closest match; others left blank. reCAPTCHA v2 requires manual solve.
 - [ ] rpmleader.com
   - URL: https://rpmleader.com/unsubscribe
   - Note: curl returns 1 form element (email unsubscribe only). Not a full DSAR form — opt-out/unsubscribe only.
 - [x] rrd.com
   - URL: https://privacyportal.onetrust.com/webform/45e4be25-919b-483f-9f95-12809576a2b3/6e633594-9a81-48bb-97ab-6fb29bf46019
   - Note: OneTrust portal (Valassis, an RRD Company). One submission covers all rights (multi-select). Subject "Consumer". emailDSARElement = communication/reply-to email; formField87DSARElement = consumer email for data lookup (both filled with EMAIL). State (stateDSARElement) appears after Country is selected. Phone country code vt-input-12. Exercises Opt-Out (Do Not Sell, Targeted Advertising, Profiling, Sensitive), Correct, Know (Categories + Specific Pieces), Copy/Access. Delete gated on REMOVE_INFORMATION. captchaCode image CAPTCHA requires manual entry in live mode.
+- [ ] sabio.inc
+  - URL: https://www.sabioctv.com/do-not-sell-my-info
+  - Note: Sabio IS appscience, but they may have separate dbs or something
+- [ ] salutarydata.com
+  - Right to Opt-Out URL: https://salutarydata.com/privacy-opt-out-and-disclosure-form/
+  - Note: Right to Access: Apparently it's an email but their email service is totally busted I think Call them at 617.917.4084 Right to Delete: Does not exist? Privacy policy points to opt out form but that form has no "deletion" language at all.
 - [x] samba.tv
   - URL: https://privacyportal-cdn.onetrust.com/dsarwebform/87c5ee85-893d-4972-ba26-2e82b743d041/d84d9664-facb-4de3-85fd-a2e339b73dbf.html
   - Note: OneTrust CDN Angular form. Exercises Do Not Sell, Object to Processing, Access, and Delete (gated on REMOVE_INFORMATION). Subject "Myself " (trailing space in aria-label). Required "Do you have a Samba Enabled Smart TV?" question answered No. Country autocomplete; phone country code vt-input-7 (type "1" → auto-selects United States (+1)). captchaCode image CAPTCHA requires manual entry in live mode.
+- [ ] searchpublicrecords.com
+  - URL: https://www.searchpublicrecords.com/help-center/privacy-requests
+  - Note: Cloudflare virtual queue, may not be possible
 - [ ] seekout.com
   - URL: https://www.seekout.com/privacy/choices/
   - Note: SPA — curl returns no form HTML. Needs pydoll.
@@ -387,23 +776,49 @@ Broker Poker is an application that assists users to receive a copy of and delet
   - Note: ASP.NET WebForms (VIEWSTATE), server-rendered, multi-step wizard. Step 1 selects state (reCAPTCHA v2 checkbox). Steps 2+ enter name/phone/email/address incrementally, each with its own POST.
 - [ ] skydeo.com
   - URL: https://forms.gle/aLg2VBNBf7Nr11tUA
+  - Note: Google Form, but this particular form has "responses require sign-in" enabled — a modal overlay ("Sign in to continue... To fill out this form, you must be signed in") blocks the entire form the moment it loads, unlike jobot.com/jungroup.com/revenuebase.ai's Google Forms elsewhere in this repo which are fillable anonymously. Requires a real Google account sign-in to proceed at all — not automatable without one.
+- [x] slashdotmedia.com
+  - **CAPTCHA solution required**
+  - URL: https://privacyportal.onetrust.com/webform/611e70e2-1994-43ff-b07b-646df870db4b/f4165d65-f39c-4ea5-8628-163090b74137
+  - Note: Custom OneTrust portal. "I am a (an)" (Customer/Employee/Prospective Employee, no generic-visitor option) answered "Customer". "Select request type" is single-select — one submission per right: Info Request unconditionally; Data Deletion gated on REMOVE_INFORMATION (no Opt-Out option exists). Data Correction skipped. Two cascading fields easy to miss: picking Data Deletion reveals a required "...you will lose all account information. Do you wish to proceed?" toggle (answered "Yes"), and State only renders after Country is filled in (both vt-autocomplete). BotDetect image CAPTCHA requires manual entry.
+- [x] snov.io
+  - **CAPTCHA solution required**
+  - URL: https://snov.io/do-not-sell-my-personal-information
+  - Note: Custom opt-out-only form (no Access/Delete) — a single "Do not sell my personal information" checkbox is the only option. Field names are random UUID-suffixed hashes, targeted by stable `id` instead. Country/State are free text. Both a visible reCAPTCHA v2 checkbox and a hidden Cloudflare Turnstile field are present; submission would additionally require entering an emailed OTP code afterward, which this repo can't read — form filled and left at the CAPTCHA gate.
+- [x] speedeondata.com
+  - **CAPTCHA solution required**
+  - URL: https://optout.speedeondata.com/
+  - Note: Custom form, no Right to Access anywhere on the site (confirmed by prior manual investigation) — only Opt-Out/Deletion/Sensitive-Data. "Opt-out" and "Sensitive Data" checked unconditionally; "Deletion" gated on REMOVE_INFORMATION. State is a Bootstrap dropdown of button items (matched by `title` attribute) rather than a native select. reCAPTCHA v2 checkbox requires manual solve.
 - [ ] spokeo.com
   - URL: https://thatsthem.com/optout
-- [ ] spycloud.com
-  - URL: https://spycloud.com/legal/dsar/
+  - Note: CloudFront returns a hard 403 "Request blocked" error page (no form content at all) for both plain curl and full pydoll browser automation — not a bot-check that a real browser passes, a blanket block at the CDN layer.
+- [x] spycloud.com
+  - **CAPTCHA solution required**
+  - URL: https://my.datasubject.com/169m4FTnIOxju2VXg/28523
+  - Note: Osano DSAR portal (linked from spycloud.com/legal/dsar/). Card-based: click request-type card, then fill email/first/last name and a "Requestor Type" select (Individual). Standard HTML inputs. One submission per right (separate page nav each time). Exercises Summarize/Access, Do Not Sell, Correct, Opt-Out of Advertising, Opt-Out of Profiling unconditionally; Delete gated on REMOVE_INFORMATION. Cloudflare Turnstile requires manual solve.
 - [x] spydailer.com
   - URL: https://www.spydialer.com/Consumers/wizards.aspx
   - Rights: Delete only (removal tool — no separate Access/Opt-Out form)
   - Wizard: navigate directly to wizards.aspx; select state (MN abbreviation via JS); reCAPTCHA v2 manual; CONTINUE → records list → Delete All → confirm
   - Note: START button on /Consumers/ opens wizard in same page, but direct navigation to wizards.aspx is reliable
+- [ ] spyfly.com
+  - URL: https://www.spyfly.com/help-center/privacy-requests
+  - Note: Entire site is behind a Cloudflare "Performing security verification" interstitial — no page content (not even a form) ever loads, blocking the whole page rather than just final submit.
+- [x] statsocial.com
+  - **CAPTCHA solution required**
+  - Right to Opt-Out & Delete URL: https://www.statsocial.com/optout/
+  - Note: Standard Formidable Forms (WordPress) form. Name/email fields plus native Country/State selects — State starts EMPTY and is only populated (by a JS listener) after Country's change event fires, and its option values are full state names, not abbreviations. "Preferences" checkboxes: Opt-Out unconditional, Delete gated on REMOVE_INFORMATION. Cloudflare Turnstile requires manual solve.
+  - Note: The separate Right to Access form (https://www.statsocial.com/datarequest) is only a bare email field gated behind an email-verification link before Step 2 (actual request details) becomes reachable — not automatable end-to-end, so not covered by this scraper.
 - [ ] swoop.com
   - URL: https://swoop.com/your-privacy-choices/
   - Note: curl returns Gravity Forms forms but they are newsletter/search only — no DSAR form in the server-rendered HTML. Needs pydoll to inspect rendered content.
 - [x] system1.com
   - URL: https://privacyportal.onetrust.com/webform/f25d1283-339b-438f-9445-922b74e13939/a65f494a-fd3d-4117-8051-f2c0f0d66133
   - Note: OneTrust portal (embedded as iframe on System1's privacy-inquiries page). Exercises Do Not Sell, Disclosure of Information We Share (access), and Data Deletion (gated). Country uses ArrowDown+Enter. Request types are dropdown options (not role=button). formField50DSARElement = "Which website did you visit?" (filled with "system1.com"). No state field. reCAPTCHA v2 manual solve. One submission per right type.
-- [ ] t-mobile.com
+- [x] t-mobile.com
+  - **CAPTCHA solution required**
   - URL: https://privacyportal-t-mobile.my.onetrust.com/webform/d4a925f0-4ebf-40ba-817b-bccc309e602f/7831d667-1ebc-4b1e-a941-e545cb0d0523
+  - Note: Custom OneTrust portal, no name/address fields until Type of request is picked. Requestor combobox answered "I am requesting my own personal data". Type of request single-select (site's own copy confirms separate submissions needed) — Access unconditional, Delete gated on REMOVE_INFORMATION, Correct skipped. Both rights then cascade in "Relationship with T-Mobile" (Current customer), "US States & Territories" (Continental US, AK, HI, DC), a vt-autocomplete "State of residence", Phone, Email — but then DIVERGE: Access adds a "Delivery method" toggle (Secure online portal); Delete instead adds First/Last Name, Street address, City, Zip code. reCAPTCHA v2 requires manual solve.
 - [ ] teads.com
   - TODO: Privacy policy says email, look through emails
 - [x] techtarget.com
@@ -412,35 +827,102 @@ Broker Poker is an application that assists users to receive a copy of and delet
 - [ ] thebridgecorp.com
   - URL: https://www.thebridgecorp.com/opt-out/
   - Note: The /opt-out/ page contains only Complianz cookie-consent checkboxes (functional/preferences/statistics/marketing) — not a DSAR form. Actual DSAR mechanism unclear; may require email.
+- [x] thedatatrust.com
+  - **CAPTCHA solution required**
+  - URL: https://my.datasubject.com/dvx9xrLka0/68954
+  - Note: Osano DSAR portal (same platform as spycloud.com; linked via a JS-injected iframe on thedatatrust.com/your-privacy-choices/). Card-based: click request-type card, then fill email/first/last name, full address (name-only attrs for address/city/zip fields, no id), state (native select, 2-letter abbreviation), phone, and a required free-text Request Description. One submission per right (separate page nav each time). Exercises Summarize/Access, Do Not Sell or Share, Don't use for advertising, Transfer (portability), Third parties data sold/shared with unconditionally; Delete gated on REMOVE_INFORMATION. Correct skipped (no concrete inaccuracy). Jurisdiction auto-detected from IP. Cloudflare Turnstile.
+- [x] thomsonreuters.com
+  - **CAPTCHA solution required**
+  - URL: https://privacyportal.onetrust.com/webform/dbf5ae8a-0a6a-4f4b-b527-7f94d0de6bbc/23dce484-737f-4d47-a389-2e990f683e8c
+  - Note: Custom OneTrust portal, three stacked cascades. Residency ("USA Resident") reveals State of Residency (autocomplete) + "Who is making this request?" (for myself); that reveals "I am a (an)" ("Other"); that reveals "Select request type" (single-select) — one submission per right: Data Access Request, Do Not Sell My Personal Information, Opt Out of Marketing Communications unconditionally; Delete my PI gated on REMOVE_INFORMATION; Correct/Expunge skipped. Selecting a request type reveals a DIFFERENT field set per type: Access/Do Not Sell/Delete get full Name+Address+DOB(MM/DD only, no year)+optional SSN+Phone+Email; Opt Out of Marketing only gets Name+optional Phone+Email. Filling DOB on the Access path specifically (not Do Not Sell/Delete) reveals a THIRD cascade: a "no smartphone" checkbox and a required "Requestor Phone Number" that rejects hyphens/spaces (digits only, unlike the earlier phone field). reCAPTCHA v2 requires manual solve.
+- [x] throtle.io
+  - **CAPTCHA solution required**
+  - URL: https://privacyportal.onetrust.com/webform/07e8dc4d-6686-403e-9b11-39fe7347d2f4/2f999bd2-c826-498c-a504-894eaf543b6f
+  - Note: Custom OneTrust portal branded for IQVIA (throtle is IQVIA-owned). "Choose your rights here" is a GENUINELY multi-select vt-autocomplete (chips, doesn't deselect) — all applicable rights in ONE combined submission: Access, Opt-out of sale/sharing, Opt-out of targeted advertising, Data portability unconditionally; Delete gated on REMOVE_INFORMATION. Correct/restrict/revoke-consent/limit-sensitive-info skipped (too narrow, no concrete basis). "Relationship with IQVIA" answered "None". "Your Name" and "Full Address" are single combined fields (not split). State (vt-autocomplete) only renders after Country is set. reCAPTCHA v2 requires manual solve.
+- [x] traackr.com
+  - URL: https://www.traackr.com/data-opt-out
+  - Note: Formsite embed inside an iframe with a real, populated `src` (reachable via `tab.get_frame()`, same technique as realsourcedata.com's Tally.so embed elsewhere in this repo). Request type is a native single-select — one submission per right: Access unconditionally, Deletion gated on REMOVE_INFORMATION; Rectification skipped. No CAPTCHA. Gap: the form requires at least one Twitter/Instagram/Facebook handle to validate identity (Traackr identifies people by social presence) — this repo has no social-handle fields to supply, so that part is left blank and submission will likely be rejected without it.
 - [ ] transunion.com
   - URL: https://service.transunion.com/dss/ccpa_optout.page
+  - Note: Cloudflare hard-blocks the entire page ("Sorry, you have been blocked") for both curl and full pydoll browser automation — no form content ever loads, not a bot-check that resolves.
+- [x] trueblueanalytics.org
+  - **CAPTCHA solution required**
+  - URL: https://trueblueanalytics.org/dont-sell
+  - Note: Optacy.com-managed form rendered directly on the page (no iframe). Name/email fields, "I am a" answered "Other", Country (native select) reveals State (native select, full state name not abbreviation) which reveals a "Your Rights" checkbox group. Checked unconditionally: Tell me more (Access), Do not sell/share (Opt-out), Send me a copy (portability); Delete gated on REMOVE_INFORMATION. Correct/Appeal/Other skipped (no concrete basis). Visible reCAPTCHA v2 requires manual solve.
 - [x] tunnldata.com
   - URL: https://privacy.tunnldata.com/
   - Note: Ethyca/Fides portal. Cards: "Access your data" and "Delete your data and Opt Out of Data Sale" (gated on REMOVE_INFORMATION). Fields: email, first/last name, addr1, city, state (text), zip; phone optional (phone_num for Access, phone for Delete). No CAPTCHA. Email verification code required after submission. Correct is email-only (privacy_correction@tunnldata.com) — not automated.
+- [ ] unacast.com
+  - Note: gravy analytics
+  - Right to Access URL: https://www.unacast.com/request-your-information
+  - Right to Delete & Opt-Out URL: https://www.unacast.com/opt-out
+  - Note: Both forms (Mobile Advertiser ID + Email + IP + Recent Addresses for Access; Mobile Advertiser ID + Email for Opt-Out/Delete) are rendered via `hbspt.forms.create()` into a HubSpot iframe with no `src` attribute ever populated (content is injected via postMessage/internal API, not a navigable URL) — pydoll cannot search into it (`tab.find` finds nothing inside) and `tab.get_frame()` requires a valid iframe `src`, which this never has. No workaround found; genuinely unreachable via this repo's automation approach.
+- [x] uplead.com
+  - **CAPTCHA solution required**
+  - URL: https://www.uplead.com/opt-out/
+  - Note: Elementor form (WordPress). Only two Request Type options exist: "Request my Information" (Access) and "Delete my Information" — the page's own copy says opt-out of sale/sharing uses the SAME Delete option (no separate opt-out choice), so that submission is gated on REMOVE_INFORMATION like other deletion requests. Jurisdiction dropdown (CCPA/VDPA/OCPA/TDPSA/GDPR/Other) has no Minnesota-applicable option — "Other" used. reCAPTCHA v2 requires manual solve.
 - [ ] upwave.com
   - URL: https://surveywall-api.survata.com/opt-out/opt-out
-- [ ] usa-people-search.com
-  - URL: https://www.usa-people-search.com/privacy-rights
+  - Note: URL is dead (HTTP 401 Unauthorized, empty body — confirmed via both curl and pydoll navigation, which raises a hard NavigationError). The current live upwave.com/privacy-policy/ page still links to this same dead URL as its only opt-out mechanism; no working webform exists, only a mailto: contact address.
+- [x] usa-people-search.com
+  - **CAPTCHA solution required**
+  - Access URL: https://www.usa-people-search.com/privacy-rights
+  - Opt-Out/Removal URL: https://www.usa-people-search.com/removal
+  - Note: Privacy Rights Form's "Request Type" only fully renders name/email/etc. fields for "Right to Know" (Access) when "no direct relationship with the company" is selected — Delete/Correct instead show boilerplate text pointing to the separate /removal page, with no actual input fields at all. Deletion/opt-out is instead handled via /removal, gated on REMOVE_INFORMATION — but that page is only STEP 1 (name+email) of a multi-step, email-verification-gated flow; submitting emails a continuation link this scraper can't follow (same email-wall precedent as statsocial.com). Google reCAPTCHA Enterprise requires manual solve on both forms.
+- [x] usdatacorporation.com
+  - **CAPTCHA solution required**
+  - URL: https://www.forgetmenaut.com/rtbf/unjVFFNnmFvsZ17Fnk3Tap6U
+  - Note: usdatacorporation.com/opt-out only embeds this forgetmenaut.com-hosted form (new platform for this repo) via iframe. Stable webform_* ids. Jurisdiction dropdown has no Minnesota-applicable option — "OTHER" used. Request Category is single-select — one submission per category: "collection" (Access) and "opt_out" unconditionally; "deletion" gated on REMOVE_INFORMATION. correction/limit_use/incomplete skipped. "First-party request" checkbox checked. reCAPTCHA v2 requires manual solve.
 - [x] veeva.com
   - **CAPTCHA solution required**
   - URL: https://privacyportal.onetrust.com/webform/3d676ed2-16b1-4c48-97f8-a911923a3adf/a0df0a98-d990-40ff-9bdb-35b5f9e06620
   - Note: reCAPTCHA v2 requires manual solve or 2captcha. Exercises Access Data, Correct Data, Opt-Out, Data Portability, List of Third Party Recipients; Delete Data gated behind REMOVE_INFORMATION.
+- [ ] vendelux.com
+  - URL: https://vendelux.com/privacy-center
+  - Note: Entire site is behind a Cloudflare "Performing security verification" interstitial — no page content ever loads, blocking the whole page rather than just final submit.
+- [x] ventiveiq.com
+  - **CAPTCHA solution required**
+  - URL: https://privacyportal.privacypillar.com/dsar/form?orgid=0c31c814-ea86-461f-8ccb-294f05bc74c3&propid=cc95835d-7719-4336-b0c4-18146e5d000a&formid=4348f332-6917-4566-8c56-6fc9eb57097f&status=publish
+  - Note: PrivacyPillar-hosted Angular portal (new platform for this repo). Most text inputs have no id/name — matched by xpath via the nearest ancestor label text. "I am a (an)" answered "User". "Select request type(s)" is, despite the plural wording, actual single-select radios (confirmed via markup) — one submission per right: Data Processing, Data Portability, Opt out, Info Request unconditionally; Data Deletion gated on REMOVE_INFORMATION; Update Data skipped. Country/State are ngx-bootstrap typeahead comboboxes with stable name attrs. 6-digit distorted-text CAPTCHA requires manual entry.
 - [ ] verisk.com
-  - URL: # TODO: Verify after sending email to the new address
-- [ ] verizon.com
-  - URL: https://www.visible.com/privacyportal?CMP=MarketingTactic-EML_Site-SLF_Funnel-AC_AudienceType-TRA_Audience-CCPA_Tactic-EMLBDY_Initiative-CM34_VideoType-NV
-- [ ] videoamp.com
+  - URL: https://www.verisk.com/privacy-policies/state-data-privacy-notice/
+  - Note: No webform exists — the page's "Exercising your rights" section states requests must go through privacy@verisk.com or 1-855-224-3293 only. Confirmed current as of this check; not automatable under this repo's webform-only scope.
+- [x] verizon.com
+  - **CAPTCHA solution required**
+  - URL: https://www.verizon.com/about/privacy/privacy-inquiries
+  - Note: The Visible.com/privacyportal page only offers login-required member portals plus a link to this generic Drupal "Privacy Inquiry Form" (explicitly serves non-account-holders). The guest privacy dashboard (verizon.com/privacy/your-data/guest-landing → download/delete wizards) only collects an email before immediately OTP-gating (email-verification wall, not automated past — same as statsocial.com). This form instead: almost no radio/checkbox responds to a plain click (must set `.checked=true` + dispatch change/click events via JS). Relationship answered "I was never a customer."; "Tell us more about your inquiry" answered "I would like to request a download or deletion of personal information (select all that apply)." which reveals Download (checked unconditionally) + Deletion (gated on REMOVE_INFORMATION) checkboxes in one combined submission. Home state select values are "XX - Full Name". Distorted-text image CAPTCHA requires manual entry.
+- [x] verve.com
+  - URL: https://verve.com/data-subject-request-form/
+  - Note: Formidable Forms. "I am a (an)" answered "End-User". "Select request type(s)" is genuinely multi-select checkboxes (confirmed via markup) — Info Request, Data Access, Do Not Sell/Share, Limit Sensitive Info checked unconditionally in one combined submission; Data Deletion gated on REMOVE_INFORMATION; Correct Data/File a Complaint skipped. Country is free text, not a dropdown. Invisible reCAPTCHA v2 — no manual solve needed.
+- [x] videoamp.com
   - URL: https://videoamp.com/your-privacy-choices
-  - TODO: Look without a VPN, it only lets you do this 
-- [ ] vrtcal.com
-  - URL: # TODO: No DSAR? It's per-device opt out but what about Right to Access and whatnot?
+  - Note: Ketch-powered "Privacy Center" — loads fine without a VPN (earlier suspected geo-restriction not reproduced). Each request type is its own card revealing an identical 6-field form (First/Last Name, Email, Country, State, "I am a (an)" — only Customer/Authorized Agent options, "Customer" used). State list only covers ~19 states with applicable privacy laws (Minnesota included). One submission per right: Access, Third Parties We Share With, Opt Out of Sales/Shares/Targeted Advertising unconditionally; Delete gated on REMOVE_INFORMATION; Correct skipped. Invisible reCAPTCHA — no manual solve needed.
+- [x] vrtcal.com
+  - URL: https://www.vrtcal.com/opt-out/
+  - Note: This is the ONLY privacy mechanism the site offers — no Access/Delete/Correct exists anywhere. Pure browser-cookie opt-out toggle, no identity fields at all: page shows "YOU ARE CURRENTLY: Not Opted Out"/"Opted Out" and a single "CHANGE OPT-OUT STATUS" link that flips it (confirmed via before/after screenshot). No CAPTCHA. Gated on REMOVE_INFORMATION (closest fit — no separate unconditional right exists).
+- [ ] webbula.com
+  - Right to Access URL: https://webbula.com/ca-eu-data-request/
+  - Right to Opt-Out and Delete URL: https://webbula.com/opt-out-request/#OptOut
+  - Note: Both pages say "you may complete the form below" but contain ZERO `<form>` elements in the rendered DOM — confirmed via full page source, not just a visual rendering glitch. No workaround found; only fallback is calling 888-993-2285 ext 4.
+  - Note: SHOULD HAVE A WEB FORM but it's broken in firefox and chromium. Might have to call them at 888.993.2285 ext 4 to figure this out
+- [ ] whitepages.com
+  - URL: https://whitepagesprivacy.zendesk.com/hc/en-us/requests/new
+  - Note: Entire page is behind a Cloudflare "Performing security verification" interstitial that doesn't auto-resolve even after an extended wait — no form content ever loads, blocking the whole page rather than just final submit.
 - [x] wiland.com
   - Right to Access URL: https://privacyportal.onetrust.com/webform/7567ece3-2d27-4ee0-a506-1153cb7a62b7/a1e6c0c7-b7ff-45f9-9c62-7f1eb47a6e77
   - Right to Opt-Out / Right to Delete URL: https://privacyportal.onetrust.com/webform/7567ece3-2d27-4ee0-a506-1153cb7a62b7/718ad3c3-e1f5-4463-a301-2d6f84938588
   - Note: Custom OneTrust forms (no country/state autocomplete). State field (formField79DSARElement) requires 2-letter abbreviation — converted from STATE env var. Access form has Electronic Delivery option (default) and optional file upload (skipped). Delete/Opt-Out URL also covers Correct per Wiland privacy page. Email uses id="email" not emailDSARElement. Authorization checkbox clicked via aria-label. captchaCode image CAPTCHA requires manual entry in live mode. Delete/Opt-Out gated on REMOVE_INFORMATION.
+- [x] windfall.com
+  - **CAPTCHA solution required**
+  - URL: https://my.datasubject.com/AkrxLuYOww/60579
+  - Note: Osano DataSubject portal (same platform as fraiser.org, but a different card set and a granular parsed-address layout instead of one line). One card/right per pass: Access Request, Do Not Sell or Share, Don't Use for Advertising, Third Parties Data Sold/Shared With unconditionally; Delete gated on REMOVE_INFORMATION. Correct/Other skipped. Address split naively (first token=house number, last token=suffix, middle=street name). Access Request additionally requires a "Proof of Identity" file upload — no real ID document available, left unfilled (manual step for a live submission). Cloudflare Turnstile requires manual solve.
 - [x] yellowpages.com
   - URL: https://privacyportal-cdn.onetrust.com/dsarwebform/dd6500c7-03cb-45b0-8bed-97ece55a892d/cfcefb69-41db-4aee-bd00-c702df72ee0f.html
   - Note: OneTrust CDN Angular form (Thryv, Inc.). Subject "Myself" + role "Consumer" + site picker "I am not a registered user of any of these sites or apps." Data Request sub-options (categories, specific pieces, 3rd parties) all selected. Opt-Out expressed in Additional Request Information (no dedicated button). Delete gated on REMOVE_INFORMATION. Country and state autocomplete use ArrowDown+Enter keyboard nav. captchaCode image CAPTCHA requires manual entry in live mode.
 - [ ] youradv.com
   - URL: https://bigidprivacy.cloud/consumer/#/fHveyhjnOM/10004
   - Note: BigID Privacy Center portal (Advantage Solutions). Country/State dropdowns require CDP mouse click at computed bounding-rect position (element.type_text works for value but MUI aria-expanded stays null; need mouse click to select option). **Minnesota is not supported** — form shows "Requests from this region are not supported at this time." Must use a supported state (CA, CO, etc.) in SuperScraper.STATE to submit. Skip if user is MN-only.
+- [x] zetaglobal.com
+  - **CAPTCHA solution required**
+  - URL: https://privacyportal-cdn.onetrust.com/dsarwebform/bc2d3301-11a5-4de5-b15e-ce796187a352/d0720d0f-d427-4a7d-a773-5d6793229f15.html
+  - Note: OneTrust CDN webform. "I am an" answered "Email recipient or Internet user". "Select request type(s)" is GENUINELY multi-select (confirmed) — Access, Opt out of Zeta client email, Do not sell/share, Opt out of sensitive-info use checked unconditionally in one combined submission; Delete gated on REMOVE_INFORMATION. "Ask a question/complaint" skipped. No State field on this form, just Country. reCAPTCHA v2 requires manual solve.

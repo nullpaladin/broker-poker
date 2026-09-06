@@ -130,10 +130,10 @@ async def _submit_request(tab, right_label_text, label, super_scraper):
 
 async def main():
     options = ChromiumOptions()
-    options.binary_location = "/snap/bin/chromium"
+    super_scraper = SuperScraper()
+    options.binary_location = super_scraper.CHROMIUM_LOCATION
     options.add_argument("--no-sandbox")
     options.add_argument("--window-size=1280,3000")
-    super_scraper = SuperScraper()
 
     requests = list(ALWAYS_REQUESTS)
     if SuperScraper.REMOVE_INFORMATION:

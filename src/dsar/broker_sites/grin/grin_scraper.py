@@ -4,9 +4,17 @@
 # but DOM is fully accessible. element.click() and click_using_js() raise
 # ElementNotVisible; must use execute_script('.click()') for everything.
 # Request types (getcopy, donotsell, delete) are radio buttons (single-select,
-# all share name="") — one submission per right.
-# Customer type: Customer-3 ("Other...") checkbox.
-# Two acknowledgment checkboxes: custom-question-1-0, custom-question-2-0.
+# all share name="") — one submission per right, ids are the plain readable
+# strings above and stable.
+# "Relationship with GRIN" (4 options) and the two acknowledgment questions
+# are ALSO radios, but their real <input>s use backend-generated UUID ids
+# (stable across loads, not readable strings) with NO `for`-linked <label> —
+# the label instead wraps the input as a child with no for/id relationship.
+# Selecting by id is a dead end (there's no readable id to hardcode); select
+# by clicking the <label> whose visible text matches instead. "Other..." is
+# used for relationship (closest generic fit for a consumer with no
+# creator/brand relationship to GRIN); both acknowledgment radios are
+# required regardless of which right was picked.
 # reCAPTCHA v2 checkbox — manual solve required in live mode.
 # Email verification sent after each submission.
 # Exercises: Get a copy (Access), Do Not Sell, Delete (gated on REMOVE_INFORMATION).
@@ -44,11 +52,6 @@ RIGHTS = [
 DELETE_RIGHT = ("delete", "Delete my data")
 
 
-def _is_remove_information():
-    v = SuperScraper.REMOVE_INFORMATION
-    return isinstance(v, str) and v.strip().upper() in ("TRUE", "1", "YES")
-
-
 async def _js(tab, script):
     r = await tab.execute_script(script)
     if isinstance(r, dict):
@@ -70,6 +73,23 @@ async def _click(tab, el_id):
     """)
 
 
+async def _click_by_label_text(tab, text):
+    # The relationship/acknowledgment radios use backend-generated UUID ids
+    # (stable per question, but not the readable ids like "Customer-3" they
+    # might resemble) — their real <input> is wrapped inside a <label> with
+    # no `for` attribute, so match by the label's visible text and click the
+    # label itself (native wrapping semantics propagate the click to the
+    # input) rather than guessing an id.
+    escaped = text.replace("'", "\\'")
+    return await _js(tab, f"""
+        var labels = Array.from(document.querySelectorAll('label'));
+        var label = labels.find(function(l) {{ return l.innerText.trim() === '{escaped}'; }});
+        if (!label) return 'label not found: {escaped}';
+        label.click();
+        return 'clicked';
+    """)
+
+
 async def _fill_form(tab, super_scraper, right_id):
     """Fill the form for one right type and return True if ready to submit."""
     # Request type radio (single-select)
@@ -84,12 +104,18 @@ async def _fill_form(tab, super_scraper, right_id):
     await _fill(tab, "lname-field", SuperScraper.LAST_NAME)
     await _fill(tab, "email-field", SuperScraper.EMAIL)
 
-    # Customer type: "Other..."
-    await _click(tab, "Customer-3")
+    # Relationship with GRIN: "Other..." (closest generic fit — no option
+    # here matches a plain consumer with no creator/brand relationship)
+    await _click_by_label_text(tab, "Other...")
 
-    # Acknowledgment checkboxes
-    await _click(tab, "custom-question-1-0")
-    await _click(tab, "custom-question-2-0")
+    # Acknowledgment radios (both required regardless of which right was picked)
+    await _click_by_label_text(
+        tab,
+        "Yes, the information provided is true and I am aware of the consequences of deleting data.",
+    )
+    await _click_by_label_text(
+        tab, "Please confirm your acknowledgment of this before submitting your request."
+    )
 
     time.sleep(0.5)
     return True
@@ -97,13 +123,13 @@ async def _fill_form(tab, super_scraper, right_id):
 
 async def main():
     options = ChromiumOptions()
-    options.binary_location = "/snap/bin/chromium"
+    super_scraper = SuperScraper()
+    options.binary_location = super_scraper.CHROMIUM_LOCATION
     options.add_argument("--no-sandbox")
     options.add_argument("--window-size=1280,3000")
-    super_scraper = SuperScraper()
 
     rights = list(RIGHTS)
-    if _is_remove_information():
+    if SuperScraper.REMOVE_INFORMATION:
         rights.append(DELETE_RIGHT)
 
     async with Chrome(options=options) as browser:
@@ -118,12 +144,12 @@ async def main():
 
             if SuperScraper.DRY_RUN:
                 await asyncio.sleep(1)
-                await tab.take_screenshot(f"grin_dry_run_{right_id}.png")
+                await tab.take_screenshot(path=f"resources/screenshots/grin_dry_run_{right_id}.png")
                 print(
                     f"DRY RUN: would submit grin '{right_label}' for "
                     f"{SuperScraper.FIRST_NAME} {SuperScraper.LAST_NAME} <{SuperScraper.EMAIL}>"
                 )
-                print(f"Screenshot saved to grin_dry_run_{right_id}.png")
+                print(f"Screenshot saved to resources/screenshots/grin_dry_run_{right_id}.png")
                 continue
 
             print(

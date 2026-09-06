@@ -17,7 +17,10 @@ class SuperScraper:
     DRY_RUN = (os.getenv("DRY_RUN") or "True").strip().upper() in ("TRUE", "1", "YES")
     TWO_CAPTCHA_API_KEY = os.getenv("2CAPTCHA_API_KEY")
     REQUEST_DETAILS = "REQUEST_TEMPLATE_HERE"  # TODO: Move to factory
-    BASE_TIMEOUT_IN_SECONDS = os.getenv("BASE_TIMEOUT_IN_SECONDS")
+    # Cast to int — pydoll compares this against a float clock, so a raw
+    # os.getenv() string ("10") raises "'>' not supported between float and str"
+    # the moment any find() has to poll for a missing/slow element.
+    BASE_TIMEOUT_IN_SECONDS = int(os.getenv("BASE_TIMEOUT_IN_SECONDS") or "10")
     CHROMIUM_LOCATION = os.getenv("CHROMIUM_LOCATION")
 
     # Personal information

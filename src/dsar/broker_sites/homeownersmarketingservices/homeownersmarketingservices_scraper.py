@@ -30,7 +30,7 @@ async def main():
 
     full_name = " ".join(p for p in (SuperScraper.FIRST_NAME, SuperScraper.LAST_NAME) if p)
     address_bits = [SuperScraper.ADDRESS, SuperScraper.CITY,
-                    f"{await SuperScraper.state_full_name_to_abbreviated(SuperScraper.STATE)} {SuperScraper.ZIP_CODE}".strip()]
+                    f"{SuperScraper.STATE_ABBREVIATED} {SuperScraper.ZIP_CODE}".strip()]
     home_address = ", ".join(b for b in address_bits if b and b.strip())
 
     async with Chrome(options=options) as browser:

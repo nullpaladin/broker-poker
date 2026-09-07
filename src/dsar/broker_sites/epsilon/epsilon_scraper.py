@@ -88,7 +88,7 @@ async def submit_request(tab, radio_value, label, super_scraper):
         await zip_field.type_text(SuperScraper.ZIP_CODE)
 
     # State select — scope to state select to avoid country select collisions
-    state_abbrev = await SuperScraper.state_full_name_to_abbreviated(SuperScraper.STATE)
+    state_abbrev = SuperScraper.STATE_ABBREVIATED
     state_select = await tab.find(tag_name="select", name="state", raise_exc=False)
     if state_select:
         state_opt = await state_select.find(tag_name="option", value=state_abbrev, raise_exc=False)

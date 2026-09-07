@@ -104,7 +104,7 @@ async def main():
     options.binary_location = super_scraper.CHROMIUM_LOCATION
     options.add_argument("--no-sandbox")
 
-    state_abbr = await SuperScraper.state_full_name_to_abbreviated(SuperScraper.STATE)
+    state_abbr = SuperScraper.STATE_ABBREVIATED
     if state_abbr not in SUPPORTED_STATE_ABBREVIATIONS:
         print(
             f"{SuperScraper.OOPS} applecart.co only accepts requests from "

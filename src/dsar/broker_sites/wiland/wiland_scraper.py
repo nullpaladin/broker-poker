@@ -12,7 +12,6 @@ from pydoll.browser.chromium import Chrome
 from pydoll.browser.options import ChromiumOptions
 
 from src.dsar.super_scraper import SuperScraper
-from src.state_privacy_request_factory.state_name_abbreviation import StateAbbreviation
 
 ACCESS_URL = "https://privacyportal.onetrust.com/webform/7567ece3-2d27-4ee0-a506-1153cb7a62b7/a1e6c0c7-b7ff-45f9-9c62-7f1eb47a6e77"
 DELETE_URL = "https://privacyportal.onetrust.com/webform/7567ece3-2d27-4ee0-a506-1153cb7a62b7/718ad3c3-e1f5-4463-a301-2d6f84938588"
@@ -136,7 +135,7 @@ async def main():
     options.add_argument("--no-sandbox")
     options.add_argument("--window-size=1280,3000")
 
-    state_abbr = StateAbbreviation[SuperScraper.STATE.upper()].value
+    state_abbr = SuperScraper.STATE_ABBREVIATED
 
     async with Chrome(options=options) as browser:
         tab = await browser.start()

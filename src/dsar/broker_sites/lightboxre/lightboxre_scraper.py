@@ -68,7 +68,7 @@ async def submit_request(tab, card_text, super_scraper):
 
     state_field = await tab.find(xpath="//input[@name='o-State']", raise_exc=False)
     if state_field:
-        state_abbrev = await SuperScraper.state_full_name_to_abbreviated(SuperScraper.STATE)
+        state_abbrev = SuperScraper.STATE_ABBREVIATED
         await state_field.type_text(state_abbrev)
 
     label = "".join(c if c.isalnum() else "_" for c in card_text.lower())[:40].strip("_")

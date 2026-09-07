@@ -75,7 +75,7 @@ async def main():
                 await field.type_text(value)
                 await asyncio.sleep(0.2)
 
-        state_abbrev = await SuperScraper.state_full_name_to_abbreviated(SuperScraper.STATE)
+        state_abbrev = SuperScraper.STATE_ABBREVIATED
         await tab.execute_script(
             f'var s = document.querySelector("select[name=PersonalState]"); '
             f's.value = "{state_abbrev}"; s.dispatchEvent(new Event("change"));'

@@ -100,7 +100,7 @@ async def submit_request(tab, right, super_scraper):
 
     state_select = await tab.find(id="input_8_119", raise_exc=False)
     if state_select:
-        state_abbr = await SuperScraper.state_full_name_to_abbreviated(SuperScraper.STATE)
+        state_abbr = SuperScraper.STATE_ABBREVIATED
         await _select_by_value(state_select, state_abbr)
 
     if SuperScraper.DATE_OF_BIRTH:

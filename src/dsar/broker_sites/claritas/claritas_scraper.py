@@ -47,7 +47,7 @@ async def submit_request(tab, right_label, screenshot_label, super_scraper):
     if city:
         await city.type_text(SuperScraper.CITY)
 
-    state_abbrev = await SuperScraper.state_full_name_to_abbreviated(SuperScraper.STATE)
+    state_abbrev = SuperScraper.STATE_ABBREVIATED
     state_field = await tab.find(id="stateDSARElement", raise_exc=False)
     if state_field:
         await state_field.type_text(state_abbrev)

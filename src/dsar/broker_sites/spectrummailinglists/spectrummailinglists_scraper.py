@@ -90,7 +90,7 @@ async def main():
         await fill_text(tab, super_scraper, "City", SuperScraper.CITY)
         await fill_text(tab, super_scraper, "Zip Code", SuperScraper.ZIP_CODE)
 
-        state_abbr = await SuperScraper.state_full_name_to_abbreviated(SuperScraper.STATE)
+        state_abbr = SuperScraper.STATE_ABBREVIATED
         listbox = await tab.find(
             xpath="//div[@role='listitem'][.//span[contains(normalize-space(.), 'State')]]//div[@role='listbox']",
             raise_exc=False,

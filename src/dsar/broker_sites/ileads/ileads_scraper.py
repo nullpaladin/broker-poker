@@ -59,7 +59,7 @@ async def main():
 
         state_select = await tab.find(name="states-list", raise_exc=False)
         if state_select:
-            abbr = await super_scraper.state_full_name_to_abbreviated(SuperScraper.STATE)
+            abbr = SuperScraper.STATE_ABBREVIATED
             await state_select.execute_script(
                 f"const s=Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype,'value').set;"
                 f"s.call(this,{abbr!r});this.dispatchEvent(new Event('change',{{bubbles:true}}));"

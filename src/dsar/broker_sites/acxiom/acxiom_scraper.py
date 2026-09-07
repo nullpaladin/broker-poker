@@ -71,7 +71,7 @@ async def _fill_mail(iframe):
     await city.click()
     await city.type_text(SuperScraper.CITY)
     state = await iframe.find(id="State")
-    state_abbr = await SuperScraper.state_full_name_to_abbreviated(SuperScraper.STATE)
+    state_abbr = SuperScraper.STATE_ABBREVIATED
     await _select_by_value(state, state_abbr)
     zip_field = await iframe.find(id="Zip")
     await zip_field.click()

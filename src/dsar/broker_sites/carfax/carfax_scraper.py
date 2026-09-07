@@ -33,7 +33,7 @@ async def submit_request(tab, radio_label, tag, super_scraper):
         print(f"(carfax: go_to reported {exc!r} — continuing)")
     await asyncio.sleep(9)
 
-    state_abbr = await SuperScraper.state_full_name_to_abbreviated(SuperScraper.STATE)
+    state_abbr = SuperScraper.STATE_ABBREVIATED
     state_select = await tab.find(id="selectInput-userInput-state-input", raise_exc=False)
     if state_select:
         await state_select.execute_script(

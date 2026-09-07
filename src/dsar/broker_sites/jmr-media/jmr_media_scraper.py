@@ -39,7 +39,7 @@ async def submit_request(tab, request_value, label, super_scraper):
     if email:
         await email.type_text(SuperScraper.EMAIL)
 
-    state_abbr = await SuperScraper.state_full_name_to_abbreviated(SuperScraper.STATE)
+    state_abbr = SuperScraper.STATE_ABBREVIATED
     state_select = await tab.find(id="state", raise_exc=False)
     if state_select:
         state_opt = await state_select.find(tag_name="option", value=state_abbr, raise_exc=False)

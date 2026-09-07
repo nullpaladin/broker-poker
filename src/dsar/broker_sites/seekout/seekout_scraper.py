@@ -66,7 +66,7 @@ async def main():
     options.add_argument("--no-sandbox")
     options.add_argument("--window-size=1280,3000")
 
-    state_abbr = await SuperScraper.state_full_name_to_abbreviated(SuperScraper.STATE)
+    state_abbr = SuperScraper.STATE_ABBREVIATED
     choices = list(CHOICES)
     if SuperScraper.REMOVE_INFORMATION:
         choices.append(DELETE_CHOICE)

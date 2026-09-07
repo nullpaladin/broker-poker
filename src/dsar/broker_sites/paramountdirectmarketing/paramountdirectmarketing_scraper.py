@@ -70,7 +70,7 @@ async def main():
 
         state_select = await tab.find(id="state", raise_exc=False)
         if state_select:
-            state_abbrev = await SuperScraper.state_full_name_to_abbreviated(SuperScraper.STATE)
+            state_abbrev = SuperScraper.STATE_ABBREVIATED
             await state_select.execute_script(
                 "for (var i=0;i<this.options.length;i++){"
                 f"  if(this.options[i].text==={state_abbrev!r}){{ this.selectedIndex=i; }}"

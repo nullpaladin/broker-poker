@@ -70,7 +70,7 @@ async def submit_request(tab, request_type, super_scraper):
     await tab.go_to(URL)
     await asyncio.sleep(6)
 
-    state_abbr = await SuperScraper.state_full_name_to_abbreviated(SuperScraper.STATE)
+    state_abbr = SuperScraper.STATE_ABBREVIATED
     await _select_by_value(tab, STATE_FIELD, state_abbr, super_scraper, "state")
     # dependent selects take several seconds to populate after state changes
     await asyncio.sleep(8)

@@ -79,7 +79,7 @@ async def _fill_step2(tab, super_scraper):
 
     state_select = await tab.find(name="o-requestState", raise_exc=False)
     if state_select:
-        state_abbrev = await SuperScraper.state_full_name_to_abbreviated(SuperScraper.STATE)
+        state_abbrev = SuperScraper.STATE_ABBREVIATED
         await state_select.execute_script(
             "for (var i=0;i<this.options.length;i++){"
             f"  if(this.options[i].value==={state_abbrev!r}){{ this.selectedIndex=i; }}"

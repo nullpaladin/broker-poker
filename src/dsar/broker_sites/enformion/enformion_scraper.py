@@ -79,7 +79,7 @@ async def process_form(tab, dropdown_val, label, has_extended, super_scraper):
 
     # Extended fields for the Correct form.
     if has_extended:
-        state_abbrev = await SuperScraper.state_full_name_to_abbreviated(SuperScraper.STATE)
+        state_abbrev = SuperScraper.STATE_ABBREVIATED
         if SuperScraper.PHONE_NUMBER:
             await tab.execute_script(_js_set(f'{form_sel} [name="phone"]', SuperScraper.PHONE_NUMBER))
         else:

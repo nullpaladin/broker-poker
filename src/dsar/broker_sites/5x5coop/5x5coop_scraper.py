@@ -62,7 +62,7 @@ async def submit_request(tab, reason_text, label, super_scraper):
     await asyncio.sleep(1)
     # "Residence - State" <select> only renders after Country is set; its options
     # are 2-letter abbreviations, so convert "Minnesota" -> "MN".
-    state_abbr = await super_scraper.state_full_name_to_abbreviated(SuperScraper.STATE)
+    state_abbr = SuperScraper.STATE_ABBREVIATED
     await _select_by_text(tab, "//select[option[normalize-space()='Select state']]", state_abbr)
     await _select_by_text(tab, "//select[option[normalize-space()='Select a reason']]", reason_text)
 

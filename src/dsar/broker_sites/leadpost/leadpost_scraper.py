@@ -51,7 +51,7 @@ async def main():
 
         state_field = await tab.find(id="State", raise_exc=False)
         if state_field:
-            state_abbrev = await SuperScraper.state_full_name_to_abbreviated(SuperScraper.STATE)
+            state_abbrev = SuperScraper.STATE_ABBREVIATED
             await state_field.type_text(state_abbrev)
 
         zip_field = await tab.find(id="Zip", raise_exc=False)

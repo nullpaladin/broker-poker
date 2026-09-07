@@ -13,11 +13,12 @@ from src.dsar.super_scraper import SuperScraper
 URL = "https://www.mediaocean.com/your-privacy-rights"
 
 # (cCPARequest option value, screenshot label)
-REQUESTS = [
-    ("CCPA Obtain Info", "access"),
-    ("CCPA Opt Out of Sale", "optout"),
-]
-DELETE_REQUEST = ("CCPA Delete Info", "delete")
+RIGHT_MAP = {
+    "access": [("CCPA Obtain Info", "access")],
+    "opt_out_sale_share": [("CCPA Opt Out of Sale", "optout")],
+    "delete": [("CCPA Delete Info", "delete")],
+}
+RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
 
 
 async def submit_request(tab, ccpa_value, label, super_scraper):
@@ -99,9 +100,11 @@ async def main():
     options.binary_location = super_scraper.CHROMIUM_LOCATION
     options.add_argument("--no-sandbox")
 
-    requests = list(REQUESTS)
-    if SuperScraper.REMOVE_INFORMATION:
-        requests.append(DELETE_REQUEST)
+    codes = SuperScraper.rights_to_exercise(RIGHT_MAP)
+    if not codes:
+        print("No requested privacy rights apply to this form — nothing to do.")
+        return
+    requests = [entry for code in codes for entry in RIGHT_MAP[code]]
 
     async with Chrome(options=options) as browser:
         tab = await browser.start()

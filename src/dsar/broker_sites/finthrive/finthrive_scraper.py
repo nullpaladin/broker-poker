@@ -26,13 +26,16 @@ from src.dsar.super_scraper import SuperScraper
 
 URL = "https://privacyportal.onetrust.com/webform/e2abd578-6539-47f6-9895-b18d23b76ac4/c3d22390-d038-4464-83d3-3f0c91c76a01"
 
-RIGHTS = [
-    "Request to Know - Specific Pieces of Personal Information",
-    "Request to Know - Categories of Personal Information & Sources",
-    "Request to Correct Inaccurate Personal Information",
-    "Request to Opt-Out (Do Not Sell or Share My Personal Information)",
-]
-DELETE_RIGHT = "Request to Delete Personal Information"
+RIGHT_MAP = {
+    "access": [
+        "Request to Know - Specific Pieces of Personal Information",
+        "Request to Know - Categories of Personal Information & Sources",
+    ],
+    "correct": ["Request to Correct Inaccurate Personal Information"],
+    "opt_out_sale_share": ["Request to Opt-Out (Do Not Sell or Share My Personal Information)"],
+    "delete": ["Request to Delete Personal Information"],
+}
+RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
 
 
 async def _fill_autocomplete(tab, field_id, value):
@@ -117,9 +120,11 @@ async def main():
     options.binary_location = super_scraper.CHROMIUM_LOCATION
     options.add_argument("--no-sandbox")
 
-    rights = list(RIGHTS)
-    if SuperScraper.REMOVE_INFORMATION:
-        rights.append(DELETE_RIGHT)
+    codes = SuperScraper.rights_to_exercise(RIGHT_MAP)
+    if not codes:
+        print("No requested privacy rights apply to this form — nothing to do.")
+        return
+    rights = [entry for code in codes for entry in RIGHT_MAP[code]]
 
     async with Chrome(options=options) as browser:
         tab = await browser.start()

@@ -15,11 +15,12 @@ from src.dsar.super_scraper import SuperScraper
 URL = "https://techtarget.zendesk.com/hc/en-us/requests/new?ticket_form_id=360004852434"
 
 # (tagger value, is_delete_sub_option, screenshot label)
-REQUESTS = [
-    ("ccpa__right_to_access",           False, "access"),
-    ("ccpa__right_to_opt-out_of_sale",  False, "optout"),
-]
-DELETE_REQUEST = ("ccpa__right_to_be_deleted__all_databases", True, "delete")
+RIGHT_MAP = {
+    "access": [("ccpa__right_to_access", False, "access")],
+    "opt_out_sale_share": [("ccpa__right_to_opt-out_of_sale", False, "optout")],
+    "delete": [("ccpa__right_to_be_deleted__all_databases", True, "delete")],
+}
+RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
 
 
 async def _open_tagger(tab):
@@ -122,9 +123,11 @@ async def main():
     options.binary_location = super_scraper.CHROMIUM_LOCATION
     options.add_argument("--no-sandbox")
 
-    requests = list(REQUESTS)
-    if SuperScraper.REMOVE_INFORMATION:
-        requests.append(DELETE_REQUEST)
+    codes = SuperScraper.rights_to_exercise(RIGHT_MAP)
+    if not codes:
+        print("No requested privacy rights apply to this form — nothing to do.")
+        return
+    requests = [entry for code in codes for entry in RIGHT_MAP[code]]
 
     async with Chrome(options=options) as browser:
         tab = await browser.start()

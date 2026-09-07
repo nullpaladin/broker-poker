@@ -29,8 +29,13 @@ COUNTRY_SELECT_ID = "QuestionTypeID_10663"
 UNITED_STATES_VALUE = "22984"
 
 REQUEST_TYPE_RADIO_NAME = "10657"
-REQUEST_TYPES = ["22792", "22795"]  # know what data you hold, opt-out
-DELETE_REQUEST_TYPE = "22794"  # data to be deleted
+# Opaque tagger ids — verify against the live form.
+RIGHT_MAP = {
+    "access": ["22792"],            # know what data you hold
+    "opt_out_sale_share": ["22795"],
+    "delete": ["22794"],
+}
+RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
 
 
 async def _check_radio(tab, name, value, super_scraper, description):
@@ -101,9 +106,11 @@ async def main():
     options.binary_location = super_scraper.CHROMIUM_LOCATION
     options.add_argument("--no-sandbox")
 
-    request_types = list(REQUEST_TYPES)
-    if SuperScraper.REMOVE_INFORMATION:
-        request_types.append(DELETE_REQUEST_TYPE)
+    codes = SuperScraper.rights_to_exercise(RIGHT_MAP)
+    if not codes:
+        print("No requested privacy rights apply to this form — nothing to do.")
+        return
+    request_types = [entry for code in codes for entry in RIGHT_MAP[code]]
 
     async with Chrome(options=options) as browser:
         tab = await browser.start()

@@ -26,13 +26,13 @@ URL = (
     "fbe4d6b4-7f02-4251-bc4b-142d5109ae3e/1683277a-0ae1-47dd-8845-5e811a07e307"
 )
 
-RIGHTS = [
-    ("Info Request", "access"),
-    ("Opt out", "opt_out"),
-    ("Do Not Sell", "do_not_sell"),
-    ("Data Portability", "portability"),
-]
-DELETE_RIGHT = ("Data Deletion", "delete")
+RIGHT_MAP = {
+    "access": [("Info Request", "access")],
+    "opt_out_sale_share": [("Opt out", "opt_out"), ("Do Not Sell", "do_not_sell")],
+    "portability": [("Data Portability", "portability")],
+    "delete": [("Data Deletion", "delete")],
+}
+RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
 
 
 async def _combo(tab, super_scraper, field_id, value):
@@ -119,9 +119,11 @@ async def main():
     options.binary_location = super_scraper.CHROMIUM_LOCATION
     options.add_argument("--no-sandbox")
 
-    rights = list(RIGHTS)
-    if SuperScraper.REMOVE_INFORMATION:
-        rights.append(DELETE_RIGHT)
+    codes = SuperScraper.rights_to_exercise(RIGHT_MAP)
+    if not codes:
+        print("No requested privacy rights apply to this form — nothing to do.")
+        return
+    rights = [entry for code in codes for entry in RIGHT_MAP[code]]
 
     async with Chrome(options=options) as browser:
         tab = await browser.start()

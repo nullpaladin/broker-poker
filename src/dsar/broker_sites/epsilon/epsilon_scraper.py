@@ -15,15 +15,15 @@ from src.dsar.super_scraper import SuperScraper
 URL = "https://legal.epsilon.com/dsr"
 
 # (radio value, screenshot label)
-REQUESTS = [
-    ("sales",      "sell"),
-    ("share",      "share"),
-    ("access",     "access"),
-    ("correct",    "correct"),
-    ("profile",    "profile"),
-    ("sensitive",  "sensitive"),
-]
-DELETE_REQUEST = ("delete", "delete")
+RIGHT_MAP = {
+    "access": [("access", "access")],
+    "correct": [("correct", "correct")],
+    "opt_out_sale_share": [("sales", "sell"), ("share", "share")],
+    "opt_out_profiling": [("profile", "profile")],
+    "limit_sensitive_pi": [("sensitive", "sensitive")],
+    "delete": [("delete", "delete")],
+}
+RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
 
 
 async def submit_request(tab, radio_value, label, super_scraper):
@@ -130,9 +130,11 @@ async def main():
     options.binary_location = super_scraper.CHROMIUM_LOCATION
     options.add_argument("--no-sandbox")
 
-    requests = list(REQUESTS)
-    if SuperScraper.REMOVE_INFORMATION:
-        requests.append(DELETE_REQUEST)
+    codes = SuperScraper.rights_to_exercise(RIGHT_MAP)
+    if not codes:
+        print("No requested privacy rights apply to this form — nothing to do.")
+        return
+    requests = [entry for code in codes for entry in RIGHT_MAP[code]]
 
     async with Chrome(options=options) as browser:
         tab = await browser.start()

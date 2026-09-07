@@ -9,7 +9,6 @@
 # scraper solves it and (in live mode) can submit for real without any
 # manual step.
 import asyncio
-import re
 
 from src.dsar.super_scraper import SuperScraper
 
@@ -57,12 +56,9 @@ async def main():
             else:
                 print(f"{super_scraper.OOPS} checkbox '{checkbox_id}' not found")
 
-        page_text = await tab.execute_script("return document.body.innerText")
-        if isinstance(page_text, dict):
-            page_text = page_text.get("result", {}).get("result", {}).get("value", "")
-        match = re.search(r"What is (\d+)\s*\+\s*(\d+)\?", page_text or "")
-        if match:
-            answer = str(int(match.group(1)) + int(match.group(2)))
+        page_text = await SuperScraper.page_text(tab)
+        answer = SuperScraper.solve_math_captcha(page_text or "")
+        if answer is not None:
             answer_field = await tab.find(xpath="//input[@placeholder='Your answer']", raise_exc=False)
             if answer_field:
                 await answer_field.type_text(answer)

@@ -14,7 +14,6 @@
 # button — its "Accept All Cookies"/"Confirm My Choices" buttons are red
 # herrings (hidden/inert on this page).
 import asyncio
-import re
 
 from src.dsar.super_scraper import SuperScraper
 
@@ -65,16 +64,15 @@ async def main():
                 await box.click()
                 await asyncio.sleep(0.2)
 
-        placeholder = await tab.execute_script(
-            "var o = document.querySelector('#input_47_42 option[selected]'); return o ? o.textContent : '';"
+        placeholder_text = await SuperScraper.js_eval(
+            tab,
+            "var o = document.querySelector('#input_47_42 option[selected]'); return o ? o.textContent : '';",
         )
-        placeholder_text = placeholder.get("result", {}).get("result", {}).get("value", "") if isinstance(placeholder, dict) else ""
-        match = re.search(r"(\d+)\s*\+\s*(\d+)", placeholder_text)
-        if match:
-            answer = str(int(match.group(1)) + int(match.group(2)))
-            await tab.execute_script(
-                f'var s = document.querySelector("select#input_47_42"); s.value = "{answer}"; s.dispatchEvent(new Event("change"));'
-            )
+        answer = SuperScraper.solve_math_captcha(placeholder_text or "")
+        if answer is not None:
+            math_select = await tab.find(id="input_47_42", raise_exc=False)
+            if math_select:
+                await SuperScraper.select_native_option(math_select, value=answer)
         else:
             print(f"{super_scraper.OOPS} Could not parse the arithmetic question '{placeholder_text}'")
 

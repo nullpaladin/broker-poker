@@ -17,8 +17,13 @@ from pydoll.browser.options import ChromiumOptions
 
 URL = "https://m1-data.com/unsubscribe/"
 
-REQUEST_TYPES = ["RequestType1", "RequestType3"]
-DELETE_REQUEST_TYPE = "RequestType2"
+# Opaque RequestTypeN values — verify against the live form.
+RIGHT_MAP = {
+    "access": ["RequestType1"],
+    "opt_out_sale_share": ["RequestType3"],
+    "delete": ["RequestType2"],
+}
+RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
 
 LABELS = {
     "RequestType1": "know",
@@ -80,9 +85,11 @@ async def main():
     options.binary_location = super_scraper.CHROMIUM_LOCATION
     options.add_argument("--no-sandbox")
 
-    request_types = list(REQUEST_TYPES)
-    if SuperScraper.REMOVE_INFORMATION:
-        request_types.append(DELETE_REQUEST_TYPE)
+    codes = SuperScraper.rights_to_exercise(RIGHT_MAP)
+    if not codes:
+        print("No requested privacy rights apply to this form — nothing to do.")
+        return
+    request_types = [entry for code in codes for entry in RIGHT_MAP[code]]
 
     async with Chrome(options=options) as browser:
         tab = await browser.start()

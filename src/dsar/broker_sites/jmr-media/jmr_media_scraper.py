@@ -15,12 +15,13 @@ from src.dsar.super_scraper import SuperScraper
 URL = "https://jmr-media.com/do-not-sell"
 
 # (requestType value, screenshot label)
-REQUESTS = [
-    ("opt_out_sale_share", "optout"),
-    ("limit_sensitive_pi", "sensitive"),
-    ("access_request", "access"),
-]
-DELETE_REQUEST = ("delete_request", "delete")
+RIGHT_MAP = {
+    "access": [("access_request", "access")],
+    "opt_out_sale_share": [("opt_out_sale_share", "optout")],
+    "limit_sensitive_pi": [("limit_sensitive_pi", "sensitive")],
+    "delete": [("delete_request", "delete")],
+}
+RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
 
 
 async def submit_request(tab, request_value, label, super_scraper):
@@ -85,9 +86,11 @@ async def main():
     options.binary_location = super_scraper.CHROMIUM_LOCATION
     options.add_argument("--no-sandbox")
 
-    requests = list(REQUESTS)
-    if SuperScraper.REMOVE_INFORMATION:
-        requests.append(DELETE_REQUEST)
+    codes = SuperScraper.rights_to_exercise(RIGHT_MAP)
+    if not codes:
+        print("No requested privacy rights apply to this form — nothing to do.")
+        return
+    requests = [entry for code in codes for entry in RIGHT_MAP[code]]
 
     async with Chrome(options=options) as browser:
         tab = await browser.start()

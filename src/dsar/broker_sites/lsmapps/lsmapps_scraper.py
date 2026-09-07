@@ -20,11 +20,12 @@ from pydoll.browser.options import ChromiumOptions
 
 URL = "https://lsmapps.com/opt-out"
 
-RIGHTS = [
-    "Right to Know or Access the Personal Information",
-    "Right to Opt-Out of Sale of Personal Information",
-]
-DELETE_RIGHT = "Right to Deletion of the Personal Information"
+RIGHT_MAP = {
+    "access": ["Right to Know or Access the Personal Information"],
+    "opt_out_sale_share": ["Right to Opt-Out of Sale of Personal Information"],
+    "delete": ["Right to Deletion of the Personal Information"],
+}
+RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
 
 
 def _select_by_text(text):
@@ -85,9 +86,11 @@ async def main():
     options.binary_location = super_scraper.CHROMIUM_LOCATION
     options.add_argument("--no-sandbox")
 
-    rights = list(RIGHTS)
-    if SuperScraper.REMOVE_INFORMATION:
-        rights.append(DELETE_RIGHT)
+    codes = SuperScraper.rights_to_exercise(RIGHT_MAP)
+    if not codes:
+        print("No requested privacy rights apply to this form — nothing to do.")
+        return
+    rights = [entry for code in codes for entry in RIGHT_MAP[code]]
 
     async with Chrome(options=options) as browser:
         tab = await browser.start()

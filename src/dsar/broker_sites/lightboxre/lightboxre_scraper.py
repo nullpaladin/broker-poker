@@ -23,8 +23,12 @@ from pydoll.browser.options import ChromiumOptions
 
 URL = "https://my.datasubject.com/16BXQXSvkBnuN4W2w/51306"
 
-CARDS = ["Access my personal information", "Third parties your data was sold or shared with"]
-DELETE_CARD = "Delete my personal information"
+RIGHT_MAP = {
+    "access": ["Access my personal information"],
+    "know_third_parties": ["Third parties your data was sold or shared with"],
+    "delete": ["Delete my personal information"],
+}
+RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
 
 
 async def submit_request(tab, card_text, super_scraper):
@@ -94,9 +98,11 @@ async def main():
     options.binary_location = super_scraper.CHROMIUM_LOCATION
     options.add_argument("--no-sandbox")
 
-    cards = list(CARDS)
-    if SuperScraper.REMOVE_INFORMATION:
-        cards.append(DELETE_CARD)
+    codes = SuperScraper.rights_to_exercise(RIGHT_MAP)
+    if not codes:
+        print("No requested privacy rights apply to this form — nothing to do.")
+        return
+    cards = [entry for code in codes for entry in RIGHT_MAP[code]]
 
     async with Chrome(options=options) as browser:
         tab = await browser.start()

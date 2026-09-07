@@ -25,8 +25,12 @@ from pydoll.browser.options import ChromiumOptions
 URL = "https://www.mobilewalla.com/global-opt-out-request"
 
 CHECKBOX_INDEXES = {"deletion": 0, "opt_out": 1, "access": 2, "limit_sensitive": 3}
-RIGHTS = ["opt_out", "access"]
-DELETE_RIGHT = "deletion"
+RIGHT_MAP = {
+    "access": ["access"],
+    "opt_out_sale_share": ["opt_out"],
+    "delete": ["deletion"],
+}
+RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
 
 
 async def main():
@@ -45,9 +49,11 @@ async def main():
             await decline_cookies.click()
             await asyncio.sleep(1)
 
-        rights = list(RIGHTS)
-        if SuperScraper.REMOVE_INFORMATION:
-            rights.append(DELETE_RIGHT)
+        codes = SuperScraper.rights_to_exercise(RIGHT_MAP)
+        if not codes:
+            print("No requested privacy rights apply to this form — nothing to do.")
+            return
+        rights = [entry for code in codes for entry in RIGHT_MAP[code]]
 
         checkboxes = await tab.find(xpath="//input[@name='info-request']", find_all=True, raise_exc=False) or []
         for right in rights:

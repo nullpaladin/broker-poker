@@ -18,11 +18,12 @@ from src.dsar.super_scraper import SuperScraper
 URL = "https://my.monitorbase.com/privacypolicy"
 
 # (visible option text, screenshot label)
-REQUESTS = [
-    ("What Information of Mine Do You Have?", "access"),
-    ("Opt Me Out Of Having My Data Sold", "optout"),
-]
-DELETE_REQUEST = ("Delete My Information", "delete")
+RIGHT_MAP = {
+    "access": [("What Information of Mine Do You Have?", "access")],
+    "opt_out_sale_share": [("Opt Me Out Of Having My Data Sold", "optout")],
+    "delete": [("Delete My Information", "delete")],
+}
+RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
 
 
 async def submit_request(tab, option_text, label, super_scraper):
@@ -76,9 +77,11 @@ async def main():
     options.binary_location = super_scraper.CHROMIUM_LOCATION
     options.add_argument("--no-sandbox")
 
-    requests = list(REQUESTS)
-    if SuperScraper.REMOVE_INFORMATION:
-        requests.append(DELETE_REQUEST)
+    codes = SuperScraper.rights_to_exercise(RIGHT_MAP)
+    if not codes:
+        print("No requested privacy rights apply to this form — nothing to do.")
+        return
+    requests = [entry for code in codes for entry in RIGHT_MAP[code]]
 
     async with Chrome(options=options) as browser:
         tab = await browser.start()

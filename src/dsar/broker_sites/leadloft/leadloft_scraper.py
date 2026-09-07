@@ -29,8 +29,11 @@ from pydoll.browser.options import ChromiumOptions
 
 URL = "https://www.leadloft.com/user-agreements/personal-data"
 
-REQUEST_TYPES = ["Restrict Processing"]
-DELETE_REQUEST_TYPE = "Delete"
+RIGHT_MAP = {
+    "opt_out_sale_share": ["Restrict Processing"],
+    "delete": ["Delete"],
+}
+RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
 
 
 async def submit_request(tab, request_type, super_scraper):
@@ -99,9 +102,11 @@ async def main():
     options.binary_location = super_scraper.CHROMIUM_LOCATION
     options.add_argument("--no-sandbox")
 
-    request_types = list(REQUEST_TYPES)
-    if SuperScraper.REMOVE_INFORMATION:
-        request_types.append(DELETE_REQUEST_TYPE)
+    codes = SuperScraper.rights_to_exercise(RIGHT_MAP)
+    if not codes:
+        print("No requested privacy rights apply to this form — nothing to do.")
+        return
+    request_types = [entry for code in codes for entry in RIGHT_MAP[code]]
 
     async with Chrome(options=options) as browser:
         tab = await browser.start()

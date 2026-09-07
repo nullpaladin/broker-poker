@@ -27,15 +27,6 @@ RIGHT_MAP = {
 RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
 
 
-async def _select_by_text(select_element, text):
-    await select_element.execute_script(
-        "for (var i=0;i<this.options.length;i++){"
-        f"  if(this.options[i].text==={text!r}){{ this.selectedIndex=i; }}"
-        "}"
-        "this.dispatchEvent(new Event('change', {bubbles:true}));"
-    )
-
-
 async def submit_request(tab, value_prefix, label, super_scraper):
     await tab.go_to(URL)
     await asyncio.sleep(5)
@@ -72,7 +63,7 @@ async def submit_request(tab, value_prefix, label, super_scraper):
 
     country = await tab.find(id="input_2_6_6", raise_exc=False)
     if country:
-        await _select_by_text(country, "United States")
+        await SuperScraper.select_native_option(country, text="United States")
 
     await asyncio.sleep(1)
     await SuperScraper.screenshot(tab, f"resources/screenshots/specialtycontactdatabases_dry_run_{label}.png")

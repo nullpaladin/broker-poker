@@ -79,8 +79,8 @@ async def main():
 
         await super_scraper.click_item_by_text(tab=tab, text="Submit", sleep=2)
         await asyncio.sleep(4)
-        result = await tab.execute_script("return document.body.innerText")
-        print(result['result']['result']['value'][:500])
+        result = await SuperScraper.page_text(tab)
+        print(result[:500])
 
 
 asyncio.run(main())

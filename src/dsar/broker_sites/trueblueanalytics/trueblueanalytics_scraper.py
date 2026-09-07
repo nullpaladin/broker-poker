@@ -29,15 +29,6 @@ RIGHT_MAP = {
 RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
 
 
-async def _select_native_option(select_element, option_value):
-    await select_element.execute_script(
-        "for (var i=0;i<this.options.length;i++){"
-        f"  if(this.options[i].value==={option_value!r}){{ this.selectedIndex=i; }}"
-        "}"
-        "this.dispatchEvent(new Event('change', {bubbles:true}));"
-    )
-
-
 async def main():
     options = ChromiumOptions()
     super_scraper = SuperScraper()
@@ -69,13 +60,13 @@ async def main():
 
         requester_type_select = await tab.find(id="requester_type", raise_exc=False)
         if requester_type_select:
-            await _select_native_option(requester_type_select, "other")
+            await SuperScraper.select_native_option(requester_type_select, value="other")
         else:
             print(f"{super_scraper.OOPS} 'I am a' select not found")
 
         country_select = await tab.find(id="country", raise_exc=False)
         if country_select:
-            await _select_native_option(country_select, "US")
+            await SuperScraper.select_native_option(country_select, value="US")
             await asyncio.sleep(1.5)
         else:
             print(f"{super_scraper.OOPS} Country select not found")
@@ -83,7 +74,7 @@ async def main():
         # Only revealed in the DOM after Country is set above.
         state_select = await tab.find(id="state", raise_exc=False)
         if state_select:
-            await _select_native_option(state_select, SuperScraper.STATE)
+            await SuperScraper.select_native_option(state_select, value=SuperScraper.STATE)
             await asyncio.sleep(1.5)
         else:
             print(f"{super_scraper.OOPS} State select not found")

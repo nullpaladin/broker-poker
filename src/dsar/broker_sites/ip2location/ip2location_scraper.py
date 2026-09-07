@@ -35,15 +35,6 @@ def _public_ip():
     return ""
 
 
-async def _select_by_text(select_element, text):
-    await select_element.execute_script(
-        "for (var i=0;i<this.options.length;i++){"
-        f"  if(this.options[i].text.trim()==={text!r}){{ this.selectedIndex=i; }}"
-        "}"
-        "this.dispatchEvent(new Event('change', {bubbles:true}));"
-    )
-
-
 async def submit_request(tab, right_label, tag, super_scraper, ip):
     await tab.go_to(URL)
     await asyncio.sleep(6)
@@ -64,16 +55,16 @@ async def submit_request(tab, right_label, tag, super_scraper, ip):
 
     rt = await tab.find(xpath=f"{form_xp}//select[@name='requestType']", raise_exc=False)
     if rt:
-        await _select_by_text(rt, right_label)
+        await SuperScraper.select_native_option(rt, text=right_label)
     else:
         print(f"{super_scraper.OOPS} requestType select not found")
 
     scope = await tab.find(xpath=f"{form_xp}//select[@name='scope']", raise_exc=False)
     if scope:
-        await _select_by_text(scope, "This request relates to all of my data")
+        await SuperScraper.select_native_option(scope, text="This request relates to all of my data")
     behalf = await tab.find(xpath=f"{form_xp}//select[@name='behalf']", raise_exc=False)
     if behalf:
-        await _select_by_text(behalf, "No")
+        await SuperScraper.select_native_option(behalf, text="No")
 
     await asyncio.sleep(1)
     await SuperScraper.screenshot(tab, f"resources/screenshots/ip2location_dry_run_{tag}.png", beyond_viewport=True)

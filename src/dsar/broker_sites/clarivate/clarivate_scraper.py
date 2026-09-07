@@ -129,7 +129,7 @@ async def main():
         print("Press Enter after submission completes...")
         input()
 
-        result = await tab.execute_script("return document.body.innerText") or ""
+        result = await SuperScraper.page_text(tab) or ""
         if any(w in result.lower() for w in ("thank", "success", "received", "submitted", "confirmation")):
             print(f"Submitted DSAR for {SuperScraper.FIRST_NAME} {SuperScraper.LAST_NAME}")
         else:

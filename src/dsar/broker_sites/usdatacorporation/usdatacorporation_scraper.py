@@ -34,15 +34,6 @@ RIGHT_MAP = {
 RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
 
 
-async def _select_native_option(select_element, option_value):
-    await select_element.execute_script(
-        "for (var i=0;i<this.options.length;i++){"
-        f"  if(this.options[i].value==={option_value!r}){{ this.selectedIndex=i; }}"
-        "}"
-        "this.dispatchEvent(new Event('change', {bubbles:true}));"
-    )
-
-
 async def _set_text_via_js(field_element, value):
     await field_element.execute_script(
         f"this.value = {value!r};"
@@ -88,13 +79,13 @@ async def submit_request(tab, category, super_scraper):
     if jurisdiction_select:
         # Jurisdiction list is CCPA-era only; "OTHER" is used for every state
         # (a request framed under CCPA applies equally under each state's law).
-        await _select_native_option(jurisdiction_select, "OTHER")
+        await SuperScraper.select_native_option(jurisdiction_select, value="OTHER")
     else:
         print(f"{super_scraper.OOPS} Jurisdiction select not found")
 
     category_select = await tab.find(id="webform_category", raise_exc=False)
     if category_select:
-        await _select_native_option(category_select, category)
+        await SuperScraper.select_native_option(category_select, value=category)
     else:
         print(f"{super_scraper.OOPS} Request Category select not found")
 

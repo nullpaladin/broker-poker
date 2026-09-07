@@ -42,15 +42,6 @@ PRIVACY_RIGHTS_URL = "https://www.usa-people-search.com/privacy-rights"
 REMOVAL_URL = "https://www.usa-people-search.com/removal"
 
 
-async def _select_native_option(select_element, option_value):
-    await select_element.execute_script(
-        "for (var i=0;i<this.options.length;i++){"
-        f"  if(this.options[i].value==={option_value!r}){{ this.selectedIndex=i; }}"
-        "}"
-        "this.dispatchEvent(new Event('change', {bubbles:true}));"
-    )
-
-
 async def _set_text_via_js(field_element, value):
     # A CSS fade/slide-in transition on this form intermittently makes
     # pydoll's click-based type_text() raise ElementNotVisible even after
@@ -69,7 +60,7 @@ async def submit_request(tab, request_type, super_scraper):
 
     choose_option_select = await tab.find(id="chooseOption", raise_exc=False)
     if choose_option_select:
-        await _select_native_option(choose_option_select, "ADC")
+        await SuperScraper.select_native_option(choose_option_select, value="ADC")
         # The ADC form section fades/slides in — poll until it's actually
         # visible rather than a fixed sleep, since a fixed short sleep was
         # intermittently too short and caused ElementNotVisible errors.
@@ -90,13 +81,13 @@ async def submit_request(tab, request_type, super_scraper):
 
     request_type_select = await tab.find(id="adc-request-type", raise_exc=False)
     if request_type_select:
-        await _select_native_option(request_type_select, request_type)
+        await SuperScraper.select_native_option(request_type_select, value=request_type)
     else:
         print(f"{super_scraper.OOPS} Request Type select not found")
 
     interactions_select = await tab.find(id="adc-company-interactions", raise_exc=False)
     if interactions_select:
-        await _select_native_option(interactions_select, "no-relation")
+        await SuperScraper.select_native_option(interactions_select, value="no-relation")
     else:
         print(f"{super_scraper.OOPS} Company interactions select not found")
 
@@ -129,13 +120,13 @@ async def submit_request(tab, request_type, super_scraper):
 
     user_type_select = await tab.find(id="adc-user-type", raise_exc=False)
     if user_type_select:
-        await _select_native_option(user_type_select, "subject")
+        await SuperScraper.select_native_option(user_type_select, value="subject")
     else:
         print(f"{super_scraper.OOPS} 'I am' select not found")
 
     state_select = await tab.find(id="adc-state", raise_exc=False)
     if state_select:
-        await _select_native_option(state_select, SuperScraper.STATE.lower())
+        await SuperScraper.select_native_option(state_select, value=SuperScraper.STATE.lower())
     else:
         print(f"{super_scraper.OOPS} State select not found")
 
@@ -154,7 +145,7 @@ async def submit_removal_step1(tab, super_scraper):
 
     user_type_select = await tab.find(id="user-type", raise_exc=False)
     if user_type_select:
-        await _select_native_option(user_type_select, "subject")
+        await SuperScraper.select_native_option(user_type_select, value="subject")
     else:
         print(f"{super_scraper.OOPS} 'I am' select not found")
 

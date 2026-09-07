@@ -55,15 +55,6 @@ RIGHT_MAP = {
 RIGHTS_SUPPORTED = ("delete", "opt_out_sale_share")
 
 
-async def _select_by_value(select_element, value):
-    await select_element.execute_script(
-        "for (var i=0;i<this.options.length;i++){"
-        f"  if(this.options[i].value==={value!r}){{ this.selectedIndex=i; }}"
-        "}"
-        "this.dispatchEvent(new Event('change', {bubbles:true}));"
-    )
-
-
 def _to_mm_dd_yyyy(dd_mm_yyyy):
     day, month, year = dd_mm_yyyy.split("/")
     return f"{month}/{day}/{year}"
@@ -77,14 +68,14 @@ async def submit_request(tab, right, super_scraper):
     if not residency_select:
         print(f"{super_scraper.OOPS} residency-state dropdown not found")
         return
-    await _select_by_value(residency_select, "Any other state")
+    await SuperScraper.select_native_option(residency_select, value="Any other state")
     await asyncio.sleep(1.5)
 
     request_type_select = await tab.find(id="input_8_105", raise_exc=False)
     if not request_type_select:
         print(f"{super_scraper.OOPS} 'I would like to' dropdown not found")
         return
-    await _select_by_value(request_type_select, right)
+    await SuperScraper.select_native_option(request_type_select, value=right)
     await asyncio.sleep(0.5)
 
     declare_checkbox = await tab.find(id="choice_8_145_1", raise_exc=False)
@@ -112,7 +103,7 @@ async def submit_request(tab, right, super_scraper):
     state_select = await tab.find(id="input_8_119", raise_exc=False)
     if state_select:
         state_abbr = SuperScraper.STATE_ABBREVIATED
-        await _select_by_value(state_select, state_abbr)
+        await SuperScraper.select_native_option(state_select, value=state_abbr)
 
     if SuperScraper.DATE_OF_BIRTH:
         birthdate_field = await tab.find(id="input_8_77", raise_exc=False)

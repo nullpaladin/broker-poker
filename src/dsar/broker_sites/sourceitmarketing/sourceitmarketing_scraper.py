@@ -28,15 +28,6 @@ RIGHT_MAP = {
 RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
 
 
-async def _select_by_text(select_element, text):
-    await select_element.execute_script(
-        "for (var i=0;i<this.options.length;i++){"
-        f"  if(this.options[i].text.trim()==={text!r}){{ this.selectedIndex=i; }}"
-        "}"
-        "this.dispatchEvent(new Event('change', {bubbles:true}));"
-    )
-
-
 async def submit_request(tab, right_label, tag, super_scraper):
     await tab.go_to(URL)
     await asyncio.sleep(6)
@@ -46,7 +37,7 @@ async def submit_request(tab, right_label, tag, super_scraper):
     if not subject:
         print(f"{super_scraper.OOPS} 'Subject' select not found")
         return
-    await _select_by_text(subject, right_label)
+    await SuperScraper.select_native_option(subject, text=right_label)
     await asyncio.sleep(0.4)
 
     form_xp = "//form[.//select[@name='subject']]"

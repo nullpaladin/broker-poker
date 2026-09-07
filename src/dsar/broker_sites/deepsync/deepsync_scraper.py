@@ -46,15 +46,6 @@ INFORMATION_TYPE_CHECKBOXES = [
 ]
 
 
-async def _select_native_option(select_element, option_value):
-    await select_element.execute_script(
-        "for (var i=0;i<this.options.length;i++){"
-        f"  if(this.options[i].value==={option_value!r}){{ this.selectedIndex=i; }}"
-        "}"
-        "this.dispatchEvent(new Event('change', {bubbles:true}));"
-    )
-
-
 async def _fill_who_fields(tab, super_scraper, state_abbreviation):
     fields = {
         "first_name": SuperScraper.FIRST_NAME,
@@ -77,7 +68,7 @@ async def _fill_who_fields(tab, super_scraper, state_abbreviation):
 
     state_select = await tab.find(id="who_state_ctx1", raise_exc=False)
     if state_select:
-        await _select_native_option(state_select, state_abbreviation)
+        await SuperScraper.select_native_option(state_select, value=state_abbreviation)
     else:
         print(f"{super_scraper.OOPS} State select not found")
 
@@ -125,7 +116,7 @@ async def submit_access(tab, super_scraper, state_abbreviation):
     for select_id, value in (("dob_month", month), ("dob_day", day), ("dob_year", year)):
         select_element = await tab.find(id=select_id, raise_exc=False)
         if select_element:
-            await _select_native_option(select_element, value)
+            await SuperScraper.select_native_option(select_element, value=value)
             await asyncio.sleep(0.2)
         else:
             print(f"{super_scraper.OOPS} '{select_id}' select not found")

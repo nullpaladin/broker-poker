@@ -27,15 +27,6 @@ RIGHT_MAP = {
 RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
 
 
-async def _select_native_option(select_element, option_value):
-    await select_element.execute_script(
-        "for (var i=0;i<this.options.length;i++){"
-        f"  if(this.options[i].value==={option_value!r}){{ this.selectedIndex=i; }}"
-        "}"
-        "this.dispatchEvent(new Event('change', {bubbles:true}));"
-    )
-
-
 async def submit_request(tab, request_type, super_scraper):
     await tab.go_to(URL)
     await asyncio.sleep(5)
@@ -57,13 +48,13 @@ async def submit_request(tab, request_type, super_scraper):
 
     jurisdiction_select = await tab.find(id="form-field-jurisdiction", raise_exc=False)
     if jurisdiction_select:
-        await _select_native_option(jurisdiction_select, "Other")
+        await SuperScraper.select_native_option(jurisdiction_select, value="Other")
     else:
         print(f"{super_scraper.OOPS} Jurisdiction select not found")
 
     type_select = await tab.find(id="form-field-type", raise_exc=False)
     if type_select:
-        await _select_native_option(type_select, request_type)
+        await SuperScraper.select_native_option(type_select, value=request_type)
     else:
         print(f"{super_scraper.OOPS} Request Type select not found")
 

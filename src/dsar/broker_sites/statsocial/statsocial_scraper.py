@@ -27,15 +27,6 @@ RIGHT_MAP = {"opt_out_sale_share": ["optout_personal_data"], "delete": ["delete_
 RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
 
 
-async def _select_native_option(select_element, option_value):
-    await select_element.execute_script(
-        "for (var i=0;i<this.options.length;i++){"
-        f"  if(this.options[i].value==={option_value!r}){{ this.selectedIndex=i; }}"
-        "}"
-        "this.dispatchEvent(new Event('change', {bubbles:true}));"
-    )
-
-
 async def main():
     options = ChromiumOptions()
     super_scraper = SuperScraper()
@@ -63,7 +54,7 @@ async def main():
 
         country_select = await tab.find(id="field_optout_country", raise_exc=False)
         if country_select:
-            await _select_native_option(country_select, "United States")
+            await SuperScraper.select_native_option(country_select, value="United States")
             await asyncio.sleep(1.5)
         else:
             print(f"{super_scraper.OOPS} Country select not found")
@@ -72,7 +63,7 @@ async def main():
         # and their values are full state names, not abbreviations.
         state_select = await tab.find(id="field_optout_state", raise_exc=False)
         if state_select:
-            await _select_native_option(state_select, SuperScraper.STATE)
+            await SuperScraper.select_native_option(state_select, value=SuperScraper.STATE)
         else:
             print(f"{super_scraper.OOPS} State select not found")
 

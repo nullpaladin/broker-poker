@@ -46,8 +46,8 @@ async def submit_request(tab, request_type, label, super_scraper):
 
     await tab.execute_script("document.getElementById('submit').click()")
     await asyncio.sleep(4)
-    result = await tab.execute_script("return document.body.innerText")
-    print(result['result']['result']['value'][:500])
+    result = await SuperScraper.page_text(tab)
+    print(result[:500])
     print(f"Submitted '{label}' for {SuperScraper.EMAIL}")
 
 

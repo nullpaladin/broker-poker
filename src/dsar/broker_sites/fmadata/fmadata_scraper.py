@@ -25,15 +25,6 @@ RIGHT_MAP = {
 RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
 
 
-async def _select_by_value(select_element, value):
-    await select_element.execute_script(
-        "for (var i=0;i<this.options.length;i++){"
-        f"  if(this.options[i].value==={value!r}){{ this.selectedIndex=i; }}"
-        "}"
-        "this.dispatchEvent(new Event('change', {bubbles:true}));"
-    )
-
-
 async def submit_request(tab, request_type, label, super_scraper):
     await tab.go_to(URL)
     await asyncio.sleep(4)
@@ -42,7 +33,7 @@ async def submit_request(tab, request_type, label, super_scraper):
     if not rt:
         print(f"{super_scraper.OOPS} request_type select not found")
         return
-    await _select_by_value(rt, request_type)
+    await SuperScraper.select_native_option(rt, value=request_type)
     await asyncio.sleep(0.3)
 
     full_name = " ".join(p for p in (SuperScraper.FIRST_NAME, SuperScraper.LAST_NAME) if p)

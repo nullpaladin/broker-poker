@@ -35,22 +35,13 @@ RIGHT_MAP = {
 RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
 
 
-async def _select_by_text(select_element, text):
-    await select_element.execute_script(
-        "for (var i=0;i<this.options.length;i++){"
-        f"  if(this.options[i].text.trim()==={text!r}){{ this.selectedIndex=i; }}"
-        "}"
-        "this.dispatchEvent(new Event('change', {bubbles:true}));"
-    )
-
-
 async def submit_request(tab, right_label, tag, super_scraper):
     await tab.go_to(URL)
     await asyncio.sleep(6)
 
     rt = await tab.find(id="input_9_33", raise_exc=False)
     if rt:
-        await _select_by_text(rt, right_label)
+        await SuperScraper.select_native_option(rt, text=right_label)
         await asyncio.sleep(0.5)
     else:
         print(f"{super_scraper.OOPS} request-type select not found")
@@ -78,7 +69,7 @@ async def submit_request(tab, right_label, tag, super_scraper):
 
     country = await tab.find(id="input_9_24_6", raise_exc=False)
     if country:
-        await _select_by_text(country, "United States")
+        await SuperScraper.select_native_option(country, text="United States")
 
     consumer_radio = await tab.find(id="choice_9_25_0", raise_exc=False)
     if consumer_radio:

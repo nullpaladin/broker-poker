@@ -36,18 +36,9 @@ from pydoll.browser.options import ChromiumOptions
 URL = "https://www.acxiom.com/optout/"
 
 
-async def _select_by_value(select_element, value):
-    await select_element.execute_script(
-        "for (var i=0;i<this.options.length;i++){"
-        f"  if(this.options[i].value==={value!r}){{ this.selectedIndex=i; }}"
-        "}"
-        "this.dispatchEvent(new Event('change', {bubbles:true}));"
-    )
-
-
 async def _add_name(iframe):
     who = await iframe.find(id="Identity")
-    await _select_by_value(who, "Submitter")
+    await SuperScraper.select_native_option(who, value="Submitter")
     await asyncio.sleep(0.5)
 
     first = await iframe.find(id="FirstName")
@@ -72,7 +63,7 @@ async def _fill_mail(iframe):
     await city.type_text(SuperScraper.CITY)
     state = await iframe.find(id="State")
     state_abbr = SuperScraper.STATE_ABBREVIATED
-    await _select_by_value(state, state_abbr)
+    await SuperScraper.select_native_option(state, value=state_abbr)
     zip_field = await iframe.find(id="Zip")
     await zip_field.click()
     await zip_field.type_text(SuperScraper.ZIP_CODE)

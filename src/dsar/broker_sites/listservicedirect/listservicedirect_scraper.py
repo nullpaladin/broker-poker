@@ -21,15 +21,6 @@ from src.dsar.super_scraper import SuperScraper
 URL = "https://listservicedirect.com/opt-out/"
 
 
-async def _select_by_text(select_element, text):
-    await select_element.execute_script(
-        "for (var i=0;i<this.options.length;i++){"
-        f"  if(this.options[i].text==={text!r}){{ this.selectedIndex=i; }}"
-        "}"
-        "this.dispatchEvent(new Event('change', {bubbles:true}));"
-    )
-
-
 async def main():
     options = ChromiumOptions()
     super_scraper = SuperScraper()
@@ -47,7 +38,7 @@ async def main():
 
         please = await tab.find(xpath=f"{form_xp}//select[@name='Please']", raise_exc=False)
         if please:
-            await _select_by_text(please, "Opt-Out")
+            await SuperScraper.select_native_option(please, text="Opt-Out")
 
         fields = {
             "your-name": full_name,

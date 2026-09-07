@@ -74,9 +74,7 @@ async def submit_request(tab, request_type, label, super_scraper):
     )
     await asyncio.sleep(5)
 
-    text = await tab.execute_script("return document.body.innerText") or ""
-    if isinstance(text, dict):
-        text = text.get("result", {}).get("result", {}).get("value", "")
+    text = await SuperScraper.page_text(tab) or ""
     if any(w in text.lower() for w in ("thank", "success", "received", "submitted", "confirmation")):
         print(f"Submitted '{request_type}' for {SuperScraper.FIRST_NAME} {SuperScraper.LAST_NAME}")
     else:

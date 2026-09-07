@@ -33,15 +33,6 @@ RIGHT_MAP = {
 RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
 
 
-async def _select_native_option(select_element, option_value):
-    await select_element.execute_script(
-        "for (var i=0;i<this.options.length;i++){"
-        f"  if(this.options[i].value==={option_value!r}){{ this.selectedIndex=i; }}"
-        "}"
-        "this.dispatchEvent(new Event('change', {bubbles:true}));"
-    )
-
-
 async def submit_request(tab, card_text, super_scraper):
     await tab.go_to(URL)
     await asyncio.sleep(6)
@@ -67,19 +58,19 @@ async def submit_request(tab, card_text, super_scraper):
 
     country_select = await tab.find(id="select-field-country", raise_exc=False)
     if country_select:
-        await _select_native_option(country_select, "US")
+        await SuperScraper.select_native_option(country_select, value="US")
     else:
         print(f"{super_scraper.OOPS} Country select not found")
 
     state_select = await tab.find(id="select-field-state_", raise_exc=False)
     if state_select:
-        await _select_native_option(state_select, SuperScraper.STATE.lower())
+        await SuperScraper.select_native_option(state_select, value=SuperScraper.STATE.lower())
     else:
         print(f"{super_scraper.OOPS} State select not found")
 
     type_select = await tab.find(id="select-field-typeCode", raise_exc=False)
     if type_select:
-        await _select_native_option(type_select, "customer")
+        await SuperScraper.select_native_option(type_select, value="customer")
     else:
         print(f"{super_scraper.OOPS} 'I am a (an)' select not found")
 

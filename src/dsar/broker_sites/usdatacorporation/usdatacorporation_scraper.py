@@ -86,6 +86,8 @@ async def submit_request(tab, category, super_scraper):
 
     jurisdiction_select = await tab.find(id="webform_jurisdiction", raise_exc=False)
     if jurisdiction_select:
+        # Jurisdiction list is CCPA-era only; "OTHER" is used for every state
+        # (a request framed under CCPA applies equally under each state's law).
         await _select_native_option(jurisdiction_select, "OTHER")
     else:
         print(f"{super_scraper.OOPS} Jurisdiction select not found")

@@ -51,10 +51,14 @@ async def main():
 
         residency = await tab.find(xpath="//select[contains(@id,'_i_am_a')]", raise_exc=False)
         if residency:
-            await residency.execute_script(
-                "this.value='California Resident';"
-                "this.dispatchEvent(new Event('change',{bubbles:true}));"
-            )
+            # CCPA-oriented "I am a" select on this shared HubSpot template.
+            # "California Resident" is selected for any privacy-law state (whose
+            # law grants CCPA-equivalent rights); a no-law state keeps the default.
+            if SuperScraper.state_has_privacy_law(SuperScraper.STATE):
+                await residency.execute_script(
+                    "this.value='California Resident';"
+                    "this.dispatchEvent(new Event('change',{bubbles:true}));"
+                )
         else:
             print(f"{super_scraper.OOPS} 'State of Residency' select not found")
 

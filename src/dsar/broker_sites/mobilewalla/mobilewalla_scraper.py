@@ -90,6 +90,9 @@ async def main():
                 "this.dispatchEvent(new Event('change', {bubbles:true}));"
             )
 
+        # "Verify you are a resident..." — the first radio is "Yes". Correct for
+        # any privacy-law state (a business honoring CCPA rights must honor the
+        # equivalent request from that state's residents).
         resident_radios = await tab.find(xpath="//input[@name='verify-resident']", find_all=True, raise_exc=False) or []
         if resident_radios:
             await resident_radios[0].click()

@@ -68,10 +68,15 @@ async def main():
 
         residency = await iframe.find(xpath="//select[@name='i_am_a']", raise_exc=False)
         if residency:
-            await residency.execute_script(
-                "this.value='California Resident';"
-                "this.dispatchEvent(new Event('change',{bubbles:true}));"
-            )
+            # This shared HubSpot template's "I am a" select is CCPA-oriented.
+            # "California Resident" is selected for any privacy-law state — every
+            # such law entitles its residents to the treatment a business gives
+            # CCPA requesters. A genuine no-law state is left on the form default.
+            if SuperScraper.state_has_privacy_law(SuperScraper.STATE):
+                await residency.execute_script(
+                    "this.value='California Resident';"
+                    "this.dispatchEvent(new Event('change',{bubbles:true}));"
+                )
         else:
             print(f"{super_scraper.OOPS} 'State of Residency' select not found")
 

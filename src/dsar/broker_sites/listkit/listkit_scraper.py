@@ -57,6 +57,9 @@ async def main():
         if personal:
             await personal.execute_script("if (!this.checked) this.click();")
 
+        # "Applicable law" react-select lists GDPR/CCPA/CPA/CTDPA/UCPA/VCDPA only —
+        # no home-state option for most users, so "OTHER" is chosen regardless of
+        # state (the request text still names the state's actual law).
         combo = await tab.find(xpath="//input[@role='combobox']", raise_exc=False)
         if combo:
             await combo.click()

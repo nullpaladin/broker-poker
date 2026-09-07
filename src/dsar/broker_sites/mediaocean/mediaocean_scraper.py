@@ -74,7 +74,7 @@ async def submit_request(tab, ccpa_value, label, super_scraper):
         submit_btn = await tab.find(tag_name="button", text="Submit", raise_exc=False)
         if submit_btn:
             await submit_btn.scroll_into_view()
-        await tab.take_screenshot(f"resources/screenshots/mediaocean_dry_run_{label}.png")
+        await SuperScraper.screenshot(tab, f"resources/screenshots/mediaocean_dry_run_{label}.png")
         print(
             f"DRY RUN: would submit '{label}' ({ccpa_value}) for "
             f"{SuperScraper.FIRST_NAME} {SuperScraper.LAST_NAME} <{SuperScraper.EMAIL}>"

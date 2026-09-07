@@ -67,8 +67,7 @@ async def main():
                 print(f"{super_scraper.OOPS} field '{field_id}' not found")
 
         await asyncio.sleep(1)
-        await tab.take_screenshot(path="resources/screenshots/quad_dry_run.png")
-        print("Screenshot saved to resources/screenshots/quad_dry_run.png")
+        await SuperScraper.screenshot(tab, "resources/screenshots/quad_dry_run.png")
         print(
             "\nCombined Opt-Out of Sale/Sharing/Targeted Advertising + Limit Use of "
             "Sensitive PI request filled but NOT submitted — a BotDetect image CAPTCHA "

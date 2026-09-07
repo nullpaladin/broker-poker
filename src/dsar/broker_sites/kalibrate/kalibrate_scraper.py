@@ -121,9 +121,7 @@ async def submit_request(tab, right_label, label, super_scraper):
     submit_btn = await tab.find(id="dsar-webform-submit-button", raise_exc=False)
     if submit_btn:
         await submit_btn.scroll_into_view()
-    await tab.take_screenshot(f"resources/screenshots/kalibrate_dry_run_{label}.png")
-    print(f"Screenshot saved to resources/screenshots/kalibrate_dry_run_{label}.png")
-
+    await SuperScraper.screenshot(tab, f"resources/screenshots/kalibrate_dry_run_{label}.png")
     if SuperScraper.DRY_RUN:
         print(
             f"DRY RUN: would submit '{right_label}' for "

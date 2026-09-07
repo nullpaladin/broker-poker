@@ -45,8 +45,7 @@ async def main():
         if SuperScraper.DRY_RUN:
             print(f"DRY RUN: would submit request for MAID {SuperScraper.ADVERTISING_ID}")
             await asyncio.sleep(1)
-            await tab.take_screenshot(path="resources/screenshots/groundtruth_dry_run.png")
-            print("Screenshot saved to resources/screenshots/groundtruth_dry_run.png")
+            await SuperScraper.screenshot(tab, "resources/screenshots/groundtruth_dry_run.png")
             return
 
         await super_scraper.click_item_by_text(tab=tab, text="Submit", sleep=2)

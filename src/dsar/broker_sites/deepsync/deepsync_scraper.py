@@ -105,8 +105,7 @@ async def submit_opt_out_delete(tab, super_scraper, state_abbreviation):
             print(f"{super_scraper.OOPS} checkbox '{checkbox_id}' not found")
 
     await asyncio.sleep(1)
-    await tab.take_screenshot(path="resources/screenshots/deepsync_dry_run_opt_out.png")
-    print("Screenshot saved to resources/screenshots/deepsync_dry_run_opt_out.png")
+    await SuperScraper.screenshot(tab, "resources/screenshots/deepsync_dry_run_opt_out.png")
     print(
         "\nOpt-out/delete request filled but NOT submitted — a Cloudflare Turnstile checkbox "
         "requires a manual solve before submitting."
@@ -137,8 +136,7 @@ async def submit_access(tab, super_scraper, state_abbreviation):
             print(f"{super_scraper.OOPS} checkbox '{checkbox_id}' not found")
 
     await asyncio.sleep(1)
-    await tab.take_screenshot(path="resources/screenshots/deepsync_dry_run_access.png")
-    print("Screenshot saved to resources/screenshots/deepsync_dry_run_access.png")
+    await SuperScraper.screenshot(tab, "resources/screenshots/deepsync_dry_run_access.png")
     print(
         "\nAccess request filled but NOT submitted — a Cloudflare Turnstile checkbox requires a "
         "manual solve before submitting."

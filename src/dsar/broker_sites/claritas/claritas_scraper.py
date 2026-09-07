@@ -79,8 +79,7 @@ async def submit_request(tab, right_label, screenshot_label, super_scraper):
             f"{SuperScraper.FIRST_NAME} {SuperScraper.LAST_NAME} <{SuperScraper.EMAIL}>"
         )
         await asyncio.sleep(1)
-        await tab.take_screenshot(path=f"resources/screenshots/claritas_dry_run_{screenshot_label}.png")
-        print(f"Screenshot saved to resources/screenshots/claritas_dry_run_{screenshot_label}.png")
+        await SuperScraper.screenshot(tab, f"resources/screenshots/claritas_dry_run_{screenshot_label}.png")
         return
 
     print(f"\nForm filled for '{right_label}'. Solve the reCAPTCHA, click Submit,")

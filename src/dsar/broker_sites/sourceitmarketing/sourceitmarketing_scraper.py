@@ -68,8 +68,7 @@ async def submit_request(tab, right_label, tag, super_scraper):
         )
 
     await asyncio.sleep(1)
-    await tab.take_screenshot(path=f"resources/screenshots/sourceitmarketing_dry_run_{tag}.png", beyond_viewport=True)
-    print(f"Screenshot saved to resources/screenshots/sourceitmarketing_dry_run_{tag}.png")
+    await SuperScraper.screenshot(tab, f"resources/screenshots/sourceitmarketing_dry_run_{tag}.png", beyond_viewport=True)
     print(f"'{right_label}' filled but NOT submitted — solve the hCaptcha manually, then Submit.")
 
 

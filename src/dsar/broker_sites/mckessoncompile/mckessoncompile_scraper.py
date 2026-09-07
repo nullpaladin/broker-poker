@@ -189,10 +189,7 @@ async def main():
             print(f"{super_scraper.OOPS} perjury-certification checkbox not found")
 
         await asyncio.sleep(1)
-        await tab.take_screenshot(
-            path="resources/screenshots/mckessoncompile_dry_run.png", beyond_viewport=True
-        )
-        print("Screenshot saved to resources/screenshots/mckessoncompile_dry_run.png")
+        await SuperScraper.screenshot(tab, "resources/screenshots/mckessoncompile_dry_run.png", beyond_viewport=True)
         print(
             "Request filled but NOT submitted — enter the BotDetect image CAPTCHA "
             "(captchaCode) manually, then Submit."

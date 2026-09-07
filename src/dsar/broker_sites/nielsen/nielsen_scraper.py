@@ -84,8 +84,7 @@ async def submit_request(tab, request_type_text, label, super_scraper):
         await details_field.type_text(f"I am requesting to {request_type_text.lower()}.")
 
     await asyncio.sleep(1)
-    await tab.take_screenshot(path=f"resources/screenshots/nielsen_dry_run_{label}.png")
-    print(f"Screenshot saved to resources/screenshots/nielsen_dry_run_{label}.png")
+    await SuperScraper.screenshot(tab, f"resources/screenshots/nielsen_dry_run_{label}.png")
     print(
         f"\n'{request_type_text}' request filled but NOT submitted — a BotDetect image CAPTCHA "
         "requires manual entry before submitting."

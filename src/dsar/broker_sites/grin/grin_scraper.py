@@ -143,12 +143,11 @@ async def main():
 
             if SuperScraper.DRY_RUN:
                 await asyncio.sleep(1)
-                await tab.take_screenshot(path=f"resources/screenshots/grin_dry_run_{right_id}.png")
+                await SuperScraper.screenshot(tab, f"resources/screenshots/grin_dry_run_{right_id}.png")
                 print(
                     f"DRY RUN: would submit grin '{right_label}' for "
                     f"{SuperScraper.FIRST_NAME} {SuperScraper.LAST_NAME} <{SuperScraper.EMAIL}>"
                 )
-                print(f"Screenshot saved to resources/screenshots/grin_dry_run_{right_id}.png")
                 continue
 
             print(

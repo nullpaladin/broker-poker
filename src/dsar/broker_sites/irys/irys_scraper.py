@@ -81,8 +81,7 @@ async def submit_request(tab, right, super_scraper):
             f"{SuperScraper.FIRST_NAME} {SuperScraper.LAST_NAME} <{SuperScraper.EMAIL}>"
         )
         await asyncio.sleep(1)
-        await tab.take_screenshot(path=f"resources/screenshots/irys_dry_run_{label}.png")
-        print(f"Screenshot saved to resources/screenshots/irys_dry_run_{label}.png")
+        await SuperScraper.screenshot(tab, f"resources/screenshots/irys_dry_run_{label}.png")
         return
 
     print(f"\nForm filled for '{right}'. Solve the Cloudflare Turnstile challenge,")

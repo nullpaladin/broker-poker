@@ -87,8 +87,7 @@ async def main():
                 await maid.type_text(SuperScraper.ADVERTISING_ID)
 
         await asyncio.sleep(1)
-        await tab.take_screenshot(path="resources/screenshots/audisense_prefilled.png")
-        print("Screenshot saved to resources/screenshots/audisense_prefilled.png")
+        await SuperScraper.screenshot(tab, "resources/screenshots/audisense_prefilled.png")
         print(
             "\nForm pre-filled but NOT submitted. audisense.com's DSAR form (hosted by "
             "Buxton) requires uploading photo ID to verify identity, which this tool "

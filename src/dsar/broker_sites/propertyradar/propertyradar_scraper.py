@@ -133,8 +133,7 @@ async def main():
             if captcha_field:
                 await captcha_field.scroll_into_view()
             await asyncio.sleep(1)
-            await tab.take_screenshot("resources/screenshots/propertyradar_dry_run.png")
-            print("Screenshot saved to resources/screenshots/propertyradar_dry_run.png")
+            await SuperScraper.screenshot(tab, "resources/screenshots/propertyradar_dry_run.png")
             return
 
         print(

@@ -141,8 +141,7 @@ async def submit_request(tab, request_type, super_scraper):
 
     label = "".join(c if c.isalnum() else "_" for c in request_type.lower())[:40].strip("_")
     await asyncio.sleep(1)
-    await tab.take_screenshot(path=f"resources/screenshots/usa_people_search_dry_run_{label}.png")
-    print(f"Screenshot saved to resources/screenshots/usa_people_search_dry_run_{label}.png")
+    await SuperScraper.screenshot(tab, f"resources/screenshots/usa_people_search_dry_run_{label}.png")
     print(
         f"\n'{request_type}' request filled but NOT submitted — Google reCAPTCHA Enterprise "
         "requires a manual solve before submitting."
@@ -178,8 +177,7 @@ async def submit_removal_step1(tab, super_scraper):
         print(f"{super_scraper.OOPS} agreement checkbox not found")
 
     await asyncio.sleep(1)
-    await tab.take_screenshot(path="resources/screenshots/usa_people_search_dry_run_removal_step1.png")
-    print("Screenshot saved to resources/screenshots/usa_people_search_dry_run_removal_step1.png")
+    await SuperScraper.screenshot(tab, "resources/screenshots/usa_people_search_dry_run_removal_step1.png")
     print(
         "\nOpt-Out Form step 1 filled but NOT submitted — Google reCAPTCHA Enterprise requires "
         "a manual solve, and submitting only emails a continuation link (step 2, the actual "

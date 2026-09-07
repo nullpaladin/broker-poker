@@ -95,8 +95,7 @@ async def submit_request(tab, card_text, label, super_scraper):
     label_suffix = " (Proof of Identity file upload not automated — attach manually before submitting)" if label == "access" else ""
 
     await asyncio.sleep(1)
-    await tab.take_screenshot(path=f"resources/screenshots/windfall_dry_run_{label}.png")
-    print(f"Screenshot saved to resources/screenshots/windfall_dry_run_{label}.png")
+    await SuperScraper.screenshot(tab, f"resources/screenshots/windfall_dry_run_{label}.png")
     print(
         f"\n'{card_text}' request filled but NOT submitted — a Cloudflare Turnstile checkbox "
         f"requires a manual solve before submitting.{label_suffix}"

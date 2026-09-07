@@ -81,8 +81,7 @@ async def submit_request(tab, request_type, super_scraper):
     label = request_type.lower().replace(" ", "_").replace("-", "_")
 
     await asyncio.sleep(1)
-    await tab.take_screenshot(path=f"resources/screenshots/lead411_dry_run_{label}.png")
-    print(f"Screenshot saved to resources/screenshots/lead411_dry_run_{label}.png")
+    await SuperScraper.screenshot(tab, f"resources/screenshots/lead411_dry_run_{label}.png")
     print(
         f"\n'{request_type}' request filled but NOT sent — solve the reCAPTCHA and click "
         "'Get Code' yourself, then enter the verification code you receive. This emails a "

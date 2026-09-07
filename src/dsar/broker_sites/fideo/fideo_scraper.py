@@ -70,8 +70,7 @@ async def submit_request(tab, radio_id, label, super_scraper):
         await email_field.type_text(SuperScraper.EMAIL)
 
     await asyncio.sleep(1)
-    await tab.take_screenshot(path=f"resources/screenshots/fideo_dry_run_{label}.png")
-    print(f"Screenshot saved to resources/screenshots/fideo_dry_run_{label}.png")
+    await SuperScraper.screenshot(tab, f"resources/screenshots/fideo_dry_run_{label}.png")
     print(
         f"\n'{label}' request ready but NOT sent — click 'Send Me A Code' yourself, "
         "check your email for the verification code, enter it, and complete whatever "

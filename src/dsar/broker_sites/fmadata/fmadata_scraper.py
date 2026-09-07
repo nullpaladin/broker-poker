@@ -70,8 +70,7 @@ async def submit_request(tab, request_type, label, super_scraper):
         print(f"{super_scraper.OOPS} authorized-agent 'No' radio not found")
 
     await asyncio.sleep(1)
-    await tab.take_screenshot(path=f"resources/screenshots/fmadata_dry_run_{label}.png")
-    print(f"Screenshot saved to resources/screenshots/fmadata_dry_run_{label}.png")
+    await SuperScraper.screenshot(tab, f"resources/screenshots/fmadata_dry_run_{label}.png")
     print(
         f"'{request_type}' request filled but NOT submitted — solve the hCaptcha "
         f"manually, then click Submit."

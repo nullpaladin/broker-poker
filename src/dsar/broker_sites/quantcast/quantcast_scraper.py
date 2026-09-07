@@ -36,11 +36,10 @@ async def _submit_right(tab, super_scraper, radio_value, label):
 
     if SuperScraper.DRY_RUN:
         await asyncio.sleep(1)
-        await tab.take_screenshot(path=f"resources/screenshots/quantcast_dry_run_{radio_value}.png")
+        await SuperScraper.screenshot(tab, f"resources/screenshots/quantcast_dry_run_{radio_value}.png")
         print(
             f"DRY RUN: would submit quantcast '{label}' (cookie-based, no personal info)"
         )
-        print(f"Screenshot saved to resources/screenshots/quantcast_dry_run_{radio_value}.png")
         return
 
     print(

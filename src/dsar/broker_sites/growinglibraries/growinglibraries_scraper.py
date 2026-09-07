@@ -80,8 +80,7 @@ async def main():
             print(f"{super_scraper.OOPS} attestation checkbox not found")
 
         await asyncio.sleep(1)
-        await tab.take_screenshot(path="resources/screenshots/growinglibraries_dry_run.png")
-        print("Screenshot saved to resources/screenshots/growinglibraries_dry_run.png")
+        await SuperScraper.screenshot(tab, "resources/screenshots/growinglibraries_dry_run.png")
         print(
             "\nForm filled but NOT submitted — a reCAPTCHA v2 checkbox is present and requires "
             "a manual solve before clicking SUBMIT."

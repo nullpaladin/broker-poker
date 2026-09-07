@@ -117,8 +117,7 @@ async def submit_request(tab, request_type, super_scraper):
 
     label = "".join(c if c.isalnum() else "_" for c in request_type.lower())[:40].strip("_")
     await asyncio.sleep(1)
-    await tab.take_screenshot(path=f"resources/screenshots/ventiveiq_dry_run_{label}.png")
-    print(f"Screenshot saved to resources/screenshots/ventiveiq_dry_run_{label}.png")
+    await SuperScraper.screenshot(tab, f"resources/screenshots/ventiveiq_dry_run_{label}.png")
     print(
         f"\n'{request_type}' request filled but NOT submitted — a 6-digit distorted-text "
         "CAPTCHA requires manual entry before submitting."

@@ -115,8 +115,7 @@ async def main():
                 print(f"{super_scraper.OOPS} 'Delete My Personal Information' checkbox not found")
 
         await asyncio.sleep(1)
-        await tab.take_screenshot(path="resources/screenshots/risk_lexisnexis_dry_run.png")
-        print("Screenshot saved to resources/screenshots/risk_lexisnexis_dry_run.png")
+        await SuperScraper.screenshot(tab, "resources/screenshots/risk_lexisnexis_dry_run.png")
         print(
             "\nConsumer Disclosure Report request filled but NOT submitted — a reCAPTCHA v2 "
             "checkbox requires a manual solve. Note: submitted SSN is only the last 4 digits "

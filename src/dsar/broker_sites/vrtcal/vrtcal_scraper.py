@@ -42,13 +42,11 @@ async def main():
         status_before = await tab.find(text="Not Opted Out", raise_exc=False)
         if not status_before:
             print("Status is already 'Opted Out' — nothing to change.")
-            await tab.take_screenshot(path="resources/screenshots/vrtcal_dry_run.png")
-            print("Screenshot saved to resources/screenshots/vrtcal_dry_run.png")
+            await SuperScraper.screenshot(tab, "resources/screenshots/vrtcal_dry_run.png")
             return
 
         if SuperScraper.DRY_RUN:
-            await tab.take_screenshot(path="resources/screenshots/vrtcal_dry_run.png")
-            print("Screenshot saved to resources/screenshots/vrtcal_dry_run.png")
+            await SuperScraper.screenshot(tab, "resources/screenshots/vrtcal_dry_run.png")
             print("DRY RUN: would click 'CHANGE OPT-OUT STATUS' to flip cookie state to Opted Out")
             return
 
@@ -60,9 +58,7 @@ async def main():
             print(f"{super_scraper.OOPS} 'CHANGE OPT-OUT STATUS' link not found")
             return
 
-        await tab.take_screenshot(path="resources/screenshots/vrtcal_dry_run.png")
-        print("Screenshot saved to resources/screenshots/vrtcal_dry_run.png")
-
+        await SuperScraper.screenshot(tab, "resources/screenshots/vrtcal_dry_run.png")
         status_after = await tab.find(text="Opted Out", raise_exc=False)
         if status_after:
             print("Successfully opted out of vrtcal.com tracking.")

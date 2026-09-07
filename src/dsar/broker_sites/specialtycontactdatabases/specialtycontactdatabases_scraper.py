@@ -74,8 +74,7 @@ async def submit_request(tab, value_prefix, label, super_scraper):
         await _select_by_text(country, "United States")
 
     await asyncio.sleep(1)
-    await tab.take_screenshot(path=f"resources/screenshots/specialtycontactdatabases_dry_run_{label}.png")
-    print(f"Screenshot saved to resources/screenshots/specialtycontactdatabases_dry_run_{label}.png")
+    await SuperScraper.screenshot(tab, f"resources/screenshots/specialtycontactdatabases_dry_run_{label}.png")
     print(
         f"'{value_prefix}' request filled but NOT submitted — a reCAPTCHA v2 "
         f"checkbox must be solved manually before Submit."

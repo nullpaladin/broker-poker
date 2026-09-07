@@ -83,9 +83,7 @@ async def main():
                 await asyncio.sleep(0.15)
 
         time.sleep(0.5)
-        await tab.take_screenshot("resources/screenshots/listkit_dry_run.png")
-        print("Screenshot saved to resources/screenshots/listkit_dry_run.png")
-
+        await SuperScraper.screenshot(tab, "resources/screenshots/listkit_dry_run.png")
         if SuperScraper.DRY_RUN:
             print(
                 f"DRY RUN: would submit combined privacy request for "

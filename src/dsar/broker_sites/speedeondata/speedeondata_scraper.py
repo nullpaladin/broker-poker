@@ -83,8 +83,7 @@ async def main():
             print(f"{super_scraper.OOPS} State option '{SuperScraper.STATE}' not found")
 
         await asyncio.sleep(1)
-        await tab.take_screenshot(path="resources/screenshots/speedeondata_dry_run.png")
-        print("Screenshot saved to resources/screenshots/speedeondata_dry_run.png")
+        await SuperScraper.screenshot(tab, "resources/screenshots/speedeondata_dry_run.png")
         print(
             "\nRequest filled but NOT submitted — a reCAPTCHA v2 checkbox requires a manual "
             "solve before submitting."

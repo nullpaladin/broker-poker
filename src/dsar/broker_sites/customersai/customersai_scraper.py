@@ -39,8 +39,7 @@ async def main():
             await zip_field.type_text(SuperScraper.ZIP_CODE)
 
         await asyncio.sleep(1)
-        await tab.take_screenshot(path="resources/screenshots/customersai_dry_run.png", beyond_viewport=True)
-        print("Screenshot saved to resources/screenshots/customersai_dry_run.png")
+        await SuperScraper.screenshot(tab, "resources/screenshots/customersai_dry_run.png", beyond_viewport=True)
         print("Opt-out request filled but NOT submitted — solve the hCaptcha manually, then Opt-Out.")
 
 

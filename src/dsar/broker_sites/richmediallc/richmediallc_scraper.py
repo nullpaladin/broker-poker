@@ -67,8 +67,7 @@ async def submit_request(tab, right, super_scraper):
         print(f"{super_scraper.OOPS} request type '{right}' not found")
 
     await asyncio.sleep(1)
-    await tab.take_screenshot(path=f"resources/screenshots/richmediallc_dry_run_{right}.png")
-    print(f"Screenshot saved to resources/screenshots/richmediallc_dry_run_{right}.png")
+    await SuperScraper.screenshot(tab, f"resources/screenshots/richmediallc_dry_run_{right}.png")
     print(
         f"\n'{RIGHT_LABELS[right]}' request filled but NOT submitted — a Cloudflare "
         "Turnstile checkbox requires a manual solve."

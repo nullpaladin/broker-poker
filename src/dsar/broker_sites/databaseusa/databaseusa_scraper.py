@@ -46,8 +46,7 @@ async def main():
             )
 
         await asyncio.sleep(1)
-        await tab.take_screenshot(path="resources/screenshots/databaseusa_dry_run.png")
-        print("Screenshot saved to resources/screenshots/databaseusa_dry_run.png")
+        await SuperScraper.screenshot(tab, "resources/screenshots/databaseusa_dry_run.png")
         print(
             "\nMCDPA request form filled but NOT sent — click 'Send' yourself, check your "
             "inbox for the verification link, and click it to complete the request. This "

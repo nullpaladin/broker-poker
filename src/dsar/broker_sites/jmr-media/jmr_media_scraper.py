@@ -62,8 +62,7 @@ async def submit_request(tab, request_value, label, super_scraper):
             f"DRY RUN: would submit '{request_value}' for "
             f"{SuperScraper.FIRST_NAME} {SuperScraper.LAST_NAME} <{SuperScraper.EMAIL}>"
         )
-        await tab.take_screenshot(f"resources/screenshots/jmr_media_dry_run_{label}.png")
-        print(f"Screenshot saved to resources/screenshots/jmr_media_dry_run_{label}.png")
+        await SuperScraper.screenshot(tab, f"resources/screenshots/jmr_media_dry_run_{label}.png")
         return
 
     submit = await tab.find(text="Submit Request", raise_exc=False)

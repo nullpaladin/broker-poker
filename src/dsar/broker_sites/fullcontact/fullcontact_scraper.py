@@ -52,8 +52,7 @@ async def submit_request(tab, card_text, super_scraper):
     label = "".join(c if c.isalnum() else "_" for c in card_text.lower())[:40].strip("_")
 
     await asyncio.sleep(1)
-    await tab.take_screenshot(path=f"resources/screenshots/fullcontact_dry_run_{label}.png")
-    print(f"Screenshot saved to resources/screenshots/fullcontact_dry_run_{label}.png")
+    await SuperScraper.screenshot(tab, f"resources/screenshots/fullcontact_dry_run_{label}.png")
     print(
         f"\n'{card_text}' email entered but NOT sent — click 'Send Me A Code' yourself, "
         "enter the code you receive, and continue. This sends a real verification code "

@@ -130,10 +130,7 @@ async def submit_request(tab, right_label, tag, super_scraper):
         print(f"{super_scraper.OOPS} acknowledgement checkbox not found")
 
     await asyncio.sleep(1)
-    await tab.take_screenshot(
-        path=f"resources/screenshots/allantgroup_dry_run_{tag}.png", beyond_viewport=True
-    )
-    print(f"Screenshot saved to resources/screenshots/allantgroup_dry_run_{tag}.png")
+    await SuperScraper.screenshot(tab, f"resources/screenshots/allantgroup_dry_run_{tag}.png", beyond_viewport=True)
     print(f"'{right_label}' filled but NOT submitted — solve the reCAPTCHA manually, then Submit.")
 
 

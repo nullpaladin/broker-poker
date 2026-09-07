@@ -158,8 +158,7 @@ async def submit_segment(tab, segment_key, super_scraper):
     if SuperScraper.DRY_RUN:
         print(f"DRY RUN: would submit {segment_key} opt-out for {SuperScraper.FIRST_NAME} {SuperScraper.LAST_NAME}")
         await asyncio.sleep(1)
-        await tab.take_screenshot(path=f"resources/screenshots/acxiom_dry_run_{segment_key}.png")
-        print(f"Screenshot saved to resources/screenshots/acxiom_dry_run_{segment_key}.png")
+        await SuperScraper.screenshot(tab, f"resources/screenshots/acxiom_dry_run_{segment_key}.png")
         return
 
     print(f"\n{segment_key} opt-out filled. Solve the reCAPTCHA, then press Enter to submit...")

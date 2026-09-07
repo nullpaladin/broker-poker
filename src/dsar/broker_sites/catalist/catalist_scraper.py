@@ -111,8 +111,7 @@ async def submit_request(tab, right, super_scraper):
     label = right.replace(" ", "_")
 
     await asyncio.sleep(1)
-    await tab.take_screenshot(path=f"resources/screenshots/catalist_dry_run_{label}.png")
-    print(f"Screenshot saved to resources/screenshots/catalist_dry_run_{label}.png")
+    await SuperScraper.screenshot(tab, f"resources/screenshots/catalist_dry_run_{label}.png")
     print(
         f"\n'{right}' request filled but NOT sent — click 'Send Verification Code' yourself, "
         "enter the code you receive, and click Submit. This sends a real verification code "

@@ -100,9 +100,7 @@ async def submit_request(tab, right, super_scraper):
 
     label = right.lower().replace(" ", "_").replace("/", "_")
     time.sleep(0.5)
-    await tab.take_screenshot(f"resources/screenshots/dnb_dry_run_{label}.png")
-    print(f"Screenshot saved to resources/screenshots/dnb_dry_run_{label}.png")
-
+    await SuperScraper.screenshot(tab, f"resources/screenshots/dnb_dry_run_{label}.png")
     if SuperScraper.DRY_RUN:
         print(
             f"DRY RUN: would submit '{right}' for "

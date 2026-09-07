@@ -108,8 +108,7 @@ async def fill_and_submit(tab, req_aria_label, screenshot_label, super_scraper):
         if captcha_field:
             await captcha_field.scroll_into_view()
         await asyncio.sleep(1)
-        await tab.take_screenshot(f"resources/screenshots/reonomy_dry_run_{screenshot_label}.png")
-        print(f"Screenshot saved to resources/screenshots/reonomy_dry_run_{screenshot_label}.png")
+        await SuperScraper.screenshot(tab, f"resources/screenshots/reonomy_dry_run_{screenshot_label}.png")
         return
 
     print(f"\nForm filled for '{req_aria_label.strip()}'.")

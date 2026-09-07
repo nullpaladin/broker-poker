@@ -66,8 +66,7 @@ async def submit_access(tab, super_scraper):
     if SuperScraper.DRY_RUN:
         print(f"DRY RUN: would submit Access request for {SuperScraper.FIRST_NAME} {SuperScraper.LAST_NAME}")
         await asyncio.sleep(1)
-        await tab.take_screenshot(path="resources/screenshots/instantly_dry_run_access.png")
-        print("Screenshot saved to resources/screenshots/instantly_dry_run_access.png")
+        await SuperScraper.screenshot(tab, "resources/screenshots/instantly_dry_run_access.png")
         return
 
     print("\nAccess form filled. Solve the Cloudflare Turnstile challenge, click Affirm & Submit,")
@@ -104,8 +103,7 @@ async def submit_opt_out_delete(tab, super_scraper):
     if SuperScraper.DRY_RUN:
         print(f"DRY RUN: would submit Opt-Out/Delete request for {SuperScraper.FIRST_NAME} {SuperScraper.LAST_NAME}")
         await asyncio.sleep(1)
-        await tab.take_screenshot(path="resources/screenshots/instantly_dry_run_opt_out_delete.png")
-        print("Screenshot saved to resources/screenshots/instantly_dry_run_opt_out_delete.png")
+        await SuperScraper.screenshot(tab, "resources/screenshots/instantly_dry_run_opt_out_delete.png")
         return
 
     print("\nOpt-Out/Delete form filled. Solve the Cloudflare Turnstile challenge, click Affirm & Submit,")

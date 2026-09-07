@@ -127,8 +127,7 @@ async def main():
             if submit_btn:
                 await submit_btn.scroll_into_view()
             await asyncio.sleep(1)
-            await tab.take_screenshot("resources/screenshots/path2response_dry_run.png")
-            print("Screenshot saved to resources/screenshots/path2response_dry_run.png")
+            await SuperScraper.screenshot(tab, "resources/screenshots/path2response_dry_run.png")
             return
 
         print("\nForm filled. Solve the reCAPTCHA in the browser, then click Submit.")

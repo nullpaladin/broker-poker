@@ -65,8 +65,7 @@ async def submit_request(tab, right_id, label, super_scraper):
     if SuperScraper.DRY_RUN:
         print(f"DRY RUN: would submit '{right_id}' for {SuperScraper.FIRST_NAME} {SuperScraper.LAST_NAME}")
         await asyncio.sleep(2)
-        await tab.take_screenshot(path=f"resources/screenshots/360mediadirect_dry_run_{label}.png")
-        print(f"Screenshot saved to resources/screenshots/360mediadirect_dry_run_{label}.png")
+        await SuperScraper.screenshot(tab, f"resources/screenshots/360mediadirect_dry_run_{label}.png")
         return
 
     await super_scraper.click_item_by_xpath(tab=tab, xpath=SUBMIT_XPATH, sleep=2)

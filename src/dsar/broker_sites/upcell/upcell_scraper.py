@@ -46,9 +46,7 @@ async def submit_request(tab, request_type, label, super_scraper):
         )
 
     time.sleep(0.5)
-    await tab.take_screenshot(f"resources/screenshots/upcell_dry_run_{label}.png")
-    print(f"Screenshot saved to resources/screenshots/upcell_dry_run_{label}.png")
-
+    await SuperScraper.screenshot(tab, f"resources/screenshots/upcell_dry_run_{label}.png")
     if SuperScraper.DRY_RUN:
         print(
             f"DRY RUN: would submit '{request_type}' for "

@@ -73,8 +73,7 @@ async def submit_request(tab, mode, label, super_scraper):
         await consent.execute_script("if (!this.checked) this.click();")
 
     time.sleep(0.5)
-    await tab.take_screenshot(f"resources/screenshots/socialcatfish_dry_run_{label}.png")
-    print(f"Screenshot saved to resources/screenshots/socialcatfish_dry_run_{label}.png")
+    await SuperScraper.screenshot(tab, f"resources/screenshots/socialcatfish_dry_run_{label}.png")
     print(
         f"'{mode}' filled but NOT submitted — paste links to your own Social Catfish "
         f"result pages in the profile-URL field, solve the CAPTCHA, then submit."

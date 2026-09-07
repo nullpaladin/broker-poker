@@ -96,9 +96,7 @@ async def main():
         await _set_text(tab, "//textarea[@name='message']", msg)
 
         time.sleep(0.5)
-        await tab.take_screenshot("resources/screenshots/eyeota_dry_run.png")
-        print("Screenshot saved to resources/screenshots/eyeota_dry_run.png")
-
+        await SuperScraper.screenshot(tab, "resources/screenshots/eyeota_dry_run.png")
         if SuperScraper.DRY_RUN:
             print(
                 f"DRY RUN: would submit privacy request for "

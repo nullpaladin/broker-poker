@@ -71,9 +71,7 @@ async def main():
             await _select_by_text(state, SuperScraper.STATE)
 
         await asyncio.sleep(1)
-        await tab.take_screenshot(path="resources/screenshots/lsdirect_dry_run.png", beyond_viewport=True)
-        print("Screenshot saved to resources/screenshots/lsdirect_dry_run.png")
-
+        await SuperScraper.screenshot(tab, "resources/screenshots/lsdirect_dry_run.png", beyond_viewport=True)
         if SuperScraper.DRY_RUN:
             print(f"DRY RUN: would submit opt-out + access for {SuperScraper.EMAIL}")
             return

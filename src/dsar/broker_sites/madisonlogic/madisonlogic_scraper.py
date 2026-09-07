@@ -138,8 +138,7 @@ async def _submit_request(tab, req_aria, label, sub_option, super_scraper):
         if captcha_field:
             await captcha_field.scroll_into_view()
         await asyncio.sleep(1)
-        await tab.take_screenshot(f"resources/screenshots/madisonlogic_dry_run_{label}.png")
-        print(f"Screenshot saved to resources/screenshots/madisonlogic_dry_run_{label}.png")
+        await SuperScraper.screenshot(tab, f"resources/screenshots/madisonlogic_dry_run_{label}.png")
         return
 
     sub_desc = f" ({sub_option})" if sub_option else ""

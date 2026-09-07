@@ -77,10 +77,7 @@ async def submit_request(tab, right_label, tag, super_scraper):
     await _pick(tab, super_scraper, "Yes")  # "Are you a California Resident?"
 
     await asyncio.sleep(1)
-    await tab.take_screenshot(
-        path=f"resources/screenshots/synapsegroupinc_dry_run_{tag}.png", beyond_viewport=True
-    )
-    print(f"Screenshot saved to resources/screenshots/synapsegroupinc_dry_run_{tag}.png")
+    await SuperScraper.screenshot(tab, f"resources/screenshots/synapsegroupinc_dry_run_{tag}.png", beyond_viewport=True)
     print(f"'{right_label}' filled but NOT submitted — solve the reCAPTCHA manually, then Submit.")
 
 

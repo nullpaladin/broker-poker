@@ -118,9 +118,7 @@ async def main():
         )
 
         await asyncio.sleep(1)
-        await tab.take_screenshot(path="resources/screenshots/revenuebase_dry_run.png")
-        print("Screenshot saved to resources/screenshots/revenuebase_dry_run.png")
-
+        await SuperScraper.screenshot(tab, "resources/screenshots/revenuebase_dry_run.png")
         if SuperScraper.DRY_RUN:
             print("DRY RUN: would submit data removal request")
             return

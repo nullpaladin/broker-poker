@@ -59,8 +59,7 @@ async def main():
                 f"DRY RUN: would submit for "
                 f"{SuperScraper.FIRST_NAME} {SuperScraper.LAST_NAME} <{SuperScraper.EMAIL}>"
             )
-            await tab.take_screenshot("resources/screenshots/popacta_dry_run.png")
-            print("Screenshot saved to resources/screenshots/popacta_dry_run.png")
+            await SuperScraper.screenshot(tab, "resources/screenshots/popacta_dry_run.png")
             return
 
         submit_btn = await tab.find(id="submit-btn", raise_exc=False)

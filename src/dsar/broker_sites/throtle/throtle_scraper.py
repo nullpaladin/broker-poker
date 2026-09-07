@@ -159,8 +159,7 @@ async def main():
             print(f"{super_scraper.OOPS} Zip Code field not found")
 
         await asyncio.sleep(1)
-        await tab.take_screenshot(path="resources/screenshots/throtle_dry_run.png")
-        print("Screenshot saved to resources/screenshots/throtle_dry_run.png")
+        await SuperScraper.screenshot(tab, "resources/screenshots/throtle_dry_run.png")
         print(
             "\nRequest filled but NOT submitted — a reCAPTCHA v2 checkbox requires a manual "
             "solve before submitting."

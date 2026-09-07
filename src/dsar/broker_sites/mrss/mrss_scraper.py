@@ -49,9 +49,7 @@ async def main():
             print(f"{super_scraper.OOPS} Phone field not found")
 
         await asyncio.sleep(1)
-        await tab.take_screenshot(path="resources/screenshots/mrss_dry_run.png")
-        print("Screenshot saved to resources/screenshots/mrss_dry_run.png")
-
+        await SuperScraper.screenshot(tab, "resources/screenshots/mrss_dry_run.png")
         if SuperScraper.DRY_RUN:
             print(f"DRY RUN: would submit opt-out-of-sale request for {SuperScraper.EMAIL}")
             return

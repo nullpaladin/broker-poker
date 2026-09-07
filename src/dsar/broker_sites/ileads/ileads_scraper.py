@@ -65,8 +65,7 @@ async def main():
             )
 
         time.sleep(0.5)
-        await tab.take_screenshot("resources/screenshots/ileads_dry_run.png")
-        print("Screenshot saved to resources/screenshots/ileads_dry_run.png")
+        await SuperScraper.screenshot(tab, "resources/screenshots/ileads_dry_run.png")
         print(
             "Request filled but NOT submitted — a Cloudflare Turnstile must be solved "
             "manually before submitting."

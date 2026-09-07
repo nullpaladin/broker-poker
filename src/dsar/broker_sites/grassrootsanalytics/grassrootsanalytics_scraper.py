@@ -57,8 +57,7 @@ async def main():
         if SuperScraper.DRY_RUN:
             print(f"DRY RUN: would submit removal request for {SuperScraper.FIRST_NAME} {SuperScraper.LAST_NAME}")
             await asyncio.sleep(1)
-            await tab.take_screenshot(path="resources/screenshots/grassrootsanalytics_dry_run.png")
-            print("Screenshot saved to resources/screenshots/grassrootsanalytics_dry_run.png")
+            await SuperScraper.screenshot(tab, "resources/screenshots/grassrootsanalytics_dry_run.png")
             return
 
         print("\nForm filled. Solve the CAPTCHA, click Submit,")

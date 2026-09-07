@@ -75,9 +75,7 @@ async def submit_request(tab, right_label, tag, super_scraper, ip):
         await _select_by_text(behalf, "No")
 
     await asyncio.sleep(1)
-    await tab.take_screenshot(path=f"resources/screenshots/ip2location_dry_run_{tag}.png", beyond_viewport=True)
-    print(f"Screenshot saved to resources/screenshots/ip2location_dry_run_{tag}.png")
-
+    await SuperScraper.screenshot(tab, f"resources/screenshots/ip2location_dry_run_{tag}.png", beyond_viewport=True)
     if SuperScraper.DRY_RUN:
         print(f"DRY RUN: would submit '{right_label}' for {SuperScraper.EMAIL} (IP {ip or '?'})")
         return

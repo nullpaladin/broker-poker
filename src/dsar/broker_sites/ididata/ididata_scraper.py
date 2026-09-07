@@ -112,7 +112,7 @@ async def submit_request(tab, url, label, super_scraper, dob_day, dob_month, dob
         submit_btn = await tab.find(tag_name="button", text="Submit Request", raise_exc=False)
         if submit_btn:
             await submit_btn.scroll_into_view()
-        await tab.take_screenshot(f"resources/screenshots/ididata_dry_run_{label}.png")
+        await SuperScraper.screenshot(tab, f"resources/screenshots/ididata_dry_run_{label}.png")
         print(
             f"DRY RUN: would submit '{label}' for "
             f"{SuperScraper.FIRST_NAME} {SuperScraper.LAST_NAME} <{SuperScraper.EMAIL}>"

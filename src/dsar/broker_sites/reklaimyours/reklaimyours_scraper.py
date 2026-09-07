@@ -42,7 +42,7 @@ async def submit_request(tab, radio_id, label, super_scraper):
     time.sleep(0.5)
 
     if SuperScraper.DRY_RUN:
-        await tab.take_screenshot(f"resources/screenshots/reklaimyours_dry_run_{label}.png")
+        await SuperScraper.screenshot(tab, f"resources/screenshots/reklaimyours_dry_run_{label}.png")
         print(
             f"DRY RUN: would submit '{label}' for "
             f"{SuperScraper.FIRST_NAME} {SuperScraper.LAST_NAME} <{SuperScraper.EMAIL}>"

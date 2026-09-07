@@ -47,8 +47,7 @@ async def submit_request(tab, case_type, label, super_scraper):
     if SuperScraper.DRY_RUN:
         print(f"DRY RUN: would submit '{case_type}' for {SuperScraper.FIRST_NAME} {SuperScraper.LAST_NAME}")
         await asyncio.sleep(1)
-        await tab.take_screenshot(path=f"resources/screenshots/healthcare_dry_run_{label}.png")
-        print(f"Screenshot saved to resources/screenshots/healthcare_dry_run_{label}.png")
+        await SuperScraper.screenshot(tab, f"resources/screenshots/healthcare_dry_run_{label}.png")
         return
 
     await super_scraper.click_item_by_text(tab=tab, text="Submit", sleep=2)

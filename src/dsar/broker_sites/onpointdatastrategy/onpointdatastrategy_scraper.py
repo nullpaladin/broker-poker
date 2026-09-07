@@ -86,9 +86,7 @@ async def main():
             "return !!p && getComputedStyle(p).display!=='none';"
         )
         advanced = bool(page2_visible["result"]["result"]["value"])
-        await tab.take_screenshot("resources/screenshots/onpointdatastrategy_dry_run.png")
-        print("Screenshot saved to resources/screenshots/onpointdatastrategy_dry_run.png")
-
+        await SuperScraper.screenshot(tab, "resources/screenshots/onpointdatastrategy_dry_run.png")
         if not advanced:
             print(
                 f"{super_scraper.OOPS} Page 1 filled (request type: '{request_type}') but 'Next' "

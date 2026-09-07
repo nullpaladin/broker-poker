@@ -120,8 +120,7 @@ async def main():
             await correct_select.execute_script(_select_by_text("No"))
 
         await asyncio.sleep(1)
-        await tab.take_screenshot(path="resources/screenshots/liftbasedata_dry_run.png")
-        print("Screenshot saved to resources/screenshots/liftbasedata_dry_run.png")
+        await SuperScraper.screenshot(tab, "resources/screenshots/liftbasedata_dry_run.png")
         print(
             "\nForm filled but NOT submitted — both Cloudflare Turnstile and reCAPTCHA v2 "
             "are present and require a manual solve before submitting."

@@ -74,9 +74,7 @@ async def main():
                 print(f"{super_scraper.OOPS} checkbox '{value}' not found")
 
         await asyncio.sleep(1)
-        await tab.take_screenshot(path="resources/screenshots/resonate_dry_run.png")
-        print("Screenshot saved to resources/screenshots/resonate_dry_run.png")
-
+        await SuperScraper.screenshot(tab, "resources/screenshots/resonate_dry_run.png")
         if SuperScraper.DRY_RUN:
             print("DRY RUN: would submit consumer privacy request")
             return

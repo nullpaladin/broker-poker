@@ -97,9 +97,7 @@ async def main():
             await super_scraper.input_text_field(tab=tab, xpath=xpath, text=value, sleep=0.3)
 
         time.sleep(0.5)
-        await tab.take_screenshot("resources/screenshots/truedata_dry_run.png")
-        print("Screenshot saved to resources/screenshots/truedata_dry_run.png")
-
+        await SuperScraper.screenshot(tab, "resources/screenshots/truedata_dry_run.png")
         if SuperScraper.DRY_RUN:
             print(
                 f"DRY RUN: would submit access+opt-out"

@@ -106,8 +106,7 @@ async def submit_request(tab, right_id, card_text, sub_choice, super_scraper):
     if SuperScraper.DRY_RUN:
         print(f"DRY RUN: would submit '{right_id}' for {SuperScraper.FIRST_NAME} {SuperScraper.LAST_NAME}")
         await asyncio.sleep(1)
-        await tab.take_screenshot(path=f"resources/screenshots/inmarket_dry_run_{right_id}.png")
-        print(f"Screenshot saved to resources/screenshots/inmarket_dry_run_{right_id}.png")
+        await SuperScraper.screenshot(tab, f"resources/screenshots/inmarket_dry_run_{right_id}.png")
         return
 
     review_btn = await tab.find(text="Review Request", raise_exc=False)

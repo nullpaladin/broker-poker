@@ -61,7 +61,7 @@ async def main():
             )
             if submit_btn:
                 await submit_btn.scroll_into_view()
-            await tab.take_screenshot("resources/screenshots/spydailer_dry_run.png")
+            await SuperScraper.screenshot(tab, "resources/screenshots/spydailer_dry_run.png")
             print(
                 f"DRY RUN: would submit state filter for "
                 f"{SuperScraper.FIRST_NAME} {SuperScraper.LAST_NAME} <{SuperScraper.EMAIL}>"

@@ -137,11 +137,7 @@ async def main():
             print(f"{super_scraper.OOPS} could not parse arithmetic question: {q_text!r}")
 
         await asyncio.sleep(1)
-        await tab.take_screenshot(
-            path="resources/screenshots/spectrummailinglists_dry_run.png", beyond_viewport=True
-        )
-        print("Screenshot saved to resources/screenshots/spectrummailinglists_dry_run.png")
-
+        await SuperScraper.screenshot(tab, "resources/screenshots/spectrummailinglists_dry_run.png", beyond_viewport=True)
         if SuperScraper.DRY_RUN:
             print(
                 f"DRY RUN: would submit opt-out for "

@@ -84,8 +84,7 @@ async def submit_request(tab, url, label, super_scraper):
         if captcha_field:
             await captcha_field.scroll_into_view()
         await asyncio.sleep(1)
-        await tab.take_screenshot(path=f"resources/screenshots/belardiwong_dry_run_{label}.png")
-        print(f"Screenshot saved to resources/screenshots/belardiwong_dry_run_{label}.png")
+        await SuperScraper.screenshot(tab, f"resources/screenshots/belardiwong_dry_run_{label}.png")
         return
 
     print(f"\nForm filled for '{label}'. Enter the CAPTCHA code, click Submit,")

@@ -128,8 +128,7 @@ async def main():
             print(f"{super_scraper.OOPS} Additional comments field not found")
 
         await asyncio.sleep(1)
-        await tab.take_screenshot(path="resources/screenshots/preqin_dry_run.png")
-        print("Screenshot saved to resources/screenshots/preqin_dry_run.png")
+        await SuperScraper.screenshot(tab, "resources/screenshots/preqin_dry_run.png")
         print(
             "\nRequest filled but NOT submitted — a distorted-text image CAPTCHA "
             "requires a manual solve before clicking Submit Request."

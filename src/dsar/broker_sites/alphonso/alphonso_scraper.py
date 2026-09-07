@@ -37,9 +37,7 @@ async def _fill_and_shot(tab, super_scraper, url, tag, message=None):
         print(f"{super_scraper.OOPS} [{tag}] email field not found")
 
     await asyncio.sleep(1)
-    await tab.take_screenshot(path=f"resources/screenshots/alphonso_dry_run_{tag}.png", beyond_viewport=True)
-    print(f"Screenshot saved to resources/screenshots/alphonso_dry_run_{tag}.png")
-
+    await SuperScraper.screenshot(tab, f"resources/screenshots/alphonso_dry_run_{tag}.png", beyond_viewport=True)
     if SuperScraper.DRY_RUN:
         print(f"DRY RUN [{tag}]: would submit for {SuperScraper.EMAIL}")
         return

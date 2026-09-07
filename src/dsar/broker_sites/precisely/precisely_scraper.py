@@ -104,8 +104,7 @@ async def submit_precisely(tab, right, super_scraper):
 
     label = "".join(c if c.isalnum() else "_" for c in right.lower())[:40].strip("_")
     await asyncio.sleep(1)
-    await tab.take_screenshot(path=f"resources/screenshots/precisely_dry_run_{label}.png")
-    print(f"Screenshot saved to resources/screenshots/precisely_dry_run_{label}.png")
+    await SuperScraper.screenshot(tab, f"resources/screenshots/precisely_dry_run_{label}.png")
     print(f"\n[Precisely] '{right}' request filled but NOT submitted — reCAPTCHA v2 requires a manual solve.")
 
 
@@ -135,8 +134,7 @@ async def submit_placeiq(tab, right, super_scraper):
 
     label = "".join(c if c.isalnum() else "_" for c in right.lower())[:40].strip("_")
     await asyncio.sleep(1)
-    await tab.take_screenshot(path=f"resources/screenshots/placeiq_dry_run_{label}.png")
-    print(f"Screenshot saved to resources/screenshots/placeiq_dry_run_{label}.png")
+    await SuperScraper.screenshot(tab, f"resources/screenshots/placeiq_dry_run_{label}.png")
     print(f"\n[PlaceIQ] '{right}' request filled but NOT submitted — reCAPTCHA v2 requires a manual solve.")
 
 

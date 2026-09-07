@@ -122,8 +122,7 @@ async def fill_and_submit(tab, request_type_label, screenshot_label, super_scrap
         if captcha_field:
             await captcha_field.scroll_into_view()
         await asyncio.sleep(1)
-        await tab.take_screenshot(f"resources/screenshots/yellowpages_dry_run_{screenshot_label}.png")
-        print(f"Screenshot saved to resources/screenshots/yellowpages_dry_run_{screenshot_label}.png")
+        await SuperScraper.screenshot(tab, f"resources/screenshots/yellowpages_dry_run_{screenshot_label}.png")
         return
 
     print(f"\nForm filled for '{request_type_label}'.")

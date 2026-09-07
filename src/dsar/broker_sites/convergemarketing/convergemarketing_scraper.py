@@ -66,8 +66,7 @@ async def submit_request(tab, card_text, label, super_scraper):
     # Representative section incl. a proof-of-authorization file upload.
 
     await asyncio.sleep(1)
-    await tab.take_screenshot(path=f"resources/screenshots/convergemarketing_dry_run_{label}.png")
-    print(f"Screenshot saved to resources/screenshots/convergemarketing_dry_run_{label}.png")
+    await SuperScraper.screenshot(tab, f"resources/screenshots/convergemarketing_dry_run_{label}.png")
     print(
         f"'{card_text}' request filled but NOT submitted — a Cloudflare Turnstile "
         f"checkbox must be solved manually before submitting."

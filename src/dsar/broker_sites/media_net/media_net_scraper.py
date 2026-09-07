@@ -118,9 +118,7 @@ async def submit_request(tab, request_type, label, super_scraper):
     await _type_input(tab, "request-details", DETAILS.format(request_type))
 
     await asyncio.sleep(1)
-    await tab.take_screenshot(path=f"resources/screenshots/media_net_dry_run_{label}.png")
-    print(f"Screenshot saved to resources/screenshots/media_net_dry_run_{label}.png")
-
+    await SuperScraper.screenshot(tab, f"resources/screenshots/media_net_dry_run_{label}.png")
     if SuperScraper.DRY_RUN:
         print(
             f"DRY RUN: would submit '{request_type}' for "

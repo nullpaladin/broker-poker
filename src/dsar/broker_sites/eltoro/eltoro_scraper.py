@@ -109,7 +109,7 @@ async def submit_form(tab, url, request_types, label, super_scraper):
         if submit_btn:
             await submit_btn.scroll_into_view()
         await asyncio.sleep(2)
-        await tab.take_screenshot(f"resources/screenshots/eltoro_dry_run_{label}.png")
+        await SuperScraper.screenshot(tab, f"resources/screenshots/eltoro_dry_run_{label}.png")
         print(f"Screenshot: resources/screenshots/eltoro_dry_run_{label}.png")
         return
 

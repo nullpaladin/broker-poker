@@ -93,9 +93,7 @@ async def submit_request(tab, right, super_scraper):
     label = "".join(c if c.isalnum() else "_" for c in right.lower())[:40].strip("_")
 
     await asyncio.sleep(1)
-    await tab.take_screenshot(path=f"resources/screenshots/perion_dry_run_{label}.png")
-    print(f"Screenshot saved to resources/screenshots/perion_dry_run_{label}.png")
-
+    await SuperScraper.screenshot(tab, f"resources/screenshots/perion_dry_run_{label}.png")
     if SuperScraper.DRY_RUN:
         print(f"DRY RUN: would submit '{right}' for {SuperScraper.FIRST_NAME} {SuperScraper.LAST_NAME}")
         return

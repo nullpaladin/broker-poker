@@ -134,9 +134,7 @@ async def main():
         submit_btn = await tab.find(id="dsar-webform-submit-button", raise_exc=False)
         if submit_btn:
             await submit_btn.scroll_into_view()
-        await tab.take_screenshot("resources/screenshots/rhetorik_dry_run.png")
-        print("Screenshot saved to resources/screenshots/rhetorik_dry_run.png")
-
+        await SuperScraper.screenshot(tab, "resources/screenshots/rhetorik_dry_run.png")
         if SuperScraper.DRY_RUN:
             print(
                 f"DRY RUN: would submit combined privacy request for "

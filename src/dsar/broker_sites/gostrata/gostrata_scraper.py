@@ -118,8 +118,7 @@ async def main():
             print(f"{super_scraper.OOPS} certification checkbox not found")
 
         await asyncio.sleep(1)
-        await tab.take_screenshot(path="resources/screenshots/gostrata_dry_run.png", beyond_viewport=True)
-        print("Screenshot saved to resources/screenshots/gostrata_dry_run.png")
+        await SuperScraper.screenshot(tab, "resources/screenshots/gostrata_dry_run.png", beyond_viewport=True)
         print(
             "Opt-Out/Delete request filled but NOT submitted — solve the CAPTCHA "
             "(input_5_18) manually, then click Submit."

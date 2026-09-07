@@ -88,7 +88,7 @@ async def submit_request(tab, choice_id, label, super_scraper):
         "return !!p && getComputedStyle(p).display !== 'none';"
     )
     if not page2_visible['result']['result']['value']:
-        await tab.take_screenshot(f"resources/screenshots/statara_dry_run_{label}.png")
+        await SuperScraper.screenshot(tab, f"resources/screenshots/statara_dry_run_{label}.png")
         print(
             f"{super_scraper.OOPS} Page 1 filled but 'Next' did not advance (Gravity Forms "
             f"anti-spam under automation). Click Next manually, choose the '{label}' right, "
@@ -103,9 +103,7 @@ async def submit_request(tab, choice_id, label, super_scraper):
     await radio.execute_script("this.checked = true; this.dispatchEvent(new Event('change',{bubbles:true}));")
 
     time.sleep(0.5)
-    await tab.take_screenshot(f"resources/screenshots/statara_dry_run_{label}.png")
-    print(f"Screenshot saved to resources/screenshots/statara_dry_run_{label}.png")
-
+    await SuperScraper.screenshot(tab, f"resources/screenshots/statara_dry_run_{label}.png")
     if SuperScraper.DRY_RUN:
         print(
             f"DRY RUN: would submit '{label}' for "

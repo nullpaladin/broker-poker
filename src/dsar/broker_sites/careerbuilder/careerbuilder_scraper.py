@@ -35,8 +35,7 @@ async def submit_request(tab, type_value, label, super_scraper):
     if SuperScraper.DRY_RUN:
         print(f"DRY RUN: would submit '{type_value}' for {SuperScraper.FIRST_NAME} {SuperScraper.LAST_NAME}")
         await asyncio.sleep(1)
-        await tab.take_screenshot(path=f"resources/screenshots/careerbuilder_dry_run_{label}.png")
-        print(f"Screenshot saved to resources/screenshots/careerbuilder_dry_run_{label}.png")
+        await SuperScraper.screenshot(tab, f"resources/screenshots/careerbuilder_dry_run_{label}.png")
         return
 
     await super_scraper.click_item_by_xpath(tab=tab, xpath="//button[@id='submitBtn']", sleep=2)

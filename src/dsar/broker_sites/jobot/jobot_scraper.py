@@ -74,8 +74,7 @@ async def main():
         if SuperScraper.DRY_RUN:
             print(f"DRY RUN: would submit privacy request for {SuperScraper.FIRST_NAME} {SuperScraper.LAST_NAME} <{SuperScraper.EMAIL}>")
             await asyncio.sleep(1)
-            await tab.take_screenshot(path="resources/screenshots/jobot_dry_run.png")
-            print("Screenshot saved to resources/screenshots/jobot_dry_run.png")
+            await SuperScraper.screenshot(tab, "resources/screenshots/jobot_dry_run.png")
             return
 
         await super_scraper.click_item_by_text(tab=tab, text="Submit", sleep=2)

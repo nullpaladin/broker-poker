@@ -97,7 +97,7 @@ async def submit_request(tab, tagger_value, is_delete, label, super_scraper):
         submit_btn = await tab.find(tag_name="input", **{"name": "commit"}, raise_exc=False)
         if submit_btn:
             await submit_btn.scroll_into_view()
-        await tab.take_screenshot(f"resources/screenshots/techtarget_dry_run_{label}.png")
+        await SuperScraper.screenshot(tab, f"resources/screenshots/techtarget_dry_run_{label}.png")
         print(
             f"DRY RUN: would submit '{label}' for "
             f"{SuperScraper.FIRST_NAME} {SuperScraper.LAST_NAME} <{SuperScraper.EMAIL}>"

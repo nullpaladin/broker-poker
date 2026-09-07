@@ -58,8 +58,7 @@ async def main():
         if SuperScraper.DRY_RUN:
             print(f"DRY RUN: would submit opt-out request for {SuperScraper.FIRST_NAME} {SuperScraper.LAST_NAME}")
             await asyncio.sleep(1)
-            await tab.take_screenshot(path="resources/screenshots/bbdirect_dry_run.png")
-            print("Screenshot saved to resources/screenshots/bbdirect_dry_run.png")
+            await SuperScraper.screenshot(tab, "resources/screenshots/bbdirect_dry_run.png")
             return
 
         await super_scraper.click_item_by_xpath(tab=tab, xpath=SUBMIT_XPATH, sleep=2)

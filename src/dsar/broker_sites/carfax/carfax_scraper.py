@@ -95,8 +95,7 @@ async def submit_request(tab, radio_label, tag, super_scraper):
         print(f"{super_scraper.OOPS} attestation checkbox not found")
 
     await asyncio.sleep(1)
-    await tab.take_screenshot(path=f"resources/screenshots/carfax_dry_run_{tag}.png", beyond_viewport=True)
-    print(f"Screenshot saved to resources/screenshots/carfax_dry_run_{tag}.png")
+    await SuperScraper.screenshot(tab, f"resources/screenshots/carfax_dry_run_{tag}.png", beyond_viewport=True)
     print(f"'{radio_label}' filled but NOT submitted — solve the reCAPTCHA manually, then Submit.")
 
 

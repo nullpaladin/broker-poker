@@ -108,8 +108,7 @@ async def submit_request(tab, right, super_scraper):
     if SuperScraper.DRY_RUN:
         print(f"DRY RUN: would submit '{right}' request for {SuperScraper.FIRST_NAME} {SuperScraper.LAST_NAME}")
         await asyncio.sleep(1)
-        await tab.take_screenshot(path=f"resources/screenshots/audigent_dry_run_{label}.png")
-        print(f"Screenshot saved to resources/screenshots/audigent_dry_run_{label}.png")
+        await SuperScraper.screenshot(tab, f"resources/screenshots/audigent_dry_run_{label}.png")
         return
 
     print(f"\nForm filled for '{right}'. Solve the reCAPTCHA, click Submit,")

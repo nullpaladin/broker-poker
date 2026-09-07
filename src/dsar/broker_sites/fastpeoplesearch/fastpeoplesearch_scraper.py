@@ -68,8 +68,7 @@ async def main():
             if captcha_area:
                 await captcha_area.scroll_into_view()
             await asyncio.sleep(1)
-            await tab.take_screenshot("fastpeoplesearch_dry_run_optout.png")
-            print("Screenshot saved to fastpeoplesearch_dry_run_optout.png")
+            await SuperScraper.screenshot(tab, "fastpeoplesearch_dry_run_optout.png")
             return
 
         captcha_area = await tab.find(**{"class": "g-recaptcha"}, raise_exc=False)

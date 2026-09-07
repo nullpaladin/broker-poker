@@ -103,8 +103,7 @@ async def submit_request(tab, keyword, tag, super_scraper):
             pass
 
     await asyncio.sleep(1)
-    await tab.take_screenshot(path=f"resources/screenshots/infotracer_dry_run_{tag}.png", beyond_viewport=True)
-    print(f"Screenshot saved to resources/screenshots/infotracer_dry_run_{tag}.png")
+    await SuperScraper.screenshot(tab, f"resources/screenshots/infotracer_dry_run_{tag}.png", beyond_viewport=True)
     print(f"'{keyword}' request filled but NOT submitted — solve the reCAPTCHA manually, then Submit.")
 
 

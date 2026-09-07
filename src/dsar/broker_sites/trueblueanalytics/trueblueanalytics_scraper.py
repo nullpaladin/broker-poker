@@ -95,8 +95,7 @@ async def main():
                 print(f"{super_scraper.OOPS} right checkbox '{right_id}' not found")
 
         await asyncio.sleep(1)
-        await tab.take_screenshot(path="resources/screenshots/trueblueanalytics_dry_run.png")
-        print("Screenshot saved to resources/screenshots/trueblueanalytics_dry_run.png")
+        await SuperScraper.screenshot(tab, "resources/screenshots/trueblueanalytics_dry_run.png")
         print(
             "\nRequest filled but NOT submitted — a visible reCAPTCHA v2 checkbox requires "
             "a manual solve before submitting."

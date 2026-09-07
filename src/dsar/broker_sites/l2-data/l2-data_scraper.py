@@ -70,9 +70,7 @@ async def main():
             print(f"{super_scraper.OOPS} could not parse math CAPTCHA text: '{math_text}'")
 
         await asyncio.sleep(1)
-        await tab.take_screenshot(path="resources/screenshots/l2-data_dry_run.png")
-        print("Screenshot saved to resources/screenshots/l2-data_dry_run.png")
-
+        await SuperScraper.screenshot(tab, "resources/screenshots/l2-data_dry_run.png")
         if SuperScraper.DRY_RUN:
             print(f"DRY RUN: would submit opt-out request for {SuperScraper.EMAIL}")
             return

@@ -60,9 +60,7 @@ async def main():
         )
 
         await asyncio.sleep(1)
-        await tab.take_screenshot(path="resources/screenshots/lifesight_dry_run.png", beyond_viewport=True)
-        print("Screenshot saved to resources/screenshots/lifesight_dry_run.png")
-
+        await SuperScraper.screenshot(tab, "resources/screenshots/lifesight_dry_run.png", beyond_viewport=True)
         if SuperScraper.DRY_RUN:
             print(f"DRY RUN: would submit opt-out for {full_name} <{SuperScraper.EMAIL}>")
             return

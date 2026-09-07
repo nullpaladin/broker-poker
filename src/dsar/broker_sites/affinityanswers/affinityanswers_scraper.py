@@ -71,8 +71,7 @@ async def main():
             if submit_btn:
                 await submit_btn.scroll_into_view()
             await asyncio.sleep(2)
-            await tab.take_screenshot("resources/screenshots/affinityanswers_dry_run.png")
-            print("Screenshot saved to resources/screenshots/affinityanswers_dry_run.png")
+            await SuperScraper.screenshot(tab, "resources/screenshots/affinityanswers_dry_run.png")
             return
 
         submit_btn = await tab.find(id="gform_submit_button_11", raise_exc=False)

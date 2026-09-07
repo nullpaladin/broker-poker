@@ -63,9 +63,7 @@ async def submit_request(tab, reason_value, label, super_scraper):
         print(f"{super_scraper.OOPS} 'accept' attestation checkbox not found")
 
     await asyncio.sleep(1)
-    await tab.take_screenshot(path=f"resources/screenshots/optimalfusion_dry_run_{label}.png")
-    print(f"Screenshot saved to resources/screenshots/optimalfusion_dry_run_{label}.png")
-
+    await SuperScraper.screenshot(tab, f"resources/screenshots/optimalfusion_dry_run_{label}.png")
     if SuperScraper.DRY_RUN:
         print(
             f"DRY RUN: would submit '{reason_value}' for "

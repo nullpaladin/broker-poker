@@ -72,8 +72,7 @@ async def submit_access(tab, state_abbr, super_scraper):
         if captcha_field:
             await captcha_field.scroll_into_view()
         await asyncio.sleep(1)
-        await tab.take_screenshot("resources/screenshots/wiland_dry_run_access.png")
-        print("Screenshot saved to resources/screenshots/wiland_dry_run_access.png")
+        await SuperScraper.screenshot(tab, "resources/screenshots/wiland_dry_run_access.png")
         return
 
     print(
@@ -110,8 +109,7 @@ async def submit_delete(tab, state_abbr, super_scraper):
         if captcha_field:
             await captcha_field.scroll_into_view()
         await asyncio.sleep(1)
-        await tab.take_screenshot("resources/screenshots/wiland_dry_run_delete.png")
-        print("Screenshot saved to resources/screenshots/wiland_dry_run_delete.png")
+        await SuperScraper.screenshot(tab, "resources/screenshots/wiland_dry_run_delete.png")
         return
 
     print(

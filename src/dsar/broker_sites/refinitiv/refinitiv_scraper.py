@@ -92,8 +92,7 @@ async def main():
             await details_field.type_text(request_text)
 
         await asyncio.sleep(1)
-        await tab.take_screenshot(path="resources/screenshots/refinitiv_dry_run.png")
-        print("Screenshot saved to resources/screenshots/refinitiv_dry_run.png")
+        await SuperScraper.screenshot(tab, "resources/screenshots/refinitiv_dry_run.png")
         print(
             "\nRequest filled but NOT submitted — a BotDetect image CAPTCHA requires "
             "manual entry before submitting."

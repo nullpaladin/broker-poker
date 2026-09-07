@@ -94,9 +94,7 @@ async def main():
                 await asyncio.sleep(0.1)
 
         time.sleep(0.5)
-        await tab.take_screenshot("resources/screenshots/yobi_dry_run.png")
-        print("Screenshot saved to resources/screenshots/yobi_dry_run.png")
-
+        await SuperScraper.screenshot(tab, "resources/screenshots/yobi_dry_run.png")
         if SuperScraper.DRY_RUN:
             print(
                 f"DRY RUN: would submit privacy request for "

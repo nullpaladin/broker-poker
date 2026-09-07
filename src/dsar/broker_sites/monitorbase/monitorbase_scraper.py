@@ -51,9 +51,7 @@ async def submit_request(tab, option_text, label, super_scraper):
         await agreement.execute_script("if (!this.checked) this.click();")
 
     time.sleep(0.5)
-    await tab.take_screenshot(f"resources/screenshots/monitorbase_dry_run_{label}.png")
-    print(f"Screenshot saved to resources/screenshots/monitorbase_dry_run_{label}.png")
-
+    await SuperScraper.screenshot(tab, f"resources/screenshots/monitorbase_dry_run_{label}.png")
     if SuperScraper.DRY_RUN:
         print(
             f"DRY RUN: would submit '{option_text}' for "

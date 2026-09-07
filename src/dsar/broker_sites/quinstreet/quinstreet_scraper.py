@@ -78,9 +78,7 @@ async def main():
             print(f"{super_scraper.OOPS} Certification checkbox not found")
 
         await asyncio.sleep(1)
-        await tab.take_screenshot(path="resources/screenshots/quinstreet_dry_run.png")
-        print("Screenshot saved to resources/screenshots/quinstreet_dry_run.png")
-
+        await SuperScraper.screenshot(tab, "resources/screenshots/quinstreet_dry_run.png")
         if SuperScraper.DRY_RUN:
             print("DRY RUN: would submit Opt-Out request")
             return

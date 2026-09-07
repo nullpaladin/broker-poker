@@ -58,8 +58,7 @@ async def main():
         if SuperScraper.DRY_RUN:
             print(f"DRY RUN: would submit opt-out request for {SuperScraper.FIRST_NAME} {SuperScraper.LAST_NAME}")
             await asyncio.sleep(1)
-            await tab.take_screenshot(path="resources/screenshots/decisionlinks_dry_run_optout.png")
-            print("Screenshot saved to resources/screenshots/decisionlinks_dry_run_optout.png")
+            await SuperScraper.screenshot(tab, "resources/screenshots/decisionlinks_dry_run_optout.png")
         else:
             await super_scraper.click_item_by_xpath(tab=tab, xpath="//input[@id='Opt-Out-First-Name']/ancestor::form//input[@type='submit']", sleep=2)
             print(f"Submitted opt-out request for {SuperScraper.FIRST_NAME} {SuperScraper.LAST_NAME}")
@@ -81,8 +80,7 @@ async def main():
         if SuperScraper.DRY_RUN:
             print(f"DRY RUN: would submit Access/Correct/Portability request for {SuperScraper.FIRST_NAME} {SuperScraper.LAST_NAME}")
             await asyncio.sleep(1)
-            await tab.take_screenshot(path="resources/screenshots/decisionlinks_dry_run_general.png")
-            print("Screenshot saved to resources/screenshots/decisionlinks_dry_run_general.png")
+            await SuperScraper.screenshot(tab, "resources/screenshots/decisionlinks_dry_run_general.png")
             return
 
         await super_scraper.click_item_by_xpath(tab=tab, xpath="//input[@id='General-Opt-Out-First-Name']/ancestor::form//input[@type='submit']", sleep=2)

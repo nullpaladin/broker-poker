@@ -94,10 +94,7 @@ async def submit_opt_out_delete_correct(super_scraper, tab):
     await _fill_common_fields(tab, super_scraper)
 
     await asyncio.sleep(1)
-    await tab.take_screenshot(path="resources/screenshots/rayinsights_dry_run_opt_out_delete_correct.png")
-    print("Screenshot saved to resources/screenshots/rayinsights_dry_run_opt_out_delete_correct.png")
-
-
+    await SuperScraper.screenshot(tab, "resources/screenshots/rayinsights_dry_run_opt_out_delete_correct.png")
 async def submit_data_request(super_scraper, tab):
     await tab.go_to(DATA_REQUEST_URL)
     await asyncio.sleep(5)
@@ -105,10 +102,7 @@ async def submit_data_request(super_scraper, tab):
     await _fill_common_fields(tab, super_scraper)
 
     await asyncio.sleep(1)
-    await tab.take_screenshot(path="resources/screenshots/rayinsights_dry_run_data_request.png")
-    print("Screenshot saved to resources/screenshots/rayinsights_dry_run_data_request.png")
-
-
+    await SuperScraper.screenshot(tab, "resources/screenshots/rayinsights_dry_run_data_request.png")
 async def main():
     options = ChromiumOptions()
     super_scraper = SuperScraper()

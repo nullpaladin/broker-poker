@@ -102,8 +102,7 @@ async def main():
             await details_field.type_text(request_text)
 
         await asyncio.sleep(1)
-        await tab.take_screenshot(path="resources/screenshots/zetaglobal_dry_run.png")
-        print("Screenshot saved to resources/screenshots/zetaglobal_dry_run.png")
+        await SuperScraper.screenshot(tab, "resources/screenshots/zetaglobal_dry_run.png")
         print(
             "\nRequest filled but NOT submitted — a reCAPTCHA v2 checkbox requires a manual "
             "solve before submitting."

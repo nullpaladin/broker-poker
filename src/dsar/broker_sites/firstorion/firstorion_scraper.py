@@ -60,8 +60,7 @@ async def submit_request(tab, request_type, super_scraper):
     label = request_type.replace("-", "_")
 
     await asyncio.sleep(1)
-    await tab.take_screenshot(path=f"resources/screenshots/firstorion_dry_run_{label}.png")
-    print(f"Screenshot saved to resources/screenshots/firstorion_dry_run_{label}.png")
+    await SuperScraper.screenshot(tab, f"resources/screenshots/firstorion_dry_run_{label}.png")
     print(
         f"\n'{request_type}' request filled but NOT sent — click 'Send Confirmation' yourself, "
         "complete the phone/email verification, and confirm the request. This sends a real "

@@ -107,8 +107,7 @@ async def _submit_request(tab, req_type, label, details, super_scraper):
         if captcha_field:
             await captcha_field.scroll_into_view()
         await asyncio.sleep(1)
-        await tab.take_screenshot(f"ice_dry_run_{label}.png")
-        print(f"Screenshot saved to ice_dry_run_{label}.png")
+        await SuperScraper.screenshot(tab, f"ice_dry_run_{label}.png")
         return
 
     captcha_field = await tab.find(id="captchaCode", raise_exc=False)

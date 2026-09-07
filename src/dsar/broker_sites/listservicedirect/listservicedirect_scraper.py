@@ -71,8 +71,7 @@ async def main():
                 print(f"{super_scraper.OOPS} field '{name}' not found")
 
         await asyncio.sleep(1)
-        await tab.take_screenshot(path="resources/screenshots/listservicedirect_dry_run.png")
-        print("Screenshot saved to resources/screenshots/listservicedirect_dry_run.png")
+        await SuperScraper.screenshot(tab, "resources/screenshots/listservicedirect_dry_run.png")
         print(
             "Opt-Out request filled but NOT submitted — solve the reCAPTCHA "
             "manually, then click Send."

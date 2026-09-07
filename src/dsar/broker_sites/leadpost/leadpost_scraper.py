@@ -85,7 +85,7 @@ async def main():
         time.sleep(0.5)
 
         if SuperScraper.DRY_RUN:
-            await tab.take_screenshot("resources/screenshots/leadpost_dry_run.png")
+            await SuperScraper.screenshot(tab, "resources/screenshots/leadpost_dry_run.png")
             print(
                 f"DRY RUN: would submit for "
                 f"{SuperScraper.FIRST_NAME} {SuperScraper.LAST_NAME} <{SuperScraper.EMAIL}>"

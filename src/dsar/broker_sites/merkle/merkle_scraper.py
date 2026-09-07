@@ -91,8 +91,7 @@ async def submit_request(tab, right, super_scraper):
     label = right.lower().replace(" ", "_")
 
     await asyncio.sleep(1)
-    await tab.take_screenshot(path=f"resources/screenshots/merkle_dry_run_{label}.png")
-    print(f"Screenshot saved to resources/screenshots/merkle_dry_run_{label}.png")
+    await SuperScraper.screenshot(tab, f"resources/screenshots/merkle_dry_run_{label}.png")
     print(
         f"\n'{right}' request filled but NOT submitted — a BotDetect image CAPTCHA is "
         "present and requires manual entry. Submitting also sends a confirmation email "

@@ -129,8 +129,7 @@ async def main():
             await _click_via_js(tab, super_scraper, "edit-select-deletion", "Deletion checkbox")
 
         await asyncio.sleep(1)
-        await tab.take_screenshot(path="resources/screenshots/verizon_dry_run.png")
-        print("Screenshot saved to resources/screenshots/verizon_dry_run.png")
+        await SuperScraper.screenshot(tab, "resources/screenshots/verizon_dry_run.png")
         print(
             "\nRequest filled but NOT submitted — a distorted-text image CAPTCHA requires "
             "manual entry before submitting."

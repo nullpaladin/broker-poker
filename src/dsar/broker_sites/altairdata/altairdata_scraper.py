@@ -87,8 +87,7 @@ async def main():
                 await asyncio.sleep(0.3)
 
         await asyncio.sleep(1)
-        await tab.take_screenshot(path="resources/screenshots/altairdata_prefilled.png")
-        print("Screenshot saved to resources/screenshots/altairdata_prefilled.png")
+        await SuperScraper.screenshot(tab, "resources/screenshots/altairdata_prefilled.png")
         print(
             "\nForm pre-filled but NOT submitted. Altair's portal requires checking an "
             "attestation that this is an individual, manual submission (not automated) "

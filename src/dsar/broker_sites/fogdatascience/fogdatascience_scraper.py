@@ -103,8 +103,7 @@ async def main():
             await _check_by_text(tab, super_scraper, r)
 
         await asyncio.sleep(1)
-        await tab.take_screenshot(path="resources/screenshots/fogdatascience_dry_run.png", beyond_viewport=True)
-        print("Screenshot saved to resources/screenshots/fogdatascience_dry_run.png")
+        await SuperScraper.screenshot(tab, "resources/screenshots/fogdatascience_dry_run.png", beyond_viewport=True)
         print("Request filled but NOT submitted — solve the reCAPTCHA manually, then Submit.")
 
 

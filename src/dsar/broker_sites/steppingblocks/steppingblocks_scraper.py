@@ -43,8 +43,7 @@ async def main():
             await cert.execute_script("if (!this.checked) this.click();")
 
         time.sleep(0.5)
-        await tab.take_screenshot("resources/screenshots/steppingblocks_dry_run.png")
-        print("Screenshot saved to resources/screenshots/steppingblocks_dry_run.png")
+        await SuperScraper.screenshot(tab, "resources/screenshots/steppingblocks_dry_run.png")
         print(
             "Inquiry form filled but NOT submitted — solve the reCAPTCHA and click Submit; "
             "you will then receive an email asking you to complete the rest of the request."

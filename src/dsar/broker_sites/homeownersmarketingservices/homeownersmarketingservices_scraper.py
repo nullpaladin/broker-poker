@@ -53,8 +53,7 @@ async def main():
                 print(f"{super_scraper.OOPS} field '{field_id}' not found")
 
         await asyncio.sleep(1)
-        await tab.take_screenshot(path="resources/screenshots/homeownersmarketingservices_dry_run.png")
-        print("Screenshot saved to resources/screenshots/homeownersmarketingservices_dry_run.png")
+        await SuperScraper.screenshot(tab, "resources/screenshots/homeownersmarketingservices_dry_run.png")
         print(
             "List-removal request filled but NOT submitted — solve the reCAPTCHA "
             "manually, then click the submit button."

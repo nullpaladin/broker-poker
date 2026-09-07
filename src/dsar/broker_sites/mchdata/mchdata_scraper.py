@@ -41,8 +41,7 @@ async def main():
             print(f"{super_scraper.OOPS} 'No' California-resident radio not found")
 
         await asyncio.sleep(1)
-        await tab.take_screenshot(path="resources/screenshots/mchdata_dry_run.png")
-        print("Screenshot saved to resources/screenshots/mchdata_dry_run.png")
+        await SuperScraper.screenshot(tab, "resources/screenshots/mchdata_dry_run.png")
         print(
             "\nForm filled but NOT submitted — a reCAPTCHA v2 checkbox is present and "
             "requires a manual solve before submitting."

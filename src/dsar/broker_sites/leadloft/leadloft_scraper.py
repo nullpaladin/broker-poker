@@ -75,8 +75,7 @@ async def submit_request(tab, request_type, super_scraper):
     if SuperScraper.DRY_RUN:
         print(f"DRY RUN: would submit '{request_type}' request for {SuperScraper.FIRST_NAME} {SuperScraper.LAST_NAME}")
         await asyncio.sleep(1)
-        await tab.take_screenshot(path=f"resources/screenshots/leadloft_dry_run_{label}.png")
-        print(f"Screenshot saved to resources/screenshots/leadloft_dry_run_{label}.png")
+        await SuperScraper.screenshot(tab, f"resources/screenshots/leadloft_dry_run_{label}.png")
         return
 
     # NOT id="submit" — that belongs to an unrelated newsletter-signup form

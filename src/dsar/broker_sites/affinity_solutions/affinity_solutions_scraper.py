@@ -106,8 +106,7 @@ async def main():
             if captcha_field:
                 await captcha_field.scroll_into_view()
             await asyncio.sleep(1)
-            await tab.take_screenshot(path="resources/screenshots/affinity_solutions_dry_run.png")
-            print("Screenshot saved to resources/screenshots/affinity_solutions_dry_run.png")
+            await SuperScraper.screenshot(tab, "resources/screenshots/affinity_solutions_dry_run.png")
             return
 
         print("\nForm filled. Enter the CAPTCHA code shown in the image into the")

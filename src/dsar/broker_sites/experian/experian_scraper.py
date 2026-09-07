@@ -62,9 +62,7 @@ async def main():
             await asyncio.sleep(0.1)
 
         time.sleep(0.5)
-        await tab.take_screenshot("resources/screenshots/experian_dry_run_step2.png")
-        print("Screenshot saved to resources/screenshots/experian_dry_run_step2.png")
-
+        await SuperScraper.screenshot(tab, "resources/screenshots/experian_dry_run_step2.png")
         cont = await tab.find(text="Continue", raise_exc=False)
         if cont:
             await cont.click()
@@ -102,9 +100,7 @@ async def main():
                 await asyncio.sleep(0.2)
 
         time.sleep(0.5)
-        await tab.take_screenshot("resources/screenshots/experian_dry_run_step3.png")
-        print("Screenshot saved to resources/screenshots/experian_dry_run_step3.png")
-
+        await SuperScraper.screenshot(tab, "resources/screenshots/experian_dry_run_step3.png")
         print(
             "Steps 1-3 filled (state, request types, identity details). The SSN field is "
             "left blank (optional; only a last-4 is on file) and the identity-VERIFICATION "

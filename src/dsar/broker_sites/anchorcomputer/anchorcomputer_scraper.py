@@ -75,8 +75,7 @@ async def main():
         if SuperScraper.DRY_RUN:
             print(f"DRY RUN: would submit removal request for {SuperScraper.FIRST_NAME} {SuperScraper.LAST_NAME}")
             await asyncio.sleep(2)
-            await tab.take_screenshot(path="resources/screenshots/anchorcomputer_dry_run.png")
-            print("Screenshot saved to resources/screenshots/anchorcomputer_dry_run.png")
+            await SuperScraper.screenshot(tab, "resources/screenshots/anchorcomputer_dry_run.png")
             return
 
         await super_scraper.click_item_by_xpath(tab=tab, xpath=SUBMIT_XPATH)

@@ -58,8 +58,7 @@ async def _submit_request(tab, card_text, label, phone_field_id, super_scraper):
         if continue_btn and await continue_btn.is_visible():
             await continue_btn.scroll_into_view()
         await asyncio.sleep(2)
-        await tab.take_screenshot(f"resources/screenshots/deeprootanalytics_dry_run_{label}.png")
-        print(f"Screenshot saved to resources/screenshots/deeprootanalytics_dry_run_{label}.png")
+        await SuperScraper.screenshot(tab, f"resources/screenshots/deeprootanalytics_dry_run_{label}.png")
         return
 
     continue_btn = await tab.find(text="Continue", raise_exc=False)

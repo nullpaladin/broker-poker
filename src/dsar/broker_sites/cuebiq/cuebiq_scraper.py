@@ -53,8 +53,7 @@ async def submit_request(tab, radio_value, label, super_scraper):
     if SuperScraper.DRY_RUN:
         print(f"DRY RUN: would submit '{radio_value}' for <{SuperScraper.EMAIL}>")
         await asyncio.sleep(1)
-        await tab.take_screenshot(path=f"resources/screenshots/cuebiq_dry_run_{label}.png")
-        print(f"Screenshot saved to resources/screenshots/cuebiq_dry_run_{label}.png")
+        await SuperScraper.screenshot(tab, f"resources/screenshots/cuebiq_dry_run_{label}.png")
         return
 
     print(f"\nForm filled for '{radio_value}'. Solve the reCAPTCHA, click Submit My Request,")

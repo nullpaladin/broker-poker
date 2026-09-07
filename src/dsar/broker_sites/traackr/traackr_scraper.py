@@ -60,8 +60,7 @@ async def submit_request(tab, request_type_value, label, super_scraper):
             print(f"{super_scraper.OOPS} field '{field_id}' not found")
 
     await asyncio.sleep(1)
-    await tab.take_screenshot(path=f"resources/screenshots/traackr_dry_run_{label}.png")
-    print(f"Screenshot saved to resources/screenshots/traackr_dry_run_{label}.png")
+    await SuperScraper.screenshot(tab, f"resources/screenshots/traackr_dry_run_{label}.png")
     print(
         "\nNo Twitter/Instagram/Facebook handle was supplied (SuperScraper has no social-handle "
         "fields) — the form requires at least one to validate identity, so submission will "

@@ -57,8 +57,7 @@ async def main():
             await email.type_text(SuperScraper.EMAIL)
 
         await asyncio.sleep(1)
-        await tab.take_screenshot(path=f"resources/screenshots/dice_dry_run_{tag}.png", beyond_viewport=True)
-        print(f"Screenshot saved to resources/screenshots/dice_dry_run_{tag}.png")
+        await SuperScraper.screenshot(tab, f"resources/screenshots/dice_dry_run_{tag}.png", beyond_viewport=True)
         print(
             f"'{tag}' request filled but NOT submitted — solve the reCAPTCHA manually, then "
             "Submit. Re-run with a different 'description' radio for the other rights."

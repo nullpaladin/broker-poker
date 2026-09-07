@@ -128,8 +128,7 @@ async def main():
         if SuperScraper.DRY_RUN:
             print(f"DRY RUN: would submit removal request for {SuperScraper.FIRST_NAME} {SuperScraper.LAST_NAME}")
             await asyncio.sleep(1)
-            await tab.take_screenshot(path="resources/screenshots/deloitte_dry_run.png")
-            print("Screenshot saved to resources/screenshots/deloitte_dry_run.png")
+            await SuperScraper.screenshot(tab, "resources/screenshots/deloitte_dry_run.png")
             return
 
         submit_btn = await tab.find(text="Submit Request", raise_exc=False)

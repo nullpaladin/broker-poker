@@ -87,8 +87,7 @@ async def main():
                 await asyncio.sleep(0.1)
 
         time.sleep(0.5)
-        await tab.take_screenshot("resources/screenshots/datamasters_dry_run.png")
-        print("Screenshot saved to resources/screenshots/datamasters_dry_run.png")
+        await SuperScraper.screenshot(tab, "resources/screenshots/datamasters_dry_run.png")
         print(
             "Request filled but NOT submitted — a reCAPTCHA / Cloudflare Turnstile must be "
             "solved manually before submitting."

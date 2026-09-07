@@ -129,8 +129,7 @@ async def main():
 
             safe_name = "".join(c if c.isalnum() else "_" for c in right.lower())[:40].strip("_")
             await asyncio.sleep(1)
-            await tab.take_screenshot(path=f"resources/screenshots/thedatatrust_dry_run_{safe_name}.png")
-            print(f"Screenshot saved to resources/screenshots/thedatatrust_dry_run_{safe_name}.png")
+            await SuperScraper.screenshot(tab, f"resources/screenshots/thedatatrust_dry_run_{safe_name}.png")
             print(
                 f"\n'{right}' request filled but NOT submitted — a Cloudflare Turnstile "
                 "checkbox may require a manual solve before submitting."

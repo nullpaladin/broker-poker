@@ -50,9 +50,7 @@ async def main():
         submit = await tab.find(xpath="//form[@id='opt-out-form']//button[@type='submit']", raise_exc=False)
         if submit:
             await submit.scroll_into_view()
-        await tab.take_screenshot("resources/screenshots/vector_dry_run.png")
-        print("Screenshot saved to resources/screenshots/vector_dry_run.png")
-
+        await SuperScraper.screenshot(tab, "resources/screenshots/vector_dry_run.png")
         if SuperScraper.DRY_RUN:
             print(
                 f"DRY RUN: would submit opt-out for "

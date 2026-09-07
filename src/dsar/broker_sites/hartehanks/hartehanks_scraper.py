@@ -186,11 +186,11 @@ async def main():
 
         if SuperScraper.DRY_RUN:
             # Screenshot top of form first, then scroll to submit
-            await tab.take_screenshot("resources/screenshots/hartehanks_dry_run_top.png")
+            await SuperScraper.screenshot(tab, "resources/screenshots/hartehanks_dry_run_top.png")
             submit_btn = await tab.find(id="dsar-webform-submit-button", raise_exc=False)
             if submit_btn:
                 await submit_btn.scroll_into_view()
-            await tab.take_screenshot("resources/screenshots/hartehanks_dry_run.png")
+            await SuperScraper.screenshot(tab, "resources/screenshots/hartehanks_dry_run.png")
             print(
                 f"DRY RUN: would submit for "
                 f"{SuperScraper.FIRST_NAME} {SuperScraper.LAST_NAME} <{SuperScraper.EMAIL}>"

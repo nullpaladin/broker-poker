@@ -91,12 +91,11 @@ async def main():
             if SuperScraper.DRY_RUN:
                 await asyncio.sleep(1)
                 safe_name = right.replace(" ", "_").replace("/", "_")[:30]
-                await tab.take_screenshot(path=f"resources/screenshots/spycloud_dry_run_{safe_name}.png")
+                await SuperScraper.screenshot(tab, f"resources/screenshots/spycloud_dry_run_{safe_name}.png")
                 print(
                     f"DRY RUN: would submit spycloud '{right}' for "
                     f"{SuperScraper.FIRST_NAME} {SuperScraper.LAST_NAME} <{SuperScraper.EMAIL}>"
                 )
-                print(f"Screenshot saved to resources/screenshots/spycloud_dry_run_{safe_name}.png")
                 continue
 
             print(

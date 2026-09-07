@@ -84,8 +84,7 @@ async def main():
                 print(f"{super_scraper.OOPS} preference checkbox '{value}' not found")
 
         await asyncio.sleep(1)
-        await tab.take_screenshot(path="resources/screenshots/statsocial_dry_run.png")
-        print("Screenshot saved to resources/screenshots/statsocial_dry_run.png")
+        await SuperScraper.screenshot(tab, "resources/screenshots/statsocial_dry_run.png")
         print(
             "\nOptout Form filled but NOT submitted — a Cloudflare Turnstile checkbox "
             "requires a manual solve before submitting. Note: statsocial.com's separate "

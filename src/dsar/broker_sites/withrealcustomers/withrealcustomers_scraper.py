@@ -120,11 +120,7 @@ async def main():
             await name_field.type_text(full_name)
 
         await asyncio.sleep(1)
-        await tab.take_screenshot(
-            path="resources/screenshots/withrealcustomers_dry_run.png", beyond_viewport=True
-        )
-        print("Screenshot saved to resources/screenshots/withrealcustomers_dry_run.png")
-
+        await SuperScraper.screenshot(tab, "resources/screenshots/withrealcustomers_dry_run.png", beyond_viewport=True)
         if SuperScraper.DRY_RUN:
             print(f"DRY RUN: would submit {request_types} for {full_name} <{SuperScraper.EMAIL}>")
             return

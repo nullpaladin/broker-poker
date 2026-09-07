@@ -44,8 +44,7 @@ async def submit_access(tab, super_scraper):
 
     no_data_banner = await tab.find(text="Clickagy has no data associated with your device", raise_exc=False)
     if no_data_banner:
-        await tab.take_screenshot(path="resources/screenshots/clickagy_dry_run_access.png")
-        print("Screenshot saved to resources/screenshots/clickagy_dry_run_access.png")
+        await SuperScraper.screenshot(tab, "resources/screenshots/clickagy_dry_run_access.png")
         print(
             "\nClickagy's own device check reports no data associated with this browser/device — "
             "the email+CAPTCHA request form never rendered, so there is nothing to request."
@@ -61,8 +60,7 @@ async def submit_access(tab, super_scraper):
     await _select_california_resident(tab, super_scraper)
 
     await asyncio.sleep(1)
-    await tab.take_screenshot(path="resources/screenshots/clickagy_dry_run_access.png")
-    print("Screenshot saved to resources/screenshots/clickagy_dry_run_access.png")
+    await SuperScraper.screenshot(tab, "resources/screenshots/clickagy_dry_run_access.png")
     print(
         "\nAccess request filled but NOT submitted — a reCAPTCHA v2 checkbox requires a manual "
         "solve before submitting."
@@ -76,9 +74,7 @@ async def submit_opt_out(tab, super_scraper):
     await _select_california_resident(tab, super_scraper)
 
     await asyncio.sleep(1)
-    await tab.take_screenshot(path="resources/screenshots/clickagy_dry_run_opt_out.png")
-    print("Screenshot saved to resources/screenshots/clickagy_dry_run_opt_out.png")
-
+    await SuperScraper.screenshot(tab, "resources/screenshots/clickagy_dry_run_opt_out.png")
     if SuperScraper.DRY_RUN:
         print("DRY RUN: would submit opt-out-of-sale request for this device/browser")
         return

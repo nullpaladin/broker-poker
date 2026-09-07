@@ -131,8 +131,7 @@ async def main():
                 await submit_btn.scroll_into_view()
             await asyncio.sleep(2)
             suffix = "_delete" if SuperScraper.REMOVE_INFORMATION else ""
-            await tab.take_screenshot(f"resources/screenshots/babelstreet_dry_run{suffix}.png")
-            print(f"Screenshot saved to resources/screenshots/babelstreet_dry_run{suffix}.png")
+            await SuperScraper.screenshot(tab, f"resources/screenshots/babelstreet_dry_run{suffix}.png")
             return
 
         print(f"\nForm filled for {SuperScraper.FIRST_NAME} {SuperScraper.LAST_NAME}.")

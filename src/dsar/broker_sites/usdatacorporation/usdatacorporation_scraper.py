@@ -99,8 +99,7 @@ async def submit_request(tab, category, super_scraper):
         print(f"{super_scraper.OOPS} 'first-party request' checkbox not found")
 
     await asyncio.sleep(1)
-    await tab.take_screenshot(path=f"resources/screenshots/usdatacorporation_dry_run_{category}.png")
-    print(f"Screenshot saved to resources/screenshots/usdatacorporation_dry_run_{category}.png")
+    await SuperScraper.screenshot(tab, f"resources/screenshots/usdatacorporation_dry_run_{category}.png")
     print(
         f"\n'{category}' request filled but NOT submitted — a reCAPTCHA v2 checkbox requires "
         "a manual solve before submitting."

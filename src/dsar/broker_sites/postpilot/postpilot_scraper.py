@@ -103,9 +103,7 @@ async def main():
                 print(f"{super_scraper.OOPS} field '{field_id}' not found")
 
         await asyncio.sleep(1)
-        await tab.take_screenshot(path="resources/screenshots/postpilot_dry_run.png", beyond_viewport=True)
-        print("Screenshot saved to resources/screenshots/postpilot_dry_run.png")
-
+        await SuperScraper.screenshot(tab, "resources/screenshots/postpilot_dry_run.png", beyond_viewport=True)
         if SuperScraper.DRY_RUN:
             print(f"DRY RUN: would submit rights request for {full_name} <{SuperScraper.EMAIL}>")
             return

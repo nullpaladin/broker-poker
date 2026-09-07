@@ -60,9 +60,7 @@ async def submit_request(tab, radio_index, label, super_scraper):
         await confirm.click()
 
     await asyncio.sleep(1)
-    await tab.take_screenshot(path=f"resources/screenshots/mailinglists_dry_run_{label}.png")
-    print(f"Screenshot saved to resources/screenshots/mailinglists_dry_run_{label}.png")
-
+    await SuperScraper.screenshot(tab, f"resources/screenshots/mailinglists_dry_run_{label}.png")
     if SuperScraper.DRY_RUN:
         print(f"DRY RUN: would submit '{label}' request for {SuperScraper.FIRST_NAME} {SuperScraper.LAST_NAME}")
         return

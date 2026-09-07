@@ -83,8 +83,7 @@ async def submit_request(tab, card_text, super_scraper):
 
     label = "".join(c if c.isalnum() else "_" for c in card_text.lower())[:40].strip("_")
     await asyncio.sleep(1)
-    await tab.take_screenshot(path=f"resources/screenshots/videoamp_dry_run_{label}.png")
-    print(f"Screenshot saved to resources/screenshots/videoamp_dry_run_{label}.png")
+    await SuperScraper.screenshot(tab, f"resources/screenshots/videoamp_dry_run_{label}.png")
     print(f"\n'{card_text}' request filled but NOT submitted (invisible reCAPTCHA, no manual solve needed).")
 
 

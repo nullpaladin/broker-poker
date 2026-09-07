@@ -58,9 +58,7 @@ async def _check(tab, checkbox_id, super_scraper):
 
 async def _submit_or_dry_run(tab, submit_button_id, label, super_scraper):
     await asyncio.sleep(1)
-    await tab.take_screenshot(path=f"resources/screenshots/locatesmarter_dry_run_{label}.png")
-    print(f"Screenshot saved to resources/screenshots/locatesmarter_dry_run_{label}.png")
-
+    await SuperScraper.screenshot(tab, f"resources/screenshots/locatesmarter_dry_run_{label}.png")
     if SuperScraper.DRY_RUN:
         print(f"DRY RUN: would submit '{label}' request for {SuperScraper.EMAIL}")
         return

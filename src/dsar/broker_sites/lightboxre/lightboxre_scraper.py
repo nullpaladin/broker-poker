@@ -74,9 +74,7 @@ async def submit_request(tab, card_text, super_scraper):
     label = "".join(c if c.isalnum() else "_" for c in card_text.lower())[:40].strip("_")
 
     await asyncio.sleep(1)
-    await tab.take_screenshot(path=f"resources/screenshots/lightboxre_dry_run_{label}.png")
-    print(f"Screenshot saved to resources/screenshots/lightboxre_dry_run_{label}.png")
-
+    await SuperScraper.screenshot(tab, f"resources/screenshots/lightboxre_dry_run_{label}.png")
     if SuperScraper.DRY_RUN:
         print(f"DRY RUN: would submit '{card_text}' for {SuperScraper.FIRST_NAME} {SuperScraper.LAST_NAME}")
         return

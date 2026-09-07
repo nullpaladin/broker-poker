@@ -83,8 +83,7 @@ async def submit_request(tab, request_type, super_scraper):
     if SuperScraper.DRY_RUN:
         print(f"DRY RUN: would submit '{label}' request for {SuperScraper.FIRST_NAME} {SuperScraper.LAST_NAME}")
         await asyncio.sleep(1)
-        await tab.take_screenshot(path=f"resources/screenshots/demandscience_dry_run_{label}.png")
-        print(f"Screenshot saved to resources/screenshots/demandscience_dry_run_{label}.png")
+        await SuperScraper.screenshot(tab, f"resources/screenshots/demandscience_dry_run_{label}.png")
         return
 
     submit_btn = await tab.find(text="Submit", raise_exc=False)

@@ -76,8 +76,7 @@ async def submit_request(tab, card_text, label, super_scraper):
     # left UNCHECKED for a self-submission.
 
     await asyncio.sleep(1)
-    await tab.take_screenshot(path=f"resources/screenshots/swoop_dry_run_{label}.png")
-    print(f"Screenshot saved to resources/screenshots/swoop_dry_run_{label}.png")
+    await SuperScraper.screenshot(tab, f"resources/screenshots/swoop_dry_run_{label}.png")
     print(
         f"'{card_text}' request filled but NOT submitted — a Cloudflare Turnstile "
         f"checkbox must be solved manually before submitting."

@@ -76,8 +76,7 @@ async def main():
             await acknowledge.click_using_js()
 
         await asyncio.sleep(1)
-        await tab.take_screenshot(path="resources/screenshots/clearview_dry_run.png")
-        print("Screenshot saved to resources/screenshots/clearview_dry_run.png")
+        await SuperScraper.screenshot(tab, "resources/screenshots/clearview_dry_run.png")
         print(
             "\nForm filled but NOT submitted — Clearview identifies people by image, not name/"
             "email, and requires uploading a clear photo of your face (a redacted photo of your "

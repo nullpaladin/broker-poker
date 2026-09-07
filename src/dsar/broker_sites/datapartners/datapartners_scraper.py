@@ -56,10 +56,7 @@ async def submit_request(tab, url, subject, super_scraper):
 
     await asyncio.sleep(1)
     label = "".join(c if c.isalnum() else "_" for c in subject.lower())[:40].strip("_")
-    await tab.take_screenshot(path=f"resources/screenshots/datapartners_dry_run_{label}.png")
-    print(f"Screenshot saved to resources/screenshots/datapartners_dry_run_{label}.png")
-
-
+    await SuperScraper.screenshot(tab, f"resources/screenshots/datapartners_dry_run_{label}.png")
 async def main():
     options = ChromiumOptions()
     super_scraper = SuperScraper()

@@ -95,8 +95,7 @@ async def main():
             print(f"{super_scraper.OOPS} Request Details field not found")
 
         await asyncio.sleep(1)
-        await tab.take_screenshot(path="resources/screenshots/verve_dry_run.png")
-        print("Screenshot saved to resources/screenshots/verve_dry_run.png")
+        await SuperScraper.screenshot(tab, "resources/screenshots/verve_dry_run.png")
         print("\nRequest filled but NOT submitted (invisible reCAPTCHA v2, no manual solve needed).")
 
 

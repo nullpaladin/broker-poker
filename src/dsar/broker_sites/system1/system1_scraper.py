@@ -86,7 +86,7 @@ async def submit_request(tab, req_type_text, label, super_scraper):
         submit_btn = await tab.find(**{"aria-label": "click to submit form"}, raise_exc=False)
         if submit_btn:
             await submit_btn.scroll_into_view()
-        await tab.take_screenshot(f"resources/screenshots/system1_dry_run_{label}.png")
+        await SuperScraper.screenshot(tab, f"resources/screenshots/system1_dry_run_{label}.png")
         print(
             f"DRY RUN: would submit '{label}' for "
             f"{SuperScraper.FIRST_NAME} {SuperScraper.LAST_NAME} <{SuperScraper.EMAIL}>"

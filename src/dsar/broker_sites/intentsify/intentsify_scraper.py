@@ -67,8 +67,7 @@ async def submit_request(tab, reason_text, label, super_scraper):
     await _select_by_text(tab, "//select[option[normalize-space()='Select a reason']]", reason_text)
 
     time.sleep(0.5)
-    await tab.take_screenshot(f"resources/screenshots/intentsify_dry_run_{label}.png")
-    print(f"Screenshot saved to resources/screenshots/intentsify_dry_run_{label}.png")
+    await SuperScraper.screenshot(tab, f"resources/screenshots/intentsify_dry_run_{label}.png")
     print(
         f"'{reason_text}' filled but NOT submitted — a Cloudflare Turnstile must be "
         f"solved manually before submitting."

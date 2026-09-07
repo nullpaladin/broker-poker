@@ -72,9 +72,7 @@ async def main():
             print(f"{super_scraper.OOPS} math-captcha question not found/parseable")
 
         await asyncio.sleep(1)
-        await tab.take_screenshot(path="resources/screenshots/mrginc_dry_run.png")
-        print("Screenshot saved to resources/screenshots/mrginc_dry_run.png")
-
+        await SuperScraper.screenshot(tab, "resources/screenshots/mrginc_dry_run.png")
         if SuperScraper.DRY_RUN:
             print(f"DRY RUN: would submit request for {SuperScraper.FIRST_NAME} {SuperScraper.LAST_NAME}")
             return

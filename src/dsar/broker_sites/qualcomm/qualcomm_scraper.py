@@ -101,8 +101,7 @@ async def _submit_request(tab, req_aria, label, super_scraper):
         if submit_btn:
             await submit_btn.scroll_into_view()
         await asyncio.sleep(1)
-        await tab.take_screenshot(f"resources/screenshots/qualcomm_dry_run_{label}.png")
-        print(f"Screenshot saved to resources/screenshots/qualcomm_dry_run_{label}.png")
+        await SuperScraper.screenshot(tab, f"resources/screenshots/qualcomm_dry_run_{label}.png")
         return
 
     print(

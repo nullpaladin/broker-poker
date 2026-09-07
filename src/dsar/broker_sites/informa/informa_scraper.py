@@ -65,8 +65,7 @@ async def submit_request(tab, card_text, super_scraper):
         await email_field.type_text(SuperScraper.EMAIL)
 
     await asyncio.sleep(1)
-    await tab.take_screenshot(path=f"resources/screenshots/informa_dry_run_{label}.png")
-    print(f"Screenshot saved to resources/screenshots/informa_dry_run_{label}.png")
+    await SuperScraper.screenshot(tab, f"resources/screenshots/informa_dry_run_{label}.png")
     print(
         f"\n'{card_text}' ready but NOT sent — click 'Send Email' yourself, check your "
         "inbox for the verification link, click it, and complete whatever form follows "

@@ -89,8 +89,7 @@ async def submit_request(tab, right, super_scraper):
     label = right.lower().replace(" ", "_")
 
     await asyncio.sleep(1)
-    await tab.take_screenshot(path=f"resources/screenshots/mediawallah_dry_run_{label}.png")
-    print(f"Screenshot saved to resources/screenshots/mediawallah_dry_run_{label}.png")
+    await SuperScraper.screenshot(tab, f"resources/screenshots/mediawallah_dry_run_{label}.png")
     print(
         f"\n'{right}' request filled but NOT submitted — a reCAPTCHA v2 checkbox is present "
         "and requires a manual solve before submitting."

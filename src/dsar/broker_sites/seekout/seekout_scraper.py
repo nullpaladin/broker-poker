@@ -138,8 +138,7 @@ async def main():
             await _click_label(tab, super_scraper, choice)
 
         await asyncio.sleep(1)
-        await tab.take_screenshot(path="resources/screenshots/seekout_dry_run.png", beyond_viewport=True)
-        print("Screenshot saved to resources/screenshots/seekout_dry_run.png")
+        await SuperScraper.screenshot(tab, "resources/screenshots/seekout_dry_run.png", beyond_viewport=True)
         print(f"{choices} filled but NOT submitted — solve the reCAPTCHA manually, then Submit.")
 
 

@@ -34,8 +34,7 @@ async def submit_request(tab, op_value, label, super_scraper):
     if SuperScraper.DRY_RUN:
         print(f"DRY RUN: would submit '{op_value}' for {SuperScraper.EMAIL}")
         await asyncio.sleep(2)
-        await tab.take_screenshot(path=f"resources/screenshots/adara_dry_run_{label}.png")
-        print(f"Screenshot saved to resources/screenshots/adara_dry_run_{label}.png")
+        await SuperScraper.screenshot(tab, f"resources/screenshots/adara_dry_run_{label}.png")
         return
 
     await super_scraper.click_item_by_xpath(tab=tab, xpath=f"//input[@type='submit' and @value='{op_value}']", sleep=2)

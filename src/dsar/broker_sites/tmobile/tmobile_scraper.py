@@ -110,8 +110,7 @@ async def submit_request(tab, request_type, super_scraper):
 
     label = "".join(c if c.isalnum() else "_" for c in request_type.lower())[:40].strip("_")
     await asyncio.sleep(1)
-    await tab.take_screenshot(path=f"resources/screenshots/tmobile_dry_run_{label}.png")
-    print(f"Screenshot saved to resources/screenshots/tmobile_dry_run_{label}.png")
+    await SuperScraper.screenshot(tab, f"resources/screenshots/tmobile_dry_run_{label}.png")
     print(
         f"\n'{request_type}' request filled but NOT submitted — a reCAPTCHA v2 checkbox "
         "requires a manual solve before submitting."

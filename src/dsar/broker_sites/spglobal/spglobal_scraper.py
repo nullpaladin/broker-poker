@@ -30,14 +30,22 @@ from src.dsar.super_scraper import SuperScraper
 URL = "https://privacyportal.onetrust.com/webform/5cb57702-8ef7-437e-a62b-408fe78cd310/93391c3d-d6c8-45b1-a169-39a0b7f9fb74"
 DIVISION = "Not Sure"
 
-REQUEST_TYPES = [
-    ("Access Data", "access"),
-    ("Do Not Sell my information", "do_not_sell"),
-    ("Opt-Out of profiling in furtherance of decisions that produce legal / similarly significant effects", "opt_out_profiling"),
-    ("Obtain list of specific 3rd parties to which personal data was disclosed", "third_parties"),
-    ("Correct or update my data", "correct"),
-]
-DELETE_TYPE = ("Delete my data", "delete")
+# canonical right code -> (form option label, screenshot/label slug)
+RIGHT_MAP = {
+    "access": ("Access Data", "access"),
+    "opt_out_sale_share": ("Do Not Sell my information", "do_not_sell"),
+    "opt_out_profiling": (
+        "Opt-Out of profiling in furtherance of decisions that produce legal / similarly significant effects",
+        "opt_out_profiling",
+    ),
+    "know_third_parties": (
+        "Obtain list of specific 3rd parties to which personal data was disclosed",
+        "third_parties",
+    ),
+    "correct": ("Correct or update my data", "correct"),
+    "delete": ("Delete my data", "delete"),
+}
+RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
 
 
 async def _field_value(field):
@@ -89,7 +97,7 @@ async def _click_listbox_option(tab, aria_label):
     return False
 
 
-async def submit_request(tab, request_type, label, super_scraper):
+async def submit_request(tab, request_type, label, super_scraper, code):
     await tab.go_to(URL)
     await asyncio.sleep(9)
 
@@ -136,10 +144,7 @@ async def submit_request(tab, request_type, label, super_scraper):
 
     details = await tab.find(id="requestDetailsDSARElement", raise_exc=False)
     if details:
-        await details.type_text(
-            f"I am a {SuperScraper.STATE} resident exercising my privacy rights under the "
-            f"Minnesota Consumer Data Privacy Act. Request: {request_type}."
-        )
+        await details.type_text(SuperScraper.request_statement([code], broker="S&P Global"))
 
     time.sleep(0.5)
     submit_btn = await tab.find(id="dsar-webform-submit-button", raise_exc=False)
@@ -170,14 +175,16 @@ async def main():
     options.binary_location = super_scraper.CHROMIUM_LOCATION
     options.add_argument("--no-sandbox")
 
-    request_types = list(REQUEST_TYPES)
-    if SuperScraper.REMOVE_INFORMATION:
-        request_types.append(DELETE_TYPE)
+    codes = SuperScraper.rights_to_exercise(RIGHT_MAP)
+    if not codes:
+        print("No requested privacy rights apply to this form — nothing to do.")
+        return
 
     async with Chrome(options=options) as browser:
         tab = await browser.start()
-        for request_type, label in request_types:
-            await submit_request(tab, request_type, label, super_scraper)
+        for code in codes:
+            request_type, label = RIGHT_MAP[code]
+            await submit_request(tab, request_type, label, super_scraper, code)
 
 
 asyncio.run(main())

@@ -11,11 +11,12 @@ from pydoll.browser.options import ChromiumOptions
 # Server-rendered POST form. No captcha. Only requires email.
 BASE_URL = "https://udp.33across.com/udp_opt_out/submit_request?type={}"
 
-REQUESTS = [
-    ("access",    "Right to Access"),
-    ("donotsell", "Do Not Sell / Share"),
-]
-DELETE_REQUEST = ("delete", "Right to Delete")
+RIGHT_MAP = {
+    "access":              ("access",    "Right to Access"),
+    "opt_out_sale_share":  ("donotsell", "Do Not Sell / Share"),
+    "delete":              ("delete",    "Right to Delete"),
+}
+RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
 
 EMAIL_XPATH = '//input[@id="email"]'
 
@@ -56,13 +57,15 @@ async def main():
     options.binary_location = super_scraper.CHROMIUM_LOCATION
     options.add_argument("--no-sandbox")
 
-    requests = list(REQUESTS)
-    if SuperScraper.REMOVE_INFORMATION:
-        requests.append(DELETE_REQUEST)
+    codes = SuperScraper.rights_to_exercise(RIGHT_MAP)
+    if not codes:
+        print("No requested privacy rights apply to this form — nothing to do.")
+        return
 
     async with Chrome(options=options) as browser:
         tab = await browser.start()
-        for request_type, label in requests:
+        for code in codes:
+            request_type, label = RIGHT_MAP[code]
             await submit_request(tab, request_type, label, super_scraper)
 
 

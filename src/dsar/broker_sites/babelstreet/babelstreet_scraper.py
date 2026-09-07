@@ -18,14 +18,18 @@ from src.dsar.super_scraper import SuperScraper
 
 URL = "https://privacyportal.onetrust.com/webform/43f52ed9-df36-44dc-94b6-ce2f8458ca29/2ddc0d62-7d6a-4de2-b5c4-9f9f68116970"
 
-BASE_REQUEST_TYPES = [
-    "Access My Data",
-    "Edit / Update My Data",
-    "Object to Processing",
-    "Data Portability",
-    "Do Not Sell or Share My Personal Information",
-]
-DELETE_REQUEST_TYPE = "Delete My Data"
+# "Object to Processing" has no exact canonical code — it rides along with any
+# sale/share, targeted-ads, or profiling opt-out.
+RIGHT_MAP = {
+    "access": ["Access My Data"],
+    "correct": ["Edit / Update My Data"],
+    "portability": ["Data Portability"],
+    "opt_out_sale_share": ["Do Not Sell or Share My Personal Information", "Object to Processing"],
+    "opt_out_targeted_ads": ["Object to Processing"],
+    "opt_out_profiling": ["Object to Processing"],
+    "delete": ["Delete My Data"],
+}
+RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
 
 
 async def _select_autocomplete(tab, field_id, search_text):
@@ -50,9 +54,11 @@ async def main():
     options.binary_location = super_scraper.CHROMIUM_LOCATION
     options.add_argument("--no-sandbox")
 
-    request_types = list(BASE_REQUEST_TYPES)
-    if SuperScraper.REMOVE_INFORMATION:
-        request_types.append(DELETE_REQUEST_TYPE)
+    codes = SuperScraper.rights_to_exercise(RIGHT_MAP)
+    if not codes:
+        print("No requested privacy rights apply to this form — nothing to do.")
+        return
+    request_types = list(dict.fromkeys(rt for c in codes for rt in RIGHT_MAP[c]))
 
     async with Chrome(options=options) as browser:
         tab = await browser.start()

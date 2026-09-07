@@ -18,12 +18,13 @@ from src.dsar.super_scraper import SuperScraper
 
 URL = "https://blackbaud-privacy.my.onetrust.com/webform/170c909c-5ed2-49f1-a59c-2a44be2f6f27/de22df57-d96c-480a-afb0-ac090b928192"
 
-BASE_REQUEST_TYPES = [
-    "Data Subject Access Request",
-    "Data Subject Opt-out Request",
-    "Data Subject Correction Request",
-]
-DELETE_REQUEST_TYPE = "Data Subject Deletion Request"
+RIGHT_MAP = {
+    "access": ["Data Subject Access Request"],
+    "opt_out_sale_share": ["Data Subject Opt-out Request"],
+    "correct": ["Data Subject Correction Request"],
+    "delete": ["Data Subject Deletion Request"],
+}
+RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
 
 
 async def _select_autocomplete(tab, field_id, search_text):
@@ -48,9 +49,11 @@ async def main():
     options.binary_location = super_scraper.CHROMIUM_LOCATION
     options.add_argument("--no-sandbox")
 
-    request_types = list(BASE_REQUEST_TYPES)
-    if SuperScraper.REMOVE_INFORMATION:
-        request_types.append(DELETE_REQUEST_TYPE)
+    codes = SuperScraper.rights_to_exercise(RIGHT_MAP)
+    if not codes:
+        print("No requested privacy rights apply to this form — nothing to do.")
+        return
+    request_types = list(dict.fromkeys(rt for c in codes for rt in RIGHT_MAP[c]))
 
     async with Chrome(options=options) as browser:
         tab = await browser.start()

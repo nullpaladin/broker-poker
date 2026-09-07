@@ -20,10 +20,11 @@ from src.dsar.super_scraper import SuperScraper
 
 URL = "https://privacyportal.onetrust.com/webform/18c06089-a9ec-473c-a6d8-23d20fea46af/43201dea-88d7-44cd-9142-e5b4f485e428"
 
-REQUESTS = [
-    ("Access My Personal Information (Request to Know)", "access"),
-]
-DELETE_REQUEST = ("Request for Deletion", "delete")
+RIGHT_MAP = {
+    "access": [("Access My Personal Information (Request to Know)", "access")],
+    "delete": [("Request for Deletion", "delete")],
+}
+RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
 
 
 async def _field_value(field):
@@ -133,9 +134,11 @@ async def main():
     options.binary_location = super_scraper.CHROMIUM_LOCATION
     options.add_argument("--no-sandbox")
 
-    requests = list(REQUESTS)
-    if SuperScraper.REMOVE_INFORMATION:
-        requests.append(DELETE_REQUEST)
+    codes = SuperScraper.rights_to_exercise(RIGHT_MAP)
+    if not codes:
+        print("No requested privacy rights apply to this form — nothing to do.")
+        return
+    requests = [entry for code in codes for entry in RIGHT_MAP[code]]
 
     async with Chrome(options=options) as browser:
         tab = await browser.start()

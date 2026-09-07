@@ -25,10 +25,11 @@ from src.dsar.super_scraper import SuperScraper
 URL = "https://statara.com/consumerdeletion/"
 
 # (page-2 radio choice id, screenshot label)
-REQUESTS = [
-    ("choice_5_16_0", "access"),   # The Right to Know or Access your personal information
-]
-DELETE_REQUEST = ("choice_5_16_1", "delete")  # The Right to Delete your personal information
+RIGHT_MAP = {
+    "access": [("choice_5_16_0", "access")],
+    "delete": [("choice_5_16_1", "delete")],
+}
+RIGHTS_SUPPORTED = tuple(RIGHT_MAP)  # The Right to Delete your personal information
 
 
 async def _select_native_by_text(tab, xpath, match_text):
@@ -128,9 +129,11 @@ async def main():
     options.binary_location = super_scraper.CHROMIUM_LOCATION
     options.add_argument("--no-sandbox")
 
-    requests = list(REQUESTS)
-    if SuperScraper.REMOVE_INFORMATION:
-        requests.append(DELETE_REQUEST)
+    codes = SuperScraper.rights_to_exercise(RIGHT_MAP)
+    if not codes:
+        print("No requested privacy rights apply to this form — nothing to do.")
+        return
+    requests = [entry for code in codes for entry in RIGHT_MAP[code]]
 
     async with Chrome(options=options) as browser:
         tab = await browser.start()

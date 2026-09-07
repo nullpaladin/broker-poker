@@ -30,11 +30,14 @@ URL = (
     "2159c482-749a-49db-916b-475017a9efa5/855e3b71-3dd3-4546-977c-88c7430ade09.html"
 )
 
-RIGHTS = [
-    ("Request a Copy of My Personal Information", "access"),
-    ("Request More Information about How Synapse Processes My Personal Information", "info"),
-]
-DELETE_RIGHT = ("Request Deletion of My Personal Information", "delete")
+RIGHT_MAP = {
+    "access": [
+        ("Request a Copy of My Personal Information", "access"),
+        ("Request More Information about How Synapse Processes My Personal Information", "info"),
+    ],
+    "delete": [("Request Deletion of My Personal Information", "delete")],
+}
+RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
 
 
 async def _pick(tab, super_scraper, label):
@@ -88,9 +91,11 @@ async def main():
     options.binary_location = super_scraper.CHROMIUM_LOCATION
     options.add_argument("--no-sandbox")
 
-    rights = list(RIGHTS)
-    if SuperScraper.REMOVE_INFORMATION:
-        rights.append(DELETE_RIGHT)
+    codes = SuperScraper.rights_to_exercise(RIGHT_MAP)
+    if not codes:
+        print("No requested privacy rights apply to this form — nothing to do.")
+        return
+    rights = [entry for code in codes for entry in RIGHT_MAP[code]]
 
     async with Chrome(options=options) as browser:
         tab = await browser.start()

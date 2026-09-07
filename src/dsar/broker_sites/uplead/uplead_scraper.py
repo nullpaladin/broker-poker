@@ -20,8 +20,11 @@ from pydoll.browser.options import ChromiumOptions
 
 URL = "https://www.uplead.com/opt-out/"
 
-REQUEST_TYPES = ["Request my Information"]
-DELETE_REQUEST_TYPE = "Delete my Information"
+RIGHT_MAP = {
+    "access": ["Request my Information"],
+    "delete": ["Delete my Information"],
+}
+RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
 
 
 async def _select_native_option(select_element, option_value):
@@ -79,9 +82,11 @@ async def main():
     options.binary_location = super_scraper.CHROMIUM_LOCATION
     options.add_argument("--no-sandbox")
 
-    request_types = list(REQUEST_TYPES)
-    if SuperScraper.REMOVE_INFORMATION:
-        request_types.append(DELETE_REQUEST_TYPE)
+    codes = SuperScraper.rights_to_exercise(RIGHT_MAP)
+    if not codes:
+        print("No requested privacy rights apply to this form — nothing to do.")
+        return
+    request_types = [entry for code in codes for entry in RIGHT_MAP[code]]
 
     async with Chrome(options=options) as browser:
         tab = await browser.start()

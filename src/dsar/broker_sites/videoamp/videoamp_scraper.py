@@ -23,12 +23,14 @@ from pydoll.browser.options import ChromiumOptions
 
 URL = "https://videoamp.com/your-privacy-choices"
 
-RIGHTS = [
-    "Request to Know/Access Your Personal Information",
-    "Request to Know to Specific Third Parties We Share Your Personal Information With",
-    "Request to Opt Out of Sales/Shares/Targeted Advertising",
-]
-DELETE_RIGHT = "Request to Delete Your Personal Information"
+RIGHT_MAP = {
+    "access": ["Request to Know/Access Your Personal Information"],
+    "know_third_parties": ["Request to Know to Specific Third Parties We Share Your Personal Information With"],
+    "opt_out_sale_share": ["Request to Opt Out of Sales/Shares/Targeted Advertising"],
+    "opt_out_targeted_ads": ["Request to Opt Out of Sales/Shares/Targeted Advertising"],
+    "delete": ["Request to Delete Your Personal Information"],
+}
+RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
 
 
 async def _select_native_option(select_element, option_value):
@@ -93,9 +95,11 @@ async def main():
     options.binary_location = super_scraper.CHROMIUM_LOCATION
     options.add_argument("--no-sandbox")
 
-    rights = list(RIGHTS)
-    if SuperScraper.REMOVE_INFORMATION:
-        rights.append(DELETE_RIGHT)
+    codes = SuperScraper.rights_to_exercise(RIGHT_MAP)
+    if not codes:
+        print("No requested privacy rights apply to this form — nothing to do.")
+        return
+    rights = [entry for code in codes for entry in RIGHT_MAP[code]]
 
     async with Chrome(options=options) as browser:
         tab = await browser.start()

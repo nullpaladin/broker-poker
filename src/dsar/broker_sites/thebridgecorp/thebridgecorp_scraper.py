@@ -23,8 +23,12 @@ from src.dsar.super_scraper import SuperScraper
 
 URL = "https://www.thebridgecorp.com/opt-out/"
 
-REQUEST_TYPES = ["Request Information", "Opt Out"]
-DELETE_TYPE = "Delete My Record"
+RIGHT_MAP = {
+    "access": ["Request Information"],
+    "opt_out_sale_share": ["Opt Out"],
+    "delete": ["Delete My Record"],
+}
+RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
 
 
 async def main():
@@ -34,9 +38,11 @@ async def main():
     options.add_argument("--no-sandbox")
 
     full_name = " ".join(p for p in (SuperScraper.FIRST_NAME, SuperScraper.LAST_NAME) if p)
-    request_types = list(REQUEST_TYPES)
-    if SuperScraper.REMOVE_INFORMATION:
-        request_types.append(DELETE_TYPE)
+    codes = SuperScraper.rights_to_exercise(RIGHT_MAP)
+    if not codes:
+        print("No requested privacy rights apply to this form — nothing to do.")
+        return
+    request_types = [entry for code in codes for entry in RIGHT_MAP[code]]
 
     async with Chrome(options=options) as browser:
         tab = await browser.start()

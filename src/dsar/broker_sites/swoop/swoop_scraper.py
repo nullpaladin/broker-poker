@@ -22,14 +22,15 @@ from src.dsar.super_scraper import SuperScraper
 
 URL = "https://my.datasubject.com/16A0AaT1hE8CL2xPu/19933"
 
-RIGHTS = [
-    ("Access or Request to Know", "access"),
-    ("Opt-Out Request", "opt_out"),
-    ("Transfer my personal information", "portability"),
-    ("Third parties your data was sold or shared with", "third_parties"),
-    ("Automated Decision-Making", "adm"),
-]
-DELETE_RIGHT = ("Delete my personal information", "delete")
+RIGHT_MAP = {
+    "access": [("Access or Request to Know", "access")],
+    "opt_out_sale_share": [("Opt-Out Request", "opt_out")],
+    "portability": [("Transfer my personal information", "portability")],
+    "know_third_parties": [("Third parties your data was sold or shared with", "third_parties")],
+    "opt_out_profiling": [("Automated Decision-Making", "adm")],
+    "delete": [("Delete my personal information", "delete")],
+}
+RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
 
 FIELDS = {
     "given-name": "FIRST_NAME",
@@ -89,9 +90,11 @@ async def main():
     options.binary_location = super_scraper.CHROMIUM_LOCATION
     options.add_argument("--no-sandbox")
 
-    rights = list(RIGHTS)
-    if SuperScraper.REMOVE_INFORMATION:
-        rights.append(DELETE_RIGHT)
+    codes = SuperScraper.rights_to_exercise(RIGHT_MAP)
+    if not codes:
+        print("No requested privacy rights apply to this form — nothing to do.")
+        return
+    rights = [entry for code in codes for entry in RIGHT_MAP[code]]
 
     async with Chrome(options=options) as browser:
         tab = await browser.start()

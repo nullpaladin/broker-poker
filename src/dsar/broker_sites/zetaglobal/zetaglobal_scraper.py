@@ -23,13 +23,16 @@ URL = (
     "d0720d0f-d427-4a7d-a773-5d6793229f15.html"
 )
 
-REQUEST_TYPES = [
-    "Request a copy of identifiable information that relates to me",
-    "Opt out of receiving email from Zeta on behalf of its clients",
-    "Do not sell or share my identifiable information",
-    "Opt out of Zeta using sensitive information that relates to me",
-]
-DELETE_REQUEST_TYPE = "Delete identifiable information that relates to me"
+RIGHT_MAP = {
+    "access": ["Request a copy of identifiable information that relates to me"],
+    "opt_out_sale_share": [
+        "Do not sell or share my identifiable information",
+        "Opt out of receiving email from Zeta on behalf of its clients",
+    ],
+    "limit_sensitive_pi": ["Opt out of Zeta using sensitive information that relates to me"],
+    "delete": ["Delete identifiable information that relates to me"],
+}
+RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
 
 
 async def _select_option(tab, option_text, super_scraper, description):
@@ -47,9 +50,11 @@ async def main():
     options.binary_location = super_scraper.CHROMIUM_LOCATION
     options.add_argument("--no-sandbox")
 
-    request_types = list(REQUEST_TYPES)
-    if SuperScraper.REMOVE_INFORMATION:
-        request_types.append(DELETE_REQUEST_TYPE)
+    codes = SuperScraper.rights_to_exercise(RIGHT_MAP)
+    if not codes:
+        print("No requested privacy rights apply to this form — nothing to do.")
+        return
+    request_types = [entry for code in codes for entry in RIGHT_MAP[code]]
 
     async with Chrome(options=options) as browser:
         tab = await browser.start()

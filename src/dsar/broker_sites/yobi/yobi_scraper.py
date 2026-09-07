@@ -20,13 +20,13 @@ from src.dsar.super_scraper import SuperScraper
 
 URL = "https://www.yobi.ai/opt-out"
 
-RIGHTS = [
-    "Access My Information",
-    "Do Not Sell My Information",
-    "Object or Restrict the Processing of My Data",
-    "Move My Data",
-]
-DELETE_RIGHT = "Delete My Information"
+RIGHT_MAP = {
+    "access": ["Access My Information"],
+    "portability": ["Move My Data"],
+    "opt_out_sale_share": ["Do Not Sell My Information", "Object or Restrict the Processing of My Data"],
+    "delete": ["Delete My Information"],
+}
+RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
 
 
 def _dob_iso():
@@ -81,9 +81,11 @@ async def main():
         if myself:
             await myself.click()
 
-        rights = list(RIGHTS)
-        if SuperScraper.REMOVE_INFORMATION:
-            rights.append(DELETE_RIGHT)
+        codes = SuperScraper.rights_to_exercise(RIGHT_MAP)
+        if not codes:
+            print("No requested privacy rights apply to this form — nothing to do.")
+            return
+        rights = [entry for code in codes for entry in RIGHT_MAP[code]]
         for value in rights:
             box = await tab.find(
                 xpath=f"//input[@name='select_the_right_s__you_want_to_exercise_' and @value={value!r}]",

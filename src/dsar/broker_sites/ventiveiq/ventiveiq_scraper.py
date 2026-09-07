@@ -30,8 +30,13 @@ URL = (
     "&formid=4348f332-6917-4566-8c56-6fc9eb57097f&status=publish"
 )
 
-REQUEST_TYPES = ["Data Processing", "Data Portability", "Opt out", "Info Request"]
-DELETE_REQUEST_TYPE = "Data Deletion"
+RIGHT_MAP = {
+    "access": ["Info Request"],
+    "portability": ["Data Portability"],
+    "opt_out_sale_share": ["Opt out", "Data Processing"],
+    "delete": ["Data Deletion"],
+}
+RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
 
 
 def _field_by_label_xpath(label_text, tag="input"):
@@ -130,9 +135,11 @@ async def main():
     options.binary_location = super_scraper.CHROMIUM_LOCATION
     options.add_argument("--no-sandbox")
 
-    request_types = list(REQUEST_TYPES)
-    if SuperScraper.REMOVE_INFORMATION:
-        request_types.append(DELETE_REQUEST_TYPE)
+    codes = SuperScraper.rights_to_exercise(RIGHT_MAP)
+    if not codes:
+        print("No requested privacy rights apply to this form — nothing to do.")
+        return
+    request_types = [entry for code in codes for entry in RIGHT_MAP[code]]
 
     async with Chrome(options=options) as browser:
         tab = await browser.start()

@@ -130,7 +130,6 @@ async def main():
     super_scraper = SuperScraper()
     options.binary_location = super_scraper.CHROMIUM_LOCATION
     options.add_argument("--no-sandbox")
-    options.add_argument("--window-size=1280,4000")
 
     if not SuperScraper.LAST_FOUR_SSN:
         print("LAST_FOUR_SSN is required for ididata.com — set it in .env and retry.")

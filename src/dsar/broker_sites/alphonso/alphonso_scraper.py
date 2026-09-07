@@ -56,7 +56,6 @@ async def main():
     super_scraper = SuperScraper()
     options.binary_location = super_scraper.CHROMIUM_LOCATION
     options.add_argument("--no-sandbox")
-    options.add_argument("--window-size=1280,1800")
 
     other_msg = (
         "I request access to the personal information Alphonso holds about me "

@@ -137,7 +137,6 @@ async def main():
     super_scraper = SuperScraper()
     opts.binary_location = super_scraper.CHROMIUM_LOCATION
     opts.add_argument("--no-sandbox")
-    opts.add_argument("--window-size=1280,3000")
 
     requests = list(ALWAYS_REQUESTS)
     if SuperScraper.REMOVE_INFORMATION:

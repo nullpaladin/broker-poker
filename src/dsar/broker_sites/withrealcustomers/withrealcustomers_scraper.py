@@ -44,7 +44,6 @@ async def main():
     super_scraper = SuperScraper()
     options.binary_location = super_scraper.CHROMIUM_LOCATION
     options.add_argument("--no-sandbox")
-    options.add_argument("--window-size=1280,2600")
 
     full_name = " ".join(p for p in (SuperScraper.FIRST_NAME, SuperScraper.LAST_NAME) if p)
     request_types = list(REQUEST_TYPES)

@@ -143,7 +143,6 @@ async def main():
     super_scraper = SuperScraper()
     options.binary_location = super_scraper.CHROMIUM_LOCATION
     options.add_argument("--no-sandbox")
-    options.add_argument("--window-size=1280,3000")
 
     # (aria-label, screenshot label)
     requests = [("Data Request", "access")]

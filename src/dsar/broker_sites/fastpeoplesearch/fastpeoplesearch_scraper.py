@@ -20,7 +20,6 @@ async def main():
     super_scraper = SuperScraper()
     opts.binary_location = super_scraper.CHROMIUM_LOCATION
     opts.add_argument("--no-sandbox")
-    opts.add_argument("--window-size=1280,900")
 
     async with Chrome(options=opts) as browser:
         tab = await browser.start()

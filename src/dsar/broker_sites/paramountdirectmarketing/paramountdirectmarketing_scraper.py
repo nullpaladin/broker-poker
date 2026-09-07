@@ -21,6 +21,9 @@ from pydoll.browser.options import ChromiumOptions
 
 URL = "https://paramountdirectmarketing.com/do-not-sell-non-ca"
 
+RIGHT_MAP = {"opt_out_sale_share": ["optOut"], "delete": ["deleteInfo"]}
+RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
+
 
 async def main():
     options = ChromiumOptions()
@@ -40,9 +43,11 @@ async def main():
         else:
             print(f"{super_scraper.OOPS} 'I am submitting this request for myself' option not found")
 
-        checkbox_ids = ["optOut"]
-        if SuperScraper.REMOVE_INFORMATION:
-            checkbox_ids.append("deleteInfo")
+        codes = SuperScraper.rights_to_exercise(RIGHT_MAP)
+        if not codes:
+            print("No requested privacy rights apply to this form — nothing to do.")
+            return
+        checkbox_ids = [cb for code in codes for cb in RIGHT_MAP[code]]
         for checkbox_id in checkbox_ids:
             checkbox = await tab.find(id=checkbox_id, raise_exc=False)
             if checkbox:

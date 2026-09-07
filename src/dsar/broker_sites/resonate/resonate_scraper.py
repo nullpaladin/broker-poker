@@ -24,8 +24,12 @@ from pydoll.browser.options import ChromiumOptions
 
 URL = "https://optout-form.reson8.com/"
 
-CHECKBOX_VALUES = ["aboutInfoRequested", "optOutRequested"]
-DELETE_CHECKBOX_VALUE = "deleteDataRequested"
+RIGHT_MAP = {
+    "access": ["aboutInfoRequested"],
+    "opt_out_sale_share": ["optOutRequested"],
+    "delete": ["deleteDataRequested"],
+}
+RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
 
 
 async def main():
@@ -63,9 +67,11 @@ async def main():
         else:
             print(f"{super_scraper.OOPS} State select not found")
 
-        checkbox_values = list(CHECKBOX_VALUES)
-        if SuperScraper.REMOVE_INFORMATION:
-            checkbox_values.append(DELETE_CHECKBOX_VALUE)
+        codes = SuperScraper.rights_to_exercise(RIGHT_MAP)
+        if not codes:
+            print("No requested privacy rights apply to this form — nothing to do.")
+            return
+        checkbox_values = [entry for code in codes for entry in RIGHT_MAP[code]]
         for value in checkbox_values:
             checkbox = await tab.find(xpath=f"//input[@name='{value}']", raise_exc=False)
             if checkbox:

@@ -16,14 +16,17 @@ from src.dsar.super_scraper import SuperScraper
 
 URL = "https://privacyportal.onetrust.com/webform/76394770-3c6c-4d28-a57b-18817b0a8e3f/2bbd01a5-983c-440b-9fd5-fd341c9326a1"
 
-ALWAYS_REQUESTS = [
-    ("A copy of your personal information/Right to Data Portability", "access"),
-    ("Correct your personal information",                              "correct"),
-    ("Do Not Sell/Share your personal information",                    "optout"),
-    ("Opt-out of Processing Sensitive Data",                           "sensitive"),
-    ("Opt-Out of Automated Decision-Making and Profiling/Opt-out of Targeted Advertising", "profiling"),
-]
-DELETE_REQUEST = ("Delete your personal information", "delete")
+RIGHT_MAP = {
+    "access": [("A copy of your personal information/Right to Data Portability", "access")],
+    "portability": [("A copy of your personal information/Right to Data Portability", "access")],
+    "correct": [("Correct your personal information", "correct")],
+    "opt_out_sale_share": [("Do Not Sell/Share your personal information", "optout")],
+    "limit_sensitive_pi": [("Opt-out of Processing Sensitive Data", "sensitive")],
+    "opt_out_profiling": [("Opt-Out of Automated Decision-Making and Profiling/Opt-out of Targeted Advertising", "profiling")],
+    "opt_out_targeted_ads": [("Opt-Out of Automated Decision-Making and Profiling/Opt-out of Targeted Advertising", "profiling")],
+    "delete": [("Delete your personal information", "delete")],
+}
+RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
 
 
 async def _autocomplete(tab, field_id, text):
@@ -113,9 +116,11 @@ async def main():
     options.binary_location = super_scraper.CHROMIUM_LOCATION
     options.add_argument("--no-sandbox")
 
-    requests = list(ALWAYS_REQUESTS)
-    if SuperScraper.REMOVE_INFORMATION:
-        requests.append(DELETE_REQUEST)
+    codes = SuperScraper.rights_to_exercise(RIGHT_MAP)
+    if not codes:
+        print("No requested privacy rights apply to this form — nothing to do.")
+        return
+    requests = [entry for code in codes for entry in RIGHT_MAP[code]]
 
     async with Chrome(options=options) as browser:
         tab = await browser.start()

@@ -46,7 +46,13 @@ NOT_AUTOMATABLE_REASON = (
     "submission requires an emailed 8-digit verification code (OTP)"
 )
 
-DELETE_RIGHT = "delete and opt out"
+# This form's only request for a non-enumerated-state resident bundles deletion
+# WITH opt-out — there is no separate access/opt-out-only option.
+RIGHT_MAP = {
+    "delete": ["delete and opt out"],
+    "opt_out_sale_share": ["delete and opt out"],
+}
+RIGHTS_SUPPORTED = ("delete", "opt_out_sale_share")
 
 
 async def _select_by_value(select_element, value):
@@ -132,18 +138,17 @@ async def main():
     options.binary_location = super_scraper.CHROMIUM_LOCATION
     options.add_argument("--no-sandbox")
 
-    if not SuperScraper.REMOVE_INFORMATION:
+    if not SuperScraper.rights_to_exercise(RIGHT_MAP):
         print(
-            "For a non-enumerated-state resident (this scraper always selects 'Any other "
-            "state'), this form's only available request bundles deletion with opt-out — "
-            "there is no separate Access/Opt-Out-only option. REMOVE_INFORMATION is False, "
-            "so there is nothing to submit."
+            "This form's only available request bundles deletion with opt-out. Neither "
+            "'delete' (with REMOVE_INFORMATION) nor 'opt_out_sale_share' is requested, so "
+            "there is nothing to submit."
         )
         return
 
     async with Chrome(options=options) as browser:
         tab = await browser.start()
-        await submit_request(tab, DELETE_RIGHT, super_scraper)
+        await submit_request(tab, "delete and opt out", super_scraper)
 
 
 asyncio.run(main())

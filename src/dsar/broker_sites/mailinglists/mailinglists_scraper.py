@@ -22,6 +22,12 @@ URL = "https://41b1vr.share-na2.hsforms.com/2mF48cI-GSjaSTP9FG8gkjA"
 OPT_OUT_INDEX = 0
 DELETE_INDEX = 1
 
+RIGHT_MAP = {
+    "opt_out_sale_share": [(OPT_OUT_INDEX, "opt_out")],
+    "delete": [(DELETE_INDEX, "delete")],
+}
+RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
+
 
 async def submit_request(tab, radio_index, label, super_scraper):
     await tab.go_to(URL)
@@ -80,9 +86,11 @@ async def main():
     options.binary_location = super_scraper.CHROMIUM_LOCATION
     options.add_argument("--no-sandbox")
 
-    requests = [(OPT_OUT_INDEX, "opt_out")]
-    if SuperScraper.REMOVE_INFORMATION:
-        requests.append((DELETE_INDEX, "delete"))
+    codes = SuperScraper.rights_to_exercise(RIGHT_MAP)
+    if not codes:
+        print("No requested privacy rights apply to this form — nothing to do.")
+        return
+    requests = [entry for code in codes for entry in RIGHT_MAP[code]]
 
     async with Chrome(options=options) as browser:
         tab = await browser.start()

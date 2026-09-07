@@ -23,6 +23,9 @@ from pydoll.browser.options import ChromiumOptions
 
 URL = "https://www.statsocial.com/optout/"
 
+RIGHT_MAP = {"opt_out_sale_share": ["optout_personal_data"], "delete": ["delete_personal_data"]}
+RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
+
 
 async def _select_native_option(select_element, option_value):
     await select_element.execute_script(
@@ -73,9 +76,11 @@ async def main():
         else:
             print(f"{super_scraper.OOPS} State select not found")
 
-        preference_values = ["optout_personal_data"]
-        if SuperScraper.REMOVE_INFORMATION:
-            preference_values.append("delete_personal_data")
+        codes = SuperScraper.rights_to_exercise(RIGHT_MAP)
+        if not codes:
+            print("No requested privacy rights apply to this form — nothing to do.")
+            return
+        preference_values = [cb for code in codes for cb in RIGHT_MAP[code]]
         for value in preference_values:
             checkbox = await tab.find(xpath=f"//input[@value='{value}']", raise_exc=False)
             if checkbox:

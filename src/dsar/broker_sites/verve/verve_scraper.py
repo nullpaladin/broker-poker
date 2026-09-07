@@ -24,13 +24,13 @@ from pydoll.browser.options import ChromiumOptions
 
 URL = "https://verve.com/data-subject-request-form/"
 
-REQUEST_TYPE_IDS = [
-    "field_ebdv3-1",  # Info Request
-    "field_ebdv3-4",  # Data Access
-    "field_ebdv3-5",  # Do Not Sell or Share My Personal Information
-    "field_ebdv3-6",  # Limit the Use of My Sensitive Personal Information
-]
-DELETE_REQUEST_TYPE_ID = "field_ebdv3-2"  # Data Deletion
+RIGHT_MAP = {
+    "access": ["field_ebdv3-1", "field_ebdv3-4"],
+    "opt_out_sale_share": ["field_ebdv3-5"],
+    "limit_sensitive_pi": ["field_ebdv3-6"],
+    "delete": ["field_ebdv3-2"],
+}
+RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
 
 
 async def main():
@@ -39,9 +39,11 @@ async def main():
     options.binary_location = super_scraper.CHROMIUM_LOCATION
     options.add_argument("--no-sandbox")
 
-    request_type_ids = list(REQUEST_TYPE_IDS)
-    if SuperScraper.REMOVE_INFORMATION:
-        request_type_ids.append(DELETE_REQUEST_TYPE_ID)
+    codes = SuperScraper.rights_to_exercise(RIGHT_MAP)
+    if not codes:
+        print("No requested privacy rights apply to this form — nothing to do.")
+        return
+    request_type_ids = [entry for code in codes for entry in RIGHT_MAP[code]]
 
     async with Chrome(options=options) as browser:
         tab = await browser.start()

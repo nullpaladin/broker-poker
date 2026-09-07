@@ -17,12 +17,13 @@ URL = "https://www.enformion.com/opt-out/"
 
 # (dropdown_value, label, has_extended_fields)
 # "correct" form adds phone/address/city/state/zip/dob fields.
-FORMS = [
-    ("optOut",  "Do Not Sell / Right to Opt-out", False),
-    ("access",  "Right to Know",                  False),
-    ("correct", "Right to Correct",               True),
-]
-DELETE_FORM = ("delete", "Right to Delete", False)
+RIGHT_MAP = {
+    "opt_out_sale_share": [("optOut", "Do Not Sell / Right to Opt-out", False)],
+    "access": [("access", "Right to Know", False)],
+    "correct": [("correct", "Right to Correct", True)],
+    "delete": [("delete", "Right to Delete", False)],
+}
+RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
 
 
 def _js_set(selector, value):
@@ -121,9 +122,11 @@ async def main():
     options.binary_location = super_scraper.CHROMIUM_LOCATION
     options.add_argument("--no-sandbox")
 
-    forms = list(FORMS)
-    if SuperScraper.REMOVE_INFORMATION:
-        forms.append(DELETE_FORM)
+    codes = SuperScraper.rights_to_exercise(RIGHT_MAP)
+    if not codes:
+        print("No requested privacy rights apply to this form — nothing to do.")
+        return
+    forms = [entry for code in codes for entry in RIGHT_MAP[code]]
 
     async with Chrome(options=options) as browser:
         tab = await browser.start()

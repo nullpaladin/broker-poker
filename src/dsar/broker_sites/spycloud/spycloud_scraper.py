@@ -18,14 +18,15 @@ from src.dsar.super_scraper import SuperScraper
 
 URL = "https://my.datasubject.com/169m4FTnIOxju2VXg/28523"
 
-ALWAYS_RIGHTS = [
-    "Summarize my personal information",
-    "Do Not Sell or Share to a Third Party",
-    "Correct my personal information",
-    "Don't use my personal information for advertising",
-    "Opt Out of Profiling / Automated Decision-Making",
-]
-DELETE_RIGHT = "Delete my personal information"
+RIGHT_MAP = {
+    "access": ["Summarize my personal information"],
+    "correct": ["Correct my personal information"],
+    "opt_out_sale_share": ["Do Not Sell or Share to a Third Party"],
+    "opt_out_targeted_ads": ["Don't use my personal information for advertising"],
+    "opt_out_profiling": ["Opt Out of Profiling / Automated Decision-Making"],
+    "delete": ["Delete my personal information"],
+}
+RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
 
 
 async def _fill_step2(tab, super_scraper):
@@ -65,9 +66,11 @@ async def main():
     options.binary_location = super_scraper.CHROMIUM_LOCATION
     options.add_argument("--no-sandbox")
 
-    rights = list(ALWAYS_RIGHTS)
-    if SuperScraper.REMOVE_INFORMATION:
-        rights.append(DELETE_RIGHT)
+    codes = SuperScraper.rights_to_exercise(RIGHT_MAP)
+    if not codes:
+        print("No requested privacy rights apply to this form — nothing to do.")
+        return
+    rights = [entry for code in codes for entry in RIGHT_MAP[code]]
 
     async with Chrome(options=options) as browser:
         tab = await browser.start()

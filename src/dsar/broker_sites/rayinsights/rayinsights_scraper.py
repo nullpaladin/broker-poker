@@ -30,6 +30,9 @@ from pydoll.browser.options import ChromiumOptions
 OPT_OUT_URL = "https://www.rayinsights.com/ray-cdp-opt-out-and-delete-request/"
 DATA_REQUEST_URL = "https://www.rayinsights.com/raycdp-data-request/"
 
+RIGHT_MAP = {"opt_out_sale_share": ["optout"], "delete": ["delete"]}
+RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
+
 
 async def _fill_common_fields(tab, super_scraper):
     fields = {
@@ -81,9 +84,11 @@ async def submit_opt_out_delete_correct(super_scraper, tab):
     await tab.go_to(OPT_OUT_URL)
     await asyncio.sleep(5)
 
-    checkbox_values = ["optout"]
-    if SuperScraper.REMOVE_INFORMATION:
-        checkbox_values.append("delete")
+    codes = SuperScraper.rights_to_exercise(RIGHT_MAP)
+    if not codes:
+        print("No requested privacy rights apply to this form — nothing to do.")
+        return
+    checkbox_values = [cb for code in codes for cb in RIGHT_MAP[code]]
     for value in checkbox_values:
         checkbox = await tab.find(xpath=f"//input[@type='checkbox' and @value='{value}']", raise_exc=False)
         if checkbox:

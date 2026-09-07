@@ -28,6 +28,13 @@ URL = "https://privacyportal.onetrust.com/webform/0f61f895-d08d-410f-b96d-ecfd34
 GRANULAR_RIGHTS = ["Right to Know / Access", "Right to Object / Opt out of Sales"]
 GRANULAR_DELETE = "Right to Delete"
 
+RIGHT_MAP = {
+    "access": ["Right to Know / Access"],
+    "opt_out_sale_share": ["Right to Object / Opt out of Sales"],
+    "delete": ["Right to Delete"],
+}
+RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
+
 
 async def _field_value(field):
     res = await field.execute_script("return this.value;")
@@ -89,9 +96,11 @@ async def main():
         await tab.go_to(URL)
         await asyncio.sleep(8)
 
-        wanted = list(GRANULAR_RIGHTS)
-        if SuperScraper.REMOVE_INFORMATION:
-            wanted.append(GRANULAR_DELETE)
+        codes = SuperScraper.rights_to_exercise(RIGHT_MAP)
+        if not codes:
+            print("No requested privacy rights apply to this form — nothing to do.")
+            return
+        wanted = [r for code in codes for r in RIGHT_MAP[code]]
         picked_any = False
         for right in wanted:
             if await _click_listbox_option(tab, right):

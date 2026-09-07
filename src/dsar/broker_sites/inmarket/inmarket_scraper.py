@@ -33,6 +33,9 @@ OPT_OUT = (
 )
 DELETE = ("delete", "Start Deletion Request", None)
 
+RIGHT_MAP = {"access": [ACCESS], "opt_out_sale_share": [OPT_OUT], "delete": [DELETE]}
+RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
+
 
 async def _fill_common(tab, super_scraper):
     first = await tab.find(xpath="//input[@name='first_name']", raise_exc=False)
@@ -129,9 +132,11 @@ async def main():
     options.binary_location = super_scraper.CHROMIUM_LOCATION
     options.add_argument("--no-sandbox")
 
-    requests = [ACCESS, OPT_OUT]
-    if SuperScraper.REMOVE_INFORMATION:
-        requests.append(DELETE)
+    codes = SuperScraper.rights_to_exercise(RIGHT_MAP)
+    if not codes:
+        print("No requested privacy rights apply to this form — nothing to do.")
+        return
+    requests = [entry for code in codes for entry in RIGHT_MAP[code]]
 
     async with Chrome(options=options) as browser:
         tab = await browser.start()

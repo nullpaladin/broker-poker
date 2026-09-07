@@ -16,17 +16,21 @@ from src.dsar.super_scraper import SuperScraper
 
 URL = "https://privacyportal.onetrust.com/webform/45e4be25-919b-483f-9f95-12809576a2b3/6e633594-9a81-48bb-97ab-6fb29bf46019"
 
-ALWAYS_REQUESTS = [
-    "Request to Opt-Out (Do Not Sell or Share My Personal Information)",
-    "Request to Opt-Out (Targeted Advertising)",
-    "Request to Opt-Out (Profiling)",
-    "Request to Opt-Out (Use of My Sensitive Information)",
-    "Request to Correct Inaccurate Personal Information",
-    "Request to Know (Categories of Personal Information & 3rd Parties Shared)",
-    "Request to Know (Specific Pieces of Personal Information)",
-    "Request a Copy of Personal Information",
-]
-DELETE_REQUEST = "Request to Delete Personal Information"
+RIGHT_MAP = {
+    "access": [
+        "Request a Copy of Personal Information",
+        "Request to Know (Specific Pieces of Personal Information)",
+        "Request to Know (Categories of Personal Information & 3rd Parties Shared)",
+    ],
+    "know_third_parties": ["Request to Know (Categories of Personal Information & 3rd Parties Shared)"],
+    "correct": ["Request to Correct Inaccurate Personal Information"],
+    "opt_out_sale_share": ["Request to Opt-Out (Do Not Sell or Share My Personal Information)"],
+    "opt_out_targeted_ads": ["Request to Opt-Out (Targeted Advertising)"],
+    "opt_out_profiling": ["Request to Opt-Out (Profiling)"],
+    "limit_sensitive_pi": ["Request to Opt-Out (Use of My Sensitive Information)"],
+    "delete": ["Request to Delete Personal Information"],
+}
+RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
 
 
 async def _autocomplete(tab, field_id, text):
@@ -64,9 +68,11 @@ async def main():
         await asyncio.sleep(0.5)
 
         # Request types
-        requests = list(ALWAYS_REQUESTS)
-        if SuperScraper.REMOVE_INFORMATION:
-            requests.append(DELETE_REQUEST)
+        codes = SuperScraper.rights_to_exercise(RIGHT_MAP)
+        if not codes:
+            print("No requested privacy rights apply to this form — nothing to do.")
+            return
+        requests = [entry for code in codes for entry in RIGHT_MAP[code]]
 
         for req_label in requests:
             btn = await tab.find(**{"aria-label": req_label}, raise_exc=False)

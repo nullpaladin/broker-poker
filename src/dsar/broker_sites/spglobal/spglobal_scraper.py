@@ -147,6 +147,15 @@ async def submit_request(tab, request_type, label, super_scraper, code):
         await details.type_text(SuperScraper.request_statement([code], broker="S&P Global"))
 
     time.sleep(0.5)
+
+    if SuperScraper.HEALTH_CHECK:
+        await SuperScraper.assert_fields_filled(tab, {
+            "First name": "//input[@id='firstNameDSARElement']",
+            "Last name": "//input[@id='lastNameDSARElement']",
+            "Email": "//input[@id='emailDSARElement']",
+            "Request details": "//textarea[@id='requestDetailsDSARElement']",
+        })
+
     submit_btn = await tab.find(id="dsar-webform-submit-button", raise_exc=False)
     if submit_btn:
         await submit_btn.scroll_into_view()

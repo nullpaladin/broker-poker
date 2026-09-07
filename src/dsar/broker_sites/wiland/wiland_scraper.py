@@ -63,6 +63,17 @@ async def submit_access(tab, state_abbr, super_scraper):
         await auth.click_using_js()
     await asyncio.sleep(0.5)
 
+    if SuperScraper.HEALTH_CHECK:
+        await SuperScraper.assert_fields_filled(tab, {
+            "First name": "//input[@id='firstNameDSARElement']",
+            "Last name": "//input[@id='lastNameDSARElement']",
+            "Email": "//input[@id='email']",
+            "Address": "//input[@id='addressDSARElement']",
+            "City": "//input[@id='cityDSARElement']",
+            "State": "//input[@id='formField79DSARElement']",
+            "Zip": "//input[@id='zipDSARElement']",
+        })
+
     if SuperScraper.DRY_RUN:
         print(
             f"DRY RUN: would submit Access for "

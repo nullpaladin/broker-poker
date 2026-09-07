@@ -38,6 +38,9 @@ async def submit_request(tab, request_type, label, super_scraper):
     await tab.execute_script("document.getElementById('terms').click()")
     time.sleep(0.5)
 
+    if SuperScraper.HEALTH_CHECK:
+        await SuperScraper.assert_fields_filled(tab, {"Email": EMAIL_XPATH})
+
     if SuperScraper.DRY_RUN:
         await SuperScraper.screenshot(tab, f"resources/screenshots/33across_{request_type}_dry_run.png")
         print(f"DRY RUN: would submit '{label}' for {SuperScraper.EMAIL}")

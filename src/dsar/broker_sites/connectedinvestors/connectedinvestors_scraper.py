@@ -116,6 +116,16 @@ async def submit_request(tab, request_type, super_scraper):
 
     label = request_type.lower().replace(" ", "_")
 
+    if SuperScraper.HEALTH_CHECK:
+        await SuperScraper.assert_fields_filled(tab, {
+            "First name": f"//input[@id='{FIRST_NAME_FIELD}']",
+            "Last name": f"//input[@id='{LAST_NAME_FIELD}']",
+            "Email": f"//input[@id='{EMAIL_FIELD}']",
+            "Address": f"//input[@id='{ADDRESS_ONE_FIELD}']",
+            "City": f"//input[@id='{CITY_FIELD}']",
+            "Zip": f"//input[@id='{ZIP_FIELD}']",
+        })
+
     if SuperScraper.DRY_RUN:
         print(f"DRY RUN: would submit '{request_type}' request for {SuperScraper.FIRST_NAME} {SuperScraper.LAST_NAME}")
         await asyncio.sleep(1)

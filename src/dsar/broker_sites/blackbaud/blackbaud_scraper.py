@@ -112,6 +112,17 @@ async def main():
 
         time.sleep(0.5)
 
+        if SuperScraper.HEALTH_CHECK:
+            await SuperScraper.assert_fields_filled(tab, {
+                "First name": "//input[@id='firstNameDSARElement']",
+                "Last name": "//input[@id='lastNameDSARElement']",
+                "Email": "//input[@id='emailDSARElement']",
+                "Confirm email": "//input[@id='confirmEmailInputDSARElement']",
+                "Address": "//input[@id='addressDSARElement']",
+                "City": "//input[@id='cityDSARElement']",
+                "Zip": "//input[@id='zipDSARElement']",
+            })
+
         if SuperScraper.DRY_RUN:
             rights = ", ".join(request_types)
             print(

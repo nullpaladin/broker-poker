@@ -67,6 +67,13 @@ async def submit_request(tab, right, super_scraper):
 
     label = right.lower().replace(" ", "_")
 
+    if SuperScraper.HEALTH_CHECK:
+        await SuperScraper.assert_fields_filled(tab, {
+            "First name": "//input[@name='first_name']",
+            "Last name": "//input[@name='last_name']",
+            "Email": "//input[@name='email_address']",
+        })
+
     if SuperScraper.DRY_RUN:
         print(f"DRY RUN: would submit '{right}' for {SuperScraper.FIRST_NAME} {SuperScraper.LAST_NAME}")
         await asyncio.sleep(1)

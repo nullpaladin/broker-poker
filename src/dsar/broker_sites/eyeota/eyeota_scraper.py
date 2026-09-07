@@ -109,6 +109,15 @@ async def main():
         await _set_text(tab, "//textarea[@name='message']", msg)
 
         time.sleep(0.5)
+
+        if SuperScraper.HEALTH_CHECK:
+            await SuperScraper.assert_fields_filled(tab, {
+                "First name": "//input[@name='firstname']",
+                "Last name": "//input[@name='lastname']",
+                "Email": "//input[@name='email']",
+                "Message": "//textarea[@name='message']",
+            })
+
         await SuperScraper.screenshot(tab, "resources/screenshots/eyeota_dry_run.png")
         if SuperScraper.DRY_RUN:
             print(

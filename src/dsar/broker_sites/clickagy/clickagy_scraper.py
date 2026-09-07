@@ -63,6 +63,9 @@ async def submit_access(tab, super_scraper):
 
     await _select_california_resident(tab, super_scraper)
 
+    if SuperScraper.HEALTH_CHECK:
+        await SuperScraper.assert_fields_filled(tab, {"Email": "//input[@id='ccpa_form_email']"})
+
     await asyncio.sleep(1)
     await SuperScraper.screenshot(tab, "resources/screenshots/clickagy_dry_run_access.png")
     print(

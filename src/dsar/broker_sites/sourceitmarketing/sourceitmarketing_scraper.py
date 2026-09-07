@@ -20,11 +20,12 @@ from src.dsar.super_scraper import SuperScraper
 
 URL = "https://sourceitmarketing.com/privacy/"
 
-RIGHTS = [
-    ("Request to know or access what personal information we are collecting", "access"),
-    ("Opt out of sale or sharing of personal information", "opt_out"),
-]
-DELETE_RIGHT = ("Delete personal information", "delete")
+RIGHT_MAP = {
+    "access": [("Request to know or access what personal information we are collecting", "access")],
+    "opt_out_sale_share": [("Opt out of sale or sharing of personal information", "opt_out")],
+    "delete": [("Delete personal information", "delete")],
+}
+RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
 
 
 async def _select_by_text(select_element, text):
@@ -78,9 +79,11 @@ async def main():
     options.binary_location = super_scraper.CHROMIUM_LOCATION
     options.add_argument("--no-sandbox")
 
-    rights = list(RIGHTS)
-    if SuperScraper.REMOVE_INFORMATION:
-        rights.append(DELETE_RIGHT)
+    codes = SuperScraper.rights_to_exercise(RIGHT_MAP)
+    if not codes:
+        print("No requested privacy rights apply to this form — nothing to do.")
+        return
+    rights = [entry for code in codes for entry in RIGHT_MAP[code]]
 
     async with Chrome(options=options) as browser:
         tab = await browser.start()

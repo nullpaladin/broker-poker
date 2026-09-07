@@ -23,8 +23,11 @@ from pydoll.browser.options import ChromiumOptions
 
 URL = "https://mynt-test-privacy.my.onetrust.com/webform/ebe19500-bc8d-487f-9d89-98fde8b270e2/bac5d2a2-fd3e-4830-99b6-bd2a69fec1c9"
 
-RIGHTS = ["Request to Access or Know"]
-DELETE_RIGHT = "Request to Delete Personal Information"
+RIGHT_MAP = {
+    "access": ["Request to Access or Know"],
+    "delete": ["Request to Delete Personal Information"],
+}
+RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
 
 
 async def _autocomplete_select(tab, field_id, text, super_scraper, description):
@@ -92,9 +95,11 @@ async def main():
     options.binary_location = super_scraper.CHROMIUM_LOCATION
     options.add_argument("--no-sandbox")
 
-    rights = list(RIGHTS)
-    if SuperScraper.REMOVE_INFORMATION:
-        rights.append(DELETE_RIGHT)
+    codes = SuperScraper.rights_to_exercise(RIGHT_MAP)
+    if not codes:
+        print("No requested privacy rights apply to this form — nothing to do.")
+        return
+    rights = [entry for code in codes for entry in RIGHT_MAP[code]]
 
     async with Chrome(options=options) as browser:
         tab = await browser.start()

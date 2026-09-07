@@ -30,8 +30,12 @@ from pydoll.browser.options import ChromiumOptions
 
 URL = "https://www.publicdatacheck.com/help-center/privacy-requests"
 
-REQUEST_TYPES = ["Do Not Sell My Info", "Request a Copy"]
-DELETE_REQUEST_TYPE = "Delete My Info"
+RIGHT_MAP = {
+    "access": ["Request a Copy"],
+    "opt_out_sale_share": ["Do Not Sell My Info"],
+    "delete": ["Delete My Info"],
+}
+RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
 
 
 def _age_from_dob(dob_str):
@@ -117,9 +121,11 @@ async def main():
     options.binary_location = super_scraper.CHROMIUM_LOCATION
     options.add_argument("--no-sandbox")
 
-    request_types = list(REQUEST_TYPES)
-    if SuperScraper.REMOVE_INFORMATION:
-        request_types.append(DELETE_REQUEST_TYPE)
+    codes = SuperScraper.rights_to_exercise(RIGHT_MAP)
+    if not codes:
+        print("No requested privacy rights apply to this form — nothing to do.")
+        return
+    request_types = [entry for code in codes for entry in RIGHT_MAP[code]]
 
     async with Chrome(options=options) as browser:
         tab = await browser.start()

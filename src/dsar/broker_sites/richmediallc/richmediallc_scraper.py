@@ -17,8 +17,12 @@ from pydoll.browser.options import ChromiumOptions
 
 URL = "https://privacy.richmediallc.com/"
 
-RIGHTS = ["opt_out_sale_share", "access_request"]
-DELETE_RIGHT = "delete_request"
+RIGHT_MAP = {
+    "access": ["access_request"],
+    "opt_out_sale_share": ["opt_out_sale_share"],
+    "delete": ["delete_request"],
+}
+RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
 
 RIGHT_LABELS = {
     "opt_out_sale_share": "Opt out of sale/share",
@@ -80,9 +84,11 @@ async def main():
     options.binary_location = super_scraper.CHROMIUM_LOCATION
     options.add_argument("--no-sandbox")
 
-    rights = list(RIGHTS)
-    if SuperScraper.REMOVE_INFORMATION:
-        rights.append(DELETE_RIGHT)
+    codes = SuperScraper.rights_to_exercise(RIGHT_MAP)
+    if not codes:
+        print("No requested privacy rights apply to this form — nothing to do.")
+        return
+    rights = [entry for code in codes for entry in RIGHT_MAP[code]]
 
     async with Chrome(options=options) as browser:
         tab = await browser.start()

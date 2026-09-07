@@ -26,11 +26,12 @@ from pydoll.browser.options import ChromiumOptions
 from src.dsar.super_scraper import SuperScraper
 
 BASE = "https://socialcatfish.com/opt-out/?id="
-REQUESTS = [
-    ("request_access", "access"),
-    ("request_optout", "optout"),
-]
-DELETE_REQUEST = ("request_delete", "delete")
+RIGHT_MAP = {
+    "access": [("request_access", "access")],
+    "opt_out_sale_share": [("request_optout", "optout")],
+    "delete": [("request_delete", "delete")],
+}
+RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
 
 
 async def submit_request(tab, mode, label, super_scraper):
@@ -90,9 +91,11 @@ async def main():
     options.binary_location = super_scraper.CHROMIUM_LOCATION
     options.add_argument("--no-sandbox")
 
-    requests = list(REQUESTS)
-    if SuperScraper.REMOVE_INFORMATION:
-        requests.append(DELETE_REQUEST)
+    codes = SuperScraper.rights_to_exercise(RIGHT_MAP)
+    if not codes:
+        print("No requested privacy rights apply to this form — nothing to do.")
+        return
+    requests = [entry for code in codes for entry in RIGHT_MAP[code]]
 
     async with Chrome(options=options) as browser:
         tab = await browser.start()

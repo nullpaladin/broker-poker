@@ -30,12 +30,15 @@ URL = (
     "23dbbccc-a76c-4410-a68e-f247d70e566c/7d013624-d2db-430a-9265-3112f7c4177c"
 )
 
-RIGHTS = [
-    ("Request a copy of my personal information", "access"),
-    ("Request to opt-out of sale and sharing", "opt_out"),
-    ("Request to know about categories of information maintained by PropStream", "categories"),
-]
-DELETE_RIGHT = ("Request to delete", "delete")
+RIGHT_MAP = {
+    "access": [
+        ("Request a copy of my personal information", "access"),
+        ("Request to know about categories of information maintained by PropStream", "categories"),
+    ],
+    "opt_out_sale_share": [("Request to opt-out of sale and sharing", "opt_out")],
+    "delete": [("Request to delete", "delete")],
+}
+RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
 
 IAM_CANDIDATES = ("Consumer", "Individual", "Customer", "Member of the public", "A consumer", "Other")
 
@@ -166,9 +169,11 @@ async def main():
     options.binary_location = super_scraper.CHROMIUM_LOCATION
     options.add_argument("--no-sandbox")
 
-    rights = list(RIGHTS)
-    if SuperScraper.REMOVE_INFORMATION:
-        rights.append(DELETE_RIGHT)
+    codes = SuperScraper.rights_to_exercise(RIGHT_MAP)
+    if not codes:
+        print("No requested privacy rights apply to this form — nothing to do.")
+        return
+    rights = [entry for code in codes for entry in RIGHT_MAP[code]]
 
     async with Chrome(options=options) as browser:
         tab = await browser.start()

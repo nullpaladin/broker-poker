@@ -13,11 +13,12 @@ from src.dsar.super_scraper import SuperScraper
 URL = "https://www.reklaimyou.com/optout"
 
 # (radio button id, screenshot label)
-REQUESTS = [
-    ("requestType-do_not_sell", "optout"),
-    ("requestType-access",      "access"),
-]
-DELETE_REQUEST = ("requestType-delete", "delete")
+RIGHT_MAP = {
+    "access": [("requestType-access", "access")],
+    "opt_out_sale_share": [("requestType-do_not_sell", "optout")],
+    "delete": [("requestType-delete", "delete")],
+}
+RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
 
 
 async def submit_request(tab, radio_id, label, super_scraper):
@@ -67,9 +68,11 @@ async def main():
     options.binary_location = super_scraper.CHROMIUM_LOCATION
     options.add_argument("--no-sandbox")
 
-    requests = list(REQUESTS)
-    if SuperScraper.REMOVE_INFORMATION:
-        requests.append(DELETE_REQUEST)
+    codes = SuperScraper.rights_to_exercise(RIGHT_MAP)
+    if not codes:
+        print("No requested privacy rights apply to this form — nothing to do.")
+        return
+    requests = [entry for code in codes for entry in RIGHT_MAP[code]]
 
     async with Chrome(options=options) as browser:
         tab = await browser.start()

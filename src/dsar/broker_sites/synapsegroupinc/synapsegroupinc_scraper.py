@@ -2,9 +2,10 @@
 # (privacyportalde-cdn.onetrust.com/dsarwebform). The portal's own copy says it
 # "has been developed to allow California users to submit a request", and the
 # only residency question is a required "Are you a California Resident?" Yes/No.
-# There is no path for a non-CA resident, so — following the same approach the
-# README notes for withrealcustomers.com and this repo's precedent for CA-only
-# forms — "Yes" is selected. Run only if that is acceptable for the requester.
+# There is no path for a non-CA resident. "Yes" is selected for any user in a
+# state with a privacy law (such a law entitles its residents to the same
+# treatment a business gives CCPA requesters); for a genuine no-law state there
+# is nothing on this form that would apply, so it is left as a documented gap.
 #
 #   requestTypesDSARElement  role="option" group, single-select (one submission
 #       per right): "Request a Copy of My Personal Information" (Access) +

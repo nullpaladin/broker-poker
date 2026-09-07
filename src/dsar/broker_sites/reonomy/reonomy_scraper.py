@@ -27,6 +27,9 @@ async def fill_and_submit(tab, req_aria_label, screenshot_label, super_scraper):
     await tab.go_to(URL)
     await asyncio.sleep(6)
 
+    # "California Consumer" is the only subject option this form offers; it is used
+    # for any privacy-law state (those laws entitle residents to CCPA-equivalent
+    # treatment). A no-law state has no applicable right here.
     consumer_btn = await tab.find(**{"aria-label": "California Consumer"}, raise_exc=False)
     if not consumer_btn:
         print(f"{super_scraper.OOPS} 'California Consumer' subject button not found")

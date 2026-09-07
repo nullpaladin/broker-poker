@@ -29,8 +29,12 @@ OPT_OUT_URL = "https://www.clickagy.com/privacy-center/no-resell/"
 
 
 async def _select_california_resident(tab, super_scraper):
-    is_california = SuperScraper.STATE.strip().lower() == "california"
-    radio_id = "ccpa_form_california_resident_yes" if is_california else "ccpa_form_california_resident_no"
+    # "Are you a California resident?" — answer YES for any state with a privacy
+    # law: every such law provides that a business honoring CCPA rights must honor
+    # the equivalent request from that state's residents, and many broker forms
+    # only ever added CCPA language. NO only for genuine no-privacy-law states.
+    answer_yes = SuperScraper.state_has_privacy_law(SuperScraper.STATE)
+    radio_id = "ccpa_form_california_resident_yes" if answer_yes else "ccpa_form_california_resident_no"
     radio = await tab.find(id=radio_id, raise_exc=False)
     if radio:
         await radio.click()

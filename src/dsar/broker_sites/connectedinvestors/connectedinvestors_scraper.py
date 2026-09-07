@@ -48,8 +48,11 @@ PHONE_FIELD = "IO:73583a53875b219095280ed7dabb35b9"
 EMAIL_FIELD = "IO:e258f653875b219095280ed7dabb353a"
 ACKNOWLEDGE_CHECKBOX = "ni.IO:d258b653875b219095280ed7dabb35ab"
 
-REQUEST_TYPES = ["Access Personal Data"]
-DELETE_REQUEST_TYPE = "delete"
+RIGHT_MAP = {
+    "access": ["Access Personal Data"],
+    "delete": ["delete"],
+}
+RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
 
 
 async def _select_by_value(tab, field_id, value, super_scraper, description):
@@ -131,9 +134,11 @@ async def main():
     options.binary_location = super_scraper.CHROMIUM_LOCATION
     options.add_argument("--no-sandbox")
 
-    request_types = list(REQUEST_TYPES)
-    if SuperScraper.REMOVE_INFORMATION:
-        request_types.append(DELETE_REQUEST_TYPE)
+    codes = SuperScraper.rights_to_exercise(RIGHT_MAP)
+    if not codes:
+        print("No requested privacy rights apply to this form — nothing to do.")
+        return
+    request_types = [entry for code in codes for entry in RIGHT_MAP[code]]
 
     async with Chrome(options=options) as browser:
         tab = await browser.start()

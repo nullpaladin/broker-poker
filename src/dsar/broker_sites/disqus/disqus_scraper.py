@@ -15,12 +15,13 @@ from src.dsar.super_scraper import SuperScraper
 URL = "https://privacyportal-cdn.onetrust.com/dsarwebform/bc2d3301-11a5-4de5-b15e-ce796187a352/9a049fa1-37af-4598-a87a-d0df2e2d904b.html"
 
 # (aria-label, screenshot label)
-REQUESTS = [
-    ("Request a copy of personal information", "access"),
-    ("Do not sell or share my information", "optout"),
-    ("Opt out of use of my sensitive personal information", "sensitive"),
-]
-DELETE_REQUEST = ("Delete my personal information", "delete")
+RIGHT_MAP = {
+    "access": [("Request a copy of personal information", "access")],
+    "opt_out_sale_share": [("Do not sell or share my information", "optout")],
+    "limit_sensitive_pi": [("Opt out of use of my sensitive personal information", "sensitive")],
+    "delete": [("Delete my personal information", "delete")],
+}
+RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
 
 
 async def submit_request(tab, aria_label, label, super_scraper):
@@ -102,9 +103,11 @@ async def main():
     options.binary_location = super_scraper.CHROMIUM_LOCATION
     options.add_argument("--no-sandbox")
 
-    requests = list(REQUESTS)
-    if SuperScraper.REMOVE_INFORMATION:
-        requests.append(DELETE_REQUEST)
+    codes = SuperScraper.rights_to_exercise(RIGHT_MAP)
+    if not codes:
+        print("No requested privacy rights apply to this form — nothing to do.")
+        return
+    requests = [entry for code in codes for entry in RIGHT_MAP[code]]
 
     async with Chrome(options=options) as browser:
         tab = await browser.start()

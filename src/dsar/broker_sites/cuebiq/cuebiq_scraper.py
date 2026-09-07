@@ -18,11 +18,12 @@ from pydoll.browser.options import ChromiumOptions
 
 URL = "https://cuebiq.com/privacy-request/"
 
-RIGHTS = [
-    ("opt-out/do not sell or share my personal information", "opt_out"),
-    ("get access to or a copy of my personal information", "access"),
-]
-DELETE_RIGHT = ("erase/delete my personal information", "delete")
+RIGHT_MAP = {
+    "access": [("get access to or a copy of my personal information", "access")],
+    "opt_out_sale_share": [("opt-out/do not sell or share my personal information", "opt_out")],
+    "delete": [("erase/delete my personal information", "delete")],
+}
+RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
 
 
 async def submit_request(tab, radio_value, label, super_scraper):
@@ -73,9 +74,11 @@ async def main():
     options.binary_location = super_scraper.CHROMIUM_LOCATION
     options.add_argument("--no-sandbox")
 
-    rights = list(RIGHTS)
-    if SuperScraper.REMOVE_INFORMATION:
-        rights.append(DELETE_RIGHT)
+    codes = SuperScraper.rights_to_exercise(RIGHT_MAP)
+    if not codes:
+        print("No requested privacy rights apply to this form — nothing to do.")
+        return
+    rights = [entry for code in codes for entry in RIGHT_MAP[code]]
 
     async with Chrome(options=options) as browser:
         tab = await browser.start()

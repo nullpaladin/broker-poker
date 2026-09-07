@@ -28,8 +28,12 @@ from pydoll.browser.options import ChromiumOptions
 
 URL = "https://privacyportal.onetrust.com/webform/1fdd17ee-bd10-4813-a254-de7d5c09360a/7c79cae5-6e86-4d8d-b409-7a932c09b942"
 
-REQUEST_TYPES = ["Access", "Do not Sell/Share"]
-DELETE_REQUEST_TYPE = "Delete/Opt-Out"
+RIGHT_MAP = {
+    "access": ["Access"],
+    "opt_out_sale_share": ["Do not Sell/Share"],
+    "delete": ["Delete/Opt-Out"],
+}
+RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
 
 
 async def main():
@@ -56,9 +60,11 @@ async def main():
                 await state_opt.click()
                 await asyncio.sleep(1)
 
-        request_types = list(REQUEST_TYPES)
-        if SuperScraper.REMOVE_INFORMATION:
-            request_types.append(DELETE_REQUEST_TYPE)
+        codes = SuperScraper.rights_to_exercise(RIGHT_MAP)
+        if not codes:
+            print("No requested privacy rights apply to this form — nothing to do.")
+            return
+        request_types = [entry for code in codes for entry in RIGHT_MAP[code]]
         for request_type in request_types:
             opt = await tab.find(
                 xpath=f"//div[@role='option' and @aria-label='{request_type}']", raise_exc=False

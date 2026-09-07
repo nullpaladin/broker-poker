@@ -24,11 +24,12 @@ from src.dsar.super_scraper import SuperScraper
 
 URL = "https://cybba-requests.my.onetrust.com/webform/a4a1351e-d293-4305-bde4-b9cf8f5c0989/f89c576a-b5c6-498e-bad5-698f084ffd30"
 
-REQUESTS = [
-    ("Info Request", "access"),
-    ("Do Not Sell My Information", "optout"),
-]
-DELETE_REQUEST = ("Data Deletion", "delete")
+RIGHT_MAP = {
+    "access": [("Info Request", "access")],
+    "opt_out_sale_share": [("Do Not Sell My Information", "optout")],
+    "delete": [("Data Deletion", "delete")],
+}
+RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
 
 
 async def _field_value(field):
@@ -138,9 +139,11 @@ async def main():
     options.binary_location = super_scraper.CHROMIUM_LOCATION
     options.add_argument("--no-sandbox")
 
-    requests = list(REQUESTS)
-    if SuperScraper.REMOVE_INFORMATION:
-        requests.append(DELETE_REQUEST)
+    codes = SuperScraper.rights_to_exercise(RIGHT_MAP)
+    if not codes:
+        print("No requested privacy rights apply to this form — nothing to do.")
+        return
+    requests = [entry for code in codes for entry in RIGHT_MAP[code]]
 
     async with Chrome(options=options) as browser:
         tab = await browser.start()

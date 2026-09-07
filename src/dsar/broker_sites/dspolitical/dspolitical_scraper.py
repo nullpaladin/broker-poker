@@ -107,7 +107,8 @@ async def submit_request(tab, right_label, label, super_scraper):
     details = await tab.find(id="requestDetailsDSARElement", raise_exc=False)
     if details:
         await details.type_text(
-            f"I am a {SuperScraper.STATE} resident exercising my privacy rights. "
+            f"I am a {SuperScraper.STATE} resident exercising my privacy rights under the "
+            f"{SuperScraper.LAW_FULL_NAME or 'applicable state and federal privacy law'}. "
             f"Request: {right_label}."
         )
 

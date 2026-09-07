@@ -47,10 +47,18 @@ REQUESTS = [
 ]
 
 DETAILS = (
-    "I am a Minnesota resident and I am exercising my privacy rights under the "
-    "Minnesota Consumer Data Privacy Act with respect to the personal "
-    "information Media.net and its partners hold about me: {}."
+    "I am a {state} resident and I am exercising my privacy rights under the {law} "
+    "with respect to the personal information Media.net and its partners hold "
+    "about me: {req}."
 )
+
+
+def _details_for(request_type):
+    return DETAILS.format(
+        state=SuperScraper.STATE,
+        law=SuperScraper.LAW_FULL_NAME or "applicable state and federal privacy law",
+        req=request_type,
+    )
 
 
 async def _click_li(tab, value):
@@ -115,7 +123,7 @@ async def submit_request(tab, request_type, label, super_scraper):
     await _type_input(tab, "lastname", SuperScraper.LAST_NAME)
     await _type_input(tab, "email-address", SuperScraper.EMAIL)
     # "website" is a honeypot — leave blank.
-    await _type_input(tab, "request-details", DETAILS.format(request_type))
+    await _type_input(tab, "request-details", _details_for(request_type))
 
     await asyncio.sleep(1)
     await SuperScraper.screenshot(tab, f"resources/screenshots/media_net_dry_run_{label}.png")

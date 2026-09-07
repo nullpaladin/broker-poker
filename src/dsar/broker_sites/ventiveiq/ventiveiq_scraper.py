@@ -116,7 +116,7 @@ async def submit_request(tab, request_type, super_scraper):
         tab,
         super_scraper,
         "Request Details",
-        f"I am submitting a '{request_type}' request under applicable state privacy law.",
+        f"I am submitting a '{request_type}' request under the {SuperScraper.LAW_FULL_NAME or 'applicable state and federal privacy law'}.",
         tag="textarea",
     )
 

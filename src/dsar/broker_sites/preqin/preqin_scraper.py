@@ -125,7 +125,8 @@ async def main():
             await comments_field.click()
             await asyncio.sleep(0.4)
             await comments_field.type_text(
-                "Data subject access/deletion/opt-out request per applicable state privacy law."
+                "Data subject access/deletion/opt-out request per the "
+                f"{SuperScraper.LAW_FULL_NAME or 'applicable state and federal privacy law'}."
             )
         else:
             print(f"{super_scraper.OOPS} Additional comments field not found")

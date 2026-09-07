@@ -57,13 +57,14 @@ async def main():
             await tab.keyboard.press(Key.ENTER)
         await asyncio.sleep(0.5)
 
+        _law = SuperScraper.LAW_FULL_NAME or "applicable state and federal privacy law"
         if SuperScraper.wants("delete"):
             request_text = (
-                "I am requesting access to and deletion of my personal information "
-                "under applicable privacy law."
+                f"I am requesting access to and deletion of my personal information "
+                f"under the {_law}."
             )
         else:
-            request_text = "I am requesting access to my personal information under applicable privacy law."
+            request_text = f"I am requesting access to my personal information under the {_law}."
         request_details = await tab.find(id="requestDetailsDSARElement", raise_exc=False)
         if request_details:
             await request_details.type_text(request_text)

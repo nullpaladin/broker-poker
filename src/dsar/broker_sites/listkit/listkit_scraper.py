@@ -29,9 +29,10 @@ async def main():
     options.binary_location = super_scraper.CHROMIUM_LOCATION
     options.add_argument("--no-sandbox")
 
+    _law = SuperScraper.LAW_FULL_NAME or "applicable state and federal privacy law"
     rights = (
-        "I am a Minnesota resident exercising my rights under the Minnesota Consumer "
-        "Data Privacy Act. I request: (1) to know/access the personal information you "
+        f"I am a {SuperScraper.STATE} resident exercising my rights under the {_law}. "
+        "I request: (1) to know/access the personal information you "
         "hold about me, its sources and the parties it has been disclosed to; (2) to "
         "opt out of the sale and sharing of my personal information and of targeted "
         "advertising / profiling"

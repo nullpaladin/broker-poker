@@ -70,7 +70,7 @@ async def submit_request(tab, request_type, super_scraper):
     details_field = await tab.find(id="field-2", raise_exc=False)
     if details_field:
         await details_field.type_text(
-            f"Please {request_type.lower()} my personal data pursuant to applicable privacy law."
+            f"Please {request_type.lower()} my personal data pursuant to the {SuperScraper.LAW_FULL_NAME or 'applicable state and federal privacy law'}."
         )
 
     label = request_type.lower().replace(" ", "_")

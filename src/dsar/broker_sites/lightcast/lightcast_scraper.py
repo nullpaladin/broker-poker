@@ -32,12 +32,6 @@ RIGHT_MAP = {
 }
 RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
 
-DETAILS = (
-    "I am exercising my rights under the Minnesota Consumer Data Privacy Act "
-    "(MCDPA) and other applicable privacy laws regarding all personal data "
-    "Lightcast holds about me."
-)
-
 _FILL_JS = """
 (function(id, value) {
     var el = document.getElementById(id);
@@ -143,7 +137,8 @@ async def main():
         await asyncio.sleep(0.5)
 
         # 6. Additional request details (textarea — JS fill handles textarea too)
-        await _js_fill(tab, "requestDetailsDSARElement", DETAILS)
+        await _js_fill(tab, "requestDetailsDSARElement",
+                       SuperScraper.request_statement(codes, broker="Lightcast"))
 
         time.sleep(0.5)
 

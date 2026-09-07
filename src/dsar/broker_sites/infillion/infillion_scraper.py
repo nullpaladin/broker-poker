@@ -83,7 +83,7 @@ async def submit_request(tab, right, label, super_scraper):
     request_details = await tab.find(id="requestDetailsDSARElement", raise_exc=False)
     if request_details:
         await request_details.type_text(
-            f"I am exercising my '{right}' rights under applicable privacy law."
+            f"I am exercising my '{right}' rights under the {SuperScraper.LAW_FULL_NAME or 'applicable state and federal privacy law'}."
         )
 
     not_agent_btn = await tab.find(**{"aria-label": "No, the request is for myself"}, raise_exc=False)

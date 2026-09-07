@@ -125,7 +125,7 @@ async def main():
             description_field = await tab.find(id="request-description", raise_exc=False)
             if description_field:
                 await description_field.type_text(
-                    f"I am submitting a '{right}' request under applicable state privacy law."
+                    f"I am submitting a '{right}' request under the {SuperScraper.LAW_FULL_NAME or 'applicable state and federal privacy law'}."
                 )
             else:
                 print(f"{super_scraper.OOPS} Request Description field not found")

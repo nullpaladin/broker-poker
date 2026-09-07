@@ -94,7 +94,7 @@ async def submit_request(tab, right, super_scraper):
     request_details = await tab.find(id="requestDetailsDSARElement", raise_exc=False)
     if request_details:
         await request_details.type_text(
-            f"I am exercising my '{right}' rights under applicable privacy law."
+            f"I am exercising my '{right}' rights under the {SuperScraper.LAW_FULL_NAME or 'applicable state and federal privacy law'}."
         )
 
     label = "".join(c if c.isalnum() else "_" for c in right.lower())[:40].strip("_")

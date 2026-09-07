@@ -17,8 +17,12 @@ from pydoll.browser.options import ChromiumOptions
 
 URL = "https://docs.google.com/forms/d/1VhF33VAQG4AmUqBWf7e3m8fw17h9ek64EtQXnuuBQcA/viewform?edit_requested=true"
 
-CHECKBOXES = ["Access my PI", "Do not sell my PI"]
-DELETE_CHECKBOX = "Option 3"
+RIGHT_MAP = {
+    "access": ["Access my PI"],
+    "opt_out_sale_share": ["Do not sell my PI"],
+    "delete": ["Option 3"],
+}
+RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
 
 
 async def main():
@@ -51,9 +55,11 @@ async def main():
                 await field.type_text(value)
                 await asyncio.sleep(0.2)
 
-        checkboxes = list(CHECKBOXES)
-        if SuperScraper.REMOVE_INFORMATION:
-            checkboxes.append(DELETE_CHECKBOX)
+        codes = SuperScraper.rights_to_exercise(RIGHT_MAP)
+        if not codes:
+            print("No requested privacy rights apply to this form — nothing to do.")
+            return
+        checkboxes = [entry for code in codes for entry in RIGHT_MAP[code]]
         for label in checkboxes:
             box = await tab.find(**{"aria-label": label}, raise_exc=False)
             if box:

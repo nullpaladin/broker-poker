@@ -23,8 +23,12 @@ from pydoll.browser.options import ChromiumOptions
 
 URL = "https://www.audiense.com/legal/consumer-personal-information-requests/"
 
-RIGHT_CHECKBOXES = ["IsRightToKnow", "IsRightToAccess", "IsOptOutRequest"]
-DELETE_CHECKBOX = "IsDeleteRequest"
+RIGHT_MAP = {
+    "access": ["IsRightToKnow", "IsRightToAccess"],
+    "opt_out_sale_share": ["IsOptOutRequest"],
+    "delete": ["IsDeleteRequest"],
+}
+RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
 
 
 async def main():
@@ -50,9 +54,11 @@ async def main():
         )
         await asyncio.sleep(1)
 
-        checkboxes = list(RIGHT_CHECKBOXES)
-        if SuperScraper.REMOVE_INFORMATION:
-            checkboxes.append(DELETE_CHECKBOX)
+        codes = SuperScraper.rights_to_exercise(RIGHT_MAP)
+        if not codes:
+            print("No requested privacy rights apply to this form — nothing to do.")
+            return
+        checkboxes = [entry for code in codes for entry in RIGHT_MAP[code]]
         for name in checkboxes:
             box = await tab.find(name=name, raise_exc=False)
             if box:

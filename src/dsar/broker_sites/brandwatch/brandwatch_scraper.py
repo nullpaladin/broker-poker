@@ -25,8 +25,13 @@ from src.dsar.super_scraper import SuperScraper
 
 URL = "https://www.brandwatch.com/legal/data-subject-access-request/"
 
-RIGHTS = ["Access", "Do not Sell/Share Data", "Portability"]
-DELETE_RIGHT = "Erasure"
+RIGHT_MAP = {
+    "access": ["Access"],
+    "opt_out_sale_share": ["Do not Sell/Share Data"],
+    "portability": ["Portability"],
+    "delete": ["Erasure"],
+}
+RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
 
 COMMENT = (
     "I am a member of the public exercising my data subject rights. Please "
@@ -102,9 +107,11 @@ async def main():
     options.binary_location = super_scraper.CHROMIUM_LOCATION
     options.add_argument("--no-sandbox")
 
-    rights = list(RIGHTS)
-    if SuperScraper.REMOVE_INFORMATION:
-        rights.append(DELETE_RIGHT)
+    codes = SuperScraper.rights_to_exercise(RIGHT_MAP)
+    if not codes:
+        print("No requested privacy rights apply to this form — nothing to do.")
+        return
+    rights = [entry for code in codes for entry in RIGHT_MAP[code]]
 
     async with Chrome(options=options) as browser:
         tab = await browser.start()

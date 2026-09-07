@@ -26,11 +26,12 @@ URL = (
     "cbbe21b6-d675-445f-9c24-f625c01dafb3/b0160307-96f2-4e7b-9cd8-c70b09b0a76b.html"
 )
 
-RIGHTS = [
-    ("Access My Information", "access"),
-    ("Do Not Sell My Information", "do_not_sell"),
-]
-DELETE_RIGHT = ("Delete My Information", "delete")
+RIGHT_MAP = {
+    "access": [("Access My Information", "access")],
+    "opt_out_sale_share": [("Do Not Sell My Information", "do_not_sell")],
+    "delete": [("Delete My Information", "delete")],
+}
+RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
 
 
 def _dob_mm_dd_yyyy():
@@ -140,9 +141,11 @@ async def main():
     options.binary_location = super_scraper.CHROMIUM_LOCATION
     options.add_argument("--no-sandbox")
 
-    rights = list(RIGHTS)
-    if SuperScraper.REMOVE_INFORMATION:
-        rights.append(DELETE_RIGHT)
+    codes = SuperScraper.rights_to_exercise(RIGHT_MAP)
+    if not codes:
+        print("No requested privacy rights apply to this form — nothing to do.")
+        return
+    rights = [entry for code in codes for entry in RIGHT_MAP[code]]
 
     async with Chrome(options=options) as browser:
         tab = await browser.start()

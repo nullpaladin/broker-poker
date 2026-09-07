@@ -25,8 +25,12 @@ from pydoll.browser.options import ChromiumOptions
 
 URL = "https://privacyportal.onetrust.com/webform/82a6a736-b3a7-4e87-a2fd-04a39b7d2b19/2f5dc7b8-7698-4623-82d2-b2b969ef901e"
 
-RIGHTS = ["Info Request", "Do Not Sell My Information"]
-DELETE_RIGHT = "Data Deletion"
+RIGHT_MAP = {
+    "access": ["Info Request"],
+    "opt_out_sale_share": ["Do Not Sell My Information"],
+    "delete": ["Data Deletion"],
+}
+RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
 
 
 async def _click_option(tab, aria_label, super_scraper, description):
@@ -105,9 +109,11 @@ async def main():
     options.binary_location = super_scraper.CHROMIUM_LOCATION
     options.add_argument("--no-sandbox")
 
-    rights = list(RIGHTS)
-    if SuperScraper.REMOVE_INFORMATION:
-        rights.append(DELETE_RIGHT)
+    codes = SuperScraper.rights_to_exercise(RIGHT_MAP)
+    if not codes:
+        print("No requested privacy rights apply to this form — nothing to do.")
+        return
+    rights = [entry for code in codes for entry in RIGHT_MAP[code]]
 
     async with Chrome(options=options) as browser:
         tab = await browser.start()

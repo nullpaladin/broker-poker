@@ -15,11 +15,12 @@ URL = "https://hibu.com/legal/privacy-form"
 
 VISITOR_TYPE = "Visitor / User of hibu.com or yellowbook.com"
 
-REQUESTS = [
-    ("Access to my Personal Information", "access"),
-    ("Opt-out from the Sale or Share of Personal Information", "optout"),
-]
-DELETE_REQUEST = ("Deletion of my Personal Information", "delete")
+RIGHT_MAP = {
+    "access": [("Access to my Personal Information", "access")],
+    "opt_out_sale_share": [("Opt-out from the Sale or Share of Personal Information", "optout")],
+    "delete": [("Deletion of my Personal Information", "delete")],
+}
+RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
 
 
 def _js_set_id(field_id, value):
@@ -88,9 +89,11 @@ async def main():
     options.binary_location = super_scraper.CHROMIUM_LOCATION
     options.add_argument("--no-sandbox")
 
-    requests = list(REQUESTS)
-    if SuperScraper.REMOVE_INFORMATION:
-        requests.append(DELETE_REQUEST)
+    codes = SuperScraper.rights_to_exercise(RIGHT_MAP)
+    if not codes:
+        print("No requested privacy rights apply to this form — nothing to do.")
+        return
+    requests = [entry for code in codes for entry in RIGHT_MAP[code]]
 
     async with Chrome(options=options) as browser:
         tab = await browser.start()

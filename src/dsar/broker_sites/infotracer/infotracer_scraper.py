@@ -34,8 +34,12 @@ RESIDENT_CONTAINER = "00000000-0000-0000-0000-000000001004-select-container"
 REQUEST_TYPE_CONTAINER = "00000000-0000-0000-0000-000000001005-select-container"
 
 # (keyword typed into the request-type control, screenshot label)
-RIGHTS = [("Access", "access"), ("Correct", "correct")]
-DELETE_RIGHT = ("Delete", "delete")
+RIGHT_MAP = {
+    "access": [("Access", "access")],
+    "correct": [("Correct", "correct")],
+    "delete": [("Delete", "delete")],
+}
+RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
 
 
 async def _select_option(tab, super_scraper, container_id, text, label=""):
@@ -113,9 +117,11 @@ async def main():
     options.binary_location = super_scraper.CHROMIUM_LOCATION
     options.add_argument("--no-sandbox")
 
-    rights = list(RIGHTS)
-    if SuperScraper.REMOVE_INFORMATION:
-        rights.append(DELETE_RIGHT)
+    codes = SuperScraper.rights_to_exercise(RIGHT_MAP)
+    if not codes:
+        print("No requested privacy rights apply to this form — nothing to do.")
+        return
+    rights = [entry for code in codes for entry in RIGHT_MAP[code]]
 
     async with Chrome(options=options) as browser:
         tab = await browser.start()

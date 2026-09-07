@@ -19,8 +19,11 @@ from pydoll.browser.options import ChromiumOptions
 
 URL = "https://preferences.hubspot.com/?locale=en"
 
-RIGHTS = ["Access Request"]
-DELETE_RIGHT = "Deletion Request"
+RIGHT_MAP = {
+    "access": ["Access Request"],
+    "delete": ["Deletion Request"],
+}
+RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
 
 
 async def submit_request(tab, right, super_scraper):
@@ -96,9 +99,11 @@ async def main():
     options.binary_location = super_scraper.CHROMIUM_LOCATION
     options.add_argument("--no-sandbox")
 
-    rights = list(RIGHTS)
-    if SuperScraper.REMOVE_INFORMATION:
-        rights.append(DELETE_RIGHT)
+    codes = SuperScraper.rights_to_exercise(RIGHT_MAP)
+    if not codes:
+        print("No requested privacy rights apply to this form — nothing to do.")
+        return
+    rights = [entry for code in codes for entry in RIGHT_MAP[code]]
 
     async with Chrome(options=options) as browser:
         tab = await browser.start()

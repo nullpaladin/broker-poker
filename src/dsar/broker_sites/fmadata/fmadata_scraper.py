@@ -17,11 +17,12 @@ from src.dsar.super_scraper import SuperScraper
 
 URL = "https://www.fmadata.com/opt-out-requests/new"
 
-RIGHTS = [
-    ("opt_out", "opt_out"),
-    ("disclosure", "access"),
-]
-DELETE_RIGHT = ("deletion", "delete")
+RIGHT_MAP = {
+    "access": [("disclosure", "access")],
+    "opt_out_sale_share": [("opt_out", "opt_out")],
+    "delete": [("deletion", "delete")],
+}
+RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
 
 
 async def _select_by_value(select_element, value):
@@ -83,9 +84,11 @@ async def main():
     options.binary_location = super_scraper.CHROMIUM_LOCATION
     options.add_argument("--no-sandbox")
 
-    rights = list(RIGHTS)
-    if SuperScraper.REMOVE_INFORMATION:
-        rights.append(DELETE_RIGHT)
+    codes = SuperScraper.rights_to_exercise(RIGHT_MAP)
+    if not codes:
+        print("No requested privacy rights apply to this form — nothing to do.")
+        return
+    rights = [entry for code in codes for entry in RIGHT_MAP[code]]
 
     async with Chrome(options=options) as browser:
         tab = await browser.start()

@@ -18,11 +18,12 @@ from src.dsar.super_scraper import SuperScraper
 
 URL = "https://www.ip2location.com/do-not-sell"
 
-RIGHTS = [
-    ("I want to know what personal data you have about me", "access"),
-    ("I want you to not sell my personal data (California residents)", "opt_out"),
-]
-DELETE_RIGHT = ("I want you to delete the personal data you have about me", "delete")
+RIGHT_MAP = {
+    "access": [("I want to know what personal data you have about me", "access")],
+    "opt_out_sale_share": [("I want you to not sell my personal data (California residents)", "opt_out")],
+    "delete": [("I want you to delete the personal data you have about me", "delete")],
+}
+RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
 
 
 def _public_ip():
@@ -94,9 +95,11 @@ async def main():
     options.add_argument("--no-sandbox")
 
     ip = _public_ip()
-    rights = list(RIGHTS)
-    if SuperScraper.REMOVE_INFORMATION:
-        rights.append(DELETE_RIGHT)
+    codes = SuperScraper.rights_to_exercise(RIGHT_MAP)
+    if not codes:
+        print("No requested privacy rights apply to this form — nothing to do.")
+        return
+    rights = [entry for code in codes for entry in RIGHT_MAP[code]]
 
     async with Chrome(options=options) as browser:
         tab = await browser.start()

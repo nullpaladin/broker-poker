@@ -17,8 +17,12 @@ from src.dsar.super_scraper import SuperScraper
 
 URL = "https://ileads.com/submitrequest/"
 
-RIGHTS = ["Data Access", "Right to Know", "Do Not Sell My Information"]
-DELETE_RIGHT = "Data Deletion"
+RIGHT_MAP = {
+    "access": ["Data Access", "Right to Know"],
+    "opt_out_sale_share": ["Do Not Sell My Information"],
+    "delete": ["Data Deletion"],
+}
+RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
 
 
 async def main():
@@ -32,9 +36,11 @@ async def main():
         await tab.go_to(URL)
         await asyncio.sleep(5)
 
-        rights = list(RIGHTS)
-        if SuperScraper.REMOVE_INFORMATION:
-            rights.append(DELETE_RIGHT)
+        codes = SuperScraper.rights_to_exercise(RIGHT_MAP)
+        if not codes:
+            print("No requested privacy rights apply to this form — nothing to do.")
+            return
+        rights = [entry for code in codes for entry in RIGHT_MAP[code]]
         for value in rights:
             box = await tab.find(
                 xpath=f"//input[@name='checkbox-datatypes[]' and @value={value!r}]", raise_exc=False

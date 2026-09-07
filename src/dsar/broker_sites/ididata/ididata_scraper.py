@@ -14,11 +14,12 @@ from pydoll.browser.options import ChromiumOptions
 from src.dsar.super_scraper import SuperScraper
 
 # (URL, screenshot label)
-REQUESTS = [
-    ("https://www.ididata.com/personal-information-request/",    "access"),
-    ("https://www.ididata.com/do-not-sell-my-personal-information/", "optout"),
-]
-DELETE_REQUEST = ("https://www.ididata.com/deletion-request/", "delete")
+RIGHT_MAP = {
+    "access": [("https://www.ididata.com/personal-information-request/", "access")],
+    "opt_out_sale_share": [("https://www.ididata.com/do-not-sell-my-personal-information/", "optout")],
+    "delete": [("https://www.ididata.com/deletion-request/", "delete")],
+}
+RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
 
 
 def _parse_dob():
@@ -137,9 +138,11 @@ async def main():
 
     dob_day, dob_month, dob_year = _parse_dob()
 
-    requests = list(REQUESTS)
-    if SuperScraper.REMOVE_INFORMATION:
-        requests.append(DELETE_REQUEST)
+    codes = SuperScraper.rights_to_exercise(RIGHT_MAP)
+    if not codes:
+        print("No requested privacy rights apply to this form — nothing to do.")
+        return
+    requests = [entry for code in codes for entry in RIGHT_MAP[code]]
 
     async with Chrome(options=options) as browser:
         tab = await browser.start()

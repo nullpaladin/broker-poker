@@ -22,12 +22,13 @@ from src.dsar.super_scraper import SuperScraper
 
 URL = "https://app.intentsify.io/opt-out"
 
-REASONS = [
-    ("Request to know/access my personal information", "access"),
-    ("Do not sell or share my personal information", "opt_out_sale"),
-    ("Do not process my information for purposes of targeted advertising", "opt_out_ads"),
-]
-DELETE_REASON = ("Request to delete/erase my personal information", "delete")
+RIGHT_MAP = {
+    "access": [("Request to know/access my personal information", "access")],
+    "opt_out_sale_share": [("Do not sell or share my personal information", "opt_out_sale")],
+    "opt_out_targeted_ads": [("Do not process my information for purposes of targeted advertising", "opt_out_ads")],
+    "delete": [("Request to delete/erase my personal information", "delete")],
+}
+RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
 
 
 async def _select_by_text(tab, select_xpath, text):
@@ -84,9 +85,11 @@ async def main():
     options.binary_location = super_scraper.CHROMIUM_LOCATION
     options.add_argument("--no-sandbox")
 
-    reasons = list(REASONS)
-    if SuperScraper.REMOVE_INFORMATION:
-        reasons.append(DELETE_REASON)
+    codes = SuperScraper.rights_to_exercise(RIGHT_MAP)
+    if not codes:
+        print("No requested privacy rights apply to this form — nothing to do.")
+        return
+    reasons = [entry for code in codes for entry in RIGHT_MAP[code]]
 
     async with Chrome(options=options) as browser:
         tab = await browser.start()

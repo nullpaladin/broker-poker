@@ -22,6 +22,11 @@ from pydoll.browser.options import ChromiumOptions
 
 URL = "https://app.fideo.ai/your-privacy-choices"
 
+NOT_AUTOMATABLE = True
+NOT_AUTOMATABLE_REASON = (
+    "every right requires an email/phone OTP before any data is submitted"
+)
+
 RIGHTS = [
     ("radio-access-data", "access"),
     ("radio-correct-data", "correct"),
@@ -80,6 +85,8 @@ async def submit_request(tab, radio_id, label, super_scraper):
 
 
 async def main():
+    if SuperScraper.bail_if_not_automatable(globals()):
+        return
     options = ChromiumOptions()
     super_scraper = SuperScraper()
     options.binary_location = super_scraper.CHROMIUM_LOCATION

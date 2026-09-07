@@ -15,6 +15,11 @@ from src.dsar.super_scraper import SuperScraper
 
 URL = "https://privacy.tunnldata.com/"
 
+NOT_AUTOMATABLE = True
+NOT_AUTOMATABLE_REASON = (
+    "the form emails a verification code that must be entered mid-run to proceed"
+)
+
 
 async def _fill_form(tab, phone_field_id="phone_num"):
     for fid, val in [
@@ -91,6 +96,8 @@ async def _submit_request(tab, card_text, label, phone_field_id, super_scraper):
 
 
 async def main():
+    if SuperScraper.bail_if_not_automatable(globals()):
+        return
     options = ChromiumOptions()
     super_scraper = SuperScraper()
     options.binary_location = super_scraper.CHROMIUM_LOCATION

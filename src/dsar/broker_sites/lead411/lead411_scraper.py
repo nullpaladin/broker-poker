@@ -22,6 +22,11 @@ from pydoll.browser.options import ChromiumOptions
 
 URL = "https://www.lead411.com/your-privacy-choices/"
 
+NOT_AUTOMATABLE = True
+NOT_AUTOMATABLE_REASON = (
+    "submission requires an emailed verification code (OTP)"
+)
+
 REQUEST_TYPES = ["Access My Personal Information", "Opt-out of the Sale of My Personal Information"]
 DELETE_REQUEST_TYPE = "Delete My Personal Information"
 
@@ -90,6 +95,8 @@ async def submit_request(tab, request_type, super_scraper):
 
 
 async def main():
+    if SuperScraper.bail_if_not_automatable(globals()):
+        return
     options = ChromiumOptions()
     super_scraper = SuperScraper()
     options.binary_location = super_scraper.CHROMIUM_LOCATION

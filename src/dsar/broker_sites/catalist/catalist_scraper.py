@@ -41,6 +41,11 @@ from pydoll.browser.options import ChromiumOptions
 
 URL = "https://catalist.us/your-privacy-choices/"
 
+NOT_AUTOMATABLE = True
+NOT_AUTOMATABLE_REASON = (
+    "submission requires an emailed 8-digit verification code (OTP)"
+)
+
 DELETE_RIGHT = "delete and opt out"
 
 
@@ -120,6 +125,8 @@ async def submit_request(tab, right, super_scraper):
 
 
 async def main():
+    if SuperScraper.bail_if_not_automatable(globals()):
+        return
     options = ChromiumOptions()
     super_scraper = SuperScraper()
     options.binary_location = super_scraper.CHROMIUM_LOCATION

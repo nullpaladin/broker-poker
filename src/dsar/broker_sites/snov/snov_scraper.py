@@ -18,8 +18,15 @@ from pydoll.browser.options import ChromiumOptions
 
 URL = "https://snov.io/do-not-sell-my-personal-information"
 
+NOT_AUTOMATABLE = True
+NOT_AUTOMATABLE_REASON = (
+    "submission requires an email OTP code after the CAPTCHA"
+)
+
 
 async def main():
+    if SuperScraper.bail_if_not_automatable(globals()):
+        return
     options = ChromiumOptions()
     super_scraper = SuperScraper()
     options.binary_location = super_scraper.CHROMIUM_LOCATION

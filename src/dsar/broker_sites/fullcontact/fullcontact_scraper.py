@@ -16,6 +16,11 @@ from pydoll.browser.options import ChromiumOptions
 
 URL = "https://platform.fullcontact.com/your-privacy-choices"
 
+NOT_AUTOMATABLE = True
+NOT_AUTOMATABLE_REASON = (
+    "identity verification sends a real email OTP that must be entered to continue"
+)
+
 CARDS = ["Access My Data", "Do Not Sell or Share My Data"]
 DELETE_CARD = "Delete My Data"
 
@@ -61,6 +66,8 @@ async def submit_request(tab, card_text, super_scraper):
 
 
 async def main():
+    if SuperScraper.bail_if_not_automatable(globals()):
+        return
     options = ChromiumOptions()
     super_scraper = SuperScraper()
     options.binary_location = super_scraper.CHROMIUM_LOCATION

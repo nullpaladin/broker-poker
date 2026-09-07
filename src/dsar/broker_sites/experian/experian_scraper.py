@@ -56,7 +56,7 @@ async def main():
                 "return c ? c.textContent.toLowerCase() : '';"
             )
             text = (nearby.get("result", {}).get("result", {}).get("value") or "") if isinstance(nearby, dict) else ""
-            if "delete personal information" in text and not SuperScraper.REMOVE_INFORMATION:
+            if "delete personal information" in text and not SuperScraper.wants("delete"):
                 continue
             await box.execute_script("if (!this.checked) this.click();")
             await asyncio.sleep(0.1)

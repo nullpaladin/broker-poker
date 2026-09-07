@@ -125,7 +125,7 @@ async def main():
             "Tell us more about your inquiry",
         )
         await _click_via_js(tab, super_scraper, "edit-select-download", "Download checkbox")
-        if SuperScraper.REMOVE_INFORMATION:
+        if SuperScraper.wants("delete"):
             await _click_via_js(tab, super_scraper, "edit-select-deletion", "Deletion checkbox")
 
         await asyncio.sleep(1)

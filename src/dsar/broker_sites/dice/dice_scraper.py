@@ -29,7 +29,7 @@ async def main():
     options.binary_location = super_scraper.CHROMIUM_LOCATION
     options.add_argument("--no-sandbox")
 
-    if SuperScraper.REMOVE_INFORMATION:
+    if SuperScraper.wants("delete"):
         radio_id, tag = "radio-description-delete", "delete"
     else:
         radio_id, tag = "radio-description-access", "access"

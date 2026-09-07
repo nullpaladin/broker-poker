@@ -150,7 +150,7 @@ async def main():
         await asyncio.sleep(0.3)
         await _pick_visible_role_option(tab, "requestTypesDSARElement", "Do Not Sell My Information")
 
-        if SuperScraper.REMOVE_INFORMATION:
+        if SuperScraper.wants("delete"):
             await asyncio.sleep(0.3)
             await _pick_visible_role_option(tab, "requestTypesDSARElement", "Delete Data")
 
@@ -179,7 +179,7 @@ async def main():
                 await tab.keyboard.press(Key.ESCAPE)
                 await asyncio.sleep(0.3)
 
-        if SuperScraper.REMOVE_INFORMATION:
+        if SuperScraper.wants("delete"):
             await _pick_visible_role_option(tab, "deleteRequestConfirmationDSARElement", "Yes")
 
         time.sleep(0.5)

@@ -40,7 +40,7 @@ async def main():
         await check_checkbox(tab, "Don't Sell/Share")
         await check_checkbox(tab, "View My Data")
         await check_checkbox(tab, "Edit My Data")
-        if SuperScraper.REMOVE_INFORMATION:
+        if SuperScraper.wants("delete"):
             await check_checkbox(tab, "Delete My Data")
 
         await super_scraper.input_text_field(tab=tab, xpath=NAME_XPATH,

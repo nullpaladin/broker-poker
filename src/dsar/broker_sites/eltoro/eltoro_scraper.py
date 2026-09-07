@@ -139,7 +139,7 @@ async def main():
         tab = await browser.start()
         await submit_form(tab, ACCESS_URL, ACCESS_REQUESTS, "access", super_scraper)
         await submit_form(tab, OPTOUT_URL, OPTOUT_REQUESTS, "optout", super_scraper)
-        if SuperScraper.REMOVE_INFORMATION:
+        if SuperScraper.wants("delete"):
             await submit_form(tab, DELETE_URL, DELETE_REQUESTS, "delete", super_scraper)
 
 

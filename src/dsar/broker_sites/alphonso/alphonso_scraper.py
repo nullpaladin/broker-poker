@@ -60,7 +60,7 @@ async def main():
         "(including the specific pieces and categories, its sources, and the "
         "third parties it has been sold or shared with)."
     )
-    if SuperScraper.REMOVE_INFORMATION:
+    if SuperScraper.wants("delete"):
         other_msg += " I also request deletion of my personal information."
 
     async with Chrome(options=options) as browser:

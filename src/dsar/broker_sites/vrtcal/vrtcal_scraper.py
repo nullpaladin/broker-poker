@@ -27,7 +27,7 @@ async def main():
     options.binary_location = super_scraper.CHROMIUM_LOCATION
     options.add_argument("--no-sandbox")
 
-    if not SuperScraper.REMOVE_INFORMATION:
+    if not SuperScraper.wants("delete"):
         print(
             "vrtcal.com only offers a browser-cookie opt-out toggle (no Access/Delete/Correct "
             "mechanism exists) — skipping since REMOVE_INFORMATION is not set."

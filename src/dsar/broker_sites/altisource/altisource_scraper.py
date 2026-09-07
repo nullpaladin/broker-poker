@@ -88,7 +88,7 @@ async def main():
         if area_of_interest:
             await area_of_interest.click()
 
-        if SuperScraper.REMOVE_INFORMATION:
+        if SuperScraper.wants("delete"):
             request_text = (
                 f"I am {SuperScraper.FIRST_NAME} {SuperScraper.LAST_NAME}. I am requesting access to "
                 "the personal information you have collected about me, that you do not sell/share it, "

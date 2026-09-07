@@ -57,7 +57,7 @@ async def main():
             await tab.keyboard.press(Key.ENTER)
         await asyncio.sleep(0.5)
 
-        if SuperScraper.REMOVE_INFORMATION:
+        if SuperScraper.wants("delete"):
             request_text = (
                 "I am requesting access to and deletion of my personal information "
                 "under applicable privacy law."

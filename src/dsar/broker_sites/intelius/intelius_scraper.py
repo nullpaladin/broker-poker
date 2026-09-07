@@ -131,7 +131,7 @@ async def main():
 
         await do_access(tab, super_scraper)
         await do_opt_out(tab, super_scraper)
-        if SuperScraper.REMOVE_INFORMATION:
+        if SuperScraper.wants("delete"):
             await do_delete(tab, super_scraper)
 
 

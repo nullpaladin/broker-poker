@@ -144,7 +144,7 @@ async def main():
         await submit_access(tab, super_scraper)
         await submit_manage(tab, "offoptoutforsale", "do not sell my personal information", super_scraper)
         await submit_manage(tab, "offlineoptout", "opt out", super_scraper)
-        if SuperScraper.REMOVE_INFORMATION:
+        if SuperScraper.wants("delete"):
             await submit_manage(tab, DELETE_BUTTON_ID, "delete and opt out", super_scraper)
 
 

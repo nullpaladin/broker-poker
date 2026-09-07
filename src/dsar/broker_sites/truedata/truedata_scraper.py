@@ -70,7 +70,7 @@ async def main():
 
         await _set_checkbox(tab, "accessRequest", True)
         await _set_checkbox(tab, "optOutRequest", True)
-        await _set_checkbox(tab, "deleteRequest", SuperScraper.REMOVE_INFORMATION)
+        await _set_checkbox(tab, "deleteRequest", SuperScraper.wants("delete"))
         await asyncio.sleep(0.5)
 
         # "Access" reveals the category sub-checkboxes — ask for all categories.
@@ -101,7 +101,7 @@ async def main():
         if SuperScraper.DRY_RUN:
             print(
                 f"DRY RUN: would submit access+opt-out"
-                f"{'+delete' if SuperScraper.REMOVE_INFORMATION else ''} for "
+                f"{'+delete' if SuperScraper.wants("delete") else ''} for "
                 f"{SuperScraper.FIRST_NAME} {SuperScraper.LAST_NAME} <{SuperScraper.EMAIL}>"
             )
             return

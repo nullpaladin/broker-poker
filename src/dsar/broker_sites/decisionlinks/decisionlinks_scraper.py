@@ -74,7 +74,7 @@ async def main():
         await _check(tab, "General-Opt-Out-First-Name", "Agency")  # Access
         await _check(tab, "General-Opt-Out-First-Name", "DSP")  # Correct
         await _check(tab, "General-Opt-Out-First-Name", "DMP")  # Data Portability
-        if SuperScraper.REMOVE_INFORMATION:
+        if SuperScraper.wants("delete"):
             await _check(tab, "General-Opt-Out-First-Name", "Brand")  # Delete
 
         if SuperScraper.DRY_RUN:

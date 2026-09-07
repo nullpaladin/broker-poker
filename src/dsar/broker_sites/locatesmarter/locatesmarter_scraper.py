@@ -82,7 +82,7 @@ async def submit_know_delete(tab, super_scraper):
     await _check(tab, "choice_2_14_1", super_scraper)  # own personal information
     await _check(tab, "choice_2_29_1", super_scraper)  # know for past 12 months
     await _check(tab, "choice_2_20_1", super_scraper)  # receive copy of personal information (access)
-    if SuperScraper.REMOVE_INFORMATION:
+    if SuperScraper.wants("delete"):
         await _check(tab, "choice_2_32_1", super_scraper)  # delete personal information
 
     await _submit_or_dry_run(tab, "gform_submit_button_2", "know_delete", super_scraper)

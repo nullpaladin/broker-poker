@@ -137,7 +137,7 @@ async def main():
     async with Chrome(options=options) as browser:
         tab = await browser.start()
         await submit_access(tab, state_abbr, super_scraper)
-        if SuperScraper.REMOVE_INFORMATION:
+        if SuperScraper.wants("delete"):
             await submit_delete(tab, state_abbr, super_scraper)
 
 

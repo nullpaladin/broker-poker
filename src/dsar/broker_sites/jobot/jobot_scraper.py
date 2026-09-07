@@ -61,7 +61,7 @@ async def main():
 
         await check_checkbox(tab, RIGHT_TO_KNOW)
         await check_checkbox(tab, RIGHT_OF_ACCESS)
-        if SuperScraper.REMOVE_INFORMATION:
+        if SuperScraper.wants("delete"):
             await check_checkbox(tab, RIGHT_TO_DELETE)
 
         await click_radio(tab, RELATIONSHIP)

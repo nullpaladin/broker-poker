@@ -106,7 +106,7 @@ async def main():
     async with Chrome(options=options) as browser:
         tab = await browser.start()
         await _submit_request(tab, "Access your data", "access", "phone_num", super_scraper)
-        if SuperScraper.REMOVE_INFORMATION:
+        if SuperScraper.wants("delete"):
             await _submit_request(
                 tab,
                 "Delete your data and Opt Out of Data Sale",

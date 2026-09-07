@@ -100,7 +100,7 @@ async def submit_request(tab, division, label, super_scraper):
             f"parties it has been disclosed to; to correct any inaccurate personal information; "
             f"and to opt out of targeted advertising and profiling"
         )
-        if SuperScraper.REMOVE_INFORMATION:
+        if SuperScraper.wants("delete"):
             rights += "; and deletion of all personal information you hold about me"
         rights += ". (Do Not Sell / opt-out of sale is submitted via the separate webform.)"
         await details.type_text(rights)

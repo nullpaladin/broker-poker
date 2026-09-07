@@ -57,7 +57,7 @@ async def main():
         await tab.execute_script(_js_set("last_name", SuperScraper.LAST_NAME))
         await tab.execute_script(_js_set("email_address", SuperScraper.EMAIL))
 
-        if SuperScraper.REMOVE_INFORMATION:
+        if SuperScraper.wants("delete"):
             request_text = "I am requesting to know, correct, opt-out of sale/sharing, and delete my personal information."
         else:
             request_text = "I am requesting to know, correct, and opt-out of sale/sharing of my personal information."

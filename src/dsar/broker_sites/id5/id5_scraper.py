@@ -106,13 +106,13 @@ async def main():
         tab = await browser.start()
         await opt_out(tab)
         await know(tab)
-        if SuperScraper.REMOVE_INFORMATION:
+        if SuperScraper.wants("delete"):
             await delete(tab)
 
         if SuperScraper.DRY_RUN:
             print(
                 f"DRY RUN: Opt-out + Know sections filled for <{SuperScraper.EMAIL}>"
-                f"{' + Delete section' if SuperScraper.REMOVE_INFORMATION else ''}. "
+                f"{' + Delete section' if SuperScraper.wants("delete") else ''}. "
                 f"Each section has its own submit button (no shared submit)."
             )
 

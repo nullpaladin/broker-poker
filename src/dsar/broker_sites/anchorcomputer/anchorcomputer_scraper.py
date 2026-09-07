@@ -69,7 +69,7 @@ async def main():
 
         await super_scraper.click_item_by_xpath(tab=tab, xpath="//input[@id='RequestReport']", sleep=0.3)
         await super_scraper.click_item_by_xpath(tab=tab, xpath="//input[@id='RequestDoNotSell']", sleep=0.3)
-        if SuperScraper.REMOVE_INFORMATION:
+        if SuperScraper.wants("delete"):
             await super_scraper.click_item_by_xpath(tab=tab, xpath="//input[@id='RequestDelete']", sleep=0.3)
 
         if SuperScraper.DRY_RUN:

@@ -26,7 +26,7 @@ async def main():
         "sale/sharing of my personal information and of targeted advertising, and "
         "provide me access to the personal information you hold about me"
     )
-    if SuperScraper.REMOVE_INFORMATION:
+    if SuperScraper.wants("delete"):
         purpose += ", and delete all personal information you hold about me"
     purpose += "."
 

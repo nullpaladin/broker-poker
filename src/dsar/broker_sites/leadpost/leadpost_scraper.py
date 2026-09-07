@@ -77,7 +77,7 @@ async def main():
         if recipients:
             await recipients.click()
 
-        if SuperScraper.REMOVE_INFORMATION:
+        if SuperScraper.wants("delete"):
             delete = await tab.find(id="DeleteMyData", raise_exc=False)
             if delete:
                 await delete.click()

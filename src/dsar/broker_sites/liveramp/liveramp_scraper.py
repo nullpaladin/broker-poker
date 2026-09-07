@@ -162,7 +162,7 @@ async def main():
     async with Chrome(options=options) as browser:
         tab = await browser.start()
         for form_id, request_type, gated in REQUESTS:
-            if gated and not SuperScraper.REMOVE_INFORMATION:
+            if gated and not SuperScraper.wants("delete"):
                 continue
             await submit_request(tab, form_id, request_type, super_scraper)
 

@@ -83,7 +83,7 @@ async def main():
         if city_field:
             await city_field.type_text(SuperScraper.CITY)
 
-        if SuperScraper.REMOVE_INFORMATION:
+        if SuperScraper.wants("delete"):
             request_text = "I am requesting access to and deletion of my personal information."
         else:
             request_text = "I am requesting access to my personal information."

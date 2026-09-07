@@ -51,7 +51,7 @@ async def main():
 
     request_type = (
         "Remove me from your database"
-        if SuperScraper.REMOVE_INFORMATION
+        if SuperScraper.wants("delete")
         else "Opt Out & Request Information"
     )
 

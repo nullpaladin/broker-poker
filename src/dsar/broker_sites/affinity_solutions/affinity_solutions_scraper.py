@@ -90,7 +90,7 @@ async def main():
                 "Please delete and stop using any data you have associated with my identifiers."
             )
 
-        if not SuperScraper.REMOVE_INFORMATION and not SuperScraper.DRY_RUN:
+        if not SuperScraper.wants("delete") and not SuperScraper.DRY_RUN:
             print(
                 f"{super_scraper.OOPS} affinity.solutions' only form is a deletion "
                 "request — skipping real submission because REMOVE_INFORMATION is False."

@@ -41,7 +41,7 @@ async def main():
         else:
             print(f"{super_scraper.OOPS} 'Sensitive Data' checkbox not found")
 
-        if SuperScraper.REMOVE_INFORMATION:
+        if SuperScraper.wants("delete"):
             deletion_checkbox = await tab.find(id="deletion", raise_exc=False)
             if deletion_checkbox:
                 await deletion_checkbox.click()

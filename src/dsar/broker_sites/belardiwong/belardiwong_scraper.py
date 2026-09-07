@@ -105,7 +105,7 @@ async def main():
     options.add_argument("--no-sandbox")
 
     urls = dict(URLS)
-    if SuperScraper.REMOVE_INFORMATION:
+    if SuperScraper.wants("delete"):
         urls["delete"] = DELETE_URL
 
     async with Chrome(options=options) as browser:

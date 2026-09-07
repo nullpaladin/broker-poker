@@ -34,7 +34,7 @@ async def main():
                 await field.type_text(value)
                 await asyncio.sleep(0.2)
 
-        if SuperScraper.REMOVE_INFORMATION:
+        if SuperScraper.wants("delete"):
             request_text = "I am requesting opt-out, correction, access, and deletion of my personal information."
         else:
             request_text = "I am requesting opt-out, correction, and access to my personal information."

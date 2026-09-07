@@ -198,7 +198,7 @@ async def main():
 
         await submit_dns(tab, super_scraper)
         await submit_main(tab, MAIN_REQUEST_TYPES, "access_correct_portability", MAIN_REQUEST_DETAILS, super_scraper)
-        if SuperScraper.REMOVE_INFORMATION:
+        if SuperScraper.wants("delete"):
             await submit_main(tab, [DELETE_REQUEST_TYPE], "delete", DELETE_REQUEST_DETAILS, super_scraper)
 
 

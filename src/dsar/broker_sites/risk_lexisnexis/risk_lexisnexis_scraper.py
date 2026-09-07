@@ -107,7 +107,7 @@ async def main():
         else:
             print(f"{super_scraper.OOPS} 'Full Opt-Out' radio not found")
 
-        if SuperScraper.REMOVE_INFORMATION:
+        if SuperScraper.wants("delete"):
             delete_checkbox = await tab.find(id="deleteMyPersonalInfo", raise_exc=False)
             if delete_checkbox:
                 await delete_checkbox.click()

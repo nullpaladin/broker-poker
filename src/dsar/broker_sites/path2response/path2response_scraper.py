@@ -41,7 +41,7 @@ async def main():
             await access_btn.click_using_js()
         await asyncio.sleep(0.3)
 
-        if SuperScraper.REMOVE_INFORMATION:
+        if SuperScraper.wants("delete"):
             delete_btn = await tab.find(**{"aria-label": "Delete My Data"}, raise_exc=False)
             if delete_btn:
                 await delete_btn.click_using_js()

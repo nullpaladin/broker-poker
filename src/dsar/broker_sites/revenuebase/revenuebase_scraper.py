@@ -51,7 +51,7 @@ async def main():
     options.binary_location = super_scraper.CHROMIUM_LOCATION
     options.add_argument("--no-sandbox")
 
-    if not SuperScraper.REMOVE_INFORMATION:
+    if not SuperScraper.wants("delete"):
         print(
             "revenuebase.ai's form only supports data deletion — skipping since "
             "REMOVE_INFORMATION is not set."

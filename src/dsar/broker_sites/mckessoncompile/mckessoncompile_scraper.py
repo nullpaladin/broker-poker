@@ -87,7 +87,7 @@ async def main():
     options.binary_location = super_scraper.CHROMIUM_LOCATION
     options.add_argument("--no-sandbox")
 
-    details = RIGHTS_TEXT_BASE + (RIGHTS_TEXT_DELETE if SuperScraper.REMOVE_INFORMATION else "")
+    details = RIGHTS_TEXT_BASE + (RIGHTS_TEXT_DELETE if SuperScraper.wants("delete") else "")
 
     async with Chrome(options=options) as browser:
         tab = await browser.start()

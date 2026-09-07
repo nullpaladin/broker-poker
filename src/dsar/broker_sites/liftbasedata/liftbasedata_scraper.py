@@ -104,7 +104,7 @@ async def main():
         delete_select = await tab.find(id="input_1_26", raise_exc=False)
         if delete_select:
             await delete_select.execute_script(
-                _select_by_text("Yes" if SuperScraper.REMOVE_INFORMATION else "No")
+                _select_by_text("Yes" if SuperScraper.wants("delete") else "No")
             )
 
         categories_select = await tab.find(id="input_1_24", raise_exc=False)

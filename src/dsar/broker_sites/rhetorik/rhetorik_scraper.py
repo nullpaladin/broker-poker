@@ -132,7 +132,7 @@ async def main():
             "the sale and sharing of my personal information and of targeted "
             "advertising / profiling"
         )
-        if SuperScraper.REMOVE_INFORMATION:
+        if SuperScraper.wants("delete"):
             rights_text += "; (3) deletion of all personal information you hold about me"
         rights_text += "."
         details = await tab.find(id="requestDetailsDSARElement", raise_exc=False)

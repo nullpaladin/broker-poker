@@ -102,7 +102,7 @@ async def main():
         details_field = await tab.find(id="requestDetailsDSARElement", raise_exc=False)
         if details_field:
             request_text = "I am requesting access to and opting out of the sale/sharing of my personal information."
-            if SuperScraper.REMOVE_INFORMATION:
+            if SuperScraper.wants("delete"):
                 request_text += " I am also requesting deletion of my personal information."
             await details_field.type_text(request_text)
 

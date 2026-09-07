@@ -69,7 +69,7 @@ async def main():
         if SuperScraper.DRY_RUN:
             print(
                 f"DRY RUN: would submit Access/Portability/Rectification/Restriction"
-                f"{'/Deletion' if SuperScraper.REMOVE_INFORMATION else ''} "
+                f"{'/Deletion' if SuperScraper.wants("delete") else ''} "
                 f"for {SuperScraper.EMAIL}"
             )
             submit_btn = await tab.find(**{"aria-label": "Click to submit form"}, raise_exc=False)

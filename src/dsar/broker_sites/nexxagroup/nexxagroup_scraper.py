@@ -123,7 +123,7 @@ async def main():
             if submit_btn:
                 await submit_btn.scroll_into_view()
             await asyncio.sleep(2)
-            suffix = "_delete" if SuperScraper.REMOVE_INFORMATION else ""
+            suffix = "_delete" if SuperScraper.wants("delete") else ""
             await SuperScraper.screenshot(tab, f"resources/screenshots/nexxagroup_dry_run{suffix}.png")
             return
 

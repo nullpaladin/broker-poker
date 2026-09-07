@@ -16,7 +16,7 @@ URL = "https://ecom2.anchorcomputer.com/privacyrequest"
 
 FIRST_NAME_XPATH = "//input[@id='FirstName']"
 LAST_NAME_XPATH = "//input[@id='LastName']"
-ADDRESS1_XPATH = "//input[@id='Address1']"
+ADDRESS_ONE_XPATH = "//input[@id='Address1']"
 CITY_XPATH = "//input[@id='City']"
 ZIP_XPATH = "//input[@id='Zip']"
 SSN_XPATH = "//input[@id='SsnLastFour']"
@@ -40,7 +40,7 @@ async def main():
 
         await super_scraper.input_text_field(tab=tab, xpath=FIRST_NAME_XPATH, text=SuperScraper.FIRST_NAME)
         await super_scraper.input_text_field(tab=tab, xpath=LAST_NAME_XPATH, text=SuperScraper.LAST_NAME)
-        await super_scraper.input_text_field(tab=tab, xpath=ADDRESS1_XPATH, text=SuperScraper.ADDRESS)
+        await super_scraper.input_text_field(tab=tab, xpath=ADDRESS_ONE_XPATH, text=SuperScraper.ADDRESS)
         await super_scraper.input_text_field(tab=tab, xpath=CITY_XPATH, text=SuperScraper.CITY)
 
         await tab.execute_script(

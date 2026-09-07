@@ -10,8 +10,8 @@ URL = "https://www.directmail.com/mail_preference/"
 
 FIRST_NAME_XPATH = '//input[@id="wrap_txtFirstName"]'
 LAST_NAME_XPATH = '//input[@id="wrap_txtLastName"]'
-ADDRESS1_XPATH = '//input[@id="wrap_txtAdd1"]'
-ADDRESS2_XPATH = '//input[@id="wrap_txtAdd2"]'
+ADDRESS_ONE_XPATH = '//input[@id="wrap_txtAdd1"]'
+ADDRESS_TWO_XPATH = '//input[@id="wrap_txtAdd2"]'
 CITY_XPATH = '//input[@id="wrap_txtCity"]'
 ZIP_XPATH = '//input[@id="wrap_txtZip"]'
 PHONE_XPATH = '//input[@id="wrap_txtPhone"]'
@@ -35,9 +35,9 @@ async def main():
 
         await super_scraper.input_text_field(tab=tab, xpath=FIRST_NAME_XPATH, text=SuperScraper.FIRST_NAME)
         await super_scraper.input_text_field(tab=tab, xpath=LAST_NAME_XPATH, text=SuperScraper.LAST_NAME)
-        await super_scraper.input_text_field(tab=tab, xpath=ADDRESS1_XPATH, text=SuperScraper.ADDRESS)
+        await super_scraper.input_text_field(tab=tab, xpath=ADDRESS_ONE_XPATH, text=SuperScraper.ADDRESS)
         if SuperScraper.ADDRESS_LINE_TWO:
-            await super_scraper.input_text_field(tab=tab, xpath=ADDRESS2_XPATH, text=SuperScraper.ADDRESS_LINE_TWO)
+            await super_scraper.input_text_field(tab=tab, xpath=ADDRESS_TWO_XPATH, text=SuperScraper.ADDRESS_LINE_TWO)
         await super_scraper.input_text_field(tab=tab, xpath=CITY_XPATH, text=SuperScraper.CITY)
 
         # Native <select> — set via JS since CDP click on <option> doesn't trigger change events

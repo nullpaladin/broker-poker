@@ -32,11 +32,20 @@ async def _select_option(tab, select_id, value):
     await asyncio.sleep(0.5)
 
 
+RIGHT_MAP = {"delete": "Delete All"}
+RIGHTS_SUPPORTED = ("delete",)
+
+
 async def main():
     options = ChromiumOptions()
     super_scraper = SuperScraper()
     options.binary_location = super_scraper.CHROMIUM_LOCATION
     options.add_argument("--no-sandbox")
+
+    # Removal tool — Delete only. Skip unless the user actually asked for deletion.
+    if not SuperScraper.rights_to_exercise(RIGHT_MAP):
+        print("spydialer is delete-only; 'delete' not in REQUESTED_RIGHTS / REMOVE_INFORMATION not set — skipping.")
+        return
 
     state_abbr = SuperScraper.STATE_ABBREVIATED
 
@@ -61,7 +70,7 @@ async def main():
             )
             if submit_btn:
                 await submit_btn.scroll_into_view()
-            await SuperScraper.screenshot(tab, "resources/screenshots/spydailer_dry_run.png")
+            await SuperScraper.screenshot(tab, "resources/screenshots/spydialer_dry_run.png")
             print(
                 f"DRY RUN: would submit state filter for "
                 f"{SuperScraper.FIRST_NAME} {SuperScraper.LAST_NAME} <{SuperScraper.EMAIL}>"
@@ -77,13 +86,14 @@ async def main():
             await submit_btn.click()
             await asyncio.sleep(3)
 
-        print(f"\nState filter submitted. Solve the reCAPTCHA v2 if prompted.")
+        print("\nState filter submitted. Solve the reCAPTCHA v2 if prompted.")
         print("After records appear, find your record — the name/contact fields will appear in a modal.")
         print("Fill in your details, then click Delete All and confirm.")
         print("Press Enter after the confirmation page appears...")
         input()
 
         # Attempt delete if button is visible (may have been exposed by user interaction)
+        confirmed = False
         delete_btn = await tab.find(
             id="ctl00_ContentPlaceHolder1_DeleteAllBottomButton", raise_exc=False
         )
@@ -96,8 +106,15 @@ async def main():
             if confirm_btn and await confirm_btn.is_visible():
                 await confirm_btn.click()
                 await asyncio.sleep(3)
+                confirmed = True
 
-        print(f"Submitted deletion for {SuperScraper.FIRST_NAME} {SuperScraper.LAST_NAME}")
+        if confirmed:
+            print(f"Submitted deletion for {SuperScraper.FIRST_NAME} {SuperScraper.LAST_NAME}")
+        else:
+            print(
+                f"{super_scraper.OOPS} Delete/confirm button was not clicked automatically — "
+                "complete the deletion in the browser and verify the confirmation page."
+            )
 
 
 asyncio.run(main())

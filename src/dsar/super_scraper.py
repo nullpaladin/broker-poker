@@ -9,6 +9,7 @@ import dotenv
 from pydoll.browser.options import ChromiumOptions
 
 from src.dsar.exceptions import RequiredFieldError
+from src.state_privacy_request_factory import state_privacy_data
 from src.state_privacy_request_factory.state_privacy_data import (
     RIGHT_CODES,
     UnknownStateError,
@@ -454,6 +455,22 @@ class SuperScraper:
         kept for the rare call that abbreviates some other state name.
         """
         return state_abbreviation(state_name or SuperScraper.STATE)
+
+    @staticmethod
+    def state_has_privacy_law(state_name: str | None = None) -> bool:
+        """True if ``state_name`` (default: the configured STATE) has an active
+        comprehensive consumer-privacy law."""
+        return state_privacy_data.state_has_privacy_law(state_name or SuperScraper.STATE or "")
+
+    @staticmethod
+    def state_camel_key(state_name: str | None = None, *, suffix: str = "Usa") -> str:
+        """``"Rhode Island" -> "rhodeIslandUsa"`` for form vendors that key options that way."""
+        return state_privacy_data.state_camel_key(state_name or SuperScraper.STATE, suffix=suffix)
+
+    @staticmethod
+    def state_law_citation(right_code: str | None = None, state_name: str | None = None):
+        """Statute citation for a right in the given state (default: configured STATE)."""
+        return state_privacy_data.statute_cite(state_name or SuperScraper.STATE, right_code)
 
     @staticmethod
     async def choose_dropdown_option_by_xpath(tab, input_xpath, dropdown_item_xpath, sleep=0, double_click=False, timeout=BASE_TIMEOUT_IN_SECONDS):

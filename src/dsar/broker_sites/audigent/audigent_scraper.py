@@ -28,25 +28,26 @@ from pydoll.browser.options import ChromiumOptions
 
 URL = "https://app.sixfifty.com/request-easy/653b-4813/questions/5359740"
 
-STATE_TO_KEY = {
-    "california": "californiaUsa",
-    "colorado": "coloradoUsa",
-    "connecticut": "connecticutUsa",
-    "indiana": "indianaUsa",
-    "kentucky": "kentuckyUsa",
-    "maryland": "marylandUsa",
-    "minnesota": "minnesotaUsa",
-    "oregon": "oregonUsa",
-    "rhode island": "rhodeIslandUsa",
-    "tennessee": "tennesseeUsa",
-    "texas": "texasUsa",
-    "utah": "utahUsa",
-    "virginia": "virginiaUsa",
-}
+# SixFifty keys its state radios as e.g. "californiaUsa" / "rhodeIslandUsa" for
+# privacy-law states, "otherStateOrRegion" for everyone else.
 FALLBACK_STATE_KEY = "otherStateOrRegion"
 
-RIGHTS = ["rightToKnowSpecific", "doNotSellMyData"]
-DELETE_RIGHT = "deleteMyData"
+
+def _state_key() -> str:
+    if not SuperScraper.state_has_privacy_law(SuperScraper.STATE):
+        return FALLBACK_STATE_KEY
+    return SuperScraper.state_camel_key(SuperScraper.STATE)
+
+
+# Canonical right code -> this form's SixFifty option key. Other granular rights
+# (Correct/Port/Profiling/Targeted-Advertising/Appeal) exist on the form but are
+# not exercised here.
+RIGHT_MAP = {
+    "access": "rightToKnowSpecific",
+    "opt_out_sale_share": "doNotSellMyData",
+    "delete": "deleteMyData",
+}
+RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
 
 
 async def _click_label(tab, key, super_scraper, description):
@@ -70,8 +71,7 @@ async def submit_request(tab, right, super_scraper):
     await tab.go_to(URL)
     await asyncio.sleep(5)
 
-    state_key = STATE_TO_KEY.get(SuperScraper.STATE.strip().lower(), FALLBACK_STATE_KEY)
-    if not await _click_label(tab, state_key, super_scraper, "state"):
+    if not await _click_label(tab, _state_key(), super_scraper, "state"):
         return
     await _next(tab)
 
@@ -128,14 +128,15 @@ async def main():
     options.binary_location = super_scraper.CHROMIUM_LOCATION
     options.add_argument("--no-sandbox")
 
-    rights = list(RIGHTS)
-    if SuperScraper.REMOVE_INFORMATION:
-        rights.append(DELETE_RIGHT)
+    codes = SuperScraper.rights_to_exercise(RIGHT_MAP)
+    if not codes:
+        print("No requested privacy rights apply to this form — nothing to do.")
+        return
 
     async with Chrome(options=options) as browser:
         tab = await browser.start()
-        for right in rights:
-            await submit_request(tab, right, super_scraper)
+        for code in codes:
+            await submit_request(tab, RIGHT_MAP[code], super_scraper)
 
 
 asyncio.run(main())

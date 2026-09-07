@@ -1134,7 +1134,7 @@ frequency session.
   - **CAPTCHA solution required**
   - URL: https://my.datasubject.com/169m4FTnIOxju2VXg/28523 (Osano form; public entry point is https://spycloud.com/legal/dsar/, which links here)
   - Note: Osano DSAR portal (linked from spycloud.com/legal/dsar/). Card-based: click request-type card, then fill email/first/last name and a "Requestor Type" select (Individual). Standard HTML inputs. One submission per right (separate page nav each time). Exercises Summarize/Access, Do Not Sell, Correct, Opt-Out of Advertising, Opt-Out of Profiling unconditionally; Delete gated on REMOVE_INFORMATION. Cloudflare Turnstile requires manual solve.
-- [x] spydailer.com
+- [x] spydialer.com
   - URL: https://www.spydialer.com/Consumers/wizards.aspx
   - Rights: Delete only (removal tool — no separate Access/Opt-Out form)
   - Wizard: navigate directly to wizards.aspx; select state (MN abbreviation via JS); reCAPTCHA v2 manual; CONTINUE → records list → Delete All → confirm

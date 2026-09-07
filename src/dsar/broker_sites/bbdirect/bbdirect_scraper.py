@@ -16,7 +16,7 @@ URL = "https://www.bbdirect.com/resources/privacy-compliance.html"
 
 FIRST_NAME_XPATH = "//input[@id='cog-input-auto-0']"
 LAST_NAME_XPATH = "//input[@id='cog-input-auto-1']"
-ADDRESS1_XPATH = "//input[@id='cog-1-line1']"
+ADDRESS_ONE_XPATH = "//input[@id='cog-1-line1']"
 CITY_XPATH = "//input[@id='cog-1-city']"
 STATE_XPATH = "//input[@id='cog-1-state']"
 ZIP_XPATH = "//input[@id='cog-1-zip-code']"
@@ -37,7 +37,7 @@ async def main():
 
         await super_scraper.input_text_field(tab=tab, xpath=FIRST_NAME_XPATH, text=SuperScraper.FIRST_NAME, sleep=0.5)
         await super_scraper.input_text_field(tab=tab, xpath=LAST_NAME_XPATH, text=SuperScraper.LAST_NAME, sleep=0.5)
-        await super_scraper.input_text_field(tab=tab, xpath=ADDRESS1_XPATH, text=SuperScraper.ADDRESS, sleep=0.5)
+        await super_scraper.input_text_field(tab=tab, xpath=ADDRESS_ONE_XPATH, text=SuperScraper.ADDRESS, sleep=0.5)
         await super_scraper.input_text_field(tab=tab, xpath=CITY_XPATH, text=SuperScraper.CITY, sleep=0.5)
 
         state_field = await tab.find(xpath=STATE_XPATH, raise_exc=False)

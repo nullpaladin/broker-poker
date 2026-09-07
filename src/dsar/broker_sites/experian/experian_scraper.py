@@ -58,7 +58,7 @@ async def main():
             text = (nearby.get("result", {}).get("result", {}).get("value") or "") if isinstance(nearby, dict) else ""
             if "delete personal information" in text and not SuperScraper.wants("delete"):
                 continue
-            await box.execute_script("if (!this.checked) this.click();")
+            await SuperScraper.js_check(box)
             await asyncio.sleep(0.1)
 
         time.sleep(0.5)

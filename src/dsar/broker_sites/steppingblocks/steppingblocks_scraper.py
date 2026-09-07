@@ -40,7 +40,7 @@ async def main():
 
         cert = await tab.find(xpath="//input[@name='certification']", raise_exc=False)
         if cert:
-            await cert.execute_script("if (!this.checked) this.click();")
+            await SuperScraper.js_check(cert)
 
         time.sleep(0.5)
         await SuperScraper.screenshot(tab, "resources/screenshots/steppingblocks_dry_run.png")

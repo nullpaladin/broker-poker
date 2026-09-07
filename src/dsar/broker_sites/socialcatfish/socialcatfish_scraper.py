@@ -65,13 +65,13 @@ async def submit_request(tab, mode, label, super_scraper):
             continue  # "I am an authorized agent" — leave unchecked
         val = (box.get_attribute("value") or "").lower()
         if name == "consent" or box.id == "consent-checkbox" or val in ("on", "1") or "information" in val or "categor" in val:
-            await box.execute_script("if (!this.checked) this.click();")
+            await SuperScraper.js_check(box)
             await asyncio.sleep(0.1)
 
     # required residency attestation, in case it wasn't caught above
     consent = await tab.find(id="consent-checkbox", raise_exc=False)
     if consent:
-        await consent.execute_script("if (!this.checked) this.click();")
+        await SuperScraper.js_check(consent)
 
     time.sleep(0.5)
     await SuperScraper.screenshot(tab, f"resources/screenshots/socialcatfish_dry_run_{label}.png")

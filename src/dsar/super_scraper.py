@@ -283,13 +283,21 @@ class SuperScraper:
 
     @staticmethod
     async def js_check(element, checked=True, *, dispatch=("click", "change")):
-        """Set a checkbox/radio's checked state in JS + dispatch events. For custom-
-        styled / 1x1px / visually-hidden inputs that ignore a native .click()."""
+        """Toggle a checkbox/radio to ``checked`` in JS.
+
+        Tries a real ``.click()`` first (the faithful path — fires the browser's
+        own trusted click/input/change and is what React onChange listens for),
+        then falls back to setting ``.checked`` + dispatching ``dispatch`` events
+        for custom-styled / 1x1px / visually-hidden inputs that ignore ``.click()``.
+        """
         want = "true" if checked else "false"
         events = ";".join(
             f"this.dispatchEvent(new Event('{e}',{{bubbles:true}}))" for e in dispatch
         )
-        await element.execute_script(f"if(this.checked!=={want}){{this.checked={want};{events};}}")
+        await element.execute_script(
+            f"if(this.checked!=={want}){{this.click();}}"
+            f"if(this.checked!=={want}){{this.checked={want};{events};}}"
+        )
 
     @staticmethod
     async def js_set_value(element, value, *, blur=False):

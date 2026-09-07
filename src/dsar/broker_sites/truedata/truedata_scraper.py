@@ -76,7 +76,7 @@ async def main():
         # "Access" reveals the category sub-checkboxes — ask for all categories.
         cats = await tab.find(id="categoriesInfo", raise_exc=False)
         if cats:
-            await cats.execute_script("if (!this.checked) this.click();")
+            await SuperScraper.js_check(cats)
 
         await _select_native(tab, "country", "United States")
         await asyncio.sleep(1)

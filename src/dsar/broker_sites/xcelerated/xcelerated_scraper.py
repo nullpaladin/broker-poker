@@ -57,7 +57,7 @@ async def main():
 
         checkboxes = await tab.find(xpath="//input[@name='checkbox[]']", find_all=True, raise_exc=False) or []
         for box in checkboxes:
-            await box.execute_script("if (!this.checked) this.click();")
+            await SuperScraper.js_check(box)
             await asyncio.sleep(0.1)
 
         time.sleep(0.5)

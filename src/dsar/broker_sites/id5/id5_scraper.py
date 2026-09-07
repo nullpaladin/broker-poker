@@ -78,7 +78,7 @@ async def know(tab):
     await _fill_email(tab, "know-request-section", SuperScraper.EMAIL)
     confirm = await tab.find(id="know-request-confirm", raise_exc=False)
     if confirm:
-        await confirm.execute_script("if (!this.checked) this.click();")
+        await SuperScraper.js_check(confirm)
     time.sleep(0.5)
     await SuperScraper.screenshot(tab, "resources/screenshots/id5_dry_run_access.png")
     print(

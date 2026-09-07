@@ -55,7 +55,7 @@ async def main():
 
         personal = await tab.find(xpath="//input[@name='identity_type' and @value='personal']", raise_exc=False)
         if personal:
-            await personal.execute_script("if (!this.checked) this.click();")
+            await SuperScraper.js_check(personal)
 
         # "Applicable law" react-select lists GDPR/CCPA/CPA/CTDPA/UCPA/VCDPA only —
         # no home-state option for most users, so "OTHER" is chosen regardless of

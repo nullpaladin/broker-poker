@@ -34,14 +34,6 @@ RIGHT_MAP = {
 RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
 
 
-async def _set_text_via_js(field_element, value):
-    await field_element.execute_script(
-        f"this.value = {value!r};"
-        "this.dispatchEvent(new Event('input', {bubbles:true}));"
-        "this.dispatchEvent(new Event('change', {bubbles:true}));"
-    )
-
-
 async def submit_request(tab, category, super_scraper):
     await tab.go_to(URL)
     await asyncio.sleep(5)
@@ -63,7 +55,7 @@ async def submit_request(tab, category, super_scraper):
             continue
         field = await tab.find(id=field_id, raise_exc=False)
         if field:
-            await _set_text_via_js(field, value)
+            await SuperScraper.js_set_value(field, value)
         else:
             print(f"{super_scraper.OOPS} field '{field_id}' not found")
 
@@ -71,7 +63,7 @@ async def submit_request(tab, category, super_scraper):
         day, month, year = SuperScraper.DATE_OF_BIRTH.split("/")
         dob_field = await tab.find(id="webform_birthday", raise_exc=False)
         if dob_field:
-            await _set_text_via_js(dob_field, f"{year}-{month}-{day}")
+            await SuperScraper.js_set_value(dob_field, f"{year}-{month}-{day}")
         else:
             print(f"{super_scraper.OOPS} Date of Birth field not found")
 

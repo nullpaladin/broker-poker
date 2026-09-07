@@ -42,18 +42,6 @@ PRIVACY_RIGHTS_URL = "https://www.usa-people-search.com/privacy-rights"
 REMOVAL_URL = "https://www.usa-people-search.com/removal"
 
 
-async def _set_text_via_js(field_element, value):
-    # A CSS fade/slide-in transition on this form intermittently makes
-    # pydoll's click-based type_text() raise ElementNotVisible even after
-    # confirming offsetParent is set — set the value directly via JS
-    # instead, which doesn't require the element to be clickable.
-    await field_element.execute_script(
-        f"this.value = {value!r};"
-        "this.dispatchEvent(new Event('input', {bubbles:true}));"
-        "this.dispatchEvent(new Event('change', {bubbles:true}));"
-    )
-
-
 async def submit_request(tab, request_type, super_scraper):
     await tab.go_to(PRIVACY_RIGHTS_URL)
     await asyncio.sleep(5)
@@ -105,7 +93,7 @@ async def submit_request(tab, request_type, super_scraper):
             continue
         field = await tab.find(id=field_id, raise_exc=False)
         if field:
-            await _set_text_via_js(field, value)
+            await SuperScraper.js_set_value(field, value)
         else:
             print(f"{super_scraper.OOPS} field '{field_id}' not found")
 
@@ -114,7 +102,7 @@ async def submit_request(tab, request_type, super_scraper):
         dob_field = await tab.find(id="adc-dob", raise_exc=False)
         if dob_field:
             # Native <input type="date"> — set via JS in ISO format (YYYY-MM-DD).
-            await _set_text_via_js(dob_field, f"{year}-{month}-{day}")
+            await SuperScraper.js_set_value(dob_field, f"{year}-{month}-{day}")
         else:
             print(f"{super_scraper.OOPS} Date of Birth field not found")
 
@@ -157,7 +145,7 @@ async def submit_removal_step1(tab, super_scraper):
     for field_id, value in fields.items():
         field = await tab.find(id=field_id, raise_exc=False)
         if field:
-            await _set_text_via_js(field, value)
+            await SuperScraper.js_set_value(field, value)
         else:
             print(f"{super_scraper.OOPS} field '{field_id}' not found")
 

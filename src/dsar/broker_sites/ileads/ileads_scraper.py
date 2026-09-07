@@ -46,7 +46,7 @@ async def main():
                 xpath=f"//input[@name='checkbox-datatypes[]' and @value={value!r}]", raise_exc=False
             )
             if box:
-                await box.execute_script("if (!this.checked) this.click();")
+                await SuperScraper.js_check(box)
                 await asyncio.sleep(0.1)
 
         for name, value in [

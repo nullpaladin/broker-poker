@@ -74,7 +74,7 @@ async def submit_request(tab, choice_id, label, super_scraper):
 
     consent = await tab.find(id="input_5_12_1", raise_exc=False)
     if consent:
-        await consent.execute_script("if (!this.checked) this.click();")
+        await SuperScraper.js_check(consent)
 
     await asyncio.sleep(0.5)
     next_btn = await tab.find(id="gform_next_button_5_13", raise_exc=False)

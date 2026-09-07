@@ -49,7 +49,7 @@ async def submit_request(tab, option_text, label, super_scraper):
 
     agreement = await tab.find(id="agreement", raise_exc=False)
     if agreement:
-        await agreement.execute_script("if (!this.checked) this.click();")
+        await SuperScraper.js_check(agreement)
 
     time.sleep(0.5)
     await SuperScraper.screenshot(tab, f"resources/screenshots/monitorbase_dry_run_{label}.png")

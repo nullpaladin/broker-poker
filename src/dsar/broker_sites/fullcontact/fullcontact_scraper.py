@@ -21,8 +21,12 @@ NOT_AUTOMATABLE_REASON = (
     "identity verification sends a real email OTP that must be entered to continue"
 )
 
-CARDS = ["Access My Data", "Do Not Sell or Share My Data"]
-DELETE_CARD = "Delete My Data"
+RIGHT_MAP = {
+    "access": ["Access My Data"],
+    "opt_out_sale_share": ["Do Not Sell or Share My Data"],
+    "delete": ["Delete My Data"],
+}
+RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
 
 
 async def submit_request(tab, card_text, super_scraper):
@@ -73,9 +77,11 @@ async def main():
     options.binary_location = super_scraper.CHROMIUM_LOCATION
     options.add_argument("--no-sandbox")
 
-    cards = list(CARDS)
-    if SuperScraper.REMOVE_INFORMATION:
-        cards.append(DELETE_CARD)
+    codes = SuperScraper.rights_to_exercise(RIGHT_MAP)
+    if not codes:
+        print("No requested privacy rights apply to this form — nothing to do.")
+        return
+    cards = [entry for code in codes for entry in RIGHT_MAP[code]]
 
     async with Chrome(options=options) as browser:
         tab = await browser.start()

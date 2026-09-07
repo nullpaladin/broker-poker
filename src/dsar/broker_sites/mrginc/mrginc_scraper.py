@@ -17,6 +17,13 @@ from pydoll.browser.options import ChromiumOptions
 
 URL = "https://www.mrginc.com/do-not-sell-my-personal-information"
 
+RIGHT_MAP = {
+    "access": ["checkbox_request"],
+    "opt_out_sale_share": ["checkbox"],
+    "delete": ["checkbox_delete"],
+}
+RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
+
 
 async def main():
     options = ChromiumOptions()
@@ -46,9 +53,11 @@ async def main():
             else:
                 print(f"{super_scraper.OOPS} field '{field_name}' not found")
 
-        checkbox_ids = ["checkbox", "checkbox_request"]
-        if SuperScraper.REMOVE_INFORMATION:
-            checkbox_ids.append("checkbox_delete")
+        codes = SuperScraper.rights_to_exercise(RIGHT_MAP)
+        if not codes:
+            print("No requested privacy rights apply to this form — nothing to do.")
+            return
+        checkbox_ids = [cb for code in codes for cb in RIGHT_MAP[code]]
         for checkbox_id in checkbox_ids:
             checkbox = await tab.find(id=checkbox_id, raise_exc=False)
             if checkbox:

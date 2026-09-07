@@ -27,13 +27,14 @@ NOT_AUTOMATABLE_REASON = (
     "every right requires an email/phone OTP before any data is submitted"
 )
 
-RIGHTS = [
-    ("radio-access-data", "access"),
-    ("radio-correct-data", "correct"),
-    ("radio-dnsell-data", "opt_out"),
-    ("radio-limit-data", "limit_sensitive"),
-]
-DELETE_RIGHT = ("radio-delete-data", "delete")
+RIGHT_MAP = {
+    "access": [("radio-access-data", "access")],
+    "correct": [("radio-correct-data", "correct")],
+    "opt_out_sale_share": [("radio-dnsell-data", "opt_out")],
+    "limit_sensitive_pi": [("radio-limit-data", "limit_sensitive")],
+    "delete": [("radio-delete-data", "delete")],
+}
+RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
 
 
 async def _click_continue(tab):
@@ -92,9 +93,11 @@ async def main():
     options.binary_location = super_scraper.CHROMIUM_LOCATION
     options.add_argument("--no-sandbox")
 
-    rights = list(RIGHTS)
-    if SuperScraper.REMOVE_INFORMATION:
-        rights.append(DELETE_RIGHT)
+    codes = SuperScraper.rights_to_exercise(RIGHT_MAP)
+    if not codes:
+        print("No requested privacy rights apply to this form — nothing to do.")
+        return
+    rights = [entry for code in codes for entry in RIGHT_MAP[code]]
 
     async with Chrome(options=options) as browser:
         tab = await browser.start()

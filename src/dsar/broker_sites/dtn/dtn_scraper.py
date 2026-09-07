@@ -22,15 +22,14 @@ from pydoll.browser.options import ChromiumOptions
 
 URL = "https://www.dtn.com/do-not-sell-my-information-form/"
 
-CHECKBOXES = [
-    "input_36.2",  # Do Not Sell or Share My Personal Information
-    "input_36.3",  # Limit the Disclosure or Use of My Sensitive Personal Information
-    "input_36.4",  # Access to and/or correction of My Personal Data
-    "input_36.5",  # Objection or restriction to the processing of My Personal Data
-    "input_36.6",  # Transfer my Personal Data to another party
-    "input_36.7",  # Withdrawal of my consent previously provided to DTN
-]
-DELETE_CHECKBOX = "input_36.1"  # Delete My Personal Data
+RIGHT_MAP = {
+    "access": ["input_36.4"],
+    "limit_sensitive_pi": ["input_36.3"],
+    "portability": ["input_36.6"],
+    "opt_out_sale_share": ["input_36.2", "input_36.5", "input_36.7"],
+    "delete": ["input_36.1"],
+}
+RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
 
 
 async def main():
@@ -55,9 +54,11 @@ async def main():
         await super_scraper.input_text_field(tab=tab, xpath="//input[@id='input_47_4']", text=SuperScraper.PHONE_NUMBER, sleep=0.2)
         await super_scraper.input_text_field(tab=tab, xpath="//input[@id='input_47_17']", text=SuperScraper.ZIP_CODE, sleep=0.2)
 
-        checkboxes = list(CHECKBOXES)
-        if SuperScraper.REMOVE_INFORMATION:
-            checkboxes.append(DELETE_CHECKBOX)
+        codes = SuperScraper.rights_to_exercise(RIGHT_MAP)
+        if not codes:
+            print("No requested privacy rights apply to this form — nothing to do.")
+            return
+        checkboxes = [entry for code in codes for entry in RIGHT_MAP[code]]
         for name in checkboxes:
             box = await tab.find(name=name, raise_exc=False)
             if box:

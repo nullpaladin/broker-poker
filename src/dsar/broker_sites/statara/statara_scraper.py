@@ -25,10 +25,11 @@ from src.dsar.super_scraper import SuperScraper
 URL = "https://statara.com/consumerdeletion/"
 
 # (page-2 radio choice id, screenshot label)
-REQUESTS = [
-    ("choice_5_16_0", "access"),   # The Right to Know or Access your personal information
-]
-DELETE_REQUEST = ("choice_5_16_1", "delete")  # The Right to Delete your personal information
+RIGHT_MAP = {
+    "access": [("choice_5_16_0", "access")],
+    "delete": [("choice_5_16_1", "delete")],
+}
+RIGHTS_SUPPORTED = tuple(RIGHT_MAP)  # The Right to Delete your personal information
 
 
 async def _select_native_by_text(tab, xpath, match_text):
@@ -73,7 +74,7 @@ async def submit_request(tab, choice_id, label, super_scraper):
 
     consent = await tab.find(id="input_5_12_1", raise_exc=False)
     if consent:
-        await consent.execute_script("if (!this.checked) this.click();")
+        await SuperScraper.js_check(consent)
 
     await asyncio.sleep(0.5)
     next_btn = await tab.find(id="gform_next_button_5_13", raise_exc=False)
@@ -88,7 +89,7 @@ async def submit_request(tab, choice_id, label, super_scraper):
         "return !!p && getComputedStyle(p).display !== 'none';"
     )
     if not page2_visible['result']['result']['value']:
-        await tab.take_screenshot(f"resources/screenshots/statara_dry_run_{label}.png")
+        await SuperScraper.screenshot(tab, f"resources/screenshots/statara_dry_run_{label}.png")
         print(
             f"{super_scraper.OOPS} Page 1 filled but 'Next' did not advance (Gravity Forms "
             f"anti-spam under automation). Click Next manually, choose the '{label}' right, "
@@ -103,9 +104,7 @@ async def submit_request(tab, choice_id, label, super_scraper):
     await radio.execute_script("this.checked = true; this.dispatchEvent(new Event('change',{bubbles:true}));")
 
     time.sleep(0.5)
-    await tab.take_screenshot(f"resources/screenshots/statara_dry_run_{label}.png")
-    print(f"Screenshot saved to resources/screenshots/statara_dry_run_{label}.png")
-
+    await SuperScraper.screenshot(tab, f"resources/screenshots/statara_dry_run_{label}.png")
     if SuperScraper.DRY_RUN:
         print(
             f"DRY RUN: would submit '{label}' for "
@@ -129,11 +128,12 @@ async def main():
     super_scraper = SuperScraper()
     options.binary_location = super_scraper.CHROMIUM_LOCATION
     options.add_argument("--no-sandbox")
-    options.add_argument("--window-size=1280,2400")
 
-    requests = list(REQUESTS)
-    if SuperScraper.REMOVE_INFORMATION:
-        requests.append(DELETE_REQUEST)
+    codes = SuperScraper.rights_to_exercise(RIGHT_MAP)
+    if not codes:
+        print("No requested privacy rights apply to this form — nothing to do.")
+        return
+    requests = [entry for code in codes for entry in RIGHT_MAP[code]]
 
     async with Chrome(options=options) as browser:
         tab = await browser.start()

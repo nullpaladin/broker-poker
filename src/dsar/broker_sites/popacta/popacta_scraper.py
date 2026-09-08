@@ -28,9 +28,8 @@ async def main():
     super_scraper = SuperScraper()
     options.binary_location = super_scraper.CHROMIUM_LOCATION
     options.add_argument("--no-sandbox")
-    options.add_argument("--window-size=1280,2000")
 
-    message = _MSG_DELETE if SuperScraper.REMOVE_INFORMATION else _MSG_BASE
+    message = _MSG_DELETE if SuperScraper.wants("delete") else _MSG_BASE
 
     async with Chrome(options=options) as browser:
         tab = await browser.start()
@@ -60,8 +59,7 @@ async def main():
                 f"DRY RUN: would submit for "
                 f"{SuperScraper.FIRST_NAME} {SuperScraper.LAST_NAME} <{SuperScraper.EMAIL}>"
             )
-            await tab.take_screenshot("resources/screenshots/popacta_dry_run.png")
-            print("Screenshot saved to resources/screenshots/popacta_dry_run.png")
+            await SuperScraper.screenshot(tab, "resources/screenshots/popacta_dry_run.png")
             return
 
         submit_btn = await tab.find(id="submit-btn", raise_exc=False)

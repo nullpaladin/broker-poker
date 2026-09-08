@@ -20,15 +20,16 @@ from pydoll.browser.options import ChromiumOptions
 
 URL = "https://dsr.trustsuperset.com/?orgId=7b774bc1-608f-8c4c-bb90-453b1540f48b"
 
-RIGHTS = [
-    "Right to Rectification",
-    "Right to Restrict Processing",
-    "Right to Data Portability",
-    "Right to Not be Subject to Automated Decision-Making",
-    "Right to Opt-out of Sales",
-    "Right to Limit Sensitive Personal Information",
-]
-DELETE_RIGHT = "Right to Erasure"
+# Trust Superset 7-option dropdown; GDPR "Restrict Processing" rides with opt-out.
+RIGHT_MAP = {
+    "correct": ["Right to Rectification"],
+    "portability": ["Right to Data Portability"],
+    "opt_out_profiling": ["Right to Not be Subject to Automated Decision-Making"],
+    "opt_out_sale_share": ["Right to Opt-out of Sales", "Right to Restrict Processing"],
+    "limit_sensitive_pi": ["Right to Limit Sensitive Personal Information"],
+    "delete": ["Right to Erasure"],
+}
+RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
 
 
 async def submit_request(tab, right, super_scraper):
@@ -81,8 +82,7 @@ async def submit_request(tab, right, super_scraper):
             f"{SuperScraper.FIRST_NAME} {SuperScraper.LAST_NAME} <{SuperScraper.EMAIL}>"
         )
         await asyncio.sleep(1)
-        await tab.take_screenshot(path=f"resources/screenshots/persistent_id_dry_run_{label}.png")
-        print(f"Screenshot saved to resources/screenshots/persistent_id_dry_run_{label}.png")
+        await SuperScraper.screenshot(tab, f"resources/screenshots/persistent_id_dry_run_{label}.png")
         return
 
     print(f"\nForm filled for '{right}'. Solve the Cloudflare Turnstile challenge,")
@@ -102,9 +102,11 @@ async def main():
     options.binary_location = super_scraper.CHROMIUM_LOCATION
     options.add_argument("--no-sandbox")
 
-    rights = list(RIGHTS)
-    if SuperScraper.REMOVE_INFORMATION:
-        rights.append(DELETE_RIGHT)
+    codes = SuperScraper.rights_to_exercise(RIGHT_MAP)
+    if not codes:
+        print("No requested privacy rights apply to this form — nothing to do.")
+        return
+    rights = [entry for code in codes for entry in RIGHT_MAP[code]]
 
     async with Chrome(options=options) as browser:
         tab = await browser.start()

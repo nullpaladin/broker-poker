@@ -97,7 +97,6 @@ async def main():
     super_scraper = SuperScraper()
     options.binary_location = super_scraper.CHROMIUM_LOCATION
     options.add_argument("--no-sandbox")
-    options.add_argument("--window-size=1280,4000")
 
     async with Chrome(options=options) as browser:
         tab = await browser.start()
@@ -151,7 +150,7 @@ async def main():
         await asyncio.sleep(0.3)
         await _pick_visible_role_option(tab, "requestTypesDSARElement", "Do Not Sell My Information")
 
-        if SuperScraper.REMOVE_INFORMATION:
+        if SuperScraper.wants("delete"):
             await asyncio.sleep(0.3)
             await _pick_visible_role_option(tab, "requestTypesDSARElement", "Delete Data")
 
@@ -180,18 +179,18 @@ async def main():
                 await tab.keyboard.press(Key.ESCAPE)
                 await asyncio.sleep(0.3)
 
-        if SuperScraper.REMOVE_INFORMATION:
+        if SuperScraper.wants("delete"):
             await _pick_visible_role_option(tab, "deleteRequestConfirmationDSARElement", "Yes")
 
         time.sleep(0.5)
 
         if SuperScraper.DRY_RUN:
             # Screenshot top of form first, then scroll to submit
-            await tab.take_screenshot("resources/screenshots/hartehanks_dry_run_top.png")
+            await SuperScraper.screenshot(tab, "resources/screenshots/hartehanks_dry_run_top.png")
             submit_btn = await tab.find(id="dsar-webform-submit-button", raise_exc=False)
             if submit_btn:
                 await submit_btn.scroll_into_view()
-            await tab.take_screenshot("resources/screenshots/hartehanks_dry_run.png")
+            await SuperScraper.screenshot(tab, "resources/screenshots/hartehanks_dry_run.png")
             print(
                 f"DRY RUN: would submit for "
                 f"{SuperScraper.FIRST_NAME} {SuperScraper.LAST_NAME} <{SuperScraper.EMAIL}>"

@@ -16,6 +16,11 @@ from src.dsar.super_scraper import SuperScraper
 
 URL = "https://privacy.deeprootanalytics.com/"
 
+NOT_AUTOMATABLE = True
+NOT_AUTOMATABLE_REASON = (
+    "the form emails a verification code that must be entered mid-run to proceed"
+)
+
 
 async def _fill_form(tab, phone_field_id="phone_num"):
     for fid, val in [
@@ -58,8 +63,7 @@ async def _submit_request(tab, card_text, label, phone_field_id, super_scraper):
         if continue_btn and await continue_btn.is_visible():
             await continue_btn.scroll_into_view()
         await asyncio.sleep(2)
-        await tab.take_screenshot(f"resources/screenshots/deeprootanalytics_dry_run_{label}.png")
-        print(f"Screenshot saved to resources/screenshots/deeprootanalytics_dry_run_{label}.png")
+        await SuperScraper.screenshot(tab, f"resources/screenshots/deeprootanalytics_dry_run_{label}.png")
         return
 
     continue_btn = await tab.find(text="Continue", raise_exc=False)
@@ -89,17 +93,18 @@ async def _submit_request(tab, card_text, label, phone_field_id, super_scraper):
 
 
 async def main():
+    if SuperScraper.bail_if_not_automatable(globals()):
+        return
     options = ChromiumOptions()
     super_scraper = SuperScraper()
     options.binary_location = super_scraper.CHROMIUM_LOCATION
     options.add_argument("--no-sandbox")
-    options.add_argument("--window-size=1280,3000")
 
     async with Chrome(options=options) as browser:
         tab = await browser.start()
 
         await _submit_request(tab, "Access your data", "access", "phone_num", super_scraper)
-        if SuperScraper.REMOVE_INFORMATION:
+        if SuperScraper.wants("delete"):
             await _submit_request(tab, "Delete your data", "delete", "phone", super_scraper)
 
 

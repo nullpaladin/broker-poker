@@ -21,6 +21,9 @@ from pydoll.browser.options import ChromiumOptions
 
 URL = "https://paramountdirectmarketing.com/do-not-sell-non-ca"
 
+RIGHT_MAP = {"opt_out_sale_share": ["optOut"], "delete": ["deleteInfo"]}
+RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
+
 
 async def main():
     options = ChromiumOptions()
@@ -40,9 +43,11 @@ async def main():
         else:
             print(f"{super_scraper.OOPS} 'I am submitting this request for myself' option not found")
 
-        checkbox_ids = ["optOut"]
-        if SuperScraper.REMOVE_INFORMATION:
-            checkbox_ids.append("deleteInfo")
+        codes = SuperScraper.rights_to_exercise(RIGHT_MAP)
+        if not codes:
+            print("No requested privacy rights apply to this form — nothing to do.")
+            return
+        checkbox_ids = [cb for code in codes for cb in RIGHT_MAP[code]]
         for checkbox_id in checkbox_ids:
             checkbox = await tab.find(id=checkbox_id, raise_exc=False)
             if checkbox:
@@ -70,7 +75,7 @@ async def main():
 
         state_select = await tab.find(id="state", raise_exc=False)
         if state_select:
-            state_abbrev = await SuperScraper.state_full_name_to_abbreviated(SuperScraper.STATE)
+            state_abbrev = SuperScraper.STATE_ABBREVIATED
             await state_select.execute_script(
                 "for (var i=0;i<this.options.length;i++){"
                 f"  if(this.options[i].text==={state_abbrev!r}){{ this.selectedIndex=i; }}"
@@ -79,8 +84,7 @@ async def main():
             )
 
         await asyncio.sleep(1)
-        await tab.take_screenshot(path="resources/screenshots/paramountdirectmarketing_dry_run.png")
-        print("Screenshot saved to resources/screenshots/paramountdirectmarketing_dry_run.png")
+        await SuperScraper.screenshot(tab, "resources/screenshots/paramountdirectmarketing_dry_run.png")
         print(
             "\nForm filled but NOT submitted — a reCAPTCHA v2 checkbox is present and "
             "requires a manual solve before submitting."

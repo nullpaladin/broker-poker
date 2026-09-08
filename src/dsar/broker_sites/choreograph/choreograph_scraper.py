@@ -96,8 +96,7 @@ async def submit_access(tab, super_scraper):
     await _fill_contact_fields(tab)
 
     await asyncio.sleep(1)
-    await tab.take_screenshot(path="resources/screenshots/choreograph_dry_run_access.png")
-    print("Screenshot saved to resources/screenshots/choreograph_dry_run_access.png")
+    await SuperScraper.screenshot(tab, "resources/screenshots/choreograph_dry_run_access.png")
     print(
         "\nAccess request form filled but a valid government ID upload is required to "
         "verify identity before this can be submitted — there is no legitimate document "
@@ -125,8 +124,7 @@ async def submit_manage(tab, button_id, label, super_scraper):
     if SuperScraper.DRY_RUN:
         print(f"DRY RUN: would submit '{label}' for {SuperScraper.FIRST_NAME} {SuperScraper.LAST_NAME}")
         await asyncio.sleep(1)
-        await tab.take_screenshot(path=f"resources/screenshots/choreograph_dry_run_{button_id}.png")
-        print(f"Screenshot saved to resources/screenshots/choreograph_dry_run_{button_id}.png")
+        await SuperScraper.screenshot(tab, f"resources/screenshots/choreograph_dry_run_{button_id}.png")
         return
 
     print(f"\n'{label}' form filled. Solve the reCAPTCHA if prompted, click Submit,")
@@ -146,7 +144,7 @@ async def main():
         await submit_access(tab, super_scraper)
         await submit_manage(tab, "offoptoutforsale", "do not sell my personal information", super_scraper)
         await submit_manage(tab, "offlineoptout", "opt out", super_scraper)
-        if SuperScraper.REMOVE_INFORMATION:
+        if SuperScraper.wants("delete"):
             await submit_manage(tab, DELETE_BUTTON_ID, "delete and opt out", super_scraper)
 
 

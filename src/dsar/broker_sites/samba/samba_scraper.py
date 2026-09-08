@@ -16,12 +16,15 @@ from src.dsar.super_scraper import SuperScraper
 URL = "https://privacyportal-cdn.onetrust.com/dsarwebform/87c5ee85-893d-4972-ba26-2e82b743d041/d84d9664-facb-4de3-85fd-a2e339b73dbf.html"
 
 # (aria-label, screenshot label)
-REQUESTS = [
-    ("Do Not Sell My Information", "optout"),
-    ("Object to Processing My Information", "object"),
-    ("Access My Information", "access"),
-]
-DELETE_REQUEST = ("Delete My Information", "delete")
+RIGHT_MAP = {
+    "access": [("Access My Information", "access")],
+    "opt_out_sale_share": [
+        ("Do Not Sell My Information", "optout"),
+        ("Object to Processing My Information", "object"),
+    ],
+    "delete": [("Delete My Information", "delete")],
+}
+RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
 
 
 async def submit_request(tab, aria_label, label, super_scraper):
@@ -94,8 +97,7 @@ async def submit_request(tab, aria_label, label, super_scraper):
         if captcha_field:
             await captcha_field.scroll_into_view()
         await asyncio.sleep(1)
-        await tab.take_screenshot(f"resources/screenshots/samba_dry_run_{label}.png")
-        print(f"Screenshot saved to resources/screenshots/samba_dry_run_{label}.png")
+        await SuperScraper.screenshot(tab, f"resources/screenshots/samba_dry_run_{label}.png")
         return
 
     print(f"\nForm filled for '{aria_label}'.")
@@ -115,11 +117,12 @@ async def main():
     super_scraper = SuperScraper()
     options.binary_location = super_scraper.CHROMIUM_LOCATION
     options.add_argument("--no-sandbox")
-    options.add_argument("--window-size=1280,3000")
 
-    requests = list(REQUESTS)
-    if SuperScraper.REMOVE_INFORMATION:
-        requests.append(DELETE_REQUEST)
+    codes = SuperScraper.rights_to_exercise(RIGHT_MAP)
+    if not codes:
+        print("No requested privacy rights apply to this form — nothing to do.")
+        return
+    requests = [entry for code in codes for entry in RIGHT_MAP[code]]
 
     async with Chrome(options=options) as browser:
         tab = await browser.start()

@@ -26,25 +26,12 @@ from pydoll.browser.options import ChromiumOptions
 
 URL = "https://www.forgetmenaut.com/rtbf/unjVFFNnmFvsZ17Fnk3Tap6U"
 
-REQUEST_CATEGORIES = ["collection", "opt_out"]
-DELETE_CATEGORY = "deletion"
-
-
-async def _select_native_option(select_element, option_value):
-    await select_element.execute_script(
-        "for (var i=0;i<this.options.length;i++){"
-        f"  if(this.options[i].value==={option_value!r}){{ this.selectedIndex=i; }}"
-        "}"
-        "this.dispatchEvent(new Event('change', {bubbles:true}));"
-    )
-
-
-async def _set_text_via_js(field_element, value):
-    await field_element.execute_script(
-        f"this.value = {value!r};"
-        "this.dispatchEvent(new Event('input', {bubbles:true}));"
-        "this.dispatchEvent(new Event('change', {bubbles:true}));"
-    )
+RIGHT_MAP = {
+    "access": ["collection"],
+    "opt_out_sale_share": ["opt_out"],
+    "delete": ["deletion"],
+}
+RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
 
 
 async def submit_request(tab, category, super_scraper):
@@ -68,7 +55,7 @@ async def submit_request(tab, category, super_scraper):
             continue
         field = await tab.find(id=field_id, raise_exc=False)
         if field:
-            await _set_text_via_js(field, value)
+            await SuperScraper.js_set_value(field, value)
         else:
             print(f"{super_scraper.OOPS} field '{field_id}' not found")
 
@@ -76,19 +63,21 @@ async def submit_request(tab, category, super_scraper):
         day, month, year = SuperScraper.DATE_OF_BIRTH.split("/")
         dob_field = await tab.find(id="webform_birthday", raise_exc=False)
         if dob_field:
-            await _set_text_via_js(dob_field, f"{year}-{month}-{day}")
+            await SuperScraper.js_set_value(dob_field, f"{year}-{month}-{day}")
         else:
             print(f"{super_scraper.OOPS} Date of Birth field not found")
 
     jurisdiction_select = await tab.find(id="webform_jurisdiction", raise_exc=False)
     if jurisdiction_select:
-        await _select_native_option(jurisdiction_select, "OTHER")
+        # Jurisdiction list is CCPA-era only; "OTHER" is used for every state
+        # (a request framed under CCPA applies equally under each state's law).
+        await SuperScraper.select_native_option(jurisdiction_select, value="OTHER")
     else:
         print(f"{super_scraper.OOPS} Jurisdiction select not found")
 
     category_select = await tab.find(id="webform_category", raise_exc=False)
     if category_select:
-        await _select_native_option(category_select, category)
+        await SuperScraper.select_native_option(category_select, value=category)
     else:
         print(f"{super_scraper.OOPS} Request Category select not found")
 
@@ -99,8 +88,7 @@ async def submit_request(tab, category, super_scraper):
         print(f"{super_scraper.OOPS} 'first-party request' checkbox not found")
 
     await asyncio.sleep(1)
-    await tab.take_screenshot(path=f"resources/screenshots/usdatacorporation_dry_run_{category}.png")
-    print(f"Screenshot saved to resources/screenshots/usdatacorporation_dry_run_{category}.png")
+    await SuperScraper.screenshot(tab, f"resources/screenshots/usdatacorporation_dry_run_{category}.png")
     print(
         f"\n'{category}' request filled but NOT submitted — a reCAPTCHA v2 checkbox requires "
         "a manual solve before submitting."
@@ -112,11 +100,12 @@ async def main():
     super_scraper = SuperScraper()
     options.binary_location = super_scraper.CHROMIUM_LOCATION
     options.add_argument("--no-sandbox")
-    options.add_argument("--window-size=1280,3000")
 
-    categories = list(REQUEST_CATEGORIES)
-    if SuperScraper.REMOVE_INFORMATION:
-        categories.append(DELETE_CATEGORY)
+    codes = SuperScraper.rights_to_exercise(RIGHT_MAP)
+    if not codes:
+        print("No requested privacy rights apply to this form — nothing to do.")
+        return
+    categories = [entry for code in codes for entry in RIGHT_MAP[code]]
 
     async with Chrome(options=options) as browser:
         tab = await browser.start()

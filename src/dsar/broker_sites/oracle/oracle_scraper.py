@@ -118,8 +118,7 @@ async def submit_request(tab, request_type, super_scraper):
             f"{SuperScraper.FIRST_NAME} {SuperScraper.LAST_NAME} <{SuperScraper.EMAIL}>"
         )
         await asyncio.sleep(1)
-        await tab.take_screenshot(path=f"resources/screenshots/oracle_dry_run_{label}.png")
-        print(f"Screenshot saved to resources/screenshots/oracle_dry_run_{label}.png")
+        await SuperScraper.screenshot(tab, f"resources/screenshots/oracle_dry_run_{label}.png")
         return
 
     print(f"\nForm filled for '{request_type}'. Solve the reCAPTCHA if one appears,")
@@ -138,12 +137,11 @@ async def main():
     super_scraper = SuperScraper()
     options.binary_location = super_scraper.CHROMIUM_LOCATION
     options.add_argument("--no-sandbox")
-    options.add_argument("--window-size=1400,3000")
 
     async with Chrome(options=options) as browser:
         tab = await browser.start()
         for request_type, gated in REQUESTS:
-            if gated and not SuperScraper.REMOVE_INFORMATION:
+            if gated and not SuperScraper.wants("delete"):
                 continue
             await submit_request(tab, request_type, super_scraper)
 

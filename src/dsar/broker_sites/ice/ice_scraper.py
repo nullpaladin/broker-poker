@@ -19,22 +19,17 @@ from src.dsar.super_scraper import SuperScraper
 
 URL = "https://ice-privacy.my.onetrust.com/webform/cca3ac39-00b6-45f4-819b-bec660878b46/124d1692-407b-4384-9036-bef3ece530e3"
 
-ALWAYS_REQUESTS = [
-    ("Info Request", "access",
-     "I am exercising my right to access and obtain a copy of my personal information held by ICE Data Services."),
-    ("Update Data", "correct",
-     "I am exercising my right to correct and update my personal information held by ICE Data Services."),
-    ("Object to Processing", "object",
-     "I am exercising my right to opt-out of and object to the processing of my personal information by ICE Data Services."),
-    ("Data Portability", "portability",
-     "I am exercising my right to data portability for my personal information held by ICE Data Services."),
-    ("Restrict Processing", "restrict",
-     "I am exercising my right to restrict the processing of my personal information by ICE Data Services."),
-]
-DELETE_REQUEST = (
-    "Data Deletion", "delete",
-    "I am exercising my right to delete my personal information held by ICE Data Services."
-)
+RIGHT_MAP = {
+    "access": [("Info Request", "access", "I am exercising my right to access and obtain a copy of my personal information held by ICE Data Services.")],
+    "correct": [("Update Data", "correct", "I am exercising my right to correct and update my personal information held by ICE Data Services.")],
+    "portability": [("Data Portability", "portability", "I am exercising my right to data portability for my personal information held by ICE Data Services.")],
+    "opt_out_sale_share": [
+        ("Object to Processing", "object", "I am exercising my right to opt-out of and object to the processing of my personal information by ICE Data Services."),
+        ("Restrict Processing", "restrict", "I am exercising my right to restrict the processing of my personal information by ICE Data Services."),
+    ],
+    "delete": [("Data Deletion", "delete", "I am exercising my right to delete my personal information held by ICE Data Services.")],
+}
+RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
 
 
 async def _autocomplete_select(tab, field_id, search, option_text):
@@ -107,8 +102,7 @@ async def _submit_request(tab, req_type, label, details, super_scraper):
         if captcha_field:
             await captcha_field.scroll_into_view()
         await asyncio.sleep(1)
-        await tab.take_screenshot(f"ice_dry_run_{label}.png")
-        print(f"Screenshot saved to ice_dry_run_{label}.png")
+        await SuperScraper.screenshot(tab, f"ice_dry_run_{label}.png")
         return
 
     captcha_field = await tab.find(id="captchaCode", raise_exc=False)
@@ -137,11 +131,12 @@ async def main():
     super_scraper = SuperScraper()
     opts.binary_location = super_scraper.CHROMIUM_LOCATION
     opts.add_argument("--no-sandbox")
-    opts.add_argument("--window-size=1280,3000")
 
-    requests = list(ALWAYS_REQUESTS)
-    if SuperScraper.REMOVE_INFORMATION:
-        requests.append(DELETE_REQUEST)
+    codes = SuperScraper.rights_to_exercise(RIGHT_MAP)
+    if not codes:
+        print("No requested privacy rights apply to this form — nothing to do.")
+        return
+    requests = [entry for code in codes for entry in RIGHT_MAP[code]]
 
     async with Chrome(options=opts) as browser:
         tab = await browser.start()

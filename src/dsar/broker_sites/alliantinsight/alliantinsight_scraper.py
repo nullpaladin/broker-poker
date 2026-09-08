@@ -79,8 +79,7 @@ async def submit_request(tab, url, label, super_scraper):
             f"{SuperScraper.FIRST_NAME} {SuperScraper.LAST_NAME} <{SuperScraper.EMAIL}>"
         )
         await asyncio.sleep(1)
-        await tab.take_screenshot(path=f"resources/screenshots/alliantinsight_dry_run_{label}.png")
-        print(f"Screenshot saved to resources/screenshots/alliantinsight_dry_run_{label}.png")
+        await SuperScraper.screenshot(tab, f"resources/screenshots/alliantinsight_dry_run_{label}.png")
         return
 
     print(f"\nForm filled for '{label}'. Solve the reCAPTCHA checkbox, click Submit,")
@@ -101,7 +100,7 @@ async def main():
     options.add_argument("--no-sandbox")
 
     urls = dict(URLS)
-    if SuperScraper.REMOVE_INFORMATION:
+    if SuperScraper.wants("delete"):
         urls["delete"] = DELETE_URL
 
     async with Chrome(options=options) as browser:

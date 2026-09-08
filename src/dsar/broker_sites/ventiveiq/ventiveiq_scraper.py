@@ -30,8 +30,13 @@ URL = (
     "&formid=4348f332-6917-4566-8c56-6fc9eb57097f&status=publish"
 )
 
-REQUEST_TYPES = ["Data Processing", "Data Portability", "Opt out", "Info Request"]
-DELETE_REQUEST_TYPE = "Data Deletion"
+RIGHT_MAP = {
+    "access": ["Info Request"],
+    "portability": ["Data Portability"],
+    "opt_out_sale_share": ["Opt out", "Data Processing"],
+    "delete": ["Data Deletion"],
+}
+RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
 
 
 def _field_by_label_xpath(label_text, tag="input"):
@@ -111,14 +116,13 @@ async def submit_request(tab, request_type, super_scraper):
         tab,
         super_scraper,
         "Request Details",
-        f"I am submitting a '{request_type}' request under applicable state privacy law.",
+        f"I am submitting a '{request_type}' request under the {SuperScraper.LAW_FULL_NAME or 'applicable state and federal privacy law'}.",
         tag="textarea",
     )
 
     label = "".join(c if c.isalnum() else "_" for c in request_type.lower())[:40].strip("_")
     await asyncio.sleep(1)
-    await tab.take_screenshot(path=f"resources/screenshots/ventiveiq_dry_run_{label}.png")
-    print(f"Screenshot saved to resources/screenshots/ventiveiq_dry_run_{label}.png")
+    await SuperScraper.screenshot(tab, f"resources/screenshots/ventiveiq_dry_run_{label}.png")
     print(
         f"\n'{request_type}' request filled but NOT submitted — a 6-digit distorted-text "
         "CAPTCHA requires manual entry before submitting."
@@ -130,11 +134,12 @@ async def main():
     super_scraper = SuperScraper()
     options.binary_location = super_scraper.CHROMIUM_LOCATION
     options.add_argument("--no-sandbox")
-    options.add_argument("--window-size=1280,3000")
 
-    request_types = list(REQUEST_TYPES)
-    if SuperScraper.REMOVE_INFORMATION:
-        request_types.append(DELETE_REQUEST_TYPE)
+    codes = SuperScraper.rights_to_exercise(RIGHT_MAP)
+    if not codes:
+        print("No requested privacy rights apply to this form — nothing to do.")
+        return
+    request_types = [entry for code in codes for entry in RIGHT_MAP[code]]
 
     async with Chrome(options=options) as browser:
         tab = await browser.start()

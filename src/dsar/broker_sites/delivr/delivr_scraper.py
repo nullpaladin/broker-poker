@@ -17,8 +17,12 @@ from pydoll.browser.options import ChromiumOptions
 
 URL = "https://www.delivr.ai/privacy"
 
-REQUEST_TYPES = ["view", "do_not_sell"]
-DELETE_REQUEST_TYPE = "delete"
+RIGHT_MAP = {
+    "access": ["view"],
+    "opt_out_sale_share": ["do_not_sell"],
+    "delete": ["delete"],
+}
+RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
 
 
 async def submit_request(tab, request_type, super_scraper):
@@ -54,8 +58,7 @@ async def submit_request(tab, request_type, super_scraper):
     if SuperScraper.DRY_RUN:
         print(f"DRY RUN: would submit '{request_type}' request for {SuperScraper.FIRST_NAME} {SuperScraper.LAST_NAME}")
         await asyncio.sleep(1)
-        await tab.take_screenshot(path=f"resources/screenshots/delivr_dry_run_{request_type}.png")
-        print(f"Screenshot saved to resources/screenshots/delivr_dry_run_{request_type}.png")
+        await SuperScraper.screenshot(tab, f"resources/screenshots/delivr_dry_run_{request_type}.png")
         return
 
     submit_btn = await tab.find(text="Submit Request", raise_exc=False)
@@ -73,9 +76,11 @@ async def main():
     options.binary_location = super_scraper.CHROMIUM_LOCATION
     options.add_argument("--no-sandbox")
 
-    request_types = list(REQUEST_TYPES)
-    if SuperScraper.REMOVE_INFORMATION:
-        request_types.append(DELETE_REQUEST_TYPE)
+    codes = SuperScraper.rights_to_exercise(RIGHT_MAP)
+    if not codes:
+        print("No requested privacy rights apply to this form — nothing to do.")
+        return
+    request_types = [entry for code in codes for entry in RIGHT_MAP[code]]
 
     async with Chrome(options=options) as browser:
         tab = await browser.start()

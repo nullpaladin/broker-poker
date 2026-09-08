@@ -39,15 +39,18 @@ IAM_CONTAINER = "00000000-0000-0000-0000-000000001001-select-container"
 RESIDENT_CONTAINER = "00000000-0000-0000-0000-000000001004-select-container"
 REQUEST_TYPE_CONTAINER = "00000000-0000-0000-0000-000000001005-select-container"
 
-RIGHTS = [
-    "Access My Information",
-    "Opt-out or Unsubscribe",
-    "Do not Sell or Share My Personal Information",
-    "Withdraw My Consent",
-    "Limit the Use of My Sensitive Personal Information",
-    "Correct or Update My Information",
-]
-DELETE_RIGHT = "Delete My Information"
+RIGHT_MAP = {
+    "access": ["Access My Information"],
+    "correct": ["Correct or Update My Information"],
+    "limit_sensitive_pi": ["Limit the Use of My Sensitive Personal Information"],
+    "opt_out_sale_share": [
+        "Do not Sell or Share My Personal Information",
+        "Opt-out or Unsubscribe",
+        "Withdraw My Consent",
+    ],
+    "delete": ["Delete My Information"],
+}
+RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
 
 
 async def _select_option(tab, container_id, text):
@@ -118,8 +121,7 @@ async def submit_request(tab, right, super_scraper):
             f"{SuperScraper.FIRST_NAME} {SuperScraper.LAST_NAME} <{SuperScraper.EMAIL}>"
         )
         await asyncio.sleep(1)
-        await tab.take_screenshot(path=f"resources/screenshots/ariza_dry_run_{label}.png")
-        print(f"Screenshot saved to resources/screenshots/ariza_dry_run_{label}.png")
+        await SuperScraper.screenshot(tab, f"resources/screenshots/ariza_dry_run_{label}.png")
         return
 
     print(f"\nForm filled for '{right}'. Solve the reCAPTCHA, click Submit Request,")
@@ -139,9 +141,11 @@ async def main():
     options.binary_location = super_scraper.CHROMIUM_LOCATION
     options.add_argument("--no-sandbox")
 
-    rights = list(RIGHTS)
-    if SuperScraper.REMOVE_INFORMATION:
-        rights.append(DELETE_RIGHT)
+    codes = SuperScraper.rights_to_exercise(RIGHT_MAP)
+    if not codes:
+        print("No requested privacy rights apply to this form — nothing to do.")
+        return
+    rights = [entry for code in codes for entry in RIGHT_MAP[code]]
 
     async with Chrome(options=options) as browser:
         tab = await browser.start()

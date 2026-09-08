@@ -31,6 +31,9 @@ ACCESS = ("access", None)
 OPT_OUT = ("opt_out", "Opt Out")
 DELETE = ("delete", "Deletion")
 
+RIGHT_MAP = {"access": [ACCESS], "opt_out_sale_share": [OPT_OUT], "delete": [DELETE]}
+RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
+
 
 async def _fill_common(tab, super_scraper):
     first = await tab.find(xpath="//input[@name='first_name']", raise_exc=False)
@@ -112,8 +115,7 @@ async def submit_request(tab, right_id, sub_choice, super_scraper):
     if SuperScraper.DRY_RUN:
         print(f"DRY RUN: would submit '{right_id}' for {SuperScraper.FIRST_NAME} {SuperScraper.LAST_NAME}")
         await asyncio.sleep(1)
-        await tab.take_screenshot(path=f"resources/screenshots/hightouch_dry_run_{right_id}.png")
-        print(f"Screenshot saved to resources/screenshots/hightouch_dry_run_{right_id}.png")
+        await SuperScraper.screenshot(tab, f"resources/screenshots/hightouch_dry_run_{right_id}.png")
         return
 
     review_btn = await tab.find(text="Review Request", raise_exc=False)
@@ -136,9 +138,11 @@ async def main():
     options.binary_location = super_scraper.CHROMIUM_LOCATION
     options.add_argument("--no-sandbox")
 
-    requests = [ACCESS, OPT_OUT]
-    if SuperScraper.REMOVE_INFORMATION:
-        requests.append(DELETE)
+    codes = SuperScraper.rights_to_exercise(RIGHT_MAP)
+    if not codes:
+        print("No requested privacy rights apply to this form — nothing to do.")
+        return
+    requests = [entry for code in codes for entry in RIGHT_MAP[code]]
 
     async with Chrome(options=options) as browser:
         tab = await browser.start()

@@ -14,6 +14,12 @@ from src.dsar.super_scraper import SuperScraper
 
 URL = "https://privacyportal-cdn.onetrust.com/dsarwebform/dd6500c7-03cb-45b0-8bed-97ece55a892d/cfcefb69-41db-4aee-bd00-c702df72ee0f.html"
 
+RIGHT_MAP = {
+    "access": [("Data Request", "access")],
+    "delete": [("Delete Data", "delete")],
+}
+RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
+
 
 def _build_additional_info():
     rights = ["Right to Opt-Out of the sale or sharing of my personal data"]
@@ -122,8 +128,7 @@ async def fill_and_submit(tab, request_type_label, screenshot_label, super_scrap
         if captcha_field:
             await captcha_field.scroll_into_view()
         await asyncio.sleep(1)
-        await tab.take_screenshot(f"resources/screenshots/yellowpages_dry_run_{screenshot_label}.png")
-        print(f"Screenshot saved to resources/screenshots/yellowpages_dry_run_{screenshot_label}.png")
+        await SuperScraper.screenshot(tab, f"resources/screenshots/yellowpages_dry_run_{screenshot_label}.png")
         return
 
     print(f"\nForm filled for '{request_type_label}'.")
@@ -143,12 +148,13 @@ async def main():
     super_scraper = SuperScraper()
     options.binary_location = super_scraper.CHROMIUM_LOCATION
     options.add_argument("--no-sandbox")
-    options.add_argument("--window-size=1280,3000")
 
     # (aria-label, screenshot label)
-    requests = [("Data Request", "access")]
-    if SuperScraper.REMOVE_INFORMATION:
-        requests.append(("Delete Data", "delete"))
+    codes = SuperScraper.rights_to_exercise(RIGHT_MAP)
+    if not codes:
+        print("No requested privacy rights apply to this form — nothing to do.")
+        return
+    requests = [entry for code in codes for entry in RIGHT_MAP[code]]
 
     async with Chrome(options=options) as browser:
         tab = await browser.start()

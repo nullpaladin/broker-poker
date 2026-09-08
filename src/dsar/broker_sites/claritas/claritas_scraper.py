@@ -19,8 +19,11 @@ from src.dsar.super_scraper import SuperScraper
 
 URL = "https://privacyportal.onetrust.com/webform/68582716-6ce4-4f6e-bf08-78371b5f3292/6c7dc52d-0e2b-481f-9256-0755179e3783"
 
-RIGHTS = [("Data Request", "access")]
-DELETE_RIGHT = ("Request to be Deleted from Database", "delete")
+RIGHT_MAP = {
+    "access": [("Data Request", "access")],
+    "delete": [("Request to be Deleted from Database", "delete")],
+}
+RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
 
 
 async def submit_request(tab, right_label, screenshot_label, super_scraper):
@@ -47,7 +50,7 @@ async def submit_request(tab, right_label, screenshot_label, super_scraper):
     if city:
         await city.type_text(SuperScraper.CITY)
 
-    state_abbrev = await SuperScraper.state_full_name_to_abbreviated(SuperScraper.STATE)
+    state_abbrev = SuperScraper.STATE_ABBREVIATED
     state_field = await tab.find(id="stateDSARElement", raise_exc=False)
     if state_field:
         await state_field.type_text(state_abbrev)
@@ -79,8 +82,7 @@ async def submit_request(tab, right_label, screenshot_label, super_scraper):
             f"{SuperScraper.FIRST_NAME} {SuperScraper.LAST_NAME} <{SuperScraper.EMAIL}>"
         )
         await asyncio.sleep(1)
-        await tab.take_screenshot(path=f"resources/screenshots/claritas_dry_run_{screenshot_label}.png")
-        print(f"Screenshot saved to resources/screenshots/claritas_dry_run_{screenshot_label}.png")
+        await SuperScraper.screenshot(tab, f"resources/screenshots/claritas_dry_run_{screenshot_label}.png")
         return
 
     print(f"\nForm filled for '{right_label}'. Solve the reCAPTCHA, click Submit,")
@@ -100,9 +102,11 @@ async def main():
     options.binary_location = super_scraper.CHROMIUM_LOCATION
     options.add_argument("--no-sandbox")
 
-    rights = list(RIGHTS)
-    if SuperScraper.REMOVE_INFORMATION:
-        rights.append(DELETE_RIGHT)
+    codes = SuperScraper.rights_to_exercise(RIGHT_MAP)
+    if not codes:
+        print("No requested privacy rights apply to this form — nothing to do.")
+        return
+    rights = [entry for code in codes for entry in RIGHT_MAP[code]]
 
     async with Chrome(options=options) as browser:
         tab = await browser.start()

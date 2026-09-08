@@ -22,13 +22,19 @@ from pydoll.browser.options import ChromiumOptions
 
 URL = "https://app.fideo.ai/your-privacy-choices"
 
-RIGHTS = [
-    ("radio-access-data", "access"),
-    ("radio-correct-data", "correct"),
-    ("radio-dnsell-data", "opt_out"),
-    ("radio-limit-data", "limit_sensitive"),
-]
-DELETE_RIGHT = ("radio-delete-data", "delete")
+NOT_AUTOMATABLE = True
+NOT_AUTOMATABLE_REASON = (
+    "every right requires an email/phone OTP before any data is submitted"
+)
+
+RIGHT_MAP = {
+    "access": [("radio-access-data", "access")],
+    "correct": [("radio-correct-data", "correct")],
+    "opt_out_sale_share": [("radio-dnsell-data", "opt_out")],
+    "limit_sensitive_pi": [("radio-limit-data", "limit_sensitive")],
+    "delete": [("radio-delete-data", "delete")],
+}
+RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
 
 
 async def _click_continue(tab):
@@ -70,8 +76,7 @@ async def submit_request(tab, radio_id, label, super_scraper):
         await email_field.type_text(SuperScraper.EMAIL)
 
     await asyncio.sleep(1)
-    await tab.take_screenshot(path=f"resources/screenshots/fideo_dry_run_{label}.png")
-    print(f"Screenshot saved to resources/screenshots/fideo_dry_run_{label}.png")
+    await SuperScraper.screenshot(tab, f"resources/screenshots/fideo_dry_run_{label}.png")
     print(
         f"\n'{label}' request ready but NOT sent — click 'Send Me A Code' yourself, "
         "check your email for the verification code, enter it, and complete whatever "
@@ -81,14 +86,18 @@ async def submit_request(tab, radio_id, label, super_scraper):
 
 
 async def main():
+    if SuperScraper.bail_if_not_automatable(globals()):
+        return
     options = ChromiumOptions()
     super_scraper = SuperScraper()
     options.binary_location = super_scraper.CHROMIUM_LOCATION
     options.add_argument("--no-sandbox")
 
-    rights = list(RIGHTS)
-    if SuperScraper.REMOVE_INFORMATION:
-        rights.append(DELETE_RIGHT)
+    codes = SuperScraper.rights_to_exercise(RIGHT_MAP)
+    if not codes:
+        print("No requested privacy rights apply to this form — nothing to do.")
+        return
+    rights = [entry for code in codes for entry in RIGHT_MAP[code]]
 
     async with Chrome(options=options) as browser:
         tab = await browser.start()

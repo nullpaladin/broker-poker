@@ -33,8 +33,11 @@ from pydoll.browser.options import ChromiumOptions
 
 URL = "https://privacyportal-t-mobile.my.onetrust.com/webform/d4a925f0-4ebf-40ba-817b-bccc309e602f/7831d667-1ebc-4b1e-a941-e545cb0d0523"
 
-REQUEST_TYPES = ["Access personal data"]
-DELETE_REQUEST_TYPE = "Delete personal data"
+RIGHT_MAP = {
+    "access": ["Access personal data"],
+    "delete": ["Delete personal data"],
+}
+RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
 
 
 async def _select_option(tab, option_text, super_scraper, description):
@@ -110,8 +113,7 @@ async def submit_request(tab, request_type, super_scraper):
 
     label = "".join(c if c.isalnum() else "_" for c in request_type.lower())[:40].strip("_")
     await asyncio.sleep(1)
-    await tab.take_screenshot(path=f"resources/screenshots/tmobile_dry_run_{label}.png")
-    print(f"Screenshot saved to resources/screenshots/tmobile_dry_run_{label}.png")
+    await SuperScraper.screenshot(tab, f"resources/screenshots/tmobile_dry_run_{label}.png")
     print(
         f"\n'{request_type}' request filled but NOT submitted — a reCAPTCHA v2 checkbox "
         "requires a manual solve before submitting."
@@ -123,11 +125,12 @@ async def main():
     super_scraper = SuperScraper()
     options.binary_location = super_scraper.CHROMIUM_LOCATION
     options.add_argument("--no-sandbox")
-    options.add_argument("--window-size=1280,3000")
 
-    request_types = list(REQUEST_TYPES)
-    if SuperScraper.REMOVE_INFORMATION:
-        request_types.append(DELETE_REQUEST_TYPE)
+    codes = SuperScraper.rights_to_exercise(RIGHT_MAP)
+    if not codes:
+        print("No requested privacy rights apply to this form — nothing to do.")
+        return
+    request_types = [entry for code in codes for entry in RIGHT_MAP[code]]
 
     async with Chrome(options=options) as browser:
         tab = await browser.start()

@@ -44,7 +44,7 @@ async def main():
         time.sleep(0.5)
 
         if SuperScraper.DRY_RUN:
-            await tab.take_screenshot(path="resources/screenshots/parasolleads_dry_run.png")
+            await SuperScraper.screenshot(tab, "resources/screenshots/parasolleads_dry_run.png")
             print(f"DRY RUN: would submit opt-out for {SuperScraper.EMAIL}")
             await asyncio.sleep(3)
             return
@@ -52,8 +52,8 @@ async def main():
         await super_scraper.click_item_by_text(tab=tab, text="Send", sleep=3)
         await asyncio.sleep(4)
 
-        result = await tab.execute_script("return document.body.innerText")
-        print(result['result']['result']['value'][:500])
+        result = await SuperScraper.page_text(tab)
+        print(result[:500])
         print(f"Submitted opt-out for {SuperScraper.EMAIL}")
 
 

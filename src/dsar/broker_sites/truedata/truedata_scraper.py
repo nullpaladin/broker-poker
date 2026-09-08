@@ -62,7 +62,6 @@ async def main():
     super_scraper = SuperScraper()
     options.binary_location = super_scraper.CHROMIUM_LOCATION
     options.add_argument("--no-sandbox")
-    options.add_argument("--window-size=1280,3000")
 
     async with Chrome(options=options) as browser:
         tab = await browser.start()
@@ -71,13 +70,13 @@ async def main():
 
         await _set_checkbox(tab, "accessRequest", True)
         await _set_checkbox(tab, "optOutRequest", True)
-        await _set_checkbox(tab, "deleteRequest", SuperScraper.REMOVE_INFORMATION)
+        await _set_checkbox(tab, "deleteRequest", SuperScraper.wants("delete"))
         await asyncio.sleep(0.5)
 
         # "Access" reveals the category sub-checkboxes — ask for all categories.
         cats = await tab.find(id="categoriesInfo", raise_exc=False)
         if cats:
-            await cats.execute_script("if (!this.checked) this.click();")
+            await SuperScraper.js_check(cats)
 
         await _select_native(tab, "country", "United States")
         await asyncio.sleep(1)
@@ -98,13 +97,11 @@ async def main():
             await super_scraper.input_text_field(tab=tab, xpath=xpath, text=value, sleep=0.3)
 
         time.sleep(0.5)
-        await tab.take_screenshot("resources/screenshots/truedata_dry_run.png")
-        print("Screenshot saved to resources/screenshots/truedata_dry_run.png")
-
+        await SuperScraper.screenshot(tab, "resources/screenshots/truedata_dry_run.png")
         if SuperScraper.DRY_RUN:
             print(
                 f"DRY RUN: would submit access+opt-out"
-                f"{'+delete' if SuperScraper.REMOVE_INFORMATION else ''} for "
+                f"{'+delete' if SuperScraper.wants("delete") else ''} for "
                 f"{SuperScraper.FIRST_NAME} {SuperScraper.LAST_NAME} <{SuperScraper.EMAIL}>"
             )
             return

@@ -58,8 +58,7 @@ async def main():
 
         await tab.execute_script("window.scrollTo(0, 0);")
         await asyncio.sleep(1)
-        await tab.take_screenshot(path="resources/screenshots/peoplefinders_dry_run.png")
-        print("Screenshot saved to resources/screenshots/peoplefinders_dry_run.png")
+        await SuperScraper.screenshot(tab, "resources/screenshots/peoplefinders_dry_run.png")
         print(
             "\n'My own information' selected but the wizard cannot proceed further — a "
             "reCAPTCHA v2 checkbox gates the 'Continue' button before the actual identity-"

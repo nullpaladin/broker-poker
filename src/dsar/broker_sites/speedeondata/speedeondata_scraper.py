@@ -23,7 +23,6 @@ async def main():
     super_scraper = SuperScraper()
     options.binary_location = super_scraper.CHROMIUM_LOCATION
     options.add_argument("--no-sandbox")
-    options.add_argument("--window-size=1280,3000")
 
     async with Chrome(options=options) as browser:
         tab = await browser.start()
@@ -42,7 +41,7 @@ async def main():
         else:
             print(f"{super_scraper.OOPS} 'Sensitive Data' checkbox not found")
 
-        if SuperScraper.REMOVE_INFORMATION:
+        if SuperScraper.wants("delete"):
             deletion_checkbox = await tab.find(id="deletion", raise_exc=False)
             if deletion_checkbox:
                 await deletion_checkbox.click()
@@ -84,8 +83,7 @@ async def main():
             print(f"{super_scraper.OOPS} State option '{SuperScraper.STATE}' not found")
 
         await asyncio.sleep(1)
-        await tab.take_screenshot(path="resources/screenshots/speedeondata_dry_run.png")
-        print("Screenshot saved to resources/screenshots/speedeondata_dry_run.png")
+        await SuperScraper.screenshot(tab, "resources/screenshots/speedeondata_dry_run.png")
         print(
             "\nRequest filled but NOT submitted — a reCAPTCHA v2 checkbox requires a manual "
             "solve before submitting."

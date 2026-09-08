@@ -16,11 +16,12 @@ from src.dsar.super_scraper import SuperScraper
 
 URL = "https://privacyportal.onetrust.com/webform/c02129bc-bbab-43a6-a0b4-175489cb893e/156ac96a-9d7e-4fe6-bab8-a44df779202b"
 
-BASE_REQUEST_TYPES = [
-    "Access Request",
-    "Do Not Sell/ Share Request",
-]
-DELETE_REQUEST_TYPE = "Delete Request"
+RIGHT_MAP = {
+    "access": ["Access Request"],
+    "opt_out_sale_share": ["Do Not Sell/ Share Request"],
+    "delete": ["Delete Request"],
+}
+RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
 
 
 async def _select_autocomplete(tab, field_id, search_text):
@@ -44,11 +45,12 @@ async def main():
     super_scraper = SuperScraper()
     options.binary_location = super_scraper.CHROMIUM_LOCATION
     options.add_argument("--no-sandbox")
-    options.add_argument("--window-size=1280,3000")
 
-    request_types = list(BASE_REQUEST_TYPES)
-    if SuperScraper.REMOVE_INFORMATION:
-        request_types.append(DELETE_REQUEST_TYPE)
+    codes = SuperScraper.rights_to_exercise(RIGHT_MAP)
+    if not codes:
+        print("No requested privacy rights apply to this form — nothing to do.")
+        return
+    request_types = [entry for code in codes for entry in RIGHT_MAP[code]]
 
     async with Chrome(options=options) as browser:
         tab = await browser.start()
@@ -121,9 +123,8 @@ async def main():
             if submit_btn:
                 await submit_btn.scroll_into_view()
             await asyncio.sleep(2)
-            suffix = "_delete" if SuperScraper.REMOVE_INFORMATION else ""
-            await tab.take_screenshot(f"resources/screenshots/nexxagroup_dry_run{suffix}.png")
-            print(f"Screenshot saved to resources/screenshots/nexxagroup_dry_run{suffix}.png")
+            suffix = "_delete" if SuperScraper.wants("delete") else ""
+            await SuperScraper.screenshot(tab, f"resources/screenshots/nexxagroup_dry_run{suffix}.png")
             return
 
         print(f"\nForm filled for {SuperScraper.FIRST_NAME} {SuperScraper.LAST_NAME}.")

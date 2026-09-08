@@ -334,3 +334,46 @@ thomsonreuters.com pushed this further: THREE stacked cascades, and the third on
 realsourcedata.com's opt-out form is a Tally.so embed (`<iframe src="https://tally.so/embed/...">`) — unlike HubSpot's src-less iframe (see above), Tally always sets a real, populated `src`, so pydoll's `tab.get_frame(iframe_element)` works immediately (it's deprecated in favor of "interact with iframe WebElements directly" per a runtime warning, but still functions and was the only thing tried that worked). The general rule this confirms: before writing off an iframe-embedded form as unreachable, always check whether the iframe's `src` is populated — a real `src` means `get_frame()` is worth trying; an empty one (HubSpot) means don't bother.
 
 Once inside the frame, Tally's field ids are random UUIDs regenerated on every page load (e.g. `3cb88560-1c40-42a1-9994-6137bb7c50d2`) with no `name` or `placeholder` attribute to key off instead — unlike Formio's stable `name="data[field_key]"` (see Securiti.ai above). The only stable thing is DOM order: read the frame's visible label text (`document.body.innerText`, or the label elements if they're proper `<label>` tags) once during exploration to confirm field order, then in the scraper select all `input`/`textarea` elements of the expected types via `frame.find(tag_name="input", find_all=True)` and zip them positionally against a hardcoded value list in that same order — don't hardcode a specific UUID, it won't survive the next page load.
+
+## UPDATE: src-less HubSpot iframes ARE reachable — call `.find()` on the iframe WebElement
+
+The unacast.com entry above (and the README notes for venntel.com / marketforcecorp.com) concluded that a HubSpot form embedded as `<iframe class="hs-form-iframe">` with an empty `src` is unreachable. That is now out of date. `tab.find()` on the outer page and `tab.get_frame(iframe)` both still fail on a src-less HubSpot frame — but pydoll's newer "interact with the iframe WebElement directly" path works:
+
+```python
+iframe = await tab.find(class_name="hs-form-iframe", raise_exc=False)   # the <iframe> element in the PARENT doc
+field  = await iframe.find(xpath="//textarea[@name='enter_advertising_id_']", raise_exc=False)  # resolves INTO the frame
+await field.type_text(SuperScraper.ADVERTISING_ID)
+```
+
+Gotchas found on motrixi.com / withrealcustomers.com:
+- Use `iframe.find(xpath=...)` (or `tag_name=`). `iframe.find(name=...)` built a bad selector and matched nothing; `iframe.find(..., find_all=True)` raised `TypeError("'NoneType' object can't be awaited")` — a pydoll bug. Find elements one at a time by xpath.
+- `<select>` inside the frame: get the element via `iframe.find`, then `.execute_script("this.value=...; this.dispatchEvent(new Event('change',{bubbles:true}))")` on that element.
+- Checking a request-type checkbox can cascade in a whole extra identity block (name/DOB/city + optional ID-upload fields) that wasn't in the DOM before — re-dump the frame's form HTML after ticking the boxes.
+
+So: a src-less `hs-form-iframe` is worth a real attempt now. unacast.com / venntel.com / marketforcecorp.com are candidates for a re-try with this technique.
+
+## OneTrust `privacyportal[-de].onetrust.com/webform` vt-autocomplete can DOUBLE a fully-typed value
+
+On iqm.com's OneTrust webform (`privacyportal-de.onetrust.com/webform/...`), the Country/State autocomplete comboboxes type-ahead-complete the field AND keep the characters you typed, so `keyboard.type_text("United States")` ended up as `"United StatesUnited States"` in the field — regardless of whether the match was then committed by clicking the `role="option"` or by ArrowDown+Enter. Screenshot review was the only tell; no exception.
+
+What worked: set the value via the native setter + `input` event so the option list still filters to the single match, commit it, then hard-correct the field if it still came out wrong:
+
+```python
+await field.execute_script(
+    "var s=Object.getOwnPropertyDescriptor(Object.getPrototypeOf(this),'value').set;"
+    f"s.call(this,{value!r});"
+    "this.dispatchEvent(new Event('input',{bubbles:true}));"
+)
+await asyncio.sleep(1.4)
+opt = await tab.find(xpath=f"//*[@role='option' and normalize-space()={value!r}]", raise_exc=False)
+if opt: await opt.click()
+else:   await tab.keyboard.press(Key.ENTER)
+current = await field.execute_script("return this.value")
+# if `current` still != value: re-run the native-setter block + dispatch input/change/blur
+```
+
+Not every OneTrust build does this — yellowpages.com (CDN Angular `dsarwebform`), gumgum.com and idstrong.com's plain type + ArrowDown+Enter came out clean. It's specific to this newer `-de`/vt-autocomplete variant. Always screenshot-verify a combo value on these forms.
+
+## OneTrust `requestTypesDSARElement` "Select request type(s)" is often SINGLE-select despite the "(s)"
+
+idstrong.com, gumgum.com, iqm.com, synapsegroupinc.com, allantgroup.com all label the request-type group "Select request type(s)" but picking a second `role="option"` deselects the first (confirmed by screenshot — only ever one lit). Treat these as one-submission-per-right (reload the form per right, gate Delete on `REMOVE_INFORMATION`), the same as slashdotmedia.com. zetaglobal.com is the documented exception that is genuinely multi-select — so verify per form, don't assume either way.

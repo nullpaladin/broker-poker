@@ -57,13 +57,14 @@ async def main():
             await tab.keyboard.press(Key.ENTER)
         await asyncio.sleep(0.5)
 
-        if SuperScraper.REMOVE_INFORMATION:
+        _law = SuperScraper.LAW_FULL_NAME or "applicable state and federal privacy law"
+        if SuperScraper.wants("delete"):
             request_text = (
-                "I am requesting access to and deletion of my personal information "
-                "under applicable privacy law."
+                f"I am requesting access to and deletion of my personal information "
+                f"under the {_law}."
             )
         else:
-            request_text = "I am requesting access to my personal information under applicable privacy law."
+            request_text = f"I am requesting access to my personal information under the {_law}."
         request_details = await tab.find(id="requestDetailsDSARElement", raise_exc=False)
         if request_details:
             await request_details.type_text(request_text)
@@ -77,8 +78,7 @@ async def main():
             if captcha_field:
                 await captcha_field.scroll_into_view()
             await asyncio.sleep(1)
-            await tab.take_screenshot(path="resources/screenshots/emailindustries_dry_run.png")
-            print("Screenshot saved to resources/screenshots/emailindustries_dry_run.png")
+            await SuperScraper.screenshot(tab, "resources/screenshots/emailindustries_dry_run.png")
             return
 
         print("\nForm filled. Enter the CAPTCHA code, click Submit,")

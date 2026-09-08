@@ -23,13 +23,16 @@ URL = (
     "d0720d0f-d427-4a7d-a773-5d6793229f15.html"
 )
 
-REQUEST_TYPES = [
-    "Request a copy of identifiable information that relates to me",
-    "Opt out of receiving email from Zeta on behalf of its clients",
-    "Do not sell or share my identifiable information",
-    "Opt out of Zeta using sensitive information that relates to me",
-]
-DELETE_REQUEST_TYPE = "Delete identifiable information that relates to me"
+RIGHT_MAP = {
+    "access": ["Request a copy of identifiable information that relates to me"],
+    "opt_out_sale_share": [
+        "Do not sell or share my identifiable information",
+        "Opt out of receiving email from Zeta on behalf of its clients",
+    ],
+    "limit_sensitive_pi": ["Opt out of Zeta using sensitive information that relates to me"],
+    "delete": ["Delete identifiable information that relates to me"],
+}
+RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
 
 
 async def _select_option(tab, option_text, super_scraper, description):
@@ -46,11 +49,12 @@ async def main():
     super_scraper = SuperScraper()
     options.binary_location = super_scraper.CHROMIUM_LOCATION
     options.add_argument("--no-sandbox")
-    options.add_argument("--window-size=1280,3000")
 
-    request_types = list(REQUEST_TYPES)
-    if SuperScraper.REMOVE_INFORMATION:
-        request_types.append(DELETE_REQUEST_TYPE)
+    codes = SuperScraper.rights_to_exercise(RIGHT_MAP)
+    if not codes:
+        print("No requested privacy rights apply to this form — nothing to do.")
+        return
+    request_types = [entry for code in codes for entry in RIGHT_MAP[code]]
 
     async with Chrome(options=options) as browser:
         tab = await browser.start()
@@ -98,13 +102,12 @@ async def main():
         details_field = await tab.find(id="requestDetailsDSARElement", raise_exc=False)
         if details_field:
             request_text = "I am requesting access to and opting out of the sale/sharing of my personal information."
-            if SuperScraper.REMOVE_INFORMATION:
+            if SuperScraper.wants("delete"):
                 request_text += " I am also requesting deletion of my personal information."
             await details_field.type_text(request_text)
 
         await asyncio.sleep(1)
-        await tab.take_screenshot(path="resources/screenshots/zetaglobal_dry_run.png")
-        print("Screenshot saved to resources/screenshots/zetaglobal_dry_run.png")
+        await SuperScraper.screenshot(tab, "resources/screenshots/zetaglobal_dry_run.png")
         print(
             "\nRequest filled but NOT submitted — a reCAPTCHA v2 checkbox requires a manual "
             "solve before submitting."

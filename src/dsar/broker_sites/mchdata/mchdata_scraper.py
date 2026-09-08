@@ -4,9 +4,10 @@
 # form is the one with `id="email"` (name="Email") and the
 # `IsCaliforniaResident` radio group (MCHCustomerBoolYes/No). Only
 # Opt-Out-of-Sale is offered here — no Access or Delete option on this
-# page. "No" (not a California resident) is already the default-selected
-# radio, but set explicitly anyway for correctness. reCAPTCHA v2 present —
-# **CAPTCHA solution required**.
+# page. The IsCaliforniaResident radio is answered "Yes" for any privacy-law
+# state (a broker honoring CCPA must honor the equivalent request from that
+# state's residents) and "No" only for genuine no-law states.
+# reCAPTCHA v2 present — **CAPTCHA solution required**.
 import asyncio
 
 from src.dsar.super_scraper import SuperScraper
@@ -34,15 +35,19 @@ async def main():
         else:
             print(f"{super_scraper.OOPS} email field not found")
 
-        no_radio = await tab.find(id="MCHCustomerBoolNo", raise_exc=False)
-        if no_radio:
-            await no_radio.click()
+        radio_id = (
+            "MCHCustomerBoolYes"
+            if SuperScraper.state_has_privacy_law(SuperScraper.STATE)
+            else "MCHCustomerBoolNo"
+        )
+        resident_radio = await tab.find(id=radio_id, raise_exc=False)
+        if resident_radio:
+            await resident_radio.click()
         else:
-            print(f"{super_scraper.OOPS} 'No' California-resident radio not found")
+            print(f"{super_scraper.OOPS} California-resident radio '{radio_id}' not found")
 
         await asyncio.sleep(1)
-        await tab.take_screenshot(path="resources/screenshots/mchdata_dry_run.png")
-        print("Screenshot saved to resources/screenshots/mchdata_dry_run.png")
+        await SuperScraper.screenshot(tab, "resources/screenshots/mchdata_dry_run.png")
         print(
             "\nForm filled but NOT submitted — a reCAPTCHA v2 checkbox is present and "
             "requires a manual solve before submitting."

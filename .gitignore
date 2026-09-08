@@ -4,3 +4,7 @@ node_modules/
 .nanocoder/
 package.json
 .claude/
+
+__pycache__/
+*.pyc
+*.pyo

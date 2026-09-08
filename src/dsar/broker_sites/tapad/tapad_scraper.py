@@ -63,7 +63,7 @@ async def main():
         await submit_request(tab, super_scraper, "Data Access")
         await submit_request(tab, super_scraper, "Opt Out")
 
-        if SuperScraper.REMOVE_INFORMATION:
+        if SuperScraper.wants("delete"):
             await submit_request(tab, super_scraper, "Deletion")
 
         await asyncio.sleep(3)

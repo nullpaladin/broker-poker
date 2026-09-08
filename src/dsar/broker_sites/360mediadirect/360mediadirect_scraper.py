@@ -31,13 +31,14 @@ BRAND_LABEL_XPATH = "//input[@id='778c1709-5809-418f-81cd-879f529e6ebb-4']/paren
 PERJURY_LABEL_XPATH = "//input[@id='173a9331-c185-43e2-910e-10f0231a48dd-0']/parent::label"
 SUBMIT_XPATH = "//button[@id='btn-primary']"
 
-RIGHTS = [
-    ("getcopy", "access"),
-    ("donotsell", "opt_out_of_sale"),
-    ("righttoedit", "correct"),
-    ("donotmail", "opt_out_of_mail"),
-]
-DELETE_RIGHT = ("delete", "delete")
+# "Do Not Mail" opt-out has no exact canonical code -> mapped to opt_out_sale_share.
+RIGHT_MAP = {
+    "access": [("getcopy", "access")],
+    "correct": [("righttoedit", "correct")],
+    "opt_out_sale_share": [("donotsell", "opt_out_of_sale"), ("donotmail", "opt_out_of_mail")],
+    "delete": [("delete", "delete")],
+}
+RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
 
 
 async def submit_request(tab, right_id, label, super_scraper):
@@ -65,8 +66,7 @@ async def submit_request(tab, right_id, label, super_scraper):
     if SuperScraper.DRY_RUN:
         print(f"DRY RUN: would submit '{right_id}' for {SuperScraper.FIRST_NAME} {SuperScraper.LAST_NAME}")
         await asyncio.sleep(2)
-        await tab.take_screenshot(path=f"resources/screenshots/360mediadirect_dry_run_{label}.png")
-        print(f"Screenshot saved to resources/screenshots/360mediadirect_dry_run_{label}.png")
+        await SuperScraper.screenshot(tab, f"resources/screenshots/360mediadirect_dry_run_{label}.png")
         return
 
     await super_scraper.click_item_by_xpath(tab=tab, xpath=SUBMIT_XPATH, sleep=2)
@@ -80,9 +80,11 @@ async def main():
     options.binary_location = super_scraper.CHROMIUM_LOCATION
     options.add_argument("--no-sandbox")
 
-    rights = list(RIGHTS)
-    if SuperScraper.REMOVE_INFORMATION:
-        rights.append(DELETE_RIGHT)
+    codes = SuperScraper.rights_to_exercise(RIGHT_MAP)
+    if not codes:
+        print("No requested privacy rights apply to this form — nothing to do.")
+        return
+    rights = [entry for code in codes for entry in RIGHT_MAP[code]]
 
     async with Chrome(options=options) as browser:
         tab = await browser.start()

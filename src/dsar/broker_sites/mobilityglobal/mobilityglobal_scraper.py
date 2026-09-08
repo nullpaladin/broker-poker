@@ -93,14 +93,15 @@ async def submit_request(tab, division, label, super_scraper):
 
     details = await tab.find(id="requestDetailsDSARElement", raise_exc=False)
     if details:
+        law = SuperScraper.LAW_FULL_NAME or "applicable state and federal privacy law"
         rights = (
-            f"I am a {SuperScraper.STATE} resident exercising my rights under the Minnesota "
-            f"Consumer Data Privacy Act with respect to the {division} division. I request: "
+            f"I am a {SuperScraper.STATE} resident exercising my rights under the {law} "
+            f"with respect to the {division} division. I request: "
             f"to know/access the personal information you hold about me, its sources and the "
             f"parties it has been disclosed to; to correct any inaccurate personal information; "
             f"and to opt out of targeted advertising and profiling"
         )
-        if SuperScraper.REMOVE_INFORMATION:
+        if SuperScraper.wants("delete"):
             rights += "; and deletion of all personal information you hold about me"
         rights += ". (Do Not Sell / opt-out of sale is submitted via the separate webform.)"
         await details.type_text(rights)
@@ -109,9 +110,7 @@ async def submit_request(tab, division, label, super_scraper):
     submit_btn = await tab.find(id="dsar-webform-submit-button", raise_exc=False)
     if submit_btn:
         await submit_btn.scroll_into_view()
-    await tab.take_screenshot(f"resources/screenshots/mobilityglobal_dry_run_{label}.png")
-    print(f"Screenshot saved to resources/screenshots/mobilityglobal_dry_run_{label}.png")
-
+    await SuperScraper.screenshot(tab, f"resources/screenshots/mobilityglobal_dry_run_{label}.png")
     if SuperScraper.DRY_RUN:
         print(
             f"DRY RUN: would submit access/correct request for division '{division}' for "
@@ -129,7 +128,6 @@ async def main():
     super_scraper = SuperScraper()
     options.binary_location = super_scraper.CHROMIUM_LOCATION
     options.add_argument("--no-sandbox")
-    options.add_argument("--window-size=1280,3000")
 
     async with Chrome(options=options) as browser:
         tab = await browser.start()

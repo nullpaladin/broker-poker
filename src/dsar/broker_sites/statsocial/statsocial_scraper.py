@@ -23,14 +23,8 @@ from pydoll.browser.options import ChromiumOptions
 
 URL = "https://www.statsocial.com/optout/"
 
-
-async def _select_native_option(select_element, option_value):
-    await select_element.execute_script(
-        "for (var i=0;i<this.options.length;i++){"
-        f"  if(this.options[i].value==={option_value!r}){{ this.selectedIndex=i; }}"
-        "}"
-        "this.dispatchEvent(new Event('change', {bubbles:true}));"
-    )
+RIGHT_MAP = {"opt_out_sale_share": ["optout_personal_data"], "delete": ["delete_personal_data"]}
+RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
 
 
 async def main():
@@ -60,7 +54,7 @@ async def main():
 
         country_select = await tab.find(id="field_optout_country", raise_exc=False)
         if country_select:
-            await _select_native_option(country_select, "United States")
+            await SuperScraper.select_native_option(country_select, value="United States")
             await asyncio.sleep(1.5)
         else:
             print(f"{super_scraper.OOPS} Country select not found")
@@ -69,13 +63,15 @@ async def main():
         # and their values are full state names, not abbreviations.
         state_select = await tab.find(id="field_optout_state", raise_exc=False)
         if state_select:
-            await _select_native_option(state_select, SuperScraper.STATE)
+            await SuperScraper.select_native_option(state_select, value=SuperScraper.STATE)
         else:
             print(f"{super_scraper.OOPS} State select not found")
 
-        preference_values = ["optout_personal_data"]
-        if SuperScraper.REMOVE_INFORMATION:
-            preference_values.append("delete_personal_data")
+        codes = SuperScraper.rights_to_exercise(RIGHT_MAP)
+        if not codes:
+            print("No requested privacy rights apply to this form — nothing to do.")
+            return
+        preference_values = [cb for code in codes for cb in RIGHT_MAP[code]]
         for value in preference_values:
             checkbox = await tab.find(xpath=f"//input[@value='{value}']", raise_exc=False)
             if checkbox:
@@ -84,8 +80,7 @@ async def main():
                 print(f"{super_scraper.OOPS} preference checkbox '{value}' not found")
 
         await asyncio.sleep(1)
-        await tab.take_screenshot(path="resources/screenshots/statsocial_dry_run.png")
-        print("Screenshot saved to resources/screenshots/statsocial_dry_run.png")
+        await SuperScraper.screenshot(tab, "resources/screenshots/statsocial_dry_run.png")
         print(
             "\nOptout Form filled but NOT submitted — a Cloudflare Turnstile checkbox "
             "requires a manual solve before submitting. Note: statsocial.com's separate "

@@ -10,7 +10,6 @@
 # needed, so DRY_RUN is respected and a real submission goes through when
 # DRY_RUN is False.
 import asyncio
-import re
 
 from src.dsar.super_scraper import SuperScraper
 
@@ -25,7 +24,6 @@ async def main():
     super_scraper = SuperScraper()
     options.binary_location = super_scraper.CHROMIUM_LOCATION
     options.add_argument("--no-sandbox")
-    options.add_argument("--window-size=1280,3000")
 
     async with Chrome(options=options) as browser:
         tab = await browser.start()
@@ -55,13 +53,12 @@ async def main():
         else:
             print(f"{super_scraper.OOPS} Consent checkbox not found")
 
-        math_label = await tab.execute_script(
-            "var l=document.querySelector('label[for=input_5_16]'); return l ? l.textContent.trim() : ''"
+        math_text = await SuperScraper.js_eval(
+            tab,
+            "var l=document.querySelector('label[for=input_5_16]'); return l ? l.textContent.trim() : ''",
         )
-        math_text = math_label["result"]["result"]["value"]
-        match = re.search(r"(\d+)\s*\+\s*(\d+)", math_text)
-        if match:
-            answer = str(int(match.group(1)) + int(match.group(2)))
+        answer = SuperScraper.solve_math_captcha(math_text or "")
+        if answer is not None:
             math_field = await tab.find(id="input_5_16", raise_exc=False)
             if math_field:
                 await math_field.type_text(answer)
@@ -71,9 +68,7 @@ async def main():
             print(f"{super_scraper.OOPS} could not parse math CAPTCHA text: '{math_text}'")
 
         await asyncio.sleep(1)
-        await tab.take_screenshot(path="resources/screenshots/l2-data_dry_run.png")
-        print("Screenshot saved to resources/screenshots/l2-data_dry_run.png")
-
+        await SuperScraper.screenshot(tab, "resources/screenshots/l2-data_dry_run.png")
         if SuperScraper.DRY_RUN:
             print(f"DRY RUN: would submit opt-out request for {SuperScraper.EMAIL}")
             return

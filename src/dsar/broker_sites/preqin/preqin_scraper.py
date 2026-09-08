@@ -45,13 +45,14 @@ from pydoll.browser.options import ChromiumOptions
 
 URL = "https://portals.dporganizer.com/cbf39a0c-c047-4a7b-814d-c9d45754b4af"
 
-REQUEST_TYPES = [
-    "Know or Access",
-    "Data portability",
-    "Opt-out from Cross-Context Behavioral Advertising or Targeted Advertising",
-    "Opt-out from Sales of Personal Information",
-]
-DELETE_REQUEST_TYPE = "Erasure"
+RIGHT_MAP = {
+    "access": ["Know or Access"],
+    "portability": ["Data portability"],
+    "opt_out_targeted_ads": ["Opt-out from Cross-Context Behavioral Advertising or Targeted Advertising"],
+    "opt_out_sale_share": ["Opt-out from Sales of Personal Information"],
+    "delete": ["Erasure"],
+}
+RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
 
 
 async def _select_react_select_option(tab, input_index, option_text, super_scraper, description):
@@ -80,9 +81,11 @@ async def main():
     options.binary_location = super_scraper.CHROMIUM_LOCATION
     options.add_argument("--no-sandbox")
 
-    request_types = list(REQUEST_TYPES)
-    if SuperScraper.REMOVE_INFORMATION:
-        request_types.append(DELETE_REQUEST_TYPE)
+    codes = SuperScraper.rights_to_exercise(RIGHT_MAP)
+    if not codes:
+        print("No requested privacy rights apply to this form — nothing to do.")
+        return
+    request_types = [entry for code in codes for entry in RIGHT_MAP[code]]
 
     async with Chrome(options=options) as browser:
         tab = await browser.start()
@@ -122,14 +125,14 @@ async def main():
             await comments_field.click()
             await asyncio.sleep(0.4)
             await comments_field.type_text(
-                "Data subject access/deletion/opt-out request per applicable state privacy law."
+                "Data subject access/deletion/opt-out request per the "
+                f"{SuperScraper.LAW_FULL_NAME or 'applicable state and federal privacy law'}."
             )
         else:
             print(f"{super_scraper.OOPS} Additional comments field not found")
 
         await asyncio.sleep(1)
-        await tab.take_screenshot(path="resources/screenshots/preqin_dry_run.png")
-        print("Screenshot saved to resources/screenshots/preqin_dry_run.png")
+        await SuperScraper.screenshot(tab, "resources/screenshots/preqin_dry_run.png")
         print(
             "\nRequest filled but NOT submitted — a distorted-text image CAPTCHA "
             "requires a manual solve before clicking Submit Request."

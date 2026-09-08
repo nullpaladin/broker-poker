@@ -18,12 +18,13 @@ from src.dsar.super_scraper import SuperScraper
 
 URL = "https://blackbaud-privacy.my.onetrust.com/webform/170c909c-5ed2-49f1-a59c-2a44be2f6f27/de22df57-d96c-480a-afb0-ac090b928192"
 
-BASE_REQUEST_TYPES = [
-    "Data Subject Access Request",
-    "Data Subject Opt-out Request",
-    "Data Subject Correction Request",
-]
-DELETE_REQUEST_TYPE = "Data Subject Deletion Request"
+RIGHT_MAP = {
+    "access": ["Data Subject Access Request"],
+    "opt_out_sale_share": ["Data Subject Opt-out Request"],
+    "correct": ["Data Subject Correction Request"],
+    "delete": ["Data Subject Deletion Request"],
+}
+RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
 
 
 async def _select_autocomplete(tab, field_id, search_text):
@@ -47,11 +48,12 @@ async def main():
     super_scraper = SuperScraper()
     options.binary_location = super_scraper.CHROMIUM_LOCATION
     options.add_argument("--no-sandbox")
-    options.add_argument("--window-size=1280,3000")
 
-    request_types = list(BASE_REQUEST_TYPES)
-    if SuperScraper.REMOVE_INFORMATION:
-        request_types.append(DELETE_REQUEST_TYPE)
+    codes = SuperScraper.rights_to_exercise(RIGHT_MAP)
+    if not codes:
+        print("No requested privacy rights apply to this form — nothing to do.")
+        return
+    request_types = list(dict.fromkeys(rt for c in codes for rt in RIGHT_MAP[c]))
 
     async with Chrome(options=options) as browser:
         tab = await browser.start()
@@ -110,6 +112,17 @@ async def main():
 
         time.sleep(0.5)
 
+        if SuperScraper.HEALTH_CHECK:
+            await SuperScraper.assert_fields_filled(tab, {
+                "First name": "//input[@id='firstNameDSARElement']",
+                "Last name": "//input[@id='lastNameDSARElement']",
+                "Email": "//input[@id='emailDSARElement']",
+                "Confirm email": "//input[@id='confirmEmailInputDSARElement']",
+                "Address": "//input[@id='addressDSARElement']",
+                "City": "//input[@id='cityDSARElement']",
+                "Zip": "//input[@id='zipDSARElement']",
+            })
+
         if SuperScraper.DRY_RUN:
             rights = ", ".join(request_types)
             print(
@@ -122,9 +135,8 @@ async def main():
             if submit_btn:
                 await submit_btn.scroll_into_view()
             await asyncio.sleep(2)
-            suffix = "_delete" if SuperScraper.REMOVE_INFORMATION else ""
-            await tab.take_screenshot(f"resources/screenshots/blackbaud_dry_run{suffix}.png")
-            print(f"Screenshot saved to resources/screenshots/blackbaud_dry_run{suffix}.png")
+            suffix = "_delete" if SuperScraper.wants("delete") else ""
+            await SuperScraper.screenshot(tab, f"resources/screenshots/blackbaud_dry_run{suffix}.png")
             return
 
         print(f"\nForm filled for {SuperScraper.FIRST_NAME} {SuperScraper.LAST_NAME}.")

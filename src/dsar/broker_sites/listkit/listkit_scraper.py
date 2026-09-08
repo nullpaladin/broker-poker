@@ -28,16 +28,16 @@ async def main():
     super_scraper = SuperScraper()
     options.binary_location = super_scraper.CHROMIUM_LOCATION
     options.add_argument("--no-sandbox")
-    options.add_argument("--window-size=1280,2400")
 
+    _law = SuperScraper.LAW_FULL_NAME or "applicable state and federal privacy law"
     rights = (
-        "I am a Minnesota resident exercising my rights under the Minnesota Consumer "
-        "Data Privacy Act. I request: (1) to know/access the personal information you "
+        f"I am a {SuperScraper.STATE} resident exercising my rights under the {_law}. "
+        "I request: (1) to know/access the personal information you "
         "hold about me, its sources and the parties it has been disclosed to; (2) to "
         "opt out of the sale and sharing of my personal information and of targeted "
         "advertising / profiling"
     )
-    if SuperScraper.REMOVE_INFORMATION:
+    if SuperScraper.wants("delete"):
         rights += "; (3) deletion of all personal information you hold about me"
     rights += "."
 
@@ -55,8 +55,11 @@ async def main():
 
         personal = await tab.find(xpath="//input[@name='identity_type' and @value='personal']", raise_exc=False)
         if personal:
-            await personal.execute_script("if (!this.checked) this.click();")
+            await SuperScraper.js_check(personal)
 
+        # "Applicable law" react-select lists GDPR/CCPA/CPA/CTDPA/UCPA/VCDPA only —
+        # no home-state option for most users, so "OTHER" is chosen regardless of
+        # state (the request text still names the state's actual law).
         combo = await tab.find(xpath="//input[@role='combobox']", raise_exc=False)
         if combo:
             await combo.click()
@@ -84,9 +87,7 @@ async def main():
                 await asyncio.sleep(0.15)
 
         time.sleep(0.5)
-        await tab.take_screenshot("resources/screenshots/listkit_dry_run.png")
-        print("Screenshot saved to resources/screenshots/listkit_dry_run.png")
-
+        await SuperScraper.screenshot(tab, "resources/screenshots/listkit_dry_run.png")
         if SuperScraper.DRY_RUN:
             print(
                 f"DRY RUN: would submit combined privacy request for "

@@ -34,7 +34,7 @@ async def main():
                 await field.type_text(value)
                 await asyncio.sleep(0.2)
 
-        if SuperScraper.REMOVE_INFORMATION:
+        if SuperScraper.wants("delete"):
             request_text = "I am requesting opt-out, correction, access, and deletion of my personal information."
         else:
             request_text = "I am requesting opt-out, correction, and access to my personal information."
@@ -45,8 +45,7 @@ async def main():
         if SuperScraper.DRY_RUN:
             print(f"DRY RUN: would submit request for MAID {SuperScraper.ADVERTISING_ID}")
             await asyncio.sleep(1)
-            await tab.take_screenshot(path="resources/screenshots/groundtruth_dry_run.png")
-            print("Screenshot saved to resources/screenshots/groundtruth_dry_run.png")
+            await SuperScraper.screenshot(tab, "resources/screenshots/groundtruth_dry_run.png")
             return
 
         await super_scraper.click_item_by_text(tab=tab, text="Submit", sleep=2)

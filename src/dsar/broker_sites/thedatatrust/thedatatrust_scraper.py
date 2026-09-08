@@ -31,14 +31,15 @@ from pydoll.browser.options import ChromiumOptions
 
 URL = "https://my.datasubject.com/dvx9xrLka0/68954"
 
-ALWAYS_RIGHTS = [
-    "Summarize my personal information",
-    "Do Not Sell or Share to a Third Party",
-    "Don't use my personal information for advertising",
-    "Transfer my personal information",
-    "Third parties your data was sold or shared with",
-]
-DELETE_RIGHT = "Delete my personal information"
+RIGHT_MAP = {
+    "access": ["Summarize my personal information"],
+    "portability": ["Transfer my personal information"],
+    "opt_out_sale_share": ["Do Not Sell or Share to a Third Party"],
+    "opt_out_targeted_ads": ["Don't use my personal information for advertising"],
+    "know_third_parties": ["Third parties your data was sold or shared with"],
+    "delete": ["Delete my personal information"],
+}
+RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
 
 
 async def _fill_step2(tab, super_scraper):
@@ -79,7 +80,7 @@ async def _fill_step2(tab, super_scraper):
 
     state_select = await tab.find(name="o-requestState", raise_exc=False)
     if state_select:
-        state_abbrev = await SuperScraper.state_full_name_to_abbreviated(SuperScraper.STATE)
+        state_abbrev = SuperScraper.STATE_ABBREVIATED
         await state_select.execute_script(
             "for (var i=0;i<this.options.length;i++){"
             f"  if(this.options[i].value==={state_abbrev!r}){{ this.selectedIndex=i; }}"
@@ -97,11 +98,12 @@ async def main():
     super_scraper = SuperScraper()
     options.binary_location = super_scraper.CHROMIUM_LOCATION
     options.add_argument("--no-sandbox")
-    options.add_argument("--window-size=1280,3000")
 
-    rights = list(ALWAYS_RIGHTS)
-    if SuperScraper.REMOVE_INFORMATION:
-        rights.append(DELETE_RIGHT)
+    codes = SuperScraper.rights_to_exercise(RIGHT_MAP)
+    if not codes:
+        print("No requested privacy rights apply to this form — nothing to do.")
+        return
+    rights = [entry for code in codes for entry in RIGHT_MAP[code]]
 
     async with Chrome(options=options) as browser:
         tab = await browser.start()
@@ -123,15 +125,14 @@ async def main():
             description_field = await tab.find(id="request-description", raise_exc=False)
             if description_field:
                 await description_field.type_text(
-                    f"I am submitting a '{right}' request under applicable state privacy law."
+                    f"I am submitting a '{right}' request under the {SuperScraper.LAW_FULL_NAME or 'applicable state and federal privacy law'}."
                 )
             else:
                 print(f"{super_scraper.OOPS} Request Description field not found")
 
             safe_name = "".join(c if c.isalnum() else "_" for c in right.lower())[:40].strip("_")
             await asyncio.sleep(1)
-            await tab.take_screenshot(path=f"resources/screenshots/thedatatrust_dry_run_{safe_name}.png")
-            print(f"Screenshot saved to resources/screenshots/thedatatrust_dry_run_{safe_name}.png")
+            await SuperScraper.screenshot(tab, f"resources/screenshots/thedatatrust_dry_run_{safe_name}.png")
             print(
                 f"\n'{right}' request filled but NOT submitted — a Cloudflare Turnstile "
                 "checkbox may require a manual solve before submitting."

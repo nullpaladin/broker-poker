@@ -20,7 +20,6 @@ async def main():
     super_scraper = SuperScraper()
     opts.binary_location = super_scraper.CHROMIUM_LOCATION
     opts.add_argument("--no-sandbox")
-    opts.add_argument("--window-size=1280,900")
 
     async with Chrome(options=opts) as browser:
         tab = await browser.start()
@@ -69,8 +68,7 @@ async def main():
             if captcha_area:
                 await captcha_area.scroll_into_view()
             await asyncio.sleep(1)
-            await tab.take_screenshot("fastpeoplesearch_dry_run_optout.png")
-            print("Screenshot saved to fastpeoplesearch_dry_run_optout.png")
+            await SuperScraper.screenshot(tab, "fastpeoplesearch_dry_run_optout.png")
             return
 
         captcha_area = await tab.find(**{"class": "g-recaptcha"}, raise_exc=False)

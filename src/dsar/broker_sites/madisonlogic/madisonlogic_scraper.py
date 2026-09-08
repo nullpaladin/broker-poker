@@ -21,17 +21,20 @@ from src.dsar.super_scraper import SuperScraper
 URL = "https://madisonlogic-privacy.my.onetrust.com/webform/b7449bea-44c6-4823-a2ac-30a8f33047d0/9a375b0c-9030-44ce-bfd3-217fd7a71993"
 
 # (req_aria, label, sub_option_aria_or_None)
-ALWAYS_REQUESTS = [
-    ("Opt out",                    "optout_marketing",    "Partner Services Marketing"),
-    ("Opt out",                    "optout_content",      "Personalized Content"),
-    ("Info Request",               "access",              None),
-    ("Correct Data",               "correct",             None),
-    ("Object to Processing",       "object",              None),
-    ("Data Portability",           "portability",         None),
-    ("Restrict Processing",        "restrict",            None),
-    ("Do Not Sell My Information", "dns",                 None),
-]
-DELETE_REQUEST = ("Data Deletion", "delete", None)
+RIGHT_MAP = {
+    "access": [("Info Request", "access", None)],
+    "correct": [("Correct Data", "correct", None)],
+    "portability": [("Data Portability", "portability", None)],
+    "opt_out_targeted_ads": [("Opt out", "optout_content", "Personalized Content")],
+    "opt_out_sale_share": [
+        ("Opt out", "optout_marketing", "Partner Services Marketing"),
+        ("Do Not Sell My Information", "dns", None),
+        ("Object to Processing", "object", None),
+        ("Restrict Processing", "restrict", None),
+    ],
+    "delete": [("Data Deletion", "delete", None)],
+}
+RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
 
 
 async def _autocomplete(tab, field_id, text):
@@ -138,8 +141,7 @@ async def _submit_request(tab, req_aria, label, sub_option, super_scraper):
         if captcha_field:
             await captcha_field.scroll_into_view()
         await asyncio.sleep(1)
-        await tab.take_screenshot(f"resources/screenshots/madisonlogic_dry_run_{label}.png")
-        print(f"Screenshot saved to resources/screenshots/madisonlogic_dry_run_{label}.png")
+        await SuperScraper.screenshot(tab, f"resources/screenshots/madisonlogic_dry_run_{label}.png")
         return
 
     sub_desc = f" ({sub_option})" if sub_option else ""
@@ -162,11 +164,12 @@ async def main():
     super_scraper = SuperScraper()
     options.binary_location = super_scraper.CHROMIUM_LOCATION
     options.add_argument("--no-sandbox")
-    options.add_argument("--window-size=1280,3000")
 
-    requests = list(ALWAYS_REQUESTS)
-    if SuperScraper.REMOVE_INFORMATION:
-        requests.append(DELETE_REQUEST)
+    codes = SuperScraper.rights_to_exercise(RIGHT_MAP)
+    if not codes:
+        print("No requested privacy rights apply to this form — nothing to do.")
+        return
+    requests = [entry for code in codes for entry in RIGHT_MAP[code]]
 
     async with Chrome(options=options) as browser:
         tab = await browser.start()

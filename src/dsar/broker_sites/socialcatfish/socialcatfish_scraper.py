@@ -26,11 +26,12 @@ from pydoll.browser.options import ChromiumOptions
 from src.dsar.super_scraper import SuperScraper
 
 BASE = "https://socialcatfish.com/opt-out/?id="
-REQUESTS = [
-    ("request_access", "access"),
-    ("request_optout", "optout"),
-]
-DELETE_REQUEST = ("request_delete", "delete")
+RIGHT_MAP = {
+    "access": [("request_access", "access")],
+    "opt_out_sale_share": [("request_optout", "optout")],
+    "delete": [("request_delete", "delete")],
+}
+RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
 
 
 async def submit_request(tab, mode, label, super_scraper):
@@ -64,17 +65,16 @@ async def submit_request(tab, mode, label, super_scraper):
             continue  # "I am an authorized agent" — leave unchecked
         val = (box.get_attribute("value") or "").lower()
         if name == "consent" or box.id == "consent-checkbox" or val in ("on", "1") or "information" in val or "categor" in val:
-            await box.execute_script("if (!this.checked) this.click();")
+            await SuperScraper.js_check(box)
             await asyncio.sleep(0.1)
 
     # required residency attestation, in case it wasn't caught above
     consent = await tab.find(id="consent-checkbox", raise_exc=False)
     if consent:
-        await consent.execute_script("if (!this.checked) this.click();")
+        await SuperScraper.js_check(consent)
 
     time.sleep(0.5)
-    await tab.take_screenshot(f"resources/screenshots/socialcatfish_dry_run_{label}.png")
-    print(f"Screenshot saved to resources/screenshots/socialcatfish_dry_run_{label}.png")
+    await SuperScraper.screenshot(tab, f"resources/screenshots/socialcatfish_dry_run_{label}.png")
     print(
         f"'{mode}' filled but NOT submitted — paste links to your own Social Catfish "
         f"result pages in the profile-URL field, solve the CAPTCHA, then submit."
@@ -90,11 +90,12 @@ async def main():
     super_scraper = SuperScraper()
     options.binary_location = super_scraper.CHROMIUM_LOCATION
     options.add_argument("--no-sandbox")
-    options.add_argument("--window-size=1280,2400")
 
-    requests = list(REQUESTS)
-    if SuperScraper.REMOVE_INFORMATION:
-        requests.append(DELETE_REQUEST)
+    codes = SuperScraper.rights_to_exercise(RIGHT_MAP)
+    if not codes:
+        print("No requested privacy rights apply to this form — nothing to do.")
+        return
+    requests = [entry for code in codes for entry in RIGHT_MAP[code]]
 
     async with Chrome(options=options) as browser:
         tab = await browser.start()

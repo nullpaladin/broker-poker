@@ -25,14 +25,15 @@ URL = (
     "&status=publish"
 )
 
-ALWAYS_REQUESTS = [
-    ("Right to Know", "know"),
-    ("Right to Correct", "correct"),
-    ("Right to Opt-Out of the Sale or Sharing of Personal Information", "optout_sale"),
-    ("Right to Opt-Out of Cross-Behavioral Sale or Sharing", "optout_crossbehavioral"),
-    ("Right to Limit Use and Disclosure of Sensitive Personal Information", "limit_sensitive"),
-]
-DELETE_REQUEST = ("Right to Delete", "delete")
+RIGHT_MAP = {
+    "access": [("Right to Know", "know")],
+    "correct": [("Right to Correct", "correct")],
+    "opt_out_sale_share": [("Right to Opt-Out of the Sale or Sharing of Personal Information", "optout_sale")],
+    "opt_out_targeted_ads": [("Right to Opt-Out of Cross-Behavioral Sale or Sharing", "optout_crossbehavioral")],
+    "limit_sensitive_pi": [("Right to Limit Use and Disclosure of Sensitive Personal Information", "limit_sensitive")],
+    "delete": [("Right to Delete", "delete")],
+}
+RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
 # Tuple: (label_text_for_radio, short_label_for_filenames)
 
 
@@ -103,8 +104,7 @@ async def _submit_request(tab, right_label_text, label, super_scraper):
         if submit_btn:
             await submit_btn.scroll_into_view()
         await asyncio.sleep(1)
-        await tab.take_screenshot(f"malvernmedia_dry_run_{label}.png")
-        print(f"Screenshot saved to malvernmedia_dry_run_{label}.png")
+        await SuperScraper.screenshot(tab, f"malvernmedia_dry_run_{label}.png")
         return
 
     captcha_field = await tab.find(name="captchacode", raise_exc=False)
@@ -133,11 +133,12 @@ async def main():
     super_scraper = SuperScraper()
     options.binary_location = super_scraper.CHROMIUM_LOCATION
     options.add_argument("--no-sandbox")
-    options.add_argument("--window-size=1280,3000")
 
-    requests = list(ALWAYS_REQUESTS)
-    if SuperScraper.REMOVE_INFORMATION:
-        requests.append(DELETE_REQUEST)
+    codes = SuperScraper.rights_to_exercise(RIGHT_MAP)
+    if not codes:
+        print("No requested privacy rights apply to this form — nothing to do.")
+        return
+    requests = [entry for code in codes for entry in RIGHT_MAP[code]]
 
     async with Chrome(options=options) as browser:
         tab = await browser.start()

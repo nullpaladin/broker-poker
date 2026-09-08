@@ -41,15 +41,18 @@ REQUEST_TYPE_FIELD = "IO:c758f653875b219095280ed7dabb35b8"
 RESPONSE_METHOD_FIELD = "IO:f3583a53875b219095280ed7dabb35ab"
 FIRST_NAME_FIELD = "IO:17583a53875b219095280ed7dabb3513"
 LAST_NAME_FIELD = "IO:d658b653875b219095280ed7dabb35c9"
-ADDRESS1_FIELD = "IO:c758f653875b219095280ed7dabb357c"
+ADDRESS_ONE_FIELD = "IO:c758f653875b219095280ed7dabb357c"
 CITY_FIELD = "IO:0658b653875b219095280ed7dabb3574"
 ZIP_FIELD = "IO:1c687a53875b219095280ed7dabb3511"
 PHONE_FIELD = "IO:73583a53875b219095280ed7dabb35b9"
 EMAIL_FIELD = "IO:e258f653875b219095280ed7dabb353a"
 ACKNOWLEDGE_CHECKBOX = "ni.IO:d258b653875b219095280ed7dabb35ab"
 
-REQUEST_TYPES = ["Access Personal Data"]
-DELETE_REQUEST_TYPE = "delete"
+RIGHT_MAP = {
+    "access": ["Access Personal Data"],
+    "delete": ["delete"],
+}
+RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
 
 
 async def _select_by_value(tab, field_id, value, super_scraper, description):
@@ -70,7 +73,7 @@ async def submit_request(tab, request_type, super_scraper):
     await tab.go_to(URL)
     await asyncio.sleep(6)
 
-    state_abbr = await SuperScraper.state_full_name_to_abbreviated(SuperScraper.STATE)
+    state_abbr = SuperScraper.STATE_ABBREVIATED
     await _select_by_value(tab, STATE_FIELD, state_abbr, super_scraper, "state")
     # dependent selects take several seconds to populate after state changes
     await asyncio.sleep(8)
@@ -84,7 +87,7 @@ async def submit_request(tab, request_type, super_scraper):
     fields = {
         FIRST_NAME_FIELD: SuperScraper.FIRST_NAME,
         LAST_NAME_FIELD: SuperScraper.LAST_NAME,
-        ADDRESS1_FIELD: SuperScraper.ADDRESS,
+        ADDRESS_ONE_FIELD: SuperScraper.ADDRESS,
         CITY_FIELD: SuperScraper.CITY,
         ZIP_FIELD: SuperScraper.ZIP_CODE,
         PHONE_FIELD: SuperScraper.PHONE_NUMBER,
@@ -113,11 +116,20 @@ async def submit_request(tab, request_type, super_scraper):
 
     label = request_type.lower().replace(" ", "_")
 
+    if SuperScraper.HEALTH_CHECK:
+        await SuperScraper.assert_fields_filled(tab, {
+            "First name": f"//input[@id='{FIRST_NAME_FIELD}']",
+            "Last name": f"//input[@id='{LAST_NAME_FIELD}']",
+            "Email": f"//input[@id='{EMAIL_FIELD}']",
+            "Address": f"//input[@id='{ADDRESS_ONE_FIELD}']",
+            "City": f"//input[@id='{CITY_FIELD}']",
+            "Zip": f"//input[@id='{ZIP_FIELD}']",
+        })
+
     if SuperScraper.DRY_RUN:
         print(f"DRY RUN: would submit '{request_type}' request for {SuperScraper.FIRST_NAME} {SuperScraper.LAST_NAME}")
         await asyncio.sleep(1)
-        await tab.take_screenshot(path=f"resources/screenshots/connectedinvestors_dry_run_{label}.png")
-        print(f"Screenshot saved to resources/screenshots/connectedinvestors_dry_run_{label}.png")
+        await SuperScraper.screenshot(tab, f"resources/screenshots/connectedinvestors_dry_run_{label}.png")
         return
 
     print(f"\nForm filled for '{request_type}'. Solve the reCAPTCHA, click Submit,")
@@ -132,9 +144,11 @@ async def main():
     options.binary_location = super_scraper.CHROMIUM_LOCATION
     options.add_argument("--no-sandbox")
 
-    request_types = list(REQUEST_TYPES)
-    if SuperScraper.REMOVE_INFORMATION:
-        request_types.append(DELETE_REQUEST_TYPE)
+    codes = SuperScraper.rights_to_exercise(RIGHT_MAP)
+    if not codes:
+        print("No requested privacy rights apply to this form — nothing to do.")
+        return
+    request_types = [entry for code in codes for entry in RIGHT_MAP[code]]
 
     async with Chrome(options=options) as browser:
         tab = await browser.start()

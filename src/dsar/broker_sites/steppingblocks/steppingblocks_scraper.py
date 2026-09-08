@@ -23,7 +23,6 @@ async def main():
     super_scraper = SuperScraper()
     options.binary_location = super_scraper.CHROMIUM_LOCATION
     options.add_argument("--no-sandbox")
-    options.add_argument("--window-size=1280,1800")
 
     async with Chrome(options=options) as browser:
         tab = await browser.start()
@@ -41,11 +40,10 @@ async def main():
 
         cert = await tab.find(xpath="//input[@name='certification']", raise_exc=False)
         if cert:
-            await cert.execute_script("if (!this.checked) this.click();")
+            await SuperScraper.js_check(cert)
 
         time.sleep(0.5)
-        await tab.take_screenshot("resources/screenshots/steppingblocks_dry_run.png")
-        print("Screenshot saved to resources/screenshots/steppingblocks_dry_run.png")
+        await SuperScraper.screenshot(tab, "resources/screenshots/steppingblocks_dry_run.png")
         print(
             "Inquiry form filled but NOT submitted — solve the reCAPTCHA and click Submit; "
             "you will then receive an email asking you to complete the rest of the request."

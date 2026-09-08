@@ -22,12 +22,13 @@ from src.dsar.super_scraper import SuperScraper
 
 URL = "https://privacy.5x5data.com/5x5/opt-out"
 
-REASONS = [
-    ("Request to know/access my personal information", "access"),
-    ("Do not sell or share my personal information", "opt_out_sale"),
-    ("Do not process my information for purposes of targeted advertising", "opt_out_ads"),
-]
-DELETE_REASON = ("Request to delete/erase my personal information", "delete")
+RIGHT_MAP = {
+    "access": [("Request to know/access my personal information", "access")],
+    "opt_out_sale_share": [("Do not sell or share my personal information", "opt_out_sale")],
+    "opt_out_targeted_ads": [("Do not process my information for purposes of targeted advertising", "opt_out_ads")],
+    "delete": [("Request to delete/erase my personal information", "delete")],
+}
+RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
 
 
 async def _select_by_text(tab, select_xpath, text):
@@ -62,13 +63,12 @@ async def submit_request(tab, reason_text, label, super_scraper):
     await asyncio.sleep(1)
     # "Residence - State" <select> only renders after Country is set; its options
     # are 2-letter abbreviations, so convert "Minnesota" -> "MN".
-    state_abbr = await super_scraper.state_full_name_to_abbreviated(SuperScraper.STATE)
+    state_abbr = SuperScraper.STATE_ABBREVIATED
     await _select_by_text(tab, "//select[option[normalize-space()='Select state']]", state_abbr)
     await _select_by_text(tab, "//select[option[normalize-space()='Select a reason']]", reason_text)
 
     time.sleep(0.5)
-    await tab.take_screenshot(f"resources/screenshots/5x5coop_dry_run_{label}.png")
-    print(f"Screenshot saved to resources/screenshots/5x5coop_dry_run_{label}.png")
+    await SuperScraper.screenshot(tab, f"resources/screenshots/5x5coop_dry_run_{label}.png")
     print(
         f"'{reason_text}' filled but NOT submitted — a Cloudflare Turnstile must be "
         f"solved manually before submitting."
@@ -84,11 +84,12 @@ async def main():
     super_scraper = SuperScraper()
     options.binary_location = super_scraper.CHROMIUM_LOCATION
     options.add_argument("--no-sandbox")
-    options.add_argument("--window-size=1280,2200")
 
-    reasons = list(REASONS)
-    if SuperScraper.REMOVE_INFORMATION:
-        reasons.append(DELETE_REASON)
+    codes = SuperScraper.rights_to_exercise(RIGHT_MAP)
+    if not codes:
+        print("No requested privacy rights apply to this form — nothing to do.")
+        return
+    reasons = [entry for code in codes for entry in RIGHT_MAP[code]]
 
     async with Chrome(options=options) as browser:
         tab = await browser.start()

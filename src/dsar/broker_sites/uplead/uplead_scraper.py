@@ -20,17 +20,11 @@ from pydoll.browser.options import ChromiumOptions
 
 URL = "https://www.uplead.com/opt-out/"
 
-REQUEST_TYPES = ["Request my Information"]
-DELETE_REQUEST_TYPE = "Delete my Information"
-
-
-async def _select_native_option(select_element, option_value):
-    await select_element.execute_script(
-        "for (var i=0;i<this.options.length;i++){"
-        f"  if(this.options[i].value==={option_value!r}){{ this.selectedIndex=i; }}"
-        "}"
-        "this.dispatchEvent(new Event('change', {bubbles:true}));"
-    )
+RIGHT_MAP = {
+    "access": ["Request my Information"],
+    "delete": ["Delete my Information"],
+}
+RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
 
 
 async def submit_request(tab, request_type, super_scraper):
@@ -54,20 +48,19 @@ async def submit_request(tab, request_type, super_scraper):
 
     jurisdiction_select = await tab.find(id="form-field-jurisdiction", raise_exc=False)
     if jurisdiction_select:
-        await _select_native_option(jurisdiction_select, "Other")
+        await SuperScraper.select_native_option(jurisdiction_select, value="Other")
     else:
         print(f"{super_scraper.OOPS} Jurisdiction select not found")
 
     type_select = await tab.find(id="form-field-type", raise_exc=False)
     if type_select:
-        await _select_native_option(type_select, request_type)
+        await SuperScraper.select_native_option(type_select, value=request_type)
     else:
         print(f"{super_scraper.OOPS} Request Type select not found")
 
     label = "".join(c if c.isalnum() else "_" for c in request_type.lower())[:40].strip("_")
     await asyncio.sleep(1)
-    await tab.take_screenshot(path=f"resources/screenshots/uplead_dry_run_{label}.png")
-    print(f"Screenshot saved to resources/screenshots/uplead_dry_run_{label}.png")
+    await SuperScraper.screenshot(tab, f"resources/screenshots/uplead_dry_run_{label}.png")
     print(
         f"\n'{request_type}' request filled but NOT submitted — a reCAPTCHA v2 checkbox "
         "requires a manual solve before submitting."
@@ -79,11 +72,12 @@ async def main():
     super_scraper = SuperScraper()
     options.binary_location = super_scraper.CHROMIUM_LOCATION
     options.add_argument("--no-sandbox")
-    options.add_argument("--window-size=1280,3000")
 
-    request_types = list(REQUEST_TYPES)
-    if SuperScraper.REMOVE_INFORMATION:
-        request_types.append(DELETE_REQUEST_TYPE)
+    codes = SuperScraper.rights_to_exercise(RIGHT_MAP)
+    if not codes:
+        print("No requested privacy rights apply to this form — nothing to do.")
+        return
+    request_types = [entry for code in codes for entry in RIGHT_MAP[code]]
 
     async with Chrome(options=options) as browser:
         tab = await browser.start()

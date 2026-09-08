@@ -24,8 +24,12 @@ from pydoll.browser.options import ChromiumOptions
 
 URL = "https://privacyportal-eu-cdn.onetrust.com/dsarwebform/e3df3040-c675-462f-99c4-15c05ac3bf5c/545897d5-7793-4317-921b-4efe187a2c02.html"
 
-RIGHTS = ["Info Request", "Do Not Sell My Information"]
-DELETE_RIGHT = "Data Deletion"
+RIGHT_MAP = {
+    "access": ["Info Request"],
+    "opt_out_sale_share": ["Do Not Sell My Information"],
+    "delete": ["Data Deletion"],
+}
+RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
 
 
 async def submit_request(tab, right, super_scraper):
@@ -89,8 +93,7 @@ async def submit_request(tab, right, super_scraper):
     label = right.lower().replace(" ", "_")
 
     await asyncio.sleep(1)
-    await tab.take_screenshot(path=f"resources/screenshots/mediawallah_dry_run_{label}.png")
-    print(f"Screenshot saved to resources/screenshots/mediawallah_dry_run_{label}.png")
+    await SuperScraper.screenshot(tab, f"resources/screenshots/mediawallah_dry_run_{label}.png")
     print(
         f"\n'{right}' request filled but NOT submitted — a reCAPTCHA v2 checkbox is present "
         "and requires a manual solve before submitting."
@@ -103,9 +106,11 @@ async def main():
     options.binary_location = super_scraper.CHROMIUM_LOCATION
     options.add_argument("--no-sandbox")
 
-    rights = list(RIGHTS)
-    if SuperScraper.REMOVE_INFORMATION:
-        rights.append(DELETE_RIGHT)
+    codes = SuperScraper.rights_to_exercise(RIGHT_MAP)
+    if not codes:
+        print("No requested privacy rights apply to this form — nothing to do.")
+        return
+    rights = [entry for code in codes for entry in RIGHT_MAP[code]]
 
     async with Chrome(options=options) as browser:
         tab = await browser.start()

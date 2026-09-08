@@ -16,14 +16,16 @@ from pydoll.browser.options import ChromiumOptions
 
 URL = "https://www.completemailinglists.com/consumer-privacy-request"
 
-CHECKBOXES = [
-    "INDIVIDUAL requestor *",
-    "Access My Information",
-    "Opt Out of Sale and Sharing or Use for Targeted Advertising",
-    "Limit the Use of My Sensitive Personal Information",
-    "Correct My Information",
-]
-DELETE_CHECKBOX = "Delete My Information"
+ATTESTATION_CHECKBOX = "INDIVIDUAL requestor *"
+RIGHT_MAP = {
+    "access": ["Access My Information"],
+    "correct": ["Correct My Information"],
+    "opt_out_sale_share": ["Opt Out of Sale and Sharing or Use for Targeted Advertising"],
+    "opt_out_targeted_ads": ["Opt Out of Sale and Sharing or Use for Targeted Advertising"],
+    "limit_sensitive_pi": ["Limit the Use of My Sensitive Personal Information"],
+    "delete": ["Delete My Information"],
+}
+RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
 
 
 async def main():
@@ -54,9 +56,11 @@ async def main():
                 await field.type_text(value)
                 await asyncio.sleep(0.2)
 
-        checkboxes = list(CHECKBOXES)
-        if SuperScraper.REMOVE_INFORMATION:
-            checkboxes.append(DELETE_CHECKBOX)
+        codes = SuperScraper.rights_to_exercise(RIGHT_MAP)
+        if not codes:
+            print("No requested privacy rights apply to this form — nothing to do.")
+            return
+        checkboxes = [ATTESTATION_CHECKBOX] + [cb for code in codes for cb in RIGHT_MAP[code]]
         for value in checkboxes:
             box = await tab.find(xpath=f"//input[@type='checkbox' and @value=\"{value}\"]", raise_exc=False)
             if box:
@@ -66,8 +70,7 @@ async def main():
         if SuperScraper.DRY_RUN:
             print(f"DRY RUN: would submit removal request for {SuperScraper.FIRST_NAME} {SuperScraper.LAST_NAME}")
             await asyncio.sleep(1)
-            await tab.take_screenshot(path="resources/screenshots/completemailinglists_dry_run.png")
-            print("Screenshot saved to resources/screenshots/completemailinglists_dry_run.png")
+            await SuperScraper.screenshot(tab, "resources/screenshots/completemailinglists_dry_run.png")
             return
 
         await super_scraper.click_item_by_xpath(tab=tab, xpath="//input[@type='submit']", sleep=2)

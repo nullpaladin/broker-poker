@@ -52,8 +52,7 @@ async def main():
             await email_field.type_text(SuperScraper.EMAIL)
 
         await asyncio.sleep(1)
-        await tab.take_screenshot(path="resources/screenshots/nextroll_dry_run.png")
-        print("Screenshot saved to resources/screenshots/nextroll_dry_run.png")
+        await SuperScraper.screenshot(tab, "resources/screenshots/nextroll_dry_run.png")
         print(
             "\nBusiness-email opt-out field filled but NOT submitted — a reCAPTCHA v2 "
             "checkbox is present with no separate Submit button (submission appears to be "

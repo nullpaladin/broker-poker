@@ -37,13 +37,14 @@ from pydoll.browser.options import ChromiumOptions
 
 URL = "https://my.datasubject.com/AkrxLuYOww/60579"
 
-RIGHTS = [
-    ("Access Request", "access"),
-    ("Do Not Sell or Share to a Third Party", "opt_out_sale"),
-    ("Don't use my personal information for advertising", "opt_out_ads"),
-    ("Third parties your data was sold or shared with", "third_parties"),
-]
-DELETE_RIGHT = ("Delete my personal information", "delete")
+RIGHT_MAP = {
+    "access": [("Access Request", "access")],
+    "opt_out_sale_share": [("Do Not Sell or Share to a Third Party", "opt_out_sale")],
+    "opt_out_targeted_ads": [("Don't use my personal information for advertising", "opt_out_ads")],
+    "know_third_parties": [("Third parties your data was sold or shared with", "third_parties")],
+    "delete": [("Delete my personal information", "delete")],
+}
+RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
 
 
 def _split_address(address):
@@ -95,8 +96,7 @@ async def submit_request(tab, card_text, label, super_scraper):
     label_suffix = " (Proof of Identity file upload not automated — attach manually before submitting)" if label == "access" else ""
 
     await asyncio.sleep(1)
-    await tab.take_screenshot(path=f"resources/screenshots/windfall_dry_run_{label}.png")
-    print(f"Screenshot saved to resources/screenshots/windfall_dry_run_{label}.png")
+    await SuperScraper.screenshot(tab, f"resources/screenshots/windfall_dry_run_{label}.png")
     print(
         f"\n'{card_text}' request filled but NOT submitted — a Cloudflare Turnstile checkbox "
         f"requires a manual solve before submitting.{label_suffix}"
@@ -108,11 +108,12 @@ async def main():
     super_scraper = SuperScraper()
     options.binary_location = super_scraper.CHROMIUM_LOCATION
     options.add_argument("--no-sandbox")
-    options.add_argument("--window-size=1280,3000")
 
-    rights = list(RIGHTS)
-    if SuperScraper.REMOVE_INFORMATION:
-        rights.append(DELETE_RIGHT)
+    codes = SuperScraper.rights_to_exercise(RIGHT_MAP)
+    if not codes:
+        print("No requested privacy rights apply to this form — nothing to do.")
+        return
+    rights = [entry for code in codes for entry in RIGHT_MAP[code]]
 
     async with Chrome(options=options) as browser:
         tab = await browser.start()

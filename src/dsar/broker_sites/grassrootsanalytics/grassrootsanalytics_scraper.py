@@ -16,8 +16,12 @@ from pydoll.browser.options import ChromiumOptions
 
 URL = "https://www.grassrootsanalytics.com/california-consumer-privacy-act-ccpa"
 
-CHECKBOXES = ["Access My Personal Information", "Do Not Sell My Personal Informat"]
-DELETE_CHECKBOX = "Delete My Personal Information"
+RIGHT_MAP = {
+    "access": ["Access My Personal Information"],
+    "opt_out_sale_share": ["Do Not Sell My Personal Informat"],
+    "delete": ["Delete My Personal Information"],
+}
+RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
 
 
 async def main():
@@ -45,9 +49,11 @@ async def main():
                 await field.type_text(value)
                 await asyncio.sleep(0.2)
 
-        checkboxes = list(CHECKBOXES)
-        if SuperScraper.REMOVE_INFORMATION:
-            checkboxes.append(DELETE_CHECKBOX)
+        codes = SuperScraper.rights_to_exercise(RIGHT_MAP)
+        if not codes:
+            print("No requested privacy rights apply to this form — nothing to do.")
+            return
+        checkboxes = [entry for code in codes for entry in RIGHT_MAP[code]]
         for text in checkboxes:
             label = await tab.find(xpath=f"//label[.//span[contains(text(),'{text}')]]", raise_exc=False)
             if label:
@@ -57,8 +63,7 @@ async def main():
         if SuperScraper.DRY_RUN:
             print(f"DRY RUN: would submit removal request for {SuperScraper.FIRST_NAME} {SuperScraper.LAST_NAME}")
             await asyncio.sleep(1)
-            await tab.take_screenshot(path="resources/screenshots/grassrootsanalytics_dry_run.png")
-            print("Screenshot saved to resources/screenshots/grassrootsanalytics_dry_run.png")
+            await SuperScraper.screenshot(tab, "resources/screenshots/grassrootsanalytics_dry_run.png")
             return
 
         print("\nForm filled. Solve the CAPTCHA, click Submit,")

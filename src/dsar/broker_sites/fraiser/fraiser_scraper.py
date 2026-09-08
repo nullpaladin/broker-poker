@@ -18,16 +18,17 @@ from pydoll.browser.options import ChromiumOptions
 
 URL = "https://my.datasubject.com/Azq9ITU2sQioIKhOV/44046"
 
-RIGHTS = [
-    ("Correct my personal information", "correct"),
-    ("Summarize my personal information", "access"),
-    ("Transfer my personal information", "portability"),
-    ("Do Not Sell or Share to a Third Party", "opt_out_sale"),
-    ("Don't use my personal information for advertising", "opt_out_ads"),
-    ("Third parties your data was sold or shared with", "third_parties"),
-    ("Opt Out of Profiling / Automated Decision-Making", "opt_out_profiling"),
-]
-DELETE_RIGHT = ("Delete my personal information", "delete")
+RIGHT_MAP = {
+    "correct": [("Correct my personal information", "correct")],
+    "access": [("Summarize my personal information", "access")],
+    "portability": [("Transfer my personal information", "portability")],
+    "opt_out_sale_share": [("Do Not Sell or Share to a Third Party", "opt_out_sale")],
+    "opt_out_targeted_ads": [("Don't use my personal information for advertising", "opt_out_ads")],
+    "know_third_parties": [("Third parties your data was sold or shared with", "third_parties")],
+    "opt_out_profiling": [("Opt Out of Profiling / Automated Decision-Making", "opt_out_profiling")],
+    "delete": [("Delete my personal information", "delete")],
+}
+RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
 
 
 async def submit_request(tab, card_text, label, super_scraper):
@@ -67,8 +68,7 @@ async def submit_request(tab, card_text, label, super_scraper):
             f"{SuperScraper.FIRST_NAME} {SuperScraper.LAST_NAME} <{SuperScraper.EMAIL}>"
         )
         await asyncio.sleep(1)
-        await tab.take_screenshot(path=f"resources/screenshots/fraiser_dry_run_{label}.png")
-        print(f"Screenshot saved to resources/screenshots/fraiser_dry_run_{label}.png")
+        await SuperScraper.screenshot(tab, f"resources/screenshots/fraiser_dry_run_{label}.png")
         return
 
     print(f"\nForm filled for '{card_text}'. Solve the Cloudflare Turnstile challenge,")
@@ -88,9 +88,11 @@ async def main():
     options.binary_location = super_scraper.CHROMIUM_LOCATION
     options.add_argument("--no-sandbox")
 
-    rights = list(RIGHTS)
-    if SuperScraper.REMOVE_INFORMATION:
-        rights.append(DELETE_RIGHT)
+    codes = SuperScraper.rights_to_exercise(RIGHT_MAP)
+    if not codes:
+        print("No requested privacy rights apply to this form — nothing to do.")
+        return
+    rights = [entry for code in codes for entry in RIGHT_MAP[code]]
 
     async with Chrome(options=options) as browser:
         tab = await browser.start()

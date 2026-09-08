@@ -18,11 +18,12 @@ from pydoll.browser.options import ChromiumOptions
 
 URL = "https://cuebiq.com/privacy-request/"
 
-RIGHTS = [
-    ("opt-out/do not sell or share my personal information", "opt_out"),
-    ("get access to or a copy of my personal information", "access"),
-]
-DELETE_RIGHT = ("erase/delete my personal information", "delete")
+RIGHT_MAP = {
+    "access": [("get access to or a copy of my personal information", "access")],
+    "opt_out_sale_share": [("opt-out/do not sell or share my personal information", "opt_out")],
+    "delete": [("erase/delete my personal information", "delete")],
+}
+RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
 
 
 async def submit_request(tab, radio_value, label, super_scraper):
@@ -53,8 +54,7 @@ async def submit_request(tab, radio_value, label, super_scraper):
     if SuperScraper.DRY_RUN:
         print(f"DRY RUN: would submit '{radio_value}' for <{SuperScraper.EMAIL}>")
         await asyncio.sleep(1)
-        await tab.take_screenshot(path=f"resources/screenshots/cuebiq_dry_run_{label}.png")
-        print(f"Screenshot saved to resources/screenshots/cuebiq_dry_run_{label}.png")
+        await SuperScraper.screenshot(tab, f"resources/screenshots/cuebiq_dry_run_{label}.png")
         return
 
     print(f"\nForm filled for '{radio_value}'. Solve the reCAPTCHA, click Submit My Request,")
@@ -74,9 +74,11 @@ async def main():
     options.binary_location = super_scraper.CHROMIUM_LOCATION
     options.add_argument("--no-sandbox")
 
-    rights = list(RIGHTS)
-    if SuperScraper.REMOVE_INFORMATION:
-        rights.append(DELETE_RIGHT)
+    codes = SuperScraper.rights_to_exercise(RIGHT_MAP)
+    if not codes:
+        print("No requested privacy rights apply to this form — nothing to do.")
+        return
+    rights = [entry for code in codes for entry in RIGHT_MAP[code]]
 
     async with Chrome(options=options) as browser:
         tab = await browser.start()

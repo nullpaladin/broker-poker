@@ -15,14 +15,15 @@ from src.dsar.super_scraper import SuperScraper
 
 URL = "https://privacyportal.onetrust.com/webform/f6a59500-f900-4652-b030-0cd51afe15a5/87ca07e4-e06c-4ad8-9aa6-ccbbaa8750c1"
 
-REQUESTS = [
-    ("Do Not Sell or Share My Information",                                                              "optout"),
-    ("Data Access and Information Request CA, CO, CT, OR, TX, UT, VA, MT, NJ, NH, NE, IA, DE, MN, MD Residents Only", "access"),
-    ("Correct Inaccurate Data",                                                                          "correct"),
-    ("Opt-Out of Targeted Advertising",                                                                  "optout_ads"),
-    ("Limit the Use of My Sensitive Personal Information",                                               "sensitive"),
-]
-DELETE_REQUEST = ("Data Deletion Request Non-California Residents Only", "delete")
+RIGHT_MAP = {
+    "access": [("Data Access and Information Request CA, CO, CT, OR, TX, UT, VA, MT, NJ, NH, NE, IA, DE, MN, MD Residents Only", "access")],
+    "correct": [("Correct Inaccurate Data", "correct")],
+    "opt_out_sale_share": [("Do Not Sell or Share My Information", "optout")],
+    "opt_out_targeted_ads": [("Opt-Out of Targeted Advertising", "optout_ads")],
+    "limit_sensitive_pi": [("Limit the Use of My Sensitive Personal Information", "sensitive")],
+    "delete": [("Data Deletion Request Non-California Residents Only", "delete")],
+}
+RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
 
 
 async def _select_autocomplete(tab, field_id, search_text):
@@ -94,8 +95,7 @@ async def submit_request(tab, aria_label, label, super_scraper):
         if submit_btn:
             await submit_btn.scroll_into_view()
         await asyncio.sleep(2)
-        await tab.take_screenshot(f"resources/screenshots/analytics_iq_dry_run_{label}.png")
-        print(f"Screenshot saved to resources/screenshots/nalytics_iq_dry_run_{label}.png")
+        await SuperScraper.screenshot(tab, f"resources/screenshots/analytics_iq_dry_run_{label}.png")
         return
 
     print(f"\nForm filled for '{aria_label}'.")
@@ -115,11 +115,12 @@ async def main():
     super_scraper = SuperScraper()
     options.binary_location = super_scraper.CHROMIUM_LOCATION
     options.add_argument("--no-sandbox")
-    options.add_argument("--window-size=1280,3000")
 
-    requests = list(REQUESTS)
-    if SuperScraper.REMOVE_INFORMATION:
-        requests.append(DELETE_REQUEST)
+    codes = SuperScraper.rights_to_exercise(RIGHT_MAP)
+    if not codes:
+        print("No requested privacy rights apply to this form — nothing to do.")
+        return
+    requests = [entry for code in codes for entry in RIGHT_MAP[code]]
 
     async with Chrome(options=options) as browser:
         tab = await browser.start()

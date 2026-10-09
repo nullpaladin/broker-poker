@@ -40,7 +40,6 @@ async def main():
     super_scraper = SuperScraper()
     options.binary_location = super_scraper.CHROMIUM_LOCATION
     options.add_argument("--no-sandbox")
-    options.add_argument("--window-size=1280,2400")
 
     full_name = " ".join(p for p in (SuperScraper.FIRST_NAME, SuperScraper.LAST_NAME) if p)
 
@@ -61,9 +60,7 @@ async def main():
         )
 
         await asyncio.sleep(1)
-        await tab.take_screenshot(path="resources/screenshots/lifesight_dry_run.png", beyond_viewport=True)
-        print("Screenshot saved to resources/screenshots/lifesight_dry_run.png")
-
+        await SuperScraper.screenshot(tab, "resources/screenshots/lifesight_dry_run.png", beyond_viewport=True)
         if SuperScraper.DRY_RUN:
             print(f"DRY RUN: would submit opt-out for {full_name} <{SuperScraper.EMAIL}>")
             return

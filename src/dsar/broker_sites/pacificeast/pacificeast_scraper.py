@@ -64,8 +64,7 @@ async def main():
             print(f"{super_scraper.OOPS} Identity & Authorization Confirmation checkbox not found")
 
         await asyncio.sleep(1)
-        await tab.take_screenshot(path="resources/screenshots/pacificeast_dry_run.png")
-        print("Screenshot saved to resources/screenshots/pacificeast_dry_run.png")
+        await SuperScraper.screenshot(tab, "resources/screenshots/pacificeast_dry_run.png")
         print(
             "\nForm filled but NOT submitted. The 'Submission Confirmation' checkbox "
             "attests the request is NOT from an automated service, which would be false "

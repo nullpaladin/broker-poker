@@ -104,7 +104,7 @@ async def main():
         delete_select = await tab.find(id="input_1_26", raise_exc=False)
         if delete_select:
             await delete_select.execute_script(
-                _select_by_text("Yes" if SuperScraper.REMOVE_INFORMATION else "No")
+                _select_by_text("Yes" if SuperScraper.wants("delete") else "No")
             )
 
         categories_select = await tab.find(id="input_1_24", raise_exc=False)
@@ -120,8 +120,7 @@ async def main():
             await correct_select.execute_script(_select_by_text("No"))
 
         await asyncio.sleep(1)
-        await tab.take_screenshot(path="resources/screenshots/liftbasedata_dry_run.png")
-        print("Screenshot saved to resources/screenshots/liftbasedata_dry_run.png")
+        await SuperScraper.screenshot(tab, "resources/screenshots/liftbasedata_dry_run.png")
         print(
             "\nForm filled but NOT submitted — both Cloudflare Turnstile and reCAPTCHA v2 "
             "are present and require a manual solve before submitting."

@@ -28,7 +28,6 @@ async def main():
     super_scraper = SuperScraper()
     options.binary_location = super_scraper.CHROMIUM_LOCATION
     options.add_argument("--no-sandbox")
-    options.add_argument("--window-size=1280,2600")
 
     async with Chrome(options=options) as browser:
         tab = await browser.start()
@@ -58,12 +57,11 @@ async def main():
 
         checkboxes = await tab.find(xpath="//input[@name='checkbox[]']", find_all=True, raise_exc=False) or []
         for box in checkboxes:
-            await box.execute_script("if (!this.checked) this.click();")
+            await SuperScraper.js_check(box)
             await asyncio.sleep(0.1)
 
         time.sleep(0.5)
-        await tab.take_screenshot("resources/screenshots/xcelerated_dry_run.png")
-        print("Screenshot saved to resources/screenshots/xcelerated_dry_run.png")
+        await SuperScraper.screenshot(tab, "resources/screenshots/xcelerated_dry_run.png")
         print(
             "Opt-out request filled but NOT submitted — a CAPTCHA must be solved "
             "manually before submitting."

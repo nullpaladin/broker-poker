@@ -17,7 +17,6 @@ async def main():
     super_scraper = SuperScraper()
     options.binary_location = super_scraper.CHROMIUM_LOCATION
     options.add_argument("--no-sandbox")
-    options.add_argument("--window-size=1280,3000")
 
     async with Chrome(options=options) as browser:
         tab = await browser.start()
@@ -51,7 +50,7 @@ async def main():
 
         state_field = await tab.find(id="State", raise_exc=False)
         if state_field:
-            state_abbrev = await SuperScraper.state_full_name_to_abbreviated(SuperScraper.STATE)
+            state_abbrev = SuperScraper.STATE_ABBREVIATED
             await state_field.type_text(state_abbrev)
 
         zip_field = await tab.find(id="Zip", raise_exc=False)
@@ -78,7 +77,7 @@ async def main():
         if recipients:
             await recipients.click()
 
-        if SuperScraper.REMOVE_INFORMATION:
+        if SuperScraper.wants("delete"):
             delete = await tab.find(id="DeleteMyData", raise_exc=False)
             if delete:
                 await delete.click()
@@ -86,7 +85,7 @@ async def main():
         time.sleep(0.5)
 
         if SuperScraper.DRY_RUN:
-            await tab.take_screenshot("resources/screenshots/leadpost_dry_run.png")
+            await SuperScraper.screenshot(tab, "resources/screenshots/leadpost_dry_run.png")
             print(
                 f"DRY RUN: would submit for "
                 f"{SuperScraper.FIRST_NAME} {SuperScraper.LAST_NAME} <{SuperScraper.EMAIL}>"

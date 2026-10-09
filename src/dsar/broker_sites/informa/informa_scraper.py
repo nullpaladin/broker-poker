@@ -24,13 +24,13 @@ from pydoll.browser.options import ChromiumOptions
 
 URL = "https://privacy.informa.com/policies/en/"
 
-RIGHTS = [
-    "Obtain a copy of my data",
-    "Update inaccuracies",
-    "Unsubscribe Request",
-    "Do not sell my personal data (CCPA/CPRA)",
-]
-DELETE_RIGHT = "Delete my data"
+RIGHT_MAP = {
+    "access": ["Obtain a copy of my data"],
+    "correct": ["Update inaccuracies"],
+    "opt_out_sale_share": ["Unsubscribe Request", "Do not sell my personal data (CCPA/CPRA)"],
+    "delete": ["Delete my data"],
+}
+RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
 
 
 async def submit_request(tab, card_text, super_scraper):
@@ -65,8 +65,7 @@ async def submit_request(tab, card_text, super_scraper):
         await email_field.type_text(SuperScraper.EMAIL)
 
     await asyncio.sleep(1)
-    await tab.take_screenshot(path=f"resources/screenshots/informa_dry_run_{label}.png")
-    print(f"Screenshot saved to resources/screenshots/informa_dry_run_{label}.png")
+    await SuperScraper.screenshot(tab, f"resources/screenshots/informa_dry_run_{label}.png")
     print(
         f"\n'{card_text}' ready but NOT sent — click 'Send Email' yourself, check your "
         "inbox for the verification link, click it, and complete whatever form follows "
@@ -81,9 +80,11 @@ async def main():
     options.binary_location = super_scraper.CHROMIUM_LOCATION
     options.add_argument("--no-sandbox")
 
-    rights = list(RIGHTS)
-    if SuperScraper.REMOVE_INFORMATION:
-        rights.append(DELETE_RIGHT)
+    codes = SuperScraper.rights_to_exercise(RIGHT_MAP)
+    if not codes:
+        print("No requested privacy rights apply to this form — nothing to do.")
+        return
+    rights = [entry for code in codes for entry in RIGHT_MAP[code]]
 
     async with Chrome(options=options) as browser:
         tab = await browser.start()

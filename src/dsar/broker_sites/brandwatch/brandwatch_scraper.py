@@ -25,8 +25,13 @@ from src.dsar.super_scraper import SuperScraper
 
 URL = "https://www.brandwatch.com/legal/data-subject-access-request/"
 
-RIGHTS = ["Access", "Do not Sell/Share Data", "Portability"]
-DELETE_RIGHT = "Erasure"
+RIGHT_MAP = {
+    "access": ["Access"],
+    "opt_out_sale_share": ["Do not Sell/Share Data"],
+    "portability": ["Portability"],
+    "delete": ["Erasure"],
+}
+RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
 
 COMMENT = (
     "I am a member of the public exercising my data subject rights. Please "
@@ -92,8 +97,7 @@ async def submit_request(tab, right, tag, super_scraper):
         await comment.type_text(COMMENT)
 
     await asyncio.sleep(1)
-    await tab.take_screenshot(path=f"resources/screenshots/brandwatch_dry_run_{tag}.png", beyond_viewport=True)
-    print(f"Screenshot saved to resources/screenshots/brandwatch_dry_run_{tag}.png")
+    await SuperScraper.screenshot(tab, f"resources/screenshots/brandwatch_dry_run_{tag}.png", beyond_viewport=True)
     print(f"'{right}' filled but NOT submitted — solve the reCAPTCHA manually, then Submit.")
 
 
@@ -102,11 +106,12 @@ async def main():
     super_scraper = SuperScraper()
     options.binary_location = super_scraper.CHROMIUM_LOCATION
     options.add_argument("--no-sandbox")
-    options.add_argument("--window-size=1280,2600")
 
-    rights = list(RIGHTS)
-    if SuperScraper.REMOVE_INFORMATION:
-        rights.append(DELETE_RIGHT)
+    codes = SuperScraper.rights_to_exercise(RIGHT_MAP)
+    if not codes:
+        print("No requested privacy rights apply to this form — nothing to do.")
+        return
+    rights = [entry for code in codes for entry in RIGHT_MAP[code]]
 
     async with Chrome(options=options) as browser:
         tab = await browser.start()

@@ -2,9 +2,10 @@
 # (privacyportalde-cdn.onetrust.com/dsarwebform). The portal's own copy says it
 # "has been developed to allow California users to submit a request", and the
 # only residency question is a required "Are you a California Resident?" Yes/No.
-# There is no path for a non-CA resident, so — following the same approach the
-# README notes for withrealcustomers.com and this repo's precedent for CA-only
-# forms — "Yes" is selected. Run only if that is acceptable for the requester.
+# There is no path for a non-CA resident. "Yes" is selected for any user in a
+# state with a privacy law (such a law entitles its residents to the same
+# treatment a business gives CCPA requesters); for a genuine no-law state there
+# is nothing on this form that would apply, so it is left as a documented gap.
 #
 #   requestTypesDSARElement  role="option" group, single-select (one submission
 #       per right): "Request a Copy of My Personal Information" (Access) +
@@ -29,11 +30,14 @@ URL = (
     "2159c482-749a-49db-916b-475017a9efa5/855e3b71-3dd3-4546-977c-88c7430ade09.html"
 )
 
-RIGHTS = [
-    ("Request a Copy of My Personal Information", "access"),
-    ("Request More Information about How Synapse Processes My Personal Information", "info"),
-]
-DELETE_RIGHT = ("Request Deletion of My Personal Information", "delete")
+RIGHT_MAP = {
+    "access": [
+        ("Request a Copy of My Personal Information", "access"),
+        ("Request More Information about How Synapse Processes My Personal Information", "info"),
+    ],
+    "delete": [("Request Deletion of My Personal Information", "delete")],
+}
+RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
 
 
 async def _pick(tab, super_scraper, label):
@@ -77,10 +81,7 @@ async def submit_request(tab, right_label, tag, super_scraper):
     await _pick(tab, super_scraper, "Yes")  # "Are you a California Resident?"
 
     await asyncio.sleep(1)
-    await tab.take_screenshot(
-        path=f"resources/screenshots/synapsegroupinc_dry_run_{tag}.png", beyond_viewport=True
-    )
-    print(f"Screenshot saved to resources/screenshots/synapsegroupinc_dry_run_{tag}.png")
+    await SuperScraper.screenshot(tab, f"resources/screenshots/synapsegroupinc_dry_run_{tag}.png", beyond_viewport=True)
     print(f"'{right_label}' filled but NOT submitted — solve the reCAPTCHA manually, then Submit.")
 
 
@@ -89,11 +90,12 @@ async def main():
     super_scraper = SuperScraper()
     options.binary_location = super_scraper.CHROMIUM_LOCATION
     options.add_argument("--no-sandbox")
-    options.add_argument("--window-size=1280,3000")
 
-    rights = list(RIGHTS)
-    if SuperScraper.REMOVE_INFORMATION:
-        rights.append(DELETE_RIGHT)
+    codes = SuperScraper.rights_to_exercise(RIGHT_MAP)
+    if not codes:
+        print("No requested privacy rights apply to this form — nothing to do.")
+        return
+    rights = [entry for code in codes for entry in RIGHT_MAP[code]]
 
     async with Chrome(options=options) as browser:
         tab = await browser.start()

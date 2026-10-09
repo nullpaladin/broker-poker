@@ -43,7 +43,6 @@ async def main():
     super_scraper = SuperScraper()
     options.binary_location = super_scraper.CHROMIUM_LOCATION
     options.add_argument("--no-sandbox")
-    options.add_argument("--window-size=1280,2400")
 
     async with Chrome(options=options) as browser:
         tab = await browser.start()
@@ -56,8 +55,7 @@ async def main():
         await _fill_visible(tab, "requestDataLastName", SuperScraper.LAST_NAME)
         await _fill_visible(tab, "requestDataEmail", SuperScraper.EMAIL)
         time.sleep(0.5)
-        await tab.take_screenshot("resources/screenshots/learnmore_dry_run_access.png")
-        print("Screenshot saved to resources/screenshots/learnmore_dry_run_access.png")
+        await SuperScraper.screenshot(tab, "resources/screenshots/learnmore_dry_run_access.png")
         if not SuperScraper.DRY_RUN:
             btn = await tab.find(text="Submit Request", raise_exc=False)
             if btn:
@@ -65,18 +63,16 @@ async def main():
                 await asyncio.sleep(3)
 
         # --- Delete (gated) ---
-        if SuperScraper.REMOVE_INFORMATION:
+        if SuperScraper.wants("delete"):
             await tab.go_to(URL)
             await asyncio.sleep(4)
             await _click(tab, "Delete My User Data")
             await _fill_visible(tab, "requestorEmail", SuperScraper.EMAIL)
             time.sleep(0.5)
-            await tab.take_screenshot("resources/screenshots/learnmore_dry_run_delete.png")
-            print("Screenshot saved to resources/screenshots/learnmore_dry_run_delete.png")
-
+            await SuperScraper.screenshot(tab, "resources/screenshots/learnmore_dry_run_delete.png")
         if SuperScraper.DRY_RUN:
             print(
-                f"DRY RUN: Access{' + Delete' if SuperScraper.REMOVE_INFORMATION else ''} "
+                f"DRY RUN: Access{' + Delete' if SuperScraper.wants("delete") else ''} "
                 f"form(s) filled for {SuperScraper.FIRST_NAME} {SuperScraper.LAST_NAME} "
                 f"<{SuperScraper.EMAIL}>. Opt-out (Suppression Center) is email-verification "
                 f"gated and not automated."

@@ -15,8 +15,12 @@ from pydoll.browser.options import ChromiumOptions
 
 URL = "https://policy.leadmemedia.com/States/privacyrequestform.html"
 
-RIGHT_CHECKBOXES = ["NotSell", "Access"]
-DELETE_CHECKBOX = "DeleteInfo"
+RIGHT_MAP = {
+    "access": ["Access"],
+    "opt_out_sale_share": ["NotSell"],
+    "delete": ["DeleteInfo"],
+}
+RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
 
 
 async def main():
@@ -48,9 +52,11 @@ async def main():
             else:
                 print(f"{super_scraper.OOPS} field '{field_id}' not found")
 
-        checkbox_names = list(RIGHT_CHECKBOXES)
-        if SuperScraper.REMOVE_INFORMATION:
-            checkbox_names.append(DELETE_CHECKBOX)
+        codes = SuperScraper.rights_to_exercise(RIGHT_MAP)
+        if not codes:
+            print("No requested privacy rights apply to this form — nothing to do.")
+            return
+        checkbox_names = [entry for code in codes for entry in RIGHT_MAP[code]]
         for name in checkbox_names:
             checkbox = await tab.find(xpath=f"//input[@name='{name}']", raise_exc=False)
             if checkbox:
@@ -59,8 +65,7 @@ async def main():
                 print(f"{super_scraper.OOPS} checkbox '{name}' not found")
 
         await asyncio.sleep(1)
-        await tab.take_screenshot(path="resources/screenshots/leadmemedia_dry_run.png")
-        print("Screenshot saved to resources/screenshots/leadmemedia_dry_run.png")
+        await SuperScraper.screenshot(tab, "resources/screenshots/leadmemedia_dry_run.png")
         print(
             "\nForm filled but NOT submitted — a reCAPTCHA v2 checkbox is present and "
             "requires a manual solve before submitting."

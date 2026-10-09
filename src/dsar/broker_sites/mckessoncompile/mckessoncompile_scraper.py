@@ -86,9 +86,8 @@ async def main():
     super_scraper = SuperScraper()
     options.binary_location = super_scraper.CHROMIUM_LOCATION
     options.add_argument("--no-sandbox")
-    options.add_argument("--window-size=1280,3400")
 
-    details = RIGHTS_TEXT_BASE + (RIGHTS_TEXT_DELETE if SuperScraper.REMOVE_INFORMATION else "")
+    details = RIGHTS_TEXT_BASE + (RIGHTS_TEXT_DELETE if SuperScraper.wants("delete") else "")
 
     async with Chrome(options=options) as browser:
         tab = await browser.start()
@@ -190,10 +189,7 @@ async def main():
             print(f"{super_scraper.OOPS} perjury-certification checkbox not found")
 
         await asyncio.sleep(1)
-        await tab.take_screenshot(
-            path="resources/screenshots/mckessoncompile_dry_run.png", beyond_viewport=True
-        )
-        print("Screenshot saved to resources/screenshots/mckessoncompile_dry_run.png")
+        await SuperScraper.screenshot(tab, "resources/screenshots/mckessoncompile_dry_run.png", beyond_viewport=True)
         print(
             "Request filled but NOT submitted — enter the BotDetect image CAPTCHA "
             "(captchaCode) manually, then Submit."

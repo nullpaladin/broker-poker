@@ -17,8 +17,12 @@ from src.dsar.super_scraper import SuperScraper
 
 URL = "https://ileads.com/submitrequest/"
 
-RIGHTS = ["Data Access", "Right to Know", "Do Not Sell My Information"]
-DELETE_RIGHT = "Data Deletion"
+RIGHT_MAP = {
+    "access": ["Data Access", "Right to Know"],
+    "opt_out_sale_share": ["Do Not Sell My Information"],
+    "delete": ["Data Deletion"],
+}
+RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
 
 
 async def main():
@@ -26,22 +30,23 @@ async def main():
     super_scraper = SuperScraper()
     options.binary_location = super_scraper.CHROMIUM_LOCATION
     options.add_argument("--no-sandbox")
-    options.add_argument("--window-size=1280,2400")
 
     async with Chrome(options=options) as browser:
         tab = await browser.start()
         await tab.go_to(URL)
         await asyncio.sleep(5)
 
-        rights = list(RIGHTS)
-        if SuperScraper.REMOVE_INFORMATION:
-            rights.append(DELETE_RIGHT)
+        codes = SuperScraper.rights_to_exercise(RIGHT_MAP)
+        if not codes:
+            print("No requested privacy rights apply to this form — nothing to do.")
+            return
+        rights = [entry for code in codes for entry in RIGHT_MAP[code]]
         for value in rights:
             box = await tab.find(
                 xpath=f"//input[@name='checkbox-datatypes[]' and @value={value!r}]", raise_exc=False
             )
             if box:
-                await box.execute_script("if (!this.checked) this.click();")
+                await SuperScraper.js_check(box)
                 await asyncio.sleep(0.1)
 
         for name, value in [
@@ -59,15 +64,14 @@ async def main():
 
         state_select = await tab.find(name="states-list", raise_exc=False)
         if state_select:
-            abbr = await super_scraper.state_full_name_to_abbreviated(SuperScraper.STATE)
+            abbr = SuperScraper.STATE_ABBREVIATED
             await state_select.execute_script(
                 f"const s=Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype,'value').set;"
                 f"s.call(this,{abbr!r});this.dispatchEvent(new Event('change',{{bubbles:true}}));"
             )
 
         time.sleep(0.5)
-        await tab.take_screenshot("resources/screenshots/ileads_dry_run.png")
-        print("Screenshot saved to resources/screenshots/ileads_dry_run.png")
+        await SuperScraper.screenshot(tab, "resources/screenshots/ileads_dry_run.png")
         print(
             "Request filled but NOT submitted — a Cloudflare Turnstile must be solved "
             "manually before submitting."

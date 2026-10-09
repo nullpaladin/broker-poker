@@ -24,13 +24,13 @@ from pydoll.browser.options import ChromiumOptions
 
 URL = "https://verve.com/data-subject-request-form/"
 
-REQUEST_TYPE_IDS = [
-    "field_ebdv3-1",  # Info Request
-    "field_ebdv3-4",  # Data Access
-    "field_ebdv3-5",  # Do Not Sell or Share My Personal Information
-    "field_ebdv3-6",  # Limit the Use of My Sensitive Personal Information
-]
-DELETE_REQUEST_TYPE_ID = "field_ebdv3-2"  # Data Deletion
+RIGHT_MAP = {
+    "access": ["field_ebdv3-1", "field_ebdv3-4"],
+    "opt_out_sale_share": ["field_ebdv3-5"],
+    "limit_sensitive_pi": ["field_ebdv3-6"],
+    "delete": ["field_ebdv3-2"],
+}
+RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
 
 
 async def main():
@@ -38,11 +38,12 @@ async def main():
     super_scraper = SuperScraper()
     options.binary_location = super_scraper.CHROMIUM_LOCATION
     options.add_argument("--no-sandbox")
-    options.add_argument("--window-size=1280,3000")
 
-    request_type_ids = list(REQUEST_TYPE_IDS)
-    if SuperScraper.REMOVE_INFORMATION:
-        request_type_ids.append(DELETE_REQUEST_TYPE_ID)
+    codes = SuperScraper.rights_to_exercise(RIGHT_MAP)
+    if not codes:
+        print("No requested privacy rights apply to this form — nothing to do.")
+        return
+    request_type_ids = [entry for code in codes for entry in RIGHT_MAP[code]]
 
     async with Chrome(options=options) as browser:
         tab = await browser.start()
@@ -89,15 +90,14 @@ async def main():
         details_field = await tab.find(id="field_ck1lr", raise_exc=False)
         if details_field:
             request_text = "I am requesting access to and opting out of the sale/sharing of my personal information."
-            if SuperScraper.REMOVE_INFORMATION:
+            if SuperScraper.wants("delete"):
                 request_text += " I am also requesting deletion of my personal information."
             await details_field.type_text(request_text)
         else:
             print(f"{super_scraper.OOPS} Request Details field not found")
 
         await asyncio.sleep(1)
-        await tab.take_screenshot(path="resources/screenshots/verve_dry_run.png")
-        print("Screenshot saved to resources/screenshots/verve_dry_run.png")
+        await SuperScraper.screenshot(tab, "resources/screenshots/verve_dry_run.png")
         print("\nRequest filled but NOT submitted (invisible reCAPTCHA v2, no manual solve needed).")
 
 

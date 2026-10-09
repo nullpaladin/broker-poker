@@ -36,8 +36,12 @@ URL = "https://datasubject.deloitte.com/"
 
 RELATIONSHIP_NAME = "SubscribertoDeloitteUSmarketplaceinformation"
 
-REQUEST_TYPE_NAMES = ["IsPersonalInformation", "Reqchkispresent1"]  # Access, Opt-Out of sale
-DELETE_REQUEST_TYPE_NAME = "IsdeleteMyPersonalInformation"
+RIGHT_MAP = {
+    "access": ["IsPersonalInformation"],
+    "opt_out_sale_share": ["Reqchkispresent1"],
+    "delete": ["IsdeleteMyPersonalInformation"],
+}
+RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
 
 
 async def _check(tab, name, super_scraper, description):
@@ -116,9 +120,11 @@ async def main():
 
         await _check(tab, RELATIONSHIP_NAME, super_scraper, "relationship")
 
-        request_type_names = list(REQUEST_TYPE_NAMES)
-        if SuperScraper.REMOVE_INFORMATION:
-            request_type_names.append(DELETE_REQUEST_TYPE_NAME)
+        codes = SuperScraper.rights_to_exercise(RIGHT_MAP)
+        if not codes:
+            print("No requested privacy rights apply to this form — nothing to do.")
+            return
+        request_type_names = [entry for code in codes for entry in RIGHT_MAP[code]]
         for name in request_type_names:
             await _check(tab, name, super_scraper, f"request type '{name}'")
 
@@ -128,8 +134,7 @@ async def main():
         if SuperScraper.DRY_RUN:
             print(f"DRY RUN: would submit removal request for {SuperScraper.FIRST_NAME} {SuperScraper.LAST_NAME}")
             await asyncio.sleep(1)
-            await tab.take_screenshot(path="resources/screenshots/deloitte_dry_run.png")
-            print("Screenshot saved to resources/screenshots/deloitte_dry_run.png")
+            await SuperScraper.screenshot(tab, "resources/screenshots/deloitte_dry_run.png")
             return
 
         submit_btn = await tab.find(text="Submit Request", raise_exc=False)

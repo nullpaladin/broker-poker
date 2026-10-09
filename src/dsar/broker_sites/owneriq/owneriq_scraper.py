@@ -20,10 +20,11 @@ URL = "https://privacyportal-cdn.onetrust.com/dsarwebform/fa9f2f77-33ff-473b-ae5
 SUBJECT_TYPE = "Consumer located in CA, CO, CT, DE, IN, IA, KY, MD, MN, MT, NE, NH, NJ, OR, RI, TN, TX, UT, or VA"
 
 # (aria-label, screenshot label)
-REQUESTS = [
-    ("Access My Information", "access"),
-]
-DELETE_REQUEST = ("Delete My Information", "delete")
+RIGHT_MAP = {
+    "access": [("Access My Information", "access")],
+    "delete": [("Delete My Information", "delete")],
+}
+RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
 
 
 async def submit_request(tab, aria_label, label, super_scraper):
@@ -101,8 +102,7 @@ async def submit_request(tab, aria_label, label, super_scraper):
         if submit_btn:
             await submit_btn.scroll_into_view()
         await asyncio.sleep(1)
-        await tab.take_screenshot(f"resources/screenshots/owneriq_dry_run_{label}.png")
-        print(f"Screenshot saved to resources/screenshots/owneriq_dry_run_{label}.png")
+        await SuperScraper.screenshot(tab, f"resources/screenshots/owneriq_dry_run_{label}.png")
         return
 
     print(f"\nForm filled for '{aria_label}'.")
@@ -122,11 +122,12 @@ async def main():
     super_scraper = SuperScraper()
     options.binary_location = super_scraper.CHROMIUM_LOCATION
     options.add_argument("--no-sandbox")
-    options.add_argument("--window-size=1280,3000")
 
-    requests = list(REQUESTS)
-    if SuperScraper.REMOVE_INFORMATION:
-        requests.append(DELETE_REQUEST)
+    codes = SuperScraper.rights_to_exercise(RIGHT_MAP)
+    if not codes:
+        print("No requested privacy rights apply to this form — nothing to do.")
+        return
+    requests = [entry for code in codes for entry in RIGHT_MAP[code]]
 
     async with Chrome(options=options) as browser:
         tab = await browser.start()

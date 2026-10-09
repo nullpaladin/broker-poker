@@ -28,13 +28,14 @@ from src.dsar.super_scraper import SuperScraper
 URL = "https://privacyportal.onetrust.com/webform/07e8dc4d-6686-403e-9b11-39fe7347d2f4/2f999bd2-c826-498c-a504-894eaf543b6f"
 
 # (substring keyword to match the option, screenshot label)
-REQUESTS = [
-    ("access my personal information", "access"),
-    ("opt-out of the sale", "optout_sale"),
-    ("targeted advertising", "optout_ads"),
-    ("limit the use of my", "limit_sensitive"),
-]
-DELETE_REQUEST = ("delete my personal information", "delete")
+RIGHT_MAP = {
+    "access": [("access my personal information", "access")],
+    "opt_out_sale_share": [("opt-out of the sale", "optout_sale")],
+    "opt_out_targeted_ads": [("targeted advertising", "optout_ads")],
+    "limit_sensitive_pi": [("limit the use of my", "limit_sensitive")],
+    "delete": [("delete my personal information", "delete")],
+}
+RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
 
 
 async def _field_value(field):
@@ -117,9 +118,7 @@ async def submit_request(tab, right_keyword, label, super_scraper):
     submit_btn = await tab.find(id="dsar-webform-submit-button", raise_exc=False)
     if submit_btn:
         await submit_btn.scroll_into_view()
-    await tab.take_screenshot(f"resources/screenshots/iqviadigital_dry_run_{label}.png")
-    print(f"Screenshot saved to resources/screenshots/iqviadigital_dry_run_{label}.png")
-
+    await SuperScraper.screenshot(tab, f"resources/screenshots/iqviadigital_dry_run_{label}.png")
     if SuperScraper.DRY_RUN:
         print(
             f"DRY RUN: would submit '{right_keyword}' for "
@@ -143,11 +142,12 @@ async def main():
     super_scraper = SuperScraper()
     options.binary_location = super_scraper.CHROMIUM_LOCATION
     options.add_argument("--no-sandbox")
-    options.add_argument("--window-size=1280,2600")
 
-    requests = list(REQUESTS)
-    if SuperScraper.REMOVE_INFORMATION:
-        requests.append(DELETE_REQUEST)
+    codes = SuperScraper.rights_to_exercise(RIGHT_MAP)
+    if not codes:
+        print("No requested privacy rights apply to this form — nothing to do.")
+        return
+    requests = [entry for code in codes for entry in RIGHT_MAP[code]]
 
     async with Chrome(options=options) as browser:
         tab = await browser.start()

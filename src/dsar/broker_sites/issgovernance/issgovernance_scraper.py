@@ -57,7 +57,7 @@ async def main():
         await tab.execute_script(_js_set("last_name", SuperScraper.LAST_NAME))
         await tab.execute_script(_js_set("email_address", SuperScraper.EMAIL))
 
-        if SuperScraper.REMOVE_INFORMATION:
+        if SuperScraper.wants("delete"):
             request_text = "I am requesting to know, correct, opt-out of sale/sharing, and delete my personal information."
         else:
             request_text = "I am requesting to know, correct, and opt-out of sale/sharing of my personal information."
@@ -66,8 +66,7 @@ async def main():
         if SuperScraper.DRY_RUN:
             print(f"DRY RUN: would submit removal request for {SuperScraper.FIRST_NAME} {SuperScraper.LAST_NAME}")
             await asyncio.sleep(1)
-            await tab.take_screenshot(path="resources/screenshots/issgovernance_dry_run.png")
-            print("Screenshot saved to resources/screenshots/issgovernance_dry_run.png")
+            await SuperScraper.screenshot(tab, "resources/screenshots/issgovernance_dry_run.png")
             return
 
         await super_scraper.click_item_by_xpath(tab=tab, xpath="//form[@id='ccpa-form']//button[@type='submit']", sleep=2)

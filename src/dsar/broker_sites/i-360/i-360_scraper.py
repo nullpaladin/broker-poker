@@ -19,16 +19,19 @@ from src.dsar.super_scraper import SuperScraper
 
 URL = "https://privacyportal.onetrust.com/webform/94afa614-d9cb-419b-99f1-20c87afaca7f/7527122f-48fe-46ad-bd59-6d69a33ac4db"
 
-RIGHTS = [
-    "Know categories of personal data",
-    "Know specific pieces of personal data",
-    "Update/correct personal data",
-    "Object/restrict processing of personal data",
-    "Obtain personal data to transmit to a third-party",
-    "Opt-out of sale or sharing of personal information",
-    "Limit Use / Disclosure of Sensitive Personal Information",
-]
-DELETE_RIGHT = "Erase personal data"
+# "Object/restrict processing" has no exact canonical code -> rides with opt-out.
+RIGHT_MAP = {
+    "access": ["Know categories of personal data", "Know specific pieces of personal data"],
+    "correct": ["Update/correct personal data"],
+    "portability": ["Obtain personal data to transmit to a third-party"],
+    "opt_out_sale_share": [
+        "Opt-out of sale or sharing of personal information",
+        "Object/restrict processing of personal data",
+    ],
+    "limit_sensitive_pi": ["Limit Use / Disclosure of Sensitive Personal Information"],
+    "delete": ["Erase personal data"],
+}
+RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
 
 
 async def submit_request(tab, right, super_scraper):
@@ -91,7 +94,7 @@ async def submit_request(tab, right, super_scraper):
     request_details = await tab.find(id="requestDetailsDSARElement", raise_exc=False)
     if request_details:
         await request_details.type_text(
-            f"I am exercising my '{right}' rights under applicable privacy law."
+            f"I am exercising my '{right}' rights under the {SuperScraper.LAW_FULL_NAME or 'applicable state and federal privacy law'}."
         )
 
     label = "".join(c if c.isalnum() else "_" for c in right.lower())[:40].strip("_")
@@ -102,8 +105,7 @@ async def submit_request(tab, right, super_scraper):
             f"{SuperScraper.FIRST_NAME} {SuperScraper.LAST_NAME} <{SuperScraper.EMAIL}>"
         )
         await asyncio.sleep(1)
-        await tab.take_screenshot(path=f"resources/screenshots/i-360_dry_run_{label}.png")
-        print(f"Screenshot saved to resources/screenshots/i-360_dry_run_{label}.png")
+        await SuperScraper.screenshot(tab, f"resources/screenshots/i-360_dry_run_{label}.png")
         return
 
     print(f"\nForm filled for '{right}'. Solve the reCAPTCHA, click Submit,")
@@ -123,9 +125,11 @@ async def main():
     options.binary_location = super_scraper.CHROMIUM_LOCATION
     options.add_argument("--no-sandbox")
 
-    rights = list(RIGHTS)
-    if SuperScraper.REMOVE_INFORMATION:
-        rights.append(DELETE_RIGHT)
+    codes = SuperScraper.rights_to_exercise(RIGHT_MAP)
+    if not codes:
+        print("No requested privacy rights apply to this form — nothing to do.")
+        return
+    rights = [entry for code in codes for entry in RIGHT_MAP[code]]
 
     async with Chrome(options=options) as browser:
         tab = await browser.start()

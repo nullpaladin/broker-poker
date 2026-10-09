@@ -23,8 +23,12 @@ from src.dsar.super_scraper import SuperScraper
 
 URL = "https://www.thebridgecorp.com/opt-out/"
 
-REQUEST_TYPES = ["Request Information", "Opt Out"]
-DELETE_TYPE = "Delete My Record"
+RIGHT_MAP = {
+    "access": ["Request Information"],
+    "opt_out_sale_share": ["Opt Out"],
+    "delete": ["Delete My Record"],
+}
+RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
 
 
 async def main():
@@ -32,12 +36,13 @@ async def main():
     super_scraper = SuperScraper()
     options.binary_location = super_scraper.CHROMIUM_LOCATION
     options.add_argument("--no-sandbox")
-    options.add_argument("--window-size=1280,2600")
 
     full_name = " ".join(p for p in (SuperScraper.FIRST_NAME, SuperScraper.LAST_NAME) if p)
-    request_types = list(REQUEST_TYPES)
-    if SuperScraper.REMOVE_INFORMATION:
-        request_types.append(DELETE_TYPE)
+    codes = SuperScraper.rights_to_exercise(RIGHT_MAP)
+    if not codes:
+        print("No requested privacy rights apply to this form — nothing to do.")
+        return
+    request_types = [entry for code in codes for entry in RIGHT_MAP[code]]
 
     async with Chrome(options=options) as browser:
         tab = await browser.start()
@@ -46,10 +51,14 @@ async def main():
 
         residency = await tab.find(xpath="//select[contains(@id,'_i_am_a')]", raise_exc=False)
         if residency:
-            await residency.execute_script(
-                "this.value='California Resident';"
-                "this.dispatchEvent(new Event('change',{bubbles:true}));"
-            )
+            # CCPA-oriented "I am a" select on this shared HubSpot template.
+            # "California Resident" is selected for any privacy-law state (whose
+            # law grants CCPA-equivalent rights); a no-law state keeps the default.
+            if SuperScraper.state_has_privacy_law(SuperScraper.STATE):
+                await residency.execute_script(
+                    "this.value='California Resident';"
+                    "this.dispatchEvent(new Event('change',{bubbles:true}));"
+                )
         else:
             print(f"{super_scraper.OOPS} 'State of Residency' select not found")
 
@@ -84,8 +93,7 @@ async def main():
             await name_field.type_text(full_name)
 
         await asyncio.sleep(1)
-        await tab.take_screenshot(path="resources/screenshots/thebridgecorp_dry_run.png", beyond_viewport=True)
-        print("Screenshot saved to resources/screenshots/thebridgecorp_dry_run.png")
+        await SuperScraper.screenshot(tab, "resources/screenshots/thebridgecorp_dry_run.png", beyond_viewport=True)
         print(f"{request_types} filled but NOT submitted — solve the reCAPTCHA manually, then Submit.")
 
 

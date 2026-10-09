@@ -14,11 +14,12 @@ from pydoll.browser.options import ChromiumOptions
 from src.dsar.super_scraper import SuperScraper
 
 # (URL, screenshot label)
-REQUESTS = [
-    ("https://www.ididata.com/personal-information-request/",    "access"),
-    ("https://www.ididata.com/do-not-sell-my-personal-information/", "optout"),
-]
-DELETE_REQUEST = ("https://www.ididata.com/deletion-request/", "delete")
+RIGHT_MAP = {
+    "access": [("https://www.ididata.com/personal-information-request/", "access")],
+    "opt_out_sale_share": [("https://www.ididata.com/do-not-sell-my-personal-information/", "optout")],
+    "delete": [("https://www.ididata.com/deletion-request/", "delete")],
+}
+RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
 
 
 def _parse_dob():
@@ -112,7 +113,7 @@ async def submit_request(tab, url, label, super_scraper, dob_day, dob_month, dob
         submit_btn = await tab.find(tag_name="button", text="Submit Request", raise_exc=False)
         if submit_btn:
             await submit_btn.scroll_into_view()
-        await tab.take_screenshot(f"resources/screenshots/ididata_dry_run_{label}.png")
+        await SuperScraper.screenshot(tab, f"resources/screenshots/ididata_dry_run_{label}.png")
         print(
             f"DRY RUN: would submit '{label}' for "
             f"{SuperScraper.FIRST_NAME} {SuperScraper.LAST_NAME} <{SuperScraper.EMAIL}>"
@@ -130,7 +131,6 @@ async def main():
     super_scraper = SuperScraper()
     options.binary_location = super_scraper.CHROMIUM_LOCATION
     options.add_argument("--no-sandbox")
-    options.add_argument("--window-size=1280,4000")
 
     if not SuperScraper.LAST_FOUR_SSN:
         print("LAST_FOUR_SSN is required for ididata.com — set it in .env and retry.")
@@ -138,9 +138,11 @@ async def main():
 
     dob_day, dob_month, dob_year = _parse_dob()
 
-    requests = list(REQUESTS)
-    if SuperScraper.REMOVE_INFORMATION:
-        requests.append(DELETE_REQUEST)
+    codes = SuperScraper.rights_to_exercise(RIGHT_MAP)
+    if not codes:
+        print("No requested privacy rights apply to this form — nothing to do.")
+        return
+    requests = [entry for code in codes for entry in RIGHT_MAP[code]]
 
     async with Chrome(options=options) as browser:
         tab = await browser.start()

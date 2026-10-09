@@ -109,7 +109,7 @@ async def submit_form(tab, url, request_types, label, super_scraper):
         if submit_btn:
             await submit_btn.scroll_into_view()
         await asyncio.sleep(2)
-        await tab.take_screenshot(f"resources/screenshots/eltoro_dry_run_{label}.png")
+        await SuperScraper.screenshot(tab, f"resources/screenshots/eltoro_dry_run_{label}.png")
         print(f"Screenshot: resources/screenshots/eltoro_dry_run_{label}.png")
         return
 
@@ -134,13 +134,12 @@ async def main():
     super_scraper = SuperScraper()
     options.binary_location = super_scraper.CHROMIUM_LOCATION
     options.add_argument("--no-sandbox")
-    options.add_argument("--window-size=1280,3000")
 
     async with Chrome(options=options) as browser:
         tab = await browser.start()
         await submit_form(tab, ACCESS_URL, ACCESS_REQUESTS, "access", super_scraper)
         await submit_form(tab, OPTOUT_URL, OPTOUT_REQUESTS, "optout", super_scraper)
-        if SuperScraper.REMOVE_INFORMATION:
+        if SuperScraper.wants("delete"):
             await submit_form(tab, DELETE_URL, DELETE_REQUESTS, "delete", super_scraper)
 
 

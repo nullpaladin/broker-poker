@@ -26,11 +26,12 @@ from src.dsar.super_scraper import SuperScraper
 
 URL = "https://40ros1.share-na2.hsforms.com/2vQIxZUeERGOPFcRto1AFgw"
 
-CHOICES = [
-    "Request A Copy of My Personal Information",
-    "Do Not Sell or Share My Information",
-]
-DELETE_CHOICE = "Delete My Personal Information"
+RIGHT_MAP = {
+    "access": ["Request A Copy of My Personal Information"],
+    "opt_out_sale_share": ["Do Not Sell or Share My Information"],
+    "delete": ["Delete My Personal Information"],
+}
+RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
 
 
 async def _type_by_name(tab, super_scraper, name, value):
@@ -64,12 +65,13 @@ async def main():
     super_scraper = SuperScraper()
     options.binary_location = super_scraper.CHROMIUM_LOCATION
     options.add_argument("--no-sandbox")
-    options.add_argument("--window-size=1280,3000")
 
-    state_abbr = await SuperScraper.state_full_name_to_abbreviated(SuperScraper.STATE)
-    choices = list(CHOICES)
-    if SuperScraper.REMOVE_INFORMATION:
-        choices.append(DELETE_CHOICE)
+    state_abbr = SuperScraper.STATE_ABBREVIATED
+    codes = SuperScraper.rights_to_exercise(RIGHT_MAP)
+    if not codes:
+        print("No requested privacy rights apply to this form — nothing to do.")
+        return
+    choices = [entry for code in codes for entry in RIGHT_MAP[code]]
 
     async with Chrome(options=options) as browser:
         tab = await browser.start()
@@ -139,8 +141,7 @@ async def main():
             await _click_label(tab, super_scraper, choice)
 
         await asyncio.sleep(1)
-        await tab.take_screenshot(path="resources/screenshots/seekout_dry_run.png", beyond_viewport=True)
-        print("Screenshot saved to resources/screenshots/seekout_dry_run.png")
+        await SuperScraper.screenshot(tab, "resources/screenshots/seekout_dry_run.png", beyond_viewport=True)
         print(f"{choices} filled but NOT submitted — solve the reCAPTCHA manually, then Submit.")
 
 

@@ -64,7 +64,6 @@ async def main():
     super_scraper = SuperScraper()
     options.binary_location = super_scraper.CHROMIUM_LOCATION
     options.add_argument("--no-sandbox")
-    options.add_argument("--window-size=1280,3000")
 
     async with Chrome(options=options) as browser:
         tab = await browser.start()
@@ -126,12 +125,11 @@ async def main():
             "Tell us more about your inquiry",
         )
         await _click_via_js(tab, super_scraper, "edit-select-download", "Download checkbox")
-        if SuperScraper.REMOVE_INFORMATION:
+        if SuperScraper.wants("delete"):
             await _click_via_js(tab, super_scraper, "edit-select-deletion", "Deletion checkbox")
 
         await asyncio.sleep(1)
-        await tab.take_screenshot(path="resources/screenshots/verizon_dry_run.png")
-        print("Screenshot saved to resources/screenshots/verizon_dry_run.png")
+        await SuperScraper.screenshot(tab, "resources/screenshots/verizon_dry_run.png")
         print(
             "\nRequest filled but NOT submitted — a distorted-text image CAPTCHA requires "
             "manual entry before submitting."

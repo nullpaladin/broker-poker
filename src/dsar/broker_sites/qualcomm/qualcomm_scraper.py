@@ -18,15 +18,15 @@ from src.dsar.super_scraper import SuperScraper
 
 URL = "https://privacyportal.onetrust.com/webform/b0a5f2cc-0b29-4907-89bf-3f6b380a03c8/7ab89abb-0d42-492a-a324-0570883e2c11"
 
-ALWAYS_REQUESTS = [
-    ("Access",                      "access"),
-    ("Data Portability",            "portability"),
-    ("Opt out",                     "optout"),
-    ("Object to Processing",        "object"),
-    ("Update Data",                 "correct"),
-    ("Review Automated Decision",   "autodecision"),
-]
-DELETE_REQUEST = ("Data Deletion", "delete")
+RIGHT_MAP = {
+    "access": [("Access", "access")],
+    "portability": [("Data Portability", "portability")],
+    "correct": [("Update Data", "correct")],
+    "opt_out_profiling": [("Review Automated Decision", "autodecision")],
+    "opt_out_sale_share": [("Opt out", "optout"), ("Object to Processing", "object")],
+    "delete": [("Data Deletion", "delete")],
+}
+RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
 
 
 async def _autocomplete(tab, field_id, text):
@@ -101,8 +101,7 @@ async def _submit_request(tab, req_aria, label, super_scraper):
         if submit_btn:
             await submit_btn.scroll_into_view()
         await asyncio.sleep(1)
-        await tab.take_screenshot(f"resources/screenshots/qualcomm_dry_run_{label}.png")
-        print(f"Screenshot saved to resources/screenshots/qualcomm_dry_run_{label}.png")
+        await SuperScraper.screenshot(tab, f"resources/screenshots/qualcomm_dry_run_{label}.png")
         return
 
     print(
@@ -124,11 +123,12 @@ async def main():
     super_scraper = SuperScraper()
     options.binary_location = super_scraper.CHROMIUM_LOCATION
     options.add_argument("--no-sandbox")
-    options.add_argument("--window-size=1280,3000")
 
-    requests = list(ALWAYS_REQUESTS)
-    if SuperScraper.REMOVE_INFORMATION:
-        requests.append(DELETE_REQUEST)
+    codes = SuperScraper.rights_to_exercise(RIGHT_MAP)
+    if not codes:
+        print("No requested privacy rights apply to this form — nothing to do.")
+        return
+    requests = [entry for code in codes for entry in RIGHT_MAP[code]]
 
     async with Chrome(options=options) as browser:
         tab = await browser.start()

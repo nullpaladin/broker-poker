@@ -41,16 +41,18 @@ from pydoll.browser.options import ChromiumOptions
 
 URL = "https://catalist.us/your-privacy-choices/"
 
-DELETE_RIGHT = "delete and opt out"
+NOT_AUTOMATABLE = True
+NOT_AUTOMATABLE_REASON = (
+    "submission requires an emailed 8-digit verification code (OTP)"
+)
 
-
-async def _select_by_value(select_element, value):
-    await select_element.execute_script(
-        "for (var i=0;i<this.options.length;i++){"
-        f"  if(this.options[i].value==={value!r}){{ this.selectedIndex=i; }}"
-        "}"
-        "this.dispatchEvent(new Event('change', {bubbles:true}));"
-    )
+# This form's only request for a non-enumerated-state resident bundles deletion
+# WITH opt-out — there is no separate access/opt-out-only option.
+RIGHT_MAP = {
+    "delete": ["delete and opt out"],
+    "opt_out_sale_share": ["delete and opt out"],
+}
+RIGHTS_SUPPORTED = ("delete", "opt_out_sale_share")
 
 
 def _to_mm_dd_yyyy(dd_mm_yyyy):
@@ -66,14 +68,14 @@ async def submit_request(tab, right, super_scraper):
     if not residency_select:
         print(f"{super_scraper.OOPS} residency-state dropdown not found")
         return
-    await _select_by_value(residency_select, "Any other state")
+    await SuperScraper.select_native_option(residency_select, value="Any other state")
     await asyncio.sleep(1.5)
 
     request_type_select = await tab.find(id="input_8_105", raise_exc=False)
     if not request_type_select:
         print(f"{super_scraper.OOPS} 'I would like to' dropdown not found")
         return
-    await _select_by_value(request_type_select, right)
+    await SuperScraper.select_native_option(request_type_select, value=right)
     await asyncio.sleep(0.5)
 
     declare_checkbox = await tab.find(id="choice_8_145_1", raise_exc=False)
@@ -100,8 +102,8 @@ async def submit_request(tab, right, super_scraper):
 
     state_select = await tab.find(id="input_8_119", raise_exc=False)
     if state_select:
-        state_abbr = await SuperScraper.state_full_name_to_abbreviated(SuperScraper.STATE)
-        await _select_by_value(state_select, state_abbr)
+        state_abbr = SuperScraper.STATE_ABBREVIATED
+        await SuperScraper.select_native_option(state_select, value=state_abbr)
 
     if SuperScraper.DATE_OF_BIRTH:
         birthdate_field = await tab.find(id="input_8_77", raise_exc=False)
@@ -111,8 +113,7 @@ async def submit_request(tab, right, super_scraper):
     label = right.replace(" ", "_")
 
     await asyncio.sleep(1)
-    await tab.take_screenshot(path=f"resources/screenshots/catalist_dry_run_{label}.png")
-    print(f"Screenshot saved to resources/screenshots/catalist_dry_run_{label}.png")
+    await SuperScraper.screenshot(tab, f"resources/screenshots/catalist_dry_run_{label}.png")
     print(
         f"\n'{right}' request filled but NOT sent — click 'Send Verification Code' yourself, "
         "enter the code you receive, and click Submit. This sends a real verification code "
@@ -121,23 +122,24 @@ async def submit_request(tab, right, super_scraper):
 
 
 async def main():
+    if SuperScraper.bail_if_not_automatable(globals()):
+        return
     options = ChromiumOptions()
     super_scraper = SuperScraper()
     options.binary_location = super_scraper.CHROMIUM_LOCATION
     options.add_argument("--no-sandbox")
 
-    if not SuperScraper.REMOVE_INFORMATION:
+    if not SuperScraper.rights_to_exercise(RIGHT_MAP):
         print(
-            "For a non-enumerated-state resident (this scraper always selects 'Any other "
-            "state'), this form's only available request bundles deletion with opt-out — "
-            "there is no separate Access/Opt-Out-only option. REMOVE_INFORMATION is False, "
-            "so there is nothing to submit."
+            "This form's only available request bundles deletion with opt-out. Neither "
+            "'delete' (with REMOVE_INFORMATION) nor 'opt_out_sale_share' is requested, so "
+            "there is nothing to submit."
         )
         return
 
     async with Chrome(options=options) as browser:
         tab = await browser.start()
-        await submit_request(tab, DELETE_RIGHT, super_scraper)
+        await submit_request(tab, "delete and opt out", super_scraper)
 
 
 asyncio.run(main())

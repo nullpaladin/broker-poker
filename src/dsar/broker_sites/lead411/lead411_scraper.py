@@ -22,8 +22,17 @@ from pydoll.browser.options import ChromiumOptions
 
 URL = "https://www.lead411.com/your-privacy-choices/"
 
-REQUEST_TYPES = ["Access My Personal Information", "Opt-out of the Sale of My Personal Information"]
-DELETE_REQUEST_TYPE = "Delete My Personal Information"
+NOT_AUTOMATABLE = True
+NOT_AUTOMATABLE_REASON = (
+    "submission requires an emailed verification code (OTP)"
+)
+
+RIGHT_MAP = {
+    "access": ["Access My Personal Information"],
+    "opt_out_sale_share": ["Opt-out of the Sale of My Personal Information"],
+    "delete": ["Delete My Personal Information"],
+}
+RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
 
 
 async def submit_request(tab, request_type, super_scraper):
@@ -81,8 +90,7 @@ async def submit_request(tab, request_type, super_scraper):
     label = request_type.lower().replace(" ", "_").replace("-", "_")
 
     await asyncio.sleep(1)
-    await tab.take_screenshot(path=f"resources/screenshots/lead411_dry_run_{label}.png")
-    print(f"Screenshot saved to resources/screenshots/lead411_dry_run_{label}.png")
+    await SuperScraper.screenshot(tab, f"resources/screenshots/lead411_dry_run_{label}.png")
     print(
         f"\n'{request_type}' request filled but NOT sent — solve the reCAPTCHA and click "
         "'Get Code' yourself, then enter the verification code you receive. This emails a "
@@ -91,14 +99,18 @@ async def submit_request(tab, request_type, super_scraper):
 
 
 async def main():
+    if SuperScraper.bail_if_not_automatable(globals()):
+        return
     options = ChromiumOptions()
     super_scraper = SuperScraper()
     options.binary_location = super_scraper.CHROMIUM_LOCATION
     options.add_argument("--no-sandbox")
 
-    request_types = list(REQUEST_TYPES)
-    if SuperScraper.REMOVE_INFORMATION:
-        request_types.append(DELETE_REQUEST_TYPE)
+    codes = SuperScraper.rights_to_exercise(RIGHT_MAP)
+    if not codes:
+        print("No requested privacy rights apply to this form — nothing to do.")
+        return
+    request_types = [entry for code in codes for entry in RIGHT_MAP[code]]
 
     async with Chrome(options=options) as browser:
         tab = await browser.start()

@@ -20,20 +20,12 @@ from src.dsar.super_scraper import SuperScraper
 
 URL = "https://sourceitmarketing.com/privacy/"
 
-RIGHTS = [
-    ("Request to know or access what personal information we are collecting", "access"),
-    ("Opt out of sale or sharing of personal information", "opt_out"),
-]
-DELETE_RIGHT = ("Delete personal information", "delete")
-
-
-async def _select_by_text(select_element, text):
-    await select_element.execute_script(
-        "for (var i=0;i<this.options.length;i++){"
-        f"  if(this.options[i].text.trim()==={text!r}){{ this.selectedIndex=i; }}"
-        "}"
-        "this.dispatchEvent(new Event('change', {bubbles:true}));"
-    )
+RIGHT_MAP = {
+    "access": [("Request to know or access what personal information we are collecting", "access")],
+    "opt_out_sale_share": [("Opt out of sale or sharing of personal information", "opt_out")],
+    "delete": [("Delete personal information", "delete")],
+}
+RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
 
 
 async def submit_request(tab, right_label, tag, super_scraper):
@@ -45,7 +37,7 @@ async def submit_request(tab, right_label, tag, super_scraper):
     if not subject:
         print(f"{super_scraper.OOPS} 'Subject' select not found")
         return
-    await _select_by_text(subject, right_label)
+    await SuperScraper.select_native_option(subject, text=right_label)
     await asyncio.sleep(0.4)
 
     form_xp = "//form[.//select[@name='subject']]"
@@ -68,8 +60,7 @@ async def submit_request(tab, right_label, tag, super_scraper):
         )
 
     await asyncio.sleep(1)
-    await tab.take_screenshot(path=f"resources/screenshots/sourceitmarketing_dry_run_{tag}.png", beyond_viewport=True)
-    print(f"Screenshot saved to resources/screenshots/sourceitmarketing_dry_run_{tag}.png")
+    await SuperScraper.screenshot(tab, f"resources/screenshots/sourceitmarketing_dry_run_{tag}.png", beyond_viewport=True)
     print(f"'{right_label}' filled but NOT submitted — solve the hCaptcha manually, then Submit.")
 
 
@@ -78,11 +69,12 @@ async def main():
     super_scraper = SuperScraper()
     options.binary_location = super_scraper.CHROMIUM_LOCATION
     options.add_argument("--no-sandbox")
-    options.add_argument("--window-size=1280,2400")
 
-    rights = list(RIGHTS)
-    if SuperScraper.REMOVE_INFORMATION:
-        rights.append(DELETE_RIGHT)
+    codes = SuperScraper.rights_to_exercise(RIGHT_MAP)
+    if not codes:
+        print("No requested privacy rights apply to this form — nothing to do.")
+        return
+    rights = [entry for code in codes for entry in RIGHT_MAP[code]]
 
     async with Chrome(options=options) as browser:
         tab = await browser.start()

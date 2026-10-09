@@ -30,12 +30,15 @@ URL = (
     "f6adb000-5a85-4ec1-a631-151c15d9d854/cbee3ef7-0c4c-44c0-b897-a08a9c4c1d62"
 )
 
-RIGHTS = [
-    ("Request Access to Personal Information", "access"),
-    ("Request to Opt-Out (Do Not Sell or Share My Personal Information)", "opt_out"),
-    ("Request to Data Portability", "portability"),
-]
-DELETE_RIGHT = ("Request to Delete Personal Information", "delete")
+RIGHT_MAP = {
+    "access": [("Request Access to Personal Information", "access")],
+    "opt_out_sale_share": [
+        ("Request to Opt-Out (Do Not Sell or Share My Personal Information)", "opt_out")
+    ],
+    "portability": [("Request to Data Portability", "portability")],
+    "delete": [("Request to Delete Personal Information", "delete")],
+}
+RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
 
 
 def _dob_mm_dd_yyyy():
@@ -122,10 +125,7 @@ async def submit_request(tab, right_label, tag, super_scraper):
             print(f"{super_scraper.OOPS} field '{field_id}' not found")
 
     await asyncio.sleep(1)
-    await tab.take_screenshot(
-        path=f"resources/screenshots/idstrong_dry_run_{tag}.png", beyond_viewport=True
-    )
-    print(f"Screenshot saved to resources/screenshots/idstrong_dry_run_{tag}.png")
+    await SuperScraper.screenshot(tab, f"resources/screenshots/idstrong_dry_run_{tag}.png", beyond_viewport=True)
     print(f"'{right_label}' filled but NOT submitted — solve the reCAPTCHA manually, then Submit.")
 
 
@@ -134,11 +134,12 @@ async def main():
     super_scraper = SuperScraper()
     options.binary_location = super_scraper.CHROMIUM_LOCATION
     options.add_argument("--no-sandbox")
-    options.add_argument("--window-size=1280,3000")
 
-    rights = list(RIGHTS)
-    if SuperScraper.REMOVE_INFORMATION:
-        rights.append(DELETE_RIGHT)
+    codes = SuperScraper.rights_to_exercise(RIGHT_MAP)
+    if not codes:
+        print("No requested privacy rights apply to this form — nothing to do.")
+        return
+    rights = [entry for code in codes for entry in RIGHT_MAP[code]]
 
     async with Chrome(options=options) as browser:
         tab = await browser.start()

@@ -6,9 +6,17 @@
 # Questions / Complaints) — multi-select, one combined submission: Access
 # Request + Opt-out + HEM Opt-out unconditionally; Deletion gated on
 # REMOVE_INFORMATION; Update/Questions/Complaints skipped. "regulation" <select>
-# has no Minnesota-applicable option (CCPA list is CA/CO/CT/VA/UT/NV only) —
-# "Other / Generic" used. "message" textarea states the request.
+# has no home-state option for most users (its list is CCPA-era only:
+# CA/CO/CT/VA/UT/NV) so "Other / Generic" is used regardless of state — every
+# state privacy law treats a request framed under CCPA the same way.
 # An invisible reCAPTCHA is present; it resolves without interaction.
+#
+# "HEM Opt-out": HEM = Hashed Email — a hash (e.g. SHA-256) of your email address
+# that ad-tech vendors like Eyeota use as a persistent, cookieless identifier to
+# recognise/target you across sites and devices without storing the raw email.
+# "HEM based targeting" is ad targeting keyed off that hash; this dedicated
+# checkbox (separate from the generic "Opt-out") asks Eyeota to stop using your
+# hashed email for that identity resolution / targeting.
 import asyncio
 import time
 
@@ -19,8 +27,15 @@ from src.dsar.super_scraper import SuperScraper
 
 URL = "https://www.eyeota.com/data-subject-request"
 
-RIGHTS = ["Access Request", "Opt-out", "HEM Opt-out"]
-DELETE_RIGHT = "Deletion"
+# Canonical right code -> this form's "nature_of_request" checkbox value(s).
+# "HEM Opt-out" rides along with any sale/share or targeted-ads opt-out.
+RIGHT_MAP = {
+    "access": ["Access Request"],
+    "opt_out_sale_share": ["Opt-out", "HEM Opt-out"],
+    "opt_out_targeted_ads": ["Opt-out", "HEM Opt-out"],
+    "delete": ["Deletion"],
+}
+RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
 
 
 async def _set_text(tab, xpath, value):
@@ -45,7 +60,6 @@ async def main():
     super_scraper = SuperScraper()
     options.binary_location = super_scraper.CHROMIUM_LOCATION
     options.add_argument("--no-sandbox")
-    options.add_argument("--window-size=1280,2600")
 
     async with Chrome(options=options) as browser:
         tab = await browser.start()
@@ -67,15 +81,17 @@ async def main():
         ]:
             await _set_text(tab, f"//input[@name={name!r}]", value)
 
-        rights = list(RIGHTS)
-        if SuperScraper.REMOVE_INFORMATION:
-            rights.append(DELETE_RIGHT)
-        for value in rights:
+        codes = SuperScraper.rights_to_exercise(RIGHT_MAP)
+        if not codes:
+            print("No requested privacy rights apply to this form — nothing to do.")
+            return
+        checkbox_values = list(dict.fromkeys(v for c in codes for v in RIGHT_MAP[c]))
+        for value in checkbox_values:
             box = await tab.find(
                 xpath=f"//input[@name='nature_of_request' and @value={value!r}]", raise_exc=False
             )
             if box:
-                await box.execute_script("if (!this.checked) this.click();")
+                await SuperScraper.js_check(box)
                 await asyncio.sleep(0.1)
 
         reg = await tab.find(xpath="//select[@name='regulation']", raise_exc=False)
@@ -86,20 +102,23 @@ async def main():
                 "s.call(this,o.value);this.dispatchEvent(new Event('change',{bubbles:true}));}"
             )
 
-        msg = (
-            "I am a Minnesota resident exercising my privacy rights under the Minnesota "
-            "Consumer Data Privacy Act. I request access to the personal information you "
-            "hold about me and to opt out of the sale/sharing of my personal information "
-            "and of targeted advertising (including any hashed-email / HEM based targeting)."
-        )
-        if SuperScraper.REMOVE_INFORMATION:
-            msg += " I also request deletion of all personal information you hold about me."
+        msg = SuperScraper.request_statement(codes, broker="Eyeota")
+        if {"opt_out_sale_share", "opt_out_targeted_ads"} & set(codes):
+            msg += (" This includes any hashed-email / HEM based targeting or identity "
+                    "resolution keyed off a hash of my email address.")
         await _set_text(tab, "//textarea[@name='message']", msg)
 
         time.sleep(0.5)
-        await tab.take_screenshot("resources/screenshots/eyeota_dry_run.png")
-        print("Screenshot saved to resources/screenshots/eyeota_dry_run.png")
 
+        if SuperScraper.HEALTH_CHECK:
+            await SuperScraper.assert_fields_filled(tab, {
+                "First name": "//input[@name='firstname']",
+                "Last name": "//input[@name='lastname']",
+                "Email": "//input[@name='email']",
+                "Message": "//textarea[@name='message']",
+            })
+
+        await SuperScraper.screenshot(tab, "resources/screenshots/eyeota_dry_run.png")
         if SuperScraper.DRY_RUN:
             print(
                 f"DRY RUN: would submit privacy request for "

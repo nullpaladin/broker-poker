@@ -48,11 +48,10 @@ async def main():
     super_scraper = SuperScraper()
     options.binary_location = super_scraper.CHROMIUM_LOCATION
     options.add_argument("--no-sandbox")
-    options.add_argument("--window-size=1280,2600")
 
     request_type = (
         "Remove me from your database"
-        if SuperScraper.REMOVE_INFORMATION
+        if SuperScraper.wants("delete")
         else "Opt Out & Request Information"
     )
 
@@ -87,9 +86,7 @@ async def main():
             "return !!p && getComputedStyle(p).display!=='none';"
         )
         advanced = bool(page2_visible["result"]["result"]["value"])
-        await tab.take_screenshot("resources/screenshots/onpointdatastrategy_dry_run.png")
-        print("Screenshot saved to resources/screenshots/onpointdatastrategy_dry_run.png")
-
+        await SuperScraper.screenshot(tab, "resources/screenshots/onpointdatastrategy_dry_run.png")
         if not advanced:
             print(
                 f"{super_scraper.OOPS} Page 1 filled (request type: '{request_type}') but 'Next' "

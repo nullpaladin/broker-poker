@@ -21,21 +21,12 @@ from pydoll.browser.options import ChromiumOptions
 
 URL = "https://trueblueanalytics.org/dont-sell"
 
-RIGHT_IDS = [
-    "data_categories_request",
-    "do_not_sell",
-    "send_me_a_copy_of_information",
-]
-DELETE_RIGHT_ID = "erase_my_information"
-
-
-async def _select_native_option(select_element, option_value):
-    await select_element.execute_script(
-        "for (var i=0;i<this.options.length;i++){"
-        f"  if(this.options[i].value==={option_value!r}){{ this.selectedIndex=i; }}"
-        "}"
-        "this.dispatchEvent(new Event('change', {bubbles:true}));"
-    )
+RIGHT_MAP = {
+    "access": ["data_categories_request", "send_me_a_copy_of_information"],
+    "opt_out_sale_share": ["do_not_sell"],
+    "delete": ["erase_my_information"],
+}
+RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
 
 
 async def main():
@@ -43,11 +34,12 @@ async def main():
     super_scraper = SuperScraper()
     options.binary_location = super_scraper.CHROMIUM_LOCATION
     options.add_argument("--no-sandbox")
-    options.add_argument("--window-size=1280,3000")
 
-    right_ids = list(RIGHT_IDS)
-    if SuperScraper.REMOVE_INFORMATION:
-        right_ids.append(DELETE_RIGHT_ID)
+    codes = SuperScraper.rights_to_exercise(RIGHT_MAP)
+    if not codes:
+        print("No requested privacy rights apply to this form — nothing to do.")
+        return
+    right_ids = [entry for code in codes for entry in RIGHT_MAP[code]]
 
     async with Chrome(options=options) as browser:
         tab = await browser.start()
@@ -68,13 +60,13 @@ async def main():
 
         requester_type_select = await tab.find(id="requester_type", raise_exc=False)
         if requester_type_select:
-            await _select_native_option(requester_type_select, "other")
+            await SuperScraper.select_native_option(requester_type_select, value="other")
         else:
             print(f"{super_scraper.OOPS} 'I am a' select not found")
 
         country_select = await tab.find(id="country", raise_exc=False)
         if country_select:
-            await _select_native_option(country_select, "US")
+            await SuperScraper.select_native_option(country_select, value="US")
             await asyncio.sleep(1.5)
         else:
             print(f"{super_scraper.OOPS} Country select not found")
@@ -82,7 +74,7 @@ async def main():
         # Only revealed in the DOM after Country is set above.
         state_select = await tab.find(id="state", raise_exc=False)
         if state_select:
-            await _select_native_option(state_select, SuperScraper.STATE)
+            await SuperScraper.select_native_option(state_select, value=SuperScraper.STATE)
             await asyncio.sleep(1.5)
         else:
             print(f"{super_scraper.OOPS} State select not found")
@@ -96,8 +88,7 @@ async def main():
                 print(f"{super_scraper.OOPS} right checkbox '{right_id}' not found")
 
         await asyncio.sleep(1)
-        await tab.take_screenshot(path="resources/screenshots/trueblueanalytics_dry_run.png")
-        print("Screenshot saved to resources/screenshots/trueblueanalytics_dry_run.png")
+        await SuperScraper.screenshot(tab, "resources/screenshots/trueblueanalytics_dry_run.png")
         print(
             "\nRequest filled but NOT submitted — a visible reCAPTCHA v2 checkbox requires "
             "a manual solve before submitting."

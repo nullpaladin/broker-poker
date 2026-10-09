@@ -21,7 +21,6 @@ async def main():
     super_scraper = SuperScraper()
     options.binary_location = super_scraper.CHROMIUM_LOCATION
     options.add_argument("--no-sandbox")
-    options.add_argument("--window-size=1280,3000")
 
     async with Chrome(options=options) as browser:
         tab = await browser.start()
@@ -42,7 +41,7 @@ async def main():
             await access_btn.click_using_js()
         await asyncio.sleep(0.3)
 
-        if SuperScraper.REMOVE_INFORMATION:
+        if SuperScraper.wants("delete"):
             delete_btn = await tab.find(**{"aria-label": "Delete My Data"}, raise_exc=False)
             if delete_btn:
                 await delete_btn.click_using_js()
@@ -128,8 +127,7 @@ async def main():
             if submit_btn:
                 await submit_btn.scroll_into_view()
             await asyncio.sleep(1)
-            await tab.take_screenshot("resources/screenshots/path2response_dry_run.png")
-            print("Screenshot saved to resources/screenshots/path2response_dry_run.png")
+            await SuperScraper.screenshot(tab, "resources/screenshots/path2response_dry_run.png")
             return
 
         print("\nForm filled. Solve the reCAPTCHA in the browser, then click Submit.")

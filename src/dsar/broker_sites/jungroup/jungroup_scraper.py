@@ -40,7 +40,7 @@ async def main():
         await check_checkbox(tab, "Don't Sell/Share")
         await check_checkbox(tab, "View My Data")
         await check_checkbox(tab, "Edit My Data")
-        if SuperScraper.REMOVE_INFORMATION:
+        if SuperScraper.wants("delete"):
             await check_checkbox(tab, "Delete My Data")
 
         await super_scraper.input_text_field(tab=tab, xpath=NAME_XPATH,
@@ -56,8 +56,8 @@ async def main():
         await super_scraper.click_item_by_text(tab=tab, text="Submit", sleep=2)
         await asyncio.sleep(4)
 
-        result = await tab.execute_script("return document.body.innerText")
-        print(result['result']['result']['value'][:500])
+        result = await SuperScraper.page_text(tab)
+        print(result[:500])
         print(f"Submitted privacy request for {SuperScraper.EMAIL}")
 
 

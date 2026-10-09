@@ -839,6 +839,10 @@ frequency session.
 - [x] listkit.io
   - URL: https://app.termly.io/dsar/c4e44408-4a15-4dc3-9604-8cd01dd64998
   - Note: Generic Termly DSAR form. This deployment is the SIMPLER variant with NO Access/Delete/Opt-out "action" radio group (unlike 01advertising.com's Termly form), so it is ONE combined submission with the rights spelled out in the `detail.content` textarea. Fields: "Website" (Termly template default "My Great New Website / App" — not editable), name, email, identity_type radio ("personal"), a react-select combobox for the law (GDPR/CCPA/CPA/CTDPA/UCPA/VCDPA/OTHER — "OTHER" used), and three `__doNotSubmit__.*` attestation checkboxes ticked by clicking their labels. No captcha, but repeated rapid loads of app.termly.io trigger a transient Cloudflare "security verification" wall (documented for atom.com too) — retry spaced out.
+- [x] lizdev.com
+  - Right to Opt-Out URL: https://lizdev.com/opt-out-form/
+  - **CAPTCHA solution required** (Google reCAPTCHA v2)
+  - Note: WPForms form id 109. Opt-out only. Name / email (+ confirm) / phone / "Type of Request" select (Personal). TWO custom WPForms captchas — a Q&A one ("What is 7+4?") and a math one ("6 x 3 =") that changes per load and covers add/subtract/multiply/divide — both solved via `SuperScraper.solve_math_captcha`. A reCAPTCHA v2 checkbox still gates submit. Field ids are form-109 specific.
 - [x] listservicedirect.com
   - Right to Opt-Out URL: https://listservicedirect.com/opt-out/
   - **CAPTCHA solution required**
@@ -1134,7 +1138,7 @@ frequency session.
   - **CAPTCHA solution required**
   - URL: https://my.datasubject.com/169m4FTnIOxju2VXg/28523 (Osano form; public entry point is https://spycloud.com/legal/dsar/, which links here)
   - Note: Osano DSAR portal (linked from spycloud.com/legal/dsar/). Card-based: click request-type card, then fill email/first/last name and a "Requestor Type" select (Individual). Standard HTML inputs. One submission per right (separate page nav each time). Exercises Summarize/Access, Do Not Sell, Correct, Opt-Out of Advertising, Opt-Out of Profiling unconditionally; Delete gated on REMOVE_INFORMATION. Cloudflare Turnstile requires manual solve.
-- [x] spydailer.com
+- [x] spydialer.com
   - URL: https://www.spydialer.com/Consumers/wizards.aspx
   - Rights: Delete only (removal tool — no separate Access/Opt-Out form)
   - Wizard: navigate directly to wizards.aspx; select state (MN abbreviation via JS); reCAPTCHA v2 manual; CONTINUE → records list → Delete All → confirm

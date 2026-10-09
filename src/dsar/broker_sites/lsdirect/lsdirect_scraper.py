@@ -19,21 +19,11 @@ from src.dsar.super_scraper import SuperScraper
 URL = "https://lsdirect.com/my-personal-information/"
 
 
-async def _select_by_text(select_element, text):
-    await select_element.execute_script(
-        "for (var i=0;i<this.options.length;i++){"
-        f"  if(this.options[i].text.trim()==={text!r}){{ this.selectedIndex=i; }}"
-        "}"
-        "this.dispatchEvent(new Event('change', {bubbles:true}));"
-    )
-
-
 async def main():
     options = ChromiumOptions()
     super_scraper = SuperScraper()
     options.binary_location = super_scraper.CHROMIUM_LOCATION
     options.add_argument("--no-sandbox")
-    options.add_argument("--window-size=1280,2400")
 
     async with Chrome(options=options) as browser:
         tab = await browser.start()
@@ -69,12 +59,10 @@ async def main():
 
         state = await tab.find(id="form-field-f184b1", raise_exc=False)
         if state:
-            await _select_by_text(state, SuperScraper.STATE)
+            await SuperScraper.select_native_option(state, text=SuperScraper.STATE)
 
         await asyncio.sleep(1)
-        await tab.take_screenshot(path="resources/screenshots/lsdirect_dry_run.png", beyond_viewport=True)
-        print("Screenshot saved to resources/screenshots/lsdirect_dry_run.png")
-
+        await SuperScraper.screenshot(tab, "resources/screenshots/lsdirect_dry_run.png", beyond_viewport=True)
         if SuperScraper.DRY_RUN:
             print(f"DRY RUN: would submit opt-out + access for {SuperScraper.EMAIL}")
             return

@@ -27,13 +27,14 @@ from pydoll.browser.options import ChromiumOptions
 OPT_OUT_URL = "https://privacy.deepsync.com"
 ACCESS_URL = "https://privacy.deepsync.com/request/data"
 
-REQUEST_TYPE_CHECKBOXES = [
-    "request_type_1",  # Do not sell or share my personal information
-    "request_type_2",  # Do not use my personal information for targeted/cross-contextual advertising
-    "request_type_3",  # Do not use my personal information for profiling/automated decision-making
-    "request_type_4",  # Limit the use of my sensitive personal information
-]
-DELETE_CHECKBOX = "request_type_5"  # Please delete my personal information
+RIGHT_MAP = {
+    "opt_out_sale_share": ["request_type_1"],
+    "opt_out_targeted_ads": ["request_type_2"],
+    "opt_out_profiling": ["request_type_3"],
+    "limit_sensitive_pi": ["request_type_4"],
+    "delete": ["request_type_5"],
+}
+RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
 
 INFORMATION_TYPE_CHECKBOXES = [
     "information_type_1",
@@ -43,15 +44,6 @@ INFORMATION_TYPE_CHECKBOXES = [
     "information_type_5",
     "information_type_6",
 ]
-
-
-async def _select_native_option(select_element, option_value):
-    await select_element.execute_script(
-        "for (var i=0;i<this.options.length;i++){"
-        f"  if(this.options[i].value==={option_value!r}){{ this.selectedIndex=i; }}"
-        "}"
-        "this.dispatchEvent(new Event('change', {bubbles:true}));"
-    )
 
 
 async def _fill_who_fields(tab, super_scraper, state_abbreviation):
@@ -76,7 +68,7 @@ async def _fill_who_fields(tab, super_scraper, state_abbreviation):
 
     state_select = await tab.find(id="who_state_ctx1", raise_exc=False)
     if state_select:
-        await _select_native_option(state_select, state_abbreviation)
+        await SuperScraper.select_native_option(state_select, value=state_abbreviation)
     else:
         print(f"{super_scraper.OOPS} State select not found")
 
@@ -93,9 +85,11 @@ async def submit_opt_out_delete(tab, super_scraper, state_abbreviation):
 
     await _fill_who_fields(tab, super_scraper, state_abbreviation)
 
-    checkbox_ids = list(REQUEST_TYPE_CHECKBOXES)
-    if SuperScraper.REMOVE_INFORMATION:
-        checkbox_ids.append(DELETE_CHECKBOX)
+    codes = SuperScraper.rights_to_exercise(RIGHT_MAP)
+    if not codes:
+        print("No requested privacy rights apply to this form — nothing to do.")
+        return
+    checkbox_ids = [entry for code in codes for entry in RIGHT_MAP[code]]
     for checkbox_id in checkbox_ids:
         checkbox = await tab.find(id=checkbox_id, raise_exc=False)
         if checkbox:
@@ -105,8 +99,7 @@ async def submit_opt_out_delete(tab, super_scraper, state_abbreviation):
             print(f"{super_scraper.OOPS} checkbox '{checkbox_id}' not found")
 
     await asyncio.sleep(1)
-    await tab.take_screenshot(path="resources/screenshots/deepsync_dry_run_opt_out.png")
-    print("Screenshot saved to resources/screenshots/deepsync_dry_run_opt_out.png")
+    await SuperScraper.screenshot(tab, "resources/screenshots/deepsync_dry_run_opt_out.png")
     print(
         "\nOpt-out/delete request filled but NOT submitted — a Cloudflare Turnstile checkbox "
         "requires a manual solve before submitting."
@@ -123,7 +116,7 @@ async def submit_access(tab, super_scraper, state_abbreviation):
     for select_id, value in (("dob_month", month), ("dob_day", day), ("dob_year", year)):
         select_element = await tab.find(id=select_id, raise_exc=False)
         if select_element:
-            await _select_native_option(select_element, value)
+            await SuperScraper.select_native_option(select_element, value=value)
             await asyncio.sleep(0.2)
         else:
             print(f"{super_scraper.OOPS} '{select_id}' select not found")
@@ -137,8 +130,7 @@ async def submit_access(tab, super_scraper, state_abbreviation):
             print(f"{super_scraper.OOPS} checkbox '{checkbox_id}' not found")
 
     await asyncio.sleep(1)
-    await tab.take_screenshot(path="resources/screenshots/deepsync_dry_run_access.png")
-    print("Screenshot saved to resources/screenshots/deepsync_dry_run_access.png")
+    await SuperScraper.screenshot(tab, "resources/screenshots/deepsync_dry_run_access.png")
     print(
         "\nAccess request filled but NOT submitted — a Cloudflare Turnstile checkbox requires a "
         "manual solve before submitting."
@@ -150,9 +142,8 @@ async def main():
     super_scraper = SuperScraper()
     options.binary_location = super_scraper.CHROMIUM_LOCATION
     options.add_argument("--no-sandbox")
-    options.add_argument("--window-size=1280,3000")
 
-    state_abbreviation = await SuperScraper.state_full_name_to_abbreviated(SuperScraper.STATE)
+    state_abbreviation = SuperScraper.STATE_ABBREVIATED
 
     async with Chrome(options=options) as browser:
         tab = await browser.start()

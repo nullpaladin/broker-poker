@@ -35,11 +35,12 @@ SUPPORTED_STATE_ABBREVIATIONS = {
     "CA", "CO", "CT", "UT", "VA", "OR", "TX", "MT", "DE", "IA", "NE", "NH", "NJ", "MD", "MN", "TN",
 }
 
-REQUEST_TYPES = [
-    "Request a copy of the personal information that Applecart has about me",
-    "Opt out of the sale of my personal information",
-]
-DELETE_REQUEST_TYPE = "Delete my personal information"
+RIGHT_MAP = {
+    "access": ["Request a copy of the personal information that Applecart has about me"],
+    "opt_out_sale_share": ["Opt out of the sale of my personal information"],
+    "delete": ["Delete my personal information"],
+}
+RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
 
 
 async def submit_request(tab, request_type, state_abbr, super_scraper):
@@ -85,8 +86,7 @@ async def submit_request(tab, request_type, state_abbr, super_scraper):
     if SuperScraper.DRY_RUN:
         print(f"DRY RUN: would submit '{request_type}' request for {SuperScraper.FIRST_NAME} {SuperScraper.LAST_NAME}")
         await asyncio.sleep(1)
-        await tab.take_screenshot(path=f"resources/screenshots/applecart_dry_run_{label}.png")
-        print(f"Screenshot saved to resources/screenshots/applecart_dry_run_{label}.png")
+        await SuperScraper.screenshot(tab, f"resources/screenshots/applecart_dry_run_{label}.png")
         return
 
     submit_btn = await iframe.find(xpath="//input[@type='submit']", raise_exc=False)
@@ -104,7 +104,7 @@ async def main():
     options.binary_location = super_scraper.CHROMIUM_LOCATION
     options.add_argument("--no-sandbox")
 
-    state_abbr = await SuperScraper.state_full_name_to_abbreviated(SuperScraper.STATE)
+    state_abbr = SuperScraper.STATE_ABBREVIATED
     if state_abbr not in SUPPORTED_STATE_ABBREVIATIONS:
         print(
             f"{SuperScraper.OOPS} applecart.co only accepts requests from "
@@ -113,9 +113,11 @@ async def main():
         )
         return
 
-    request_types = list(REQUEST_TYPES)
-    if SuperScraper.REMOVE_INFORMATION:
-        request_types.append(DELETE_REQUEST_TYPE)
+    codes = SuperScraper.rights_to_exercise(RIGHT_MAP)
+    if not codes:
+        print("No requested privacy rights apply to this form — nothing to do.")
+        return
+    request_types = [entry for code in codes for entry in RIGHT_MAP[code]]
 
     async with Chrome(options=options) as browser:
         tab = await browser.start()

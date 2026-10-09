@@ -71,8 +71,7 @@ async def main():
                 "are collected for non-covered-state residents)"
             )
             await asyncio.sleep(1)
-            await tab.take_screenshot(path="resources/screenshots/civisanalytics_dry_run.png")
-            print("Screenshot saved to resources/screenshots/civisanalytics_dry_run.png")
+            await SuperScraper.screenshot(tab, "resources/screenshots/civisanalytics_dry_run.png")
             return
 
         await super_scraper.click_item_by_text(tab=tab, text="Submit", sleep=2)

@@ -18,13 +18,19 @@ from pydoll.browser.options import ChromiumOptions
 
 URL = "https://snov.io/do-not-sell-my-personal-information"
 
+NOT_AUTOMATABLE = True
+NOT_AUTOMATABLE_REASON = (
+    "submission requires an email OTP code after the CAPTCHA"
+)
+
 
 async def main():
+    if SuperScraper.bail_if_not_automatable(globals()):
+        return
     options = ChromiumOptions()
     super_scraper = SuperScraper()
     options.binary_location = super_scraper.CHROMIUM_LOCATION
     options.add_argument("--no-sandbox")
-    options.add_argument("--window-size=1280,3000")
 
     async with Chrome(options=options) as browser:
         tab = await browser.start()
@@ -55,8 +61,7 @@ async def main():
             print(f"{super_scraper.OOPS} 'Do not sell my personal information' checkbox not found")
 
         await asyncio.sleep(1)
-        await tab.take_screenshot(path="resources/screenshots/snov_dry_run.png")
-        print("Screenshot saved to resources/screenshots/snov_dry_run.png")
+        await SuperScraper.screenshot(tab, "resources/screenshots/snov_dry_run.png")
         print(
             "\nOpt-out request filled but NOT submitted — a reCAPTCHA v2 checkbox requires a "
             "manual solve before submitting, and a follow-up email OTP code (not readable by "

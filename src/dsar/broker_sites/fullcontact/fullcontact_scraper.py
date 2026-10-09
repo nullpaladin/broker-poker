@@ -16,8 +16,17 @@ from pydoll.browser.options import ChromiumOptions
 
 URL = "https://platform.fullcontact.com/your-privacy-choices"
 
-CARDS = ["Access My Data", "Do Not Sell or Share My Data"]
-DELETE_CARD = "Delete My Data"
+NOT_AUTOMATABLE = True
+NOT_AUTOMATABLE_REASON = (
+    "identity verification sends a real email OTP that must be entered to continue"
+)
+
+RIGHT_MAP = {
+    "access": ["Access My Data"],
+    "opt_out_sale_share": ["Do Not Sell or Share My Data"],
+    "delete": ["Delete My Data"],
+}
+RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
 
 
 async def submit_request(tab, card_text, super_scraper):
@@ -52,8 +61,7 @@ async def submit_request(tab, card_text, super_scraper):
     label = "".join(c if c.isalnum() else "_" for c in card_text.lower())[:40].strip("_")
 
     await asyncio.sleep(1)
-    await tab.take_screenshot(path=f"resources/screenshots/fullcontact_dry_run_{label}.png")
-    print(f"Screenshot saved to resources/screenshots/fullcontact_dry_run_{label}.png")
+    await SuperScraper.screenshot(tab, f"resources/screenshots/fullcontact_dry_run_{label}.png")
     print(
         f"\n'{card_text}' email entered but NOT sent — click 'Send Me A Code' yourself, "
         "enter the code you receive, and continue. This sends a real verification code "
@@ -62,14 +70,18 @@ async def submit_request(tab, card_text, super_scraper):
 
 
 async def main():
+    if SuperScraper.bail_if_not_automatable(globals()):
+        return
     options = ChromiumOptions()
     super_scraper = SuperScraper()
     options.binary_location = super_scraper.CHROMIUM_LOCATION
     options.add_argument("--no-sandbox")
 
-    cards = list(CARDS)
-    if SuperScraper.REMOVE_INFORMATION:
-        cards.append(DELETE_CARD)
+    codes = SuperScraper.rights_to_exercise(RIGHT_MAP)
+    if not codes:
+        print("No requested privacy rights apply to this form — nothing to do.")
+        return
+    cards = [entry for code in codes for entry in RIGHT_MAP[code]]
 
     async with Chrome(options=options) as browser:
         tab = await browser.start()

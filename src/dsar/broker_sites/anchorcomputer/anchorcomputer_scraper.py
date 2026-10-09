@@ -16,7 +16,7 @@ URL = "https://ecom2.anchorcomputer.com/privacyrequest"
 
 FIRST_NAME_XPATH = "//input[@id='FirstName']"
 LAST_NAME_XPATH = "//input[@id='LastName']"
-ADDRESS1_XPATH = "//input[@id='Address1']"
+ADDRESS_ONE_XPATH = "//input[@id='Address1']"
 CITY_XPATH = "//input[@id='City']"
 ZIP_XPATH = "//input[@id='Zip']"
 SSN_XPATH = "//input[@id='SsnLastFour']"
@@ -31,7 +31,7 @@ async def main():
     options.binary_location = super_scraper.CHROMIUM_LOCATION
     options.add_argument("--no-sandbox")
 
-    state_abbrev = await SuperScraper.state_full_name_to_abbreviated(SuperScraper.STATE)
+    state_abbrev = SuperScraper.STATE_ABBREVIATED
 
     async with Chrome(options=options) as browser:
         tab = await browser.start()
@@ -40,7 +40,7 @@ async def main():
 
         await super_scraper.input_text_field(tab=tab, xpath=FIRST_NAME_XPATH, text=SuperScraper.FIRST_NAME)
         await super_scraper.input_text_field(tab=tab, xpath=LAST_NAME_XPATH, text=SuperScraper.LAST_NAME)
-        await super_scraper.input_text_field(tab=tab, xpath=ADDRESS1_XPATH, text=SuperScraper.ADDRESS)
+        await super_scraper.input_text_field(tab=tab, xpath=ADDRESS_ONE_XPATH, text=SuperScraper.ADDRESS)
         await super_scraper.input_text_field(tab=tab, xpath=CITY_XPATH, text=SuperScraper.CITY)
 
         await tab.execute_script(
@@ -69,14 +69,13 @@ async def main():
 
         await super_scraper.click_item_by_xpath(tab=tab, xpath="//input[@id='RequestReport']", sleep=0.3)
         await super_scraper.click_item_by_xpath(tab=tab, xpath="//input[@id='RequestDoNotSell']", sleep=0.3)
-        if SuperScraper.REMOVE_INFORMATION:
+        if SuperScraper.wants("delete"):
             await super_scraper.click_item_by_xpath(tab=tab, xpath="//input[@id='RequestDelete']", sleep=0.3)
 
         if SuperScraper.DRY_RUN:
             print(f"DRY RUN: would submit removal request for {SuperScraper.FIRST_NAME} {SuperScraper.LAST_NAME}")
             await asyncio.sleep(2)
-            await tab.take_screenshot(path="resources/screenshots/anchorcomputer_dry_run.png")
-            print("Screenshot saved to resources/screenshots/anchorcomputer_dry_run.png")
+            await SuperScraper.screenshot(tab, "resources/screenshots/anchorcomputer_dry_run.png")
             return
 
         await super_scraper.click_item_by_xpath(tab=tab, xpath=SUBMIT_XPATH)

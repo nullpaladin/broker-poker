@@ -24,6 +24,10 @@ URL = "https://privacy.firstorion.com/"
 REQUEST_TYPES = ["data"]
 OPT_OUT_DELETE_TYPE = "opt-out"
 
+# "opt-out" is a bundled opt-out + delete request on this form.
+RIGHT_MAP = {"access": ["data"], "opt_out_sale_share": ["opt-out"], "delete": ["opt-out"]}
+RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
+
 
 async def submit_request(tab, request_type, super_scraper):
     await tab.go_to(URL)
@@ -60,8 +64,7 @@ async def submit_request(tab, request_type, super_scraper):
     label = request_type.replace("-", "_")
 
     await asyncio.sleep(1)
-    await tab.take_screenshot(path=f"resources/screenshots/firstorion_dry_run_{label}.png")
-    print(f"Screenshot saved to resources/screenshots/firstorion_dry_run_{label}.png")
+    await SuperScraper.screenshot(tab, f"resources/screenshots/firstorion_dry_run_{label}.png")
     print(
         f"\n'{request_type}' request filled but NOT sent — click 'Send Confirmation' yourself, "
         "complete the phone/email verification, and confirm the request. This sends a real "
@@ -75,9 +78,11 @@ async def main():
     options.binary_location = super_scraper.CHROMIUM_LOCATION
     options.add_argument("--no-sandbox")
 
-    request_types = list(REQUEST_TYPES)
-    if SuperScraper.REMOVE_INFORMATION:
-        request_types.append(OPT_OUT_DELETE_TYPE)
+    codes = SuperScraper.rights_to_exercise(RIGHT_MAP)
+    if not codes:
+        print("No requested privacy rights apply to this form — nothing to do.")
+        return
+    request_types = list(dict.fromkeys(rt for c in codes for rt in RIGHT_MAP[c]))
 
     async with Chrome(options=options) as browser:
         tab = await browser.start()

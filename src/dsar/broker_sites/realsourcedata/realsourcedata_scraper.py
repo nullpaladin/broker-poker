@@ -35,7 +35,6 @@ async def main():
     super_scraper = SuperScraper()
     options.binary_location = super_scraper.CHROMIUM_LOCATION
     options.add_argument("--no-sandbox")
-    options.add_argument("--window-size=1280,3000")
 
     async with Chrome(options=options) as browser:
         tab = await browser.start()
@@ -58,8 +57,7 @@ async def main():
             await asyncio.sleep(0.2)
 
         await asyncio.sleep(1)
-        await tab.take_screenshot(path="resources/screenshots/realsourcedata_dry_run.png")
-        print("Screenshot saved to resources/screenshots/realsourcedata_dry_run.png")
+        await SuperScraper.screenshot(tab, "resources/screenshots/realsourcedata_dry_run.png")
         print(
             "\nOpt-out request filled but NOT submitted — a reCAPTCHA v2 checkbox requires a "
             "manual solve before submitting."

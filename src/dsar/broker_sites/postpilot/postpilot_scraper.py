@@ -30,8 +30,14 @@ from src.dsar.super_scraper import SuperScraper
 
 URL = "https://forms.clickup.com/14183078/f/dgun6-8690/XIZIQMFCDPWFOG8PKO"
 
-RIGHT_CHECKBOXES = ["cu3-checkbox-1-input", "cu3-checkbox-2-input", "cu3-checkbox-5-input"]
-DELETE_CHECKBOX = "cu3-checkbox-4-input"
+# Opaque checkbox ids — verify labels against the live form.
+RIGHT_MAP = {
+    "access": ["cu3-checkbox-1-input"],
+    "opt_out_sale_share": ["cu3-checkbox-2-input"],
+    "correct": ["cu3-checkbox-5-input"],
+    "delete": ["cu3-checkbox-4-input"],
+}
+RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
 
 
 async def main():
@@ -39,12 +45,13 @@ async def main():
     super_scraper = SuperScraper()
     options.binary_location = super_scraper.CHROMIUM_LOCATION
     options.add_argument("--no-sandbox")
-    options.add_argument("--window-size=1280,3200")
 
     full_name = " ".join(p for p in (SuperScraper.FIRST_NAME, SuperScraper.LAST_NAME) if p)
-    boxes = list(RIGHT_CHECKBOXES)
-    if SuperScraper.REMOVE_INFORMATION:
-        boxes.append(DELETE_CHECKBOX)
+    codes = SuperScraper.rights_to_exercise(RIGHT_MAP)
+    if not codes:
+        print("No requested privacy rights apply to this form — nothing to do.")
+        return
+    boxes = [entry for code in codes for entry in RIGHT_MAP[code]]
 
     async with Chrome(options=options) as browser:
         tab = await browser.start()
@@ -104,9 +111,7 @@ async def main():
                 print(f"{super_scraper.OOPS} field '{field_id}' not found")
 
         await asyncio.sleep(1)
-        await tab.take_screenshot(path="resources/screenshots/postpilot_dry_run.png", beyond_viewport=True)
-        print("Screenshot saved to resources/screenshots/postpilot_dry_run.png")
-
+        await SuperScraper.screenshot(tab, "resources/screenshots/postpilot_dry_run.png", beyond_viewport=True)
         if SuperScraper.DRY_RUN:
             print(f"DRY RUN: would submit rights request for {full_name} <{SuperScraper.EMAIL}>")
             return

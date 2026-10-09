@@ -26,11 +26,10 @@ async def main():
     super_scraper = SuperScraper()
     options.binary_location = super_scraper.CHROMIUM_LOCATION
     options.add_argument("--no-sandbox")
-    options.add_argument("--window-size=1280,2600")
 
     full_name = " ".join(p for p in (SuperScraper.FIRST_NAME, SuperScraper.LAST_NAME) if p)
     address_bits = [SuperScraper.ADDRESS, SuperScraper.CITY,
-                    f"{await SuperScraper.state_full_name_to_abbreviated(SuperScraper.STATE)} {SuperScraper.ZIP_CODE}".strip()]
+                    f"{SuperScraper.STATE_ABBREVIATED} {SuperScraper.ZIP_CODE}".strip()]
     home_address = ", ".join(b for b in address_bits if b and b.strip())
 
     async with Chrome(options=options) as browser:
@@ -54,8 +53,7 @@ async def main():
                 print(f"{super_scraper.OOPS} field '{field_id}' not found")
 
         await asyncio.sleep(1)
-        await tab.take_screenshot(path="resources/screenshots/homeownersmarketingservices_dry_run.png")
-        print("Screenshot saved to resources/screenshots/homeownersmarketingservices_dry_run.png")
+        await SuperScraper.screenshot(tab, "resources/screenshots/homeownersmarketingservices_dry_run.png")
         print(
             "List-removal request filled but NOT submitted — solve the reCAPTCHA "
             "manually, then click the submit button."

@@ -23,8 +23,12 @@ from pydoll.browser.options import ChromiumOptions
 
 URL = "https://my.datasubject.com/16BXQXSvkBnuN4W2w/51306"
 
-CARDS = ["Access my personal information", "Third parties your data was sold or shared with"]
-DELETE_CARD = "Delete my personal information"
+RIGHT_MAP = {
+    "access": ["Access my personal information"],
+    "know_third_parties": ["Third parties your data was sold or shared with"],
+    "delete": ["Delete my personal information"],
+}
+RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
 
 
 async def submit_request(tab, card_text, super_scraper):
@@ -68,15 +72,13 @@ async def submit_request(tab, card_text, super_scraper):
 
     state_field = await tab.find(xpath="//input[@name='o-State']", raise_exc=False)
     if state_field:
-        state_abbrev = await SuperScraper.state_full_name_to_abbreviated(SuperScraper.STATE)
+        state_abbrev = SuperScraper.STATE_ABBREVIATED
         await state_field.type_text(state_abbrev)
 
     label = "".join(c if c.isalnum() else "_" for c in card_text.lower())[:40].strip("_")
 
     await asyncio.sleep(1)
-    await tab.take_screenshot(path=f"resources/screenshots/lightboxre_dry_run_{label}.png")
-    print(f"Screenshot saved to resources/screenshots/lightboxre_dry_run_{label}.png")
-
+    await SuperScraper.screenshot(tab, f"resources/screenshots/lightboxre_dry_run_{label}.png")
     if SuperScraper.DRY_RUN:
         print(f"DRY RUN: would submit '{card_text}' for {SuperScraper.FIRST_NAME} {SuperScraper.LAST_NAME}")
         return
@@ -96,9 +98,11 @@ async def main():
     options.binary_location = super_scraper.CHROMIUM_LOCATION
     options.add_argument("--no-sandbox")
 
-    cards = list(CARDS)
-    if SuperScraper.REMOVE_INFORMATION:
-        cards.append(DELETE_CARD)
+    codes = SuperScraper.rights_to_exercise(RIGHT_MAP)
+    if not codes:
+        print("No requested privacy rights apply to this form — nothing to do.")
+        return
+    cards = [entry for code in codes for entry in RIGHT_MAP[code]]
 
     async with Chrome(options=options) as browser:
         tab = await browser.start()

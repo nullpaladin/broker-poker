@@ -121,8 +121,7 @@ async def main():
                 f"{SuperScraper.FIRST_NAME} {SuperScraper.LAST_NAME}"
             )
             await asyncio.sleep(2)
-            await tab.take_screenshot("resources/screenshots/clarivate_dry_run.png")
-            print("Screenshot saved to resources/screenshots/clarivate_dry_run.png")
+            await SuperScraper.screenshot(tab, "resources/screenshots/clarivate_dry_run.png")
             return
 
         print(f"\nForm filled for {SuperScraper.FIRST_NAME} {SuperScraper.LAST_NAME}.")
@@ -130,7 +129,7 @@ async def main():
         print("Press Enter after submission completes...")
         input()
 
-        result = await tab.execute_script("return document.body.innerText") or ""
+        result = await SuperScraper.page_text(tab) or ""
         if any(w in result.lower() for w in ("thank", "success", "received", "submitted", "confirmation")):
             print(f"Submitted DSAR for {SuperScraper.FIRST_NAME} {SuperScraper.LAST_NAME}")
         else:

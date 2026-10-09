@@ -77,7 +77,7 @@ async def main():
 
         state_select = await tab.find(name="Residence_State", raise_exc=False)
         if state_select:
-            state_abbrev = await SuperScraper.state_full_name_to_abbreviated(SuperScraper.STATE)
+            state_abbrev = SuperScraper.STATE_ABBREVIATED
             await state_select.execute_script(
                 "for (var i=0;i<this.options.length;i++){"
                 f"  if(this.options[i].value==={state_abbrev!r}){{ this.selectedIndex=i; }}"
@@ -107,7 +107,7 @@ async def main():
         else:
             print(f"{super_scraper.OOPS} 'Full Opt-Out' radio not found")
 
-        if SuperScraper.REMOVE_INFORMATION:
+        if SuperScraper.wants("delete"):
             delete_checkbox = await tab.find(id="deleteMyPersonalInfo", raise_exc=False)
             if delete_checkbox:
                 await delete_checkbox.click()
@@ -115,8 +115,7 @@ async def main():
                 print(f"{super_scraper.OOPS} 'Delete My Personal Information' checkbox not found")
 
         await asyncio.sleep(1)
-        await tab.take_screenshot(path="resources/screenshots/risk_lexisnexis_dry_run.png")
-        print("Screenshot saved to resources/screenshots/risk_lexisnexis_dry_run.png")
+        await SuperScraper.screenshot(tab, "resources/screenshots/risk_lexisnexis_dry_run.png")
         print(
             "\nConsumer Disclosure Report request filled but NOT submitted — a reCAPTCHA v2 "
             "checkbox requires a manual solve. Note: submitted SSN is only the last 4 digits "

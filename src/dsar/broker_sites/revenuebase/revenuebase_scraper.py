@@ -51,7 +51,7 @@ async def main():
     options.binary_location = super_scraper.CHROMIUM_LOCATION
     options.add_argument("--no-sandbox")
 
-    if not SuperScraper.REMOVE_INFORMATION:
+    if not SuperScraper.wants("delete"):
         print(
             "revenuebase.ai's form only supports data deletion — skipping since "
             "REMOVE_INFORMATION is not set."
@@ -118,9 +118,7 @@ async def main():
         )
 
         await asyncio.sleep(1)
-        await tab.take_screenshot(path="resources/screenshots/revenuebase_dry_run.png")
-        print("Screenshot saved to resources/screenshots/revenuebase_dry_run.png")
-
+        await SuperScraper.screenshot(tab, "resources/screenshots/revenuebase_dry_run.png")
         if SuperScraper.DRY_RUN:
             print("DRY RUN: would submit data removal request")
             return

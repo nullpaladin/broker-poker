@@ -15,11 +15,12 @@ from src.dsar.super_scraper import SuperScraper
 URL = "https://privacyportal-cdn.onetrust.com/dsarwebform/b38ccfa3-c14a-451e-bf1d-974d1e278b7c/6214ac53-9059-474d-a847-800250556e9d.html"
 
 # (aria-label, screenshot label)
-REQUESTS = [
-    ("Do Not Sell My Information", "optout"),
-    ("Access My Information",      "access"),
-]
-DELETE_REQUEST = ("Delete My Information", "delete")
+RIGHT_MAP = {
+    "access": [("Access My Information", "access")],
+    "opt_out_sale_share": [("Do Not Sell My Information", "optout")],
+    "delete": [("Delete My Information", "delete")],
+}
+RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
 
 
 async def submit_request(tab, aria_label, label, super_scraper):
@@ -80,8 +81,7 @@ async def submit_request(tab, aria_label, label, super_scraper):
         if submit_btn:
             await submit_btn.scroll_into_view()
         await asyncio.sleep(2)
-        await tab.take_screenshot(f"resources/screenshots/datonics_dry_run_{label}.png")
-        print(f"Screenshot saved to resources/screenshots/datonics_dry_run_{label}.png")
+        await SuperScraper.screenshot(tab, f"resources/screenshots/datonics_dry_run_{label}.png")
         return
 
     print(f"\nForm filled for '{aria_label}'.")
@@ -101,11 +101,12 @@ async def main():
     super_scraper = SuperScraper()
     options.binary_location = super_scraper.CHROMIUM_LOCATION
     options.add_argument("--no-sandbox")
-    options.add_argument("--window-size=1280,3000")
 
-    requests = list(REQUESTS)
-    if SuperScraper.REMOVE_INFORMATION:
-        requests.append(DELETE_REQUEST)
+    codes = SuperScraper.rights_to_exercise(RIGHT_MAP)
+    if not codes:
+        print("No requested privacy rights apply to this form — nothing to do.")
+        return
+    requests = [entry for code in codes for entry in RIGHT_MAP[code]]
 
     async with Chrome(options=options) as browser:
         tab = await browser.start()

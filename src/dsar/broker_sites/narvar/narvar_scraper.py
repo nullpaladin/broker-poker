@@ -15,8 +15,14 @@ from src.dsar.super_scraper import SuperScraper
 
 URL = "https://narvar.my.onetrust.com/webform/04b3731f-2a9a-42ce-bd6b-106d4b4ec3bf/a7c944bf-3cec-4f00-9dc5-dea5bf2b6f4f"
 
-ALWAYS_REQUESTS = ["Access", "Portability", "Rectification", "Restriction"]
-DELETE_REQUEST = "Deletion"
+RIGHT_MAP = {
+    "access": ["Access"],
+    "portability": ["Portability"],
+    "correct": ["Rectification"],
+    "opt_out_sale_share": ["Restriction"],
+    "delete": ["Deletion"],
+}
+RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
 
 
 async def main():
@@ -24,7 +30,6 @@ async def main():
     super_scraper = SuperScraper()
     options.binary_location = super_scraper.CHROMIUM_LOCATION
     options.add_argument("--no-sandbox")
-    options.add_argument("--window-size=1280,3000")
 
     async with Chrome(options=options) as browser:
         tab = await browser.start()
@@ -40,9 +45,11 @@ async def main():
             print(f"{super_scraper.OOPS} 'End consumer' subject button not found")
 
         # Request types
-        requests = list(ALWAYS_REQUESTS)
-        if SuperScraper.REMOVE_INFORMATION:
-            requests.append(DELETE_REQUEST)
+        codes = SuperScraper.rights_to_exercise(RIGHT_MAP)
+        if not codes:
+            print("No requested privacy rights apply to this form — nothing to do.")
+            return
+        requests = [entry for code in codes for entry in RIGHT_MAP[code]]
 
         for req in requests:
             btn = await tab.find(**{"aria-label": req}, raise_exc=False)
@@ -62,14 +69,14 @@ async def main():
         if SuperScraper.DRY_RUN:
             print(
                 f"DRY RUN: would submit Access/Portability/Rectification/Restriction"
-                f"{'/Deletion' if SuperScraper.REMOVE_INFORMATION else ''} "
+                f"{'/Deletion' if SuperScraper.wants("delete") else ''} "
                 f"for {SuperScraper.EMAIL}"
             )
             submit_btn = await tab.find(**{"aria-label": "Click to submit form"}, raise_exc=False)
             if submit_btn:
                 await submit_btn.scroll_into_view()
             await asyncio.sleep(2)
-            await tab.take_screenshot("resources/screenshots/narvar_dry_run.png")
+            await SuperScraper.screenshot(tab, "resources/screenshots/narvar_dry_run.png")
             print("Screenshot: resources/screenshots/narvar_dry_run.png")
             return
 

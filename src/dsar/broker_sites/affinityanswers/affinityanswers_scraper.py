@@ -14,13 +14,14 @@ from src.dsar.super_scraper import SuperScraper
 URL = "https://www.affinityanswers.com/your-privacy-choices/"
 
 # US rights checkboxes — always exercised
-ALWAYS_CHECK = [
-    "choice_11_5_1",  # access
-    "choice_11_5_3",  # correct
-    "choice_11_5_4",  # opt-out of sale
-    "choice_11_5_5",  # opt-out of targeted advertising
-]
-DELETE_CHECKBOX_ID = "choice_11_5_2"
+RIGHT_MAP = {
+    "access": ["choice_11_5_1"],
+    "correct": ["choice_11_5_3"],
+    "opt_out_sale_share": ["choice_11_5_4"],
+    "opt_out_targeted_ads": ["choice_11_5_5"],
+    "delete": ["choice_11_5_2"],
+}
+RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
 
 
 async def main():
@@ -28,7 +29,6 @@ async def main():
     super_scraper = SuperScraper()
     options.binary_location = super_scraper.CHROMIUM_LOCATION
     options.add_argument("--no-sandbox")
-    options.add_argument("--window-size=1280,3000")
 
     async with Chrome(options=options) as browser:
         tab = await browser.start()
@@ -51,9 +51,11 @@ async def main():
             await email_field.type_text(SuperScraper.EMAIL)
 
         # US rights checkboxes
-        checkbox_ids = list(ALWAYS_CHECK)
-        if SuperScraper.REMOVE_INFORMATION:
-            checkbox_ids.append(DELETE_CHECKBOX_ID)
+        codes = SuperScraper.rights_to_exercise(RIGHT_MAP)
+        if not codes:
+            print("No requested privacy rights apply to this form — nothing to do.")
+            return
+        checkbox_ids = [entry for code in codes for entry in RIGHT_MAP[code]]
 
         for cb_id in checkbox_ids:
             cb = await tab.find(id=cb_id, raise_exc=False)
@@ -72,8 +74,7 @@ async def main():
             if submit_btn:
                 await submit_btn.scroll_into_view()
             await asyncio.sleep(2)
-            await tab.take_screenshot("resources/screenshots/affinityanswers_dry_run.png")
-            print("Screenshot saved to resources/screenshots/affinityanswers_dry_run.png")
+            await SuperScraper.screenshot(tab, "resources/screenshots/affinityanswers_dry_run.png")
             return
 
         submit_btn = await tab.find(id="gform_submit_button_11", raise_exc=False)

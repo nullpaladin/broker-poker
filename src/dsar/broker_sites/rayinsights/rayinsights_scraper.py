@@ -30,6 +30,9 @@ from pydoll.browser.options import ChromiumOptions
 OPT_OUT_URL = "https://www.rayinsights.com/ray-cdp-opt-out-and-delete-request/"
 DATA_REQUEST_URL = "https://www.rayinsights.com/raycdp-data-request/"
 
+RIGHT_MAP = {"opt_out_sale_share": ["optout"], "delete": ["delete"]}
+RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
+
 
 async def _fill_common_fields(tab, super_scraper):
     fields = {
@@ -81,9 +84,11 @@ async def submit_opt_out_delete_correct(super_scraper, tab):
     await tab.go_to(OPT_OUT_URL)
     await asyncio.sleep(5)
 
-    checkbox_values = ["optout"]
-    if SuperScraper.REMOVE_INFORMATION:
-        checkbox_values.append("delete")
+    codes = SuperScraper.rights_to_exercise(RIGHT_MAP)
+    if not codes:
+        print("No requested privacy rights apply to this form — nothing to do.")
+        return
+    checkbox_values = [cb for code in codes for cb in RIGHT_MAP[code]]
     for value in checkbox_values:
         checkbox = await tab.find(xpath=f"//input[@type='checkbox' and @value='{value}']", raise_exc=False)
         if checkbox:
@@ -94,10 +99,7 @@ async def submit_opt_out_delete_correct(super_scraper, tab):
     await _fill_common_fields(tab, super_scraper)
 
     await asyncio.sleep(1)
-    await tab.take_screenshot(path="resources/screenshots/rayinsights_dry_run_opt_out_delete_correct.png")
-    print("Screenshot saved to resources/screenshots/rayinsights_dry_run_opt_out_delete_correct.png")
-
-
+    await SuperScraper.screenshot(tab, "resources/screenshots/rayinsights_dry_run_opt_out_delete_correct.png")
 async def submit_data_request(super_scraper, tab):
     await tab.go_to(DATA_REQUEST_URL)
     await asyncio.sleep(5)
@@ -105,10 +107,7 @@ async def submit_data_request(super_scraper, tab):
     await _fill_common_fields(tab, super_scraper)
 
     await asyncio.sleep(1)
-    await tab.take_screenshot(path="resources/screenshots/rayinsights_dry_run_data_request.png")
-    print("Screenshot saved to resources/screenshots/rayinsights_dry_run_data_request.png")
-
-
+    await SuperScraper.screenshot(tab, "resources/screenshots/rayinsights_dry_run_data_request.png")
 async def main():
     options = ChromiumOptions()
     super_scraper = SuperScraper()

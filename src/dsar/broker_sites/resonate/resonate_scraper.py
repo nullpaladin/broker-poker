@@ -24,8 +24,12 @@ from pydoll.browser.options import ChromiumOptions
 
 URL = "https://optout-form.reson8.com/"
 
-CHECKBOX_VALUES = ["aboutInfoRequested", "optOutRequested"]
-DELETE_CHECKBOX_VALUE = "deleteDataRequested"
+RIGHT_MAP = {
+    "access": ["aboutInfoRequested"],
+    "opt_out_sale_share": ["optOutRequested"],
+    "delete": ["deleteDataRequested"],
+}
+RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
 
 
 async def main():
@@ -53,7 +57,7 @@ async def main():
 
         state_select = await tab.find(xpath="//select[@class='state']", raise_exc=False)
         if state_select:
-            state_abbrev = await SuperScraper.state_full_name_to_abbreviated(SuperScraper.STATE)
+            state_abbrev = SuperScraper.STATE_ABBREVIATED
             await state_select.execute_script(
                 "for (var i=0;i<this.options.length;i++){"
                 f"  if(this.options[i].value==={state_abbrev!r}){{ this.selectedIndex=i; }}"
@@ -63,9 +67,11 @@ async def main():
         else:
             print(f"{super_scraper.OOPS} State select not found")
 
-        checkbox_values = list(CHECKBOX_VALUES)
-        if SuperScraper.REMOVE_INFORMATION:
-            checkbox_values.append(DELETE_CHECKBOX_VALUE)
+        codes = SuperScraper.rights_to_exercise(RIGHT_MAP)
+        if not codes:
+            print("No requested privacy rights apply to this form — nothing to do.")
+            return
+        checkbox_values = [entry for code in codes for entry in RIGHT_MAP[code]]
         for value in checkbox_values:
             checkbox = await tab.find(xpath=f"//input[@name='{value}']", raise_exc=False)
             if checkbox:
@@ -74,9 +80,7 @@ async def main():
                 print(f"{super_scraper.OOPS} checkbox '{value}' not found")
 
         await asyncio.sleep(1)
-        await tab.take_screenshot(path="resources/screenshots/resonate_dry_run.png")
-        print("Screenshot saved to resources/screenshots/resonate_dry_run.png")
-
+        await SuperScraper.screenshot(tab, "resources/screenshots/resonate_dry_run.png")
         if SuperScraper.DRY_RUN:
             print("DRY RUN: would submit consumer privacy request")
             return

@@ -27,7 +27,6 @@ async def main():
     super_scraper = SuperScraper()
     options.binary_location = super_scraper.CHROMIUM_LOCATION
     options.add_argument("--no-sandbox")
-    options.add_argument("--window-size=1280,2400")
 
     async with Chrome(options=options) as browser:
         tab = await browser.start()
@@ -81,8 +80,7 @@ async def main():
             print(f"{super_scraper.OOPS} attestation checkbox not found")
 
         await asyncio.sleep(1)
-        await tab.take_screenshot(path="resources/screenshots/growinglibraries_dry_run.png")
-        print("Screenshot saved to resources/screenshots/growinglibraries_dry_run.png")
+        await SuperScraper.screenshot(tab, "resources/screenshots/growinglibraries_dry_run.png")
         print(
             "\nForm filled but NOT submitted — a reCAPTCHA v2 checkbox is present and requires "
             "a manual solve before clicking SUBMIT."

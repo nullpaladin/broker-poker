@@ -19,14 +19,15 @@ ZIP_XPATH = '//input[@id="zipDSARElement"]'
 DOB_XPATH = '//input[@id="dateOfBirthDSARElement"]'
 
 # Request types — div buttons identified by aria-label
-REQUEST_TYPES_ALWAYS = [
-    "Access Data",
-    "Correct Data",
-    "Opt-Out",
-    "Data Portability",
-    "List of Third Party Recipients",
-]
-REQUEST_TYPE_DELETE = "Delete Data"
+RIGHT_MAP = {
+    "access": ["Access Data"],
+    "correct": ["Correct Data"],
+    "opt_out_sale_share": ["Opt-Out"],
+    "portability": ["Data Portability"],
+    "know_third_parties": ["List of Third Party Recipients"],
+    "delete": ["Delete Data"],
+}
+RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
 
 
 async def main():
@@ -57,11 +58,12 @@ async def main():
             await tab.execute_script(f'document.querySelector(\'[aria-label="{label}"]\').click()')
             time.sleep(0.5)
 
-        for request_type in REQUEST_TYPES_ALWAYS:
+        codes = SuperScraper.rights_to_exercise(RIGHT_MAP)
+        if not codes:
+            print("No requested privacy rights apply to this form — nothing to do.")
+            return
+        for request_type in dict.fromkeys(rt for c in codes for rt in RIGHT_MAP[c]):
             await click_request_type(request_type)
-
-        if SuperScraper.REMOVE_INFORMATION:
-            await click_request_type(REQUEST_TYPE_DELETE)
 
         # Personal info
         await super_scraper.input_text_field(tab=tab, xpath=FIRST_NAME_XPATH, text=SuperScraper.FIRST_NAME)

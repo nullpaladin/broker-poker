@@ -57,9 +57,7 @@ async def main():
         # m1data.com elsewhere in this repo.
 
         await asyncio.sleep(1)
-        await tab.take_screenshot(path="resources/screenshots/outlogic_dry_run.png")
-        print("Screenshot saved to resources/screenshots/outlogic_dry_run.png")
-
+        await SuperScraper.screenshot(tab, "resources/screenshots/outlogic_dry_run.png")
         if SuperScraper.DRY_RUN:
             print(f"DRY RUN: would submit opt-out request for {SuperScraper.EMAIL} (device ID: {SuperScraper.ADVERTISING_ID})")
             return

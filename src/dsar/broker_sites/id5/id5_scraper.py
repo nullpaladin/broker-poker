@@ -71,20 +71,16 @@ async def opt_out(tab):
             "this.dispatchEvent(new Event('change',{bubbles:true}));"
         )
     time.sleep(0.5)
-    await tab.take_screenshot("resources/screenshots/id5_dry_run_optout.png")
-    print("Screenshot saved to resources/screenshots/id5_dry_run_optout.png")
-
-
+    await SuperScraper.screenshot(tab, "resources/screenshots/id5_dry_run_optout.png")
 async def know(tab):
     await tab.go_to(URL)
     await asyncio.sleep(7)
     await _fill_email(tab, "know-request-section", SuperScraper.EMAIL)
     confirm = await tab.find(id="know-request-confirm", raise_exc=False)
     if confirm:
-        await confirm.execute_script("if (!this.checked) this.click();")
+        await SuperScraper.js_check(confirm)
     time.sleep(0.5)
-    await tab.take_screenshot("resources/screenshots/id5_dry_run_access.png")
-    print("Screenshot saved to resources/screenshots/id5_dry_run_access.png")
+    await SuperScraper.screenshot(tab, "resources/screenshots/id5_dry_run_access.png")
     print(
         "Know section filled — click 'Know Specific Pieces of My Personal Data' (Access) "
         "and/or 'Do Not Sell My Personal Information' to submit."
@@ -96,8 +92,7 @@ async def delete(tab):
     await asyncio.sleep(7)
     await _fill_email(tab, "delete-request-section", SuperScraper.EMAIL)
     time.sleep(0.5)
-    await tab.take_screenshot("resources/screenshots/id5_dry_run_delete.png")
-    print("Screenshot saved to resources/screenshots/id5_dry_run_delete.png")
+    await SuperScraper.screenshot(tab, "resources/screenshots/id5_dry_run_delete.png")
     print("Delete section filled — click 'DELETE MY PERSONAL DATA' to submit.")
 
 
@@ -106,19 +101,18 @@ async def main():
     super_scraper = SuperScraper()
     options.binary_location = super_scraper.CHROMIUM_LOCATION
     options.add_argument("--no-sandbox")
-    options.add_argument("--window-size=1280,3200")
 
     async with Chrome(options=options) as browser:
         tab = await browser.start()
         await opt_out(tab)
         await know(tab)
-        if SuperScraper.REMOVE_INFORMATION:
+        if SuperScraper.wants("delete"):
             await delete(tab)
 
         if SuperScraper.DRY_RUN:
             print(
                 f"DRY RUN: Opt-out + Know sections filled for <{SuperScraper.EMAIL}>"
-                f"{' + Delete section' if SuperScraper.REMOVE_INFORMATION else ''}. "
+                f"{' + Delete section' if SuperScraper.wants("delete") else ''}. "
                 f"Each section has its own submit button (no shared submit)."
             )
 

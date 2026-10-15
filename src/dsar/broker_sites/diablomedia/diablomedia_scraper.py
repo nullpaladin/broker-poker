@@ -18,12 +18,13 @@ from src.dsar.super_scraper import SuperScraper
 
 URL = "https://my.datasubject.com/aSCwO6P3vw/60584"
 
-RIGHTS = [
-    ("Summarize my personal information", "access"),
-    ("Do Not Sell or Share to a Third Party", "opt_out_sale"),
-    ("Don't use my personal information for advertising", "opt_out_ads"),
-]
-DELETE_RIGHT = ("Delete my personal information", "delete")
+RIGHT_MAP = {
+    "access": [("Summarize my personal information", "access")],
+    "opt_out_sale_share": [("Do Not Sell or Share to a Third Party", "opt_out_sale")],
+    "opt_out_targeted_ads": [("Don't use my personal information for advertising", "opt_out_ads")],
+    "delete": [("Delete my personal information", "delete")],
+}
+RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
 
 FIELDS = {
     "given-name": "FIRST_NAME",
@@ -63,8 +64,7 @@ async def submit_request(tab, card_text, label, super_scraper):
     # else" checkbox — left UNCHECKED (default) so this stays a self-submission.
 
     await asyncio.sleep(1)
-    await tab.take_screenshot(path=f"resources/screenshots/diablomedia_dry_run_{label}.png")
-    print(f"Screenshot saved to resources/screenshots/diablomedia_dry_run_{label}.png")
+    await SuperScraper.screenshot(tab, f"resources/screenshots/diablomedia_dry_run_{label}.png")
     print(
         f"'{card_text}' request filled but NOT submitted — a Cloudflare Turnstile "
         f"checkbox must be solved manually before submitting."
@@ -76,11 +76,12 @@ async def main():
     super_scraper = SuperScraper()
     options.binary_location = super_scraper.CHROMIUM_LOCATION
     options.add_argument("--no-sandbox")
-    options.add_argument("--window-size=1280,3000")
 
-    rights = list(RIGHTS)
-    if SuperScraper.REMOVE_INFORMATION:
-        rights.append(DELETE_RIGHT)
+    codes = SuperScraper.rights_to_exercise(RIGHT_MAP)
+    if not codes:
+        print("No requested privacy rights apply to this form — nothing to do.")
+        return
+    rights = [entry for code in codes for entry in RIGHT_MAP[code]]
 
     async with Chrome(options=options) as browser:
         tab = await browser.start()

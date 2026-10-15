@@ -15,15 +15,15 @@ from src.dsar.super_scraper import SuperScraper
 URL = "https://legal.epsilon.com/dsr"
 
 # (radio value, screenshot label)
-REQUESTS = [
-    ("sales",      "sell"),
-    ("share",      "share"),
-    ("access",     "access"),
-    ("correct",    "correct"),
-    ("profile",    "profile"),
-    ("sensitive",  "sensitive"),
-]
-DELETE_REQUEST = ("delete", "delete")
+RIGHT_MAP = {
+    "access": [("access", "access")],
+    "correct": [("correct", "correct")],
+    "opt_out_sale_share": [("sales", "sell"), ("share", "share")],
+    "opt_out_profiling": [("profile", "profile")],
+    "limit_sensitive_pi": [("sensitive", "sensitive")],
+    "delete": [("delete", "delete")],
+}
+RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
 
 
 async def submit_request(tab, radio_value, label, super_scraper):
@@ -88,7 +88,7 @@ async def submit_request(tab, radio_value, label, super_scraper):
         await zip_field.type_text(SuperScraper.ZIP_CODE)
 
     # State select — scope to state select to avoid country select collisions
-    state_abbrev = await SuperScraper.state_full_name_to_abbreviated(SuperScraper.STATE)
+    state_abbrev = SuperScraper.STATE_ABBREVIATED
     state_select = await tab.find(tag_name="select", name="state", raise_exc=False)
     if state_select:
         state_opt = await state_select.find(tag_name="option", value=state_abbrev, raise_exc=False)
@@ -108,8 +108,7 @@ async def submit_request(tab, radio_value, label, super_scraper):
         if submit_btn:
             await submit_btn.scroll_into_view()
         await asyncio.sleep(2)
-        await tab.take_screenshot(f"resources/screenshots/epsilon_dry_run_{label}.png")
-        print(f"Screenshot saved to resources/screenshots/epsilon_dry_run_{label}.png")
+        await SuperScraper.screenshot(tab, f"resources/screenshots/epsilon_dry_run_{label}.png")
         return
 
     print(f"\nForm filled for '{radio_value}'.")
@@ -130,11 +129,12 @@ async def main():
     super_scraper = SuperScraper()
     options.binary_location = super_scraper.CHROMIUM_LOCATION
     options.add_argument("--no-sandbox")
-    options.add_argument("--window-size=1280,5000")
 
-    requests = list(REQUESTS)
-    if SuperScraper.REMOVE_INFORMATION:
-        requests.append(DELETE_REQUEST)
+    codes = SuperScraper.rights_to_exercise(RIGHT_MAP)
+    if not codes:
+        print("No requested privacy rights apply to this form — nothing to do.")
+        return
+    requests = [entry for code in codes for entry in RIGHT_MAP[code]]
 
     async with Chrome(options=options) as browser:
         tab = await browser.start()

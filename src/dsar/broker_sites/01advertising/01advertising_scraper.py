@@ -25,17 +25,12 @@ from pydoll.browser.options import ChromiumOptions
 
 URL = "https://app.termly.io/dsar/d1321341-0e82-4d8c-afaf-c4940d46c171"
 
-ACTIONS = ["request_to_know", "request_to_opt_out"]
-DELETE_ACTION = "request_to_delete"
-
-
-async def _check_confirm_boxes(tab):
-    await tab.execute_script(
-        "document.querySelectorAll('input[name^=\"__doNotSubmit__\"]').forEach(function(cb){"
-        "  cb.checked=true; cb.dispatchEvent(new Event('click', {bubbles:true}));"
-        "  cb.dispatchEvent(new Event('change', {bubbles:true}));"
-        "});"
-    )
+RIGHT_MAP = {
+    "access": "request_to_know",
+    "opt_out_sale_share": "request_to_opt_out",
+    "delete": "request_to_delete",
+}
+RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
 
 
 async def submit_request(tab, action, super_scraper):
@@ -62,15 +57,14 @@ async def submit_request(tab, action, super_scraper):
     if radio:
         await radio.click()
 
-    await _check_confirm_boxes(tab)
+    await SuperScraper.check_termly_attestations(tab)
 
     label = action.replace("request_to_", "")
 
     if SuperScraper.DRY_RUN:
         print(f"DRY RUN: would submit {label} request for {SuperScraper.FIRST_NAME} {SuperScraper.LAST_NAME}")
         await asyncio.sleep(1)
-        await tab.take_screenshot(path=f"resources/screenshots/01advertising_dry_run_{label}.png")
-        print(f"Screenshot saved to resources/screenshots/01advertising_dry_run_{label}.png")
+        await SuperScraper.screenshot(tab, f"resources/screenshots/01advertising_dry_run_{label}.png")
         return
 
     submit = await tab.find(text="SUBMIT", raise_exc=False)
@@ -88,14 +82,15 @@ async def main():
     options.binary_location = super_scraper.CHROMIUM_LOCATION
     options.add_argument("--no-sandbox")
 
-    actions = list(ACTIONS)
-    if SuperScraper.REMOVE_INFORMATION:
-        actions.append(DELETE_ACTION)
+    codes = SuperScraper.rights_to_exercise(RIGHT_MAP)
+    if not codes:
+        print("No requested privacy rights apply to this form — nothing to do.")
+        return
 
     async with Chrome(options=options) as browser:
         tab = await browser.start()
-        for action in actions:
-            await submit_request(tab, action, super_scraper)
+        for code in codes:
+            await submit_request(tab, RIGHT_MAP[code], super_scraper)
 
 
 asyncio.run(main())

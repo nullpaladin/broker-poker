@@ -27,8 +27,12 @@ from pydoll.browser.options import ChromiumOptions
 
 URL = "https://roqad-privacy.my.onetrust.com/webform/bdcc4a2f-2458-4e17-96c3-cf88f7115dfc/dcc653f1-96d6-4d0f-ba5d-cb7f17fff0aa"
 
-REQUEST_TYPES = ["Opt out", "Info request"]
-DELETE_REQUEST_TYPE = "Data deletion"
+RIGHT_MAP = {
+    "access": ["Info request"],
+    "opt_out_sale_share": ["Opt out"],
+    "delete": ["Data deletion"],
+}
+RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
 
 
 async def _select_option(tab, option_text, super_scraper, description):
@@ -46,9 +50,11 @@ async def main():
     options.binary_location = super_scraper.CHROMIUM_LOCATION
     options.add_argument("--no-sandbox")
 
-    request_types = list(REQUEST_TYPES)
-    if SuperScraper.REMOVE_INFORMATION:
-        request_types.append(DELETE_REQUEST_TYPE)
+    codes = SuperScraper.rights_to_exercise(RIGHT_MAP)
+    if not codes:
+        print("No requested privacy rights apply to this form — nothing to do.")
+        return
+    request_types = [entry for code in codes for entry in RIGHT_MAP[code]]
 
     async with Chrome(options=options) as browser:
         tab = await browser.start()
@@ -92,13 +98,12 @@ async def main():
         details_field = await tab.find(id="requestDetailsDSARElement", raise_exc=False)
         if details_field:
             request_text = "I am requesting access to my personal information."
-            if SuperScraper.REMOVE_INFORMATION:
+            if SuperScraper.wants("delete"):
                 request_text = "I am requesting access to and deletion of my personal information."
             await details_field.type_text(request_text)
 
         await asyncio.sleep(1)
-        await tab.take_screenshot(path="resources/screenshots/roqad_dry_run.png")
-        print("Screenshot saved to resources/screenshots/roqad_dry_run.png")
+        await SuperScraper.screenshot(tab, "resources/screenshots/roqad_dry_run.png")
         print(
             "\nRequest filled but NOT submitted — a reCAPTCHA v2 checkbox requires a manual "
             "solve before submitting."

@@ -37,7 +37,7 @@ async def main():
         if name_field:
             await name_field.type_text(f"{SuperScraper.FIRST_NAME} {SuperScraper.LAST_NAME}")
         if state_select:
-            state_abbr = await SuperScraper.state_full_name_to_abbreviated(SuperScraper.STATE)
+            state_abbr = SuperScraper.STATE_ABBREVIATED
             await state_select.execute_script(
                 "for (var i=0;i<this.options.length;i++){"
                 f"  if(this.options[i].value==={state_abbr!r}){{ this.selectedIndex=i; }}"
@@ -46,8 +46,7 @@ async def main():
             )
 
         await asyncio.sleep(1)
-        await tab.take_screenshot(path="resources/screenshots/databaseusa_dry_run.png")
-        print("Screenshot saved to resources/screenshots/databaseusa_dry_run.png")
+        await SuperScraper.screenshot(tab, "resources/screenshots/databaseusa_dry_run.png")
         print(
             "\nMCDPA request form filled but NOT sent — click 'Send' yourself, check your "
             "inbox for the verification link, and click it to complete the request. This "

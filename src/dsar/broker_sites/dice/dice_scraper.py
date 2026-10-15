@@ -28,9 +28,8 @@ async def main():
     super_scraper = SuperScraper()
     options.binary_location = super_scraper.CHROMIUM_LOCATION
     options.add_argument("--no-sandbox")
-    options.add_argument("--window-size=1280,2200")
 
-    if SuperScraper.REMOVE_INFORMATION:
+    if SuperScraper.wants("delete"):
         radio_id, tag = "radio-description-delete", "delete"
     else:
         radio_id, tag = "radio-description-access", "access"
@@ -58,8 +57,7 @@ async def main():
             await email.type_text(SuperScraper.EMAIL)
 
         await asyncio.sleep(1)
-        await tab.take_screenshot(path=f"resources/screenshots/dice_dry_run_{tag}.png", beyond_viewport=True)
-        print(f"Screenshot saved to resources/screenshots/dice_dry_run_{tag}.png")
+        await SuperScraper.screenshot(tab, f"resources/screenshots/dice_dry_run_{tag}.png", beyond_viewport=True)
         print(
             f"'{tag}' request filled but NOT submitted — solve the reCAPTCHA manually, then "
             "Submit. Re-run with a different 'description' radio for the other rights."

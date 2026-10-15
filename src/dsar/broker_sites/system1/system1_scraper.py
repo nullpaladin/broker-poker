@@ -15,11 +15,12 @@ from src.dsar.super_scraper import SuperScraper
 URL = "https://privacyportal.onetrust.com/webform/f25d1283-339b-438f-9445-922b74e13939/a65f494a-fd3d-4117-8051-f2c0f0d66133"
 
 # (request type option text, screenshot label)
-REQUESTS = [
-    ("Do Not Sell My Information",          "optout"),
-    ("Disclosure of Information we share",  "access"),
-]
-DELETE_REQUEST = ("Data Deletion", "delete")
+RIGHT_MAP = {
+    "access": [("Disclosure of Information we share", "access")],
+    "opt_out_sale_share": [("Do Not Sell My Information", "optout")],
+    "delete": [("Data Deletion", "delete")],
+}
+RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
 
 
 async def submit_request(tab, req_type_text, label, super_scraper):
@@ -75,9 +76,10 @@ async def submit_request(tab, req_type_text, label, super_scraper):
 
     details = await tab.find(id="requestDetailsDSARElement", raise_exc=False)
     if details:
+        law = SuperScraper.LAW_FULL_NAME or "applicable state and federal privacy law"
         await details.type_text(
-            f"I am a Minnesota resident exercising my privacy rights. "
-            f"Request type: {req_type_text}."
+            f"I am a {SuperScraper.STATE} resident exercising my privacy rights under the "
+            f"{law}. Request type: {req_type_text}."
         )
 
     time.sleep(0.5)
@@ -86,7 +88,7 @@ async def submit_request(tab, req_type_text, label, super_scraper):
         submit_btn = await tab.find(**{"aria-label": "click to submit form"}, raise_exc=False)
         if submit_btn:
             await submit_btn.scroll_into_view()
-        await tab.take_screenshot(f"resources/screenshots/system1_dry_run_{label}.png")
+        await SuperScraper.screenshot(tab, f"resources/screenshots/system1_dry_run_{label}.png")
         print(
             f"DRY RUN: would submit '{label}' for "
             f"{SuperScraper.FIRST_NAME} {SuperScraper.LAST_NAME} <{SuperScraper.EMAIL}>"
@@ -104,11 +106,12 @@ async def main():
     super_scraper = SuperScraper()
     options.binary_location = super_scraper.CHROMIUM_LOCATION
     options.add_argument("--no-sandbox")
-    options.add_argument("--window-size=1280,2000")
 
-    requests = list(REQUESTS)
-    if SuperScraper.REMOVE_INFORMATION:
-        requests.append(DELETE_REQUEST)
+    codes = SuperScraper.rights_to_exercise(RIGHT_MAP)
+    if not codes:
+        print("No requested privacy rights apply to this form — nothing to do.")
+        return
+    requests = [entry for code in codes for entry in RIGHT_MAP[code]]
 
     async with Chrome(options=options) as browser:
         tab = await browser.start()

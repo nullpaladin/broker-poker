@@ -18,11 +18,12 @@ from src.dsar.super_scraper import SuperScraper
 
 URL = "https://www.ip2location.com/do-not-sell"
 
-RIGHTS = [
-    ("I want to know what personal data you have about me", "access"),
-    ("I want you to not sell my personal data (California residents)", "opt_out"),
-]
-DELETE_RIGHT = ("I want you to delete the personal data you have about me", "delete")
+RIGHT_MAP = {
+    "access": [("I want to know what personal data you have about me", "access")],
+    "opt_out_sale_share": [("I want you to not sell my personal data (California residents)", "opt_out")],
+    "delete": [("I want you to delete the personal data you have about me", "delete")],
+}
+RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
 
 
 def _public_ip():
@@ -32,15 +33,6 @@ def _public_ip():
         except Exception:
             continue
     return ""
-
-
-async def _select_by_text(select_element, text):
-    await select_element.execute_script(
-        "for (var i=0;i<this.options.length;i++){"
-        f"  if(this.options[i].text.trim()==={text!r}){{ this.selectedIndex=i; }}"
-        "}"
-        "this.dispatchEvent(new Event('change', {bubbles:true}));"
-    )
 
 
 async def submit_request(tab, right_label, tag, super_scraper, ip):
@@ -63,21 +55,19 @@ async def submit_request(tab, right_label, tag, super_scraper, ip):
 
     rt = await tab.find(xpath=f"{form_xp}//select[@name='requestType']", raise_exc=False)
     if rt:
-        await _select_by_text(rt, right_label)
+        await SuperScraper.select_native_option(rt, text=right_label)
     else:
         print(f"{super_scraper.OOPS} requestType select not found")
 
     scope = await tab.find(xpath=f"{form_xp}//select[@name='scope']", raise_exc=False)
     if scope:
-        await _select_by_text(scope, "This request relates to all of my data")
+        await SuperScraper.select_native_option(scope, text="This request relates to all of my data")
     behalf = await tab.find(xpath=f"{form_xp}//select[@name='behalf']", raise_exc=False)
     if behalf:
-        await _select_by_text(behalf, "No")
+        await SuperScraper.select_native_option(behalf, text="No")
 
     await asyncio.sleep(1)
-    await tab.take_screenshot(path=f"resources/screenshots/ip2location_dry_run_{tag}.png", beyond_viewport=True)
-    print(f"Screenshot saved to resources/screenshots/ip2location_dry_run_{tag}.png")
-
+    await SuperScraper.screenshot(tab, f"resources/screenshots/ip2location_dry_run_{tag}.png", beyond_viewport=True)
     if SuperScraper.DRY_RUN:
         print(f"DRY RUN: would submit '{right_label}' for {SuperScraper.EMAIL} (IP {ip or '?'})")
         return
@@ -94,12 +84,13 @@ async def main():
     super_scraper = SuperScraper()
     options.binary_location = super_scraper.CHROMIUM_LOCATION
     options.add_argument("--no-sandbox")
-    options.add_argument("--window-size=1280,2400")
 
     ip = _public_ip()
-    rights = list(RIGHTS)
-    if SuperScraper.REMOVE_INFORMATION:
-        rights.append(DELETE_RIGHT)
+    codes = SuperScraper.rights_to_exercise(RIGHT_MAP)
+    if not codes:
+        print("No requested privacy rights apply to this form — nothing to do.")
+        return
+    rights = [entry for code in codes for entry in RIGHT_MAP[code]]
 
     async with Chrome(options=options) as browser:
         tab = await browser.start()

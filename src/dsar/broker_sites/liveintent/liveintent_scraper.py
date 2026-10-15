@@ -22,7 +22,6 @@ async def main():
     super_scraper = SuperScraper()
     options.binary_location = super_scraper.CHROMIUM_LOCATION
     options.add_argument("--no-sandbox")
-    options.add_argument("--window-size=1280,1400")
 
     async with Chrome(options=options) as browser:
         tab = await browser.start()
@@ -36,8 +35,7 @@ async def main():
             print(f"{super_scraper.OOPS} email field not found")
 
         await asyncio.sleep(1)
-        await tab.take_screenshot(path="resources/screenshots/liveintent_dry_run.png", beyond_viewport=True)
-        print("Screenshot saved to resources/screenshots/liveintent_dry_run.png")
+        await SuperScraper.screenshot(tab, "resources/screenshots/liveintent_dry_run.png", beyond_viewport=True)
         print(
             f"Email {SuperScraper.EMAIL} entered but NOT submitted — clicking Submit sends a "
             "real verification email. Do that yourself, then follow the personalized link to "

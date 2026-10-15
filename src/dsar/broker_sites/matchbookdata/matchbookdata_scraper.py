@@ -45,9 +45,7 @@ async def main():
             await email_field.type_text(SuperScraper.EMAIL)
 
         await asyncio.sleep(1)
-        await tab.take_screenshot(path="resources/screenshots/matchbookdata_dry_run.png")
-        print("Screenshot saved to resources/screenshots/matchbookdata_dry_run.png")
-
+        await SuperScraper.screenshot(tab, "resources/screenshots/matchbookdata_dry_run.png")
         if SuperScraper.DRY_RUN:
             print(f"DRY RUN: would submit opt-out/deletion request for {SuperScraper.EMAIL} (device ID: {SuperScraper.ADVERTISING_ID})")
             return

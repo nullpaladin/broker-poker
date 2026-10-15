@@ -15,12 +15,13 @@ from src.dsar.super_scraper import SuperScraper
 
 URL = "https://privacyportal.onetrust.com/webform/c3eb779a-028a-4045-aefc-ac78be730689/6f6c2bef-b565-4753-adc6-95585d7a9486"
 
-ALWAYS_REQUESTS = [
-    "Do Not Sell My Information",
-    "Access My Information (Limited States)",
-    "Correct My Information (Limited States)",
-]
-DELETE_REQUEST = "Delete My Information (Limited States)"
+RIGHT_MAP = {
+    "access": ["Access My Information (Limited States)"],
+    "correct": ["Correct My Information (Limited States)"],
+    "opt_out_sale_share": ["Do Not Sell My Information"],
+    "delete": ["Delete My Information (Limited States)"],
+}
+RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
 
 
 async def _autocomplete(tab, field_id, text):
@@ -45,7 +46,6 @@ async def main():
     super_scraper = SuperScraper()
     options.binary_location = super_scraper.CHROMIUM_LOCATION
     options.add_argument("--no-sandbox")
-    options.add_argument("--window-size=1280,3000")
 
     async with Chrome(options=options) as browser:
         tab = await browser.start()
@@ -53,9 +53,11 @@ async def main():
         await asyncio.sleep(7)
 
         # Rights (multi-select)
-        requests = list(ALWAYS_REQUESTS)
-        if SuperScraper.REMOVE_INFORMATION:
-            requests.append(DELETE_REQUEST)
+        codes = SuperScraper.rights_to_exercise(RIGHT_MAP)
+        if not codes:
+            print("No requested privacy rights apply to this form — nothing to do.")
+            return
+        requests = [entry for code in codes for entry in RIGHT_MAP[code]]
 
         for req_label in requests:
             btn = await tab.find(**{"aria-label": req_label}, raise_exc=False)
@@ -134,8 +136,7 @@ async def main():
             if captcha_field:
                 await captcha_field.scroll_into_view()
             await asyncio.sleep(1)
-            await tab.take_screenshot("resources/screenshots/propertyradar_dry_run.png")
-            print("Screenshot saved to resources/screenshots/propertyradar_dry_run.png")
+            await SuperScraper.screenshot(tab, "resources/screenshots/propertyradar_dry_run.png")
             return
 
         print(

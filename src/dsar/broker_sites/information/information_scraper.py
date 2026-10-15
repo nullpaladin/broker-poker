@@ -47,8 +47,7 @@ async def submit_know(tab, super_scraper):
     if SuperScraper.DRY_RUN:
         print(f"DRY RUN: would submit Right To Know request for {SuperScraper.FIRST_NAME} {SuperScraper.LAST_NAME}")
         await asyncio.sleep(1)
-        await tab.take_screenshot(path="resources/screenshots/information_dry_run_know.png")
-        print("Screenshot saved to resources/screenshots/information_dry_run_know.png")
+        await SuperScraper.screenshot(tab, "resources/screenshots/information_dry_run_know.png")
         return
 
     submit = await tab.find(text="SUBMIT REQUEST", raise_exc=False)
@@ -84,8 +83,7 @@ async def submit_delete(tab, super_scraper):
     if SuperScraper.DRY_RUN:
         print(f"DRY RUN: would submit Right To Delete request for {SuperScraper.FIRST_NAME} {SuperScraper.LAST_NAME}")
         await asyncio.sleep(1)
-        await tab.take_screenshot(path="resources/screenshots/information_dry_run_delete.png")
-        print("Screenshot saved to resources/screenshots/information_dry_run_delete.png")
+        await SuperScraper.screenshot(tab, "resources/screenshots/information_dry_run_delete.png")
         return
 
     submit = await tab.find(text="SUBMIT REQUEST", raise_exc=False)
@@ -119,8 +117,7 @@ async def submit_opt_out(tab, super_scraper):
     )
 
     await asyncio.sleep(1)
-    await tab.take_screenshot(path="resources/screenshots/information_dry_run_optout.png")
-    print("Screenshot saved to resources/screenshots/information_dry_run_optout.png")
+    await SuperScraper.screenshot(tab, "resources/screenshots/information_dry_run_optout.png")
     print(
         "\nOpt-Out (Suppression Center) email entered but NOT sent — click 'Continue' "
         "yourself, check your inbox for the verification link, click it, and complete "
@@ -138,7 +135,7 @@ async def main():
     async with Chrome(options=options) as browser:
         tab = await browser.start()
         await submit_know(tab, super_scraper)
-        if SuperScraper.REMOVE_INFORMATION:
+        if SuperScraper.wants("delete"):
             await submit_delete(tab, super_scraper)
         else:
             print("Skipping Right To Delete — REMOVE_INFORMATION is False.")

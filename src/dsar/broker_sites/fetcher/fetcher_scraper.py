@@ -20,7 +20,6 @@ async def main():
     super_scraper = SuperScraper()
     options.binary_location = super_scraper.CHROMIUM_LOCATION
     options.add_argument("--no-sandbox")
-    options.add_argument("--window-size=1280,1600")
 
     async with Chrome(options=options) as browser:
         tab = await browser.start()
@@ -43,8 +42,7 @@ async def main():
                 print(f"{super_scraper.OOPS} field '{field_id}' not found")
 
         await asyncio.sleep(1)
-        await tab.take_screenshot(path="resources/screenshots/fetcher_dry_run.png", beyond_viewport=True)
-        print("Screenshot saved to resources/screenshots/fetcher_dry_run.png")
+        await SuperScraper.screenshot(tab, "resources/screenshots/fetcher_dry_run.png", beyond_viewport=True)
         print(
             "Opt-out request filled but NOT submitted — solve the reCAPTCHA v2 "
             "checkbox manually, then click Submit."

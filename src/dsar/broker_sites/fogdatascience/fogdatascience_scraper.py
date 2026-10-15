@@ -21,8 +21,12 @@ from src.dsar.super_scraper import SuperScraper
 
 URL = "https://www.fogdatascience.com/opt-out"
 
-RIGHTS = ["Right to Know", "Right to Access", "Right to Opt-out"]
-DELETE_RIGHT = "Right to Delete"
+RIGHT_MAP = {
+    "access": ["Right to Know", "Right to Access"],
+    "opt_out_sale_share": ["Right to Opt-out"],
+    "delete": ["Right to Delete"],
+}
+RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
 
 REQUEST_TEXT = (
     "I am exercising my applicable state privacy rights with respect to the "
@@ -53,7 +57,6 @@ async def main():
     super_scraper = SuperScraper()
     options.binary_location = super_scraper.CHROMIUM_LOCATION
     options.add_argument("--no-sandbox")
-    options.add_argument("--window-size=1280,3200")
 
     async with Chrome(options=options) as browser:
         tab = await browser.start()
@@ -97,15 +100,16 @@ async def main():
 
         await _check_by_text(tab, super_scraper, "Yes")
 
-        rights = list(RIGHTS)
-        if SuperScraper.REMOVE_INFORMATION:
-            rights.append(DELETE_RIGHT)
+        codes = SuperScraper.rights_to_exercise(RIGHT_MAP)
+        if not codes:
+            print("No requested privacy rights apply to this form — nothing to do.")
+            return
+        rights = [entry for code in codes for entry in RIGHT_MAP[code]]
         for r in rights:
             await _check_by_text(tab, super_scraper, r)
 
         await asyncio.sleep(1)
-        await tab.take_screenshot(path="resources/screenshots/fogdatascience_dry_run.png", beyond_viewport=True)
-        print("Screenshot saved to resources/screenshots/fogdatascience_dry_run.png")
+        await SuperScraper.screenshot(tab, "resources/screenshots/fogdatascience_dry_run.png", beyond_viewport=True)
         print("Request filled but NOT submitted — solve the reCAPTCHA manually, then Submit.")
 
 

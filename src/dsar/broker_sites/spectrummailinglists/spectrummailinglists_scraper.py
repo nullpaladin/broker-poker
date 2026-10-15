@@ -12,7 +12,6 @@
 # Google Form text inputs have no aria-label -> reached via a role="listitem"-
 # scoped xpath. Radio uses aria-label. Dropdown is role="listbox"/"option".
 import asyncio
-import re
 
 from pydoll.browser.chromium import Chrome
 from pydoll.browser.options import ChromiumOptions
@@ -23,30 +22,6 @@ FORM_URL = (
     "https://docs.google.com/forms/d/e/"
     "1FAIpQLSeOxYNRRsFd1SBrN7LZZgSNrS2YJX00VhvdiUVTcrUgmW_8Xw/viewform"
 )
-
-_WORDS = {
-    "zero": 0, "one": 1, "two": 2, "three": 3, "four": 4, "five": 5,
-    "six": 6, "seven": 7, "eight": 8, "nine": 9, "ten": 10,
-}
-
-
-def _num(token):
-    token = token.strip().lower()
-    return _WORDS.get(token, int(token) if token.lstrip("-").isdigit() else None)
-
-
-def solve_arithmetic(question):
-    m = re.search(r"([\w-]+)\s*(plus|minus|\+|-|times|multiplied by|x)\s*([\w-]+)", question, re.I)
-    if not m:
-        return None
-    a, op, b = _num(m.group(1)), m.group(2).lower(), _num(m.group(3))
-    if a is None or b is None:
-        return None
-    if op in ("plus", "+"):
-        return str(a + b)
-    if op in ("minus", "-"):
-        return str(a - b)
-    return str(a * b)
 
 
 async def fill_text(tab, super_scraper, question, value, para=False):
@@ -68,7 +43,6 @@ async def main():
     super_scraper = SuperScraper()
     options.binary_location = super_scraper.CHROMIUM_LOCATION
     options.add_argument("--no-sandbox")
-    options.add_argument("--window-size=1280,2600")
 
     async with Chrome(options=options) as browser:
         tab = await browser.start()
@@ -90,7 +64,7 @@ async def main():
         await fill_text(tab, super_scraper, "City", SuperScraper.CITY)
         await fill_text(tab, super_scraper, "Zip Code", SuperScraper.ZIP_CODE)
 
-        state_abbr = await SuperScraper.state_full_name_to_abbreviated(SuperScraper.STATE)
+        state_abbr = SuperScraper.STATE_ABBREVIATED
         listbox = await tab.find(
             xpath="//div[@role='listitem'][.//span[contains(normalize-space(.), 'State')]]//div[@role='listbox']",
             raise_exc=False,
@@ -116,7 +90,7 @@ async def main():
             "return li ? li.innerText : '';"
         )
         q_text = raw.get("result", {}).get("result", {}).get("value") if isinstance(raw, dict) else raw
-        answer = solve_arithmetic(q_text or "")
+        answer = SuperScraper.solve_math_captcha(q_text or "")
         if answer is not None:
             # The math answer is the last short-text input on the form. It needs
             # a scroll_into_view + settle before typing — Google Forms otherwise
@@ -138,11 +112,7 @@ async def main():
             print(f"{super_scraper.OOPS} could not parse arithmetic question: {q_text!r}")
 
         await asyncio.sleep(1)
-        await tab.take_screenshot(
-            path="resources/screenshots/spectrummailinglists_dry_run.png", beyond_viewport=True
-        )
-        print("Screenshot saved to resources/screenshots/spectrummailinglists_dry_run.png")
-
+        await SuperScraper.screenshot(tab, "resources/screenshots/spectrummailinglists_dry_run.png", beyond_viewport=True)
         if SuperScraper.DRY_RUN:
             print(
                 f"DRY RUN: would submit opt-out for "

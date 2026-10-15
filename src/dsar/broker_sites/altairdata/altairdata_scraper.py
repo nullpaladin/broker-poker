@@ -21,12 +21,12 @@ from src.dsar.super_scraper import SuperScraper
 
 URL = "https://datacloudhome.atlassian.net/servicedesk/customer/portal/12/group/35/create/158"
 
-CHECKBOXES = [
-    "Opt-Out of Sale of Personal Information",
-    "Opt-Out of Information Sharing",
-    "Opt-Out of Use of Sensitive Personal Information",
-]
-DELETE_CHECKBOX = "Deletion of My Consumer Information"
+RIGHT_MAP = {
+    "opt_out_sale_share": ["Opt-Out of Sale of Personal Information", "Opt-Out of Information Sharing"],
+    "limit_sensitive_pi": ["Opt-Out of Use of Sensitive Personal Information"],
+    "delete": ["Deletion of My Consumer Information"],
+}
+RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
 
 
 async def main():
@@ -77,9 +77,11 @@ async def main():
         if zip_field:
             await zip_field.type_text(SuperScraper.ZIP_CODE)
 
-        checkboxes = list(CHECKBOXES)
-        if SuperScraper.REMOVE_INFORMATION:
-            checkboxes.append(DELETE_CHECKBOX)
+        codes = SuperScraper.rights_to_exercise(RIGHT_MAP)
+        if not codes:
+            print("No requested privacy rights apply to this form — nothing to do.")
+            return
+        checkboxes = [entry for code in codes for entry in RIGHT_MAP[code]]
         for label in checkboxes:
             box = await tab.find(name=label, raise_exc=False)
             if box:
@@ -87,8 +89,7 @@ async def main():
                 await asyncio.sleep(0.3)
 
         await asyncio.sleep(1)
-        await tab.take_screenshot(path="resources/screenshots/altairdata_prefilled.png")
-        print("Screenshot saved to resources/screenshots/altairdata_prefilled.png")
+        await SuperScraper.screenshot(tab, "resources/screenshots/altairdata_prefilled.png")
         print(
             "\nForm pre-filled but NOT submitted. Altair's portal requires checking an "
             "attestation that this is an individual, manual submission (not automated) "

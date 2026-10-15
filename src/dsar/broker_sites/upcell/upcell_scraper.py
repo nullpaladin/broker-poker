@@ -46,9 +46,7 @@ async def submit_request(tab, request_type, label, super_scraper):
         )
 
     time.sleep(0.5)
-    await tab.take_screenshot(f"resources/screenshots/upcell_dry_run_{label}.png")
-    print(f"Screenshot saved to resources/screenshots/upcell_dry_run_{label}.png")
-
+    await SuperScraper.screenshot(tab, f"resources/screenshots/upcell_dry_run_{label}.png")
     if SuperScraper.DRY_RUN:
         print(
             f"DRY RUN: would submit '{request_type}' for "
@@ -72,7 +70,6 @@ async def main():
     super_scraper = SuperScraper()
     options.binary_location = super_scraper.CHROMIUM_LOCATION
     options.add_argument("--no-sandbox")
-    options.add_argument("--window-size=1280,2000")
 
     async with Chrome(options=options) as browser:
         tab = await browser.start()

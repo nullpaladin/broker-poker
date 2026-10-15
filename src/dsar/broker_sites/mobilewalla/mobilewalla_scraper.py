@@ -25,8 +25,12 @@ from pydoll.browser.options import ChromiumOptions
 URL = "https://www.mobilewalla.com/global-opt-out-request"
 
 CHECKBOX_INDEXES = {"deletion": 0, "opt_out": 1, "access": 2, "limit_sensitive": 3}
-RIGHTS = ["opt_out", "access"]
-DELETE_RIGHT = "deletion"
+RIGHT_MAP = {
+    "access": ["access"],
+    "opt_out_sale_share": ["opt_out"],
+    "delete": ["deletion"],
+}
+RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
 
 
 async def main():
@@ -45,9 +49,11 @@ async def main():
             await decline_cookies.click()
             await asyncio.sleep(1)
 
-        rights = list(RIGHTS)
-        if SuperScraper.REMOVE_INFORMATION:
-            rights.append(DELETE_RIGHT)
+        codes = SuperScraper.rights_to_exercise(RIGHT_MAP)
+        if not codes:
+            print("No requested privacy rights apply to this form — nothing to do.")
+            return
+        rights = [entry for code in codes for entry in RIGHT_MAP[code]]
 
         checkboxes = await tab.find(xpath="//input[@name='info-request']", find_all=True, raise_exc=False) or []
         for right in rights:
@@ -84,6 +90,9 @@ async def main():
                 "this.dispatchEvent(new Event('change', {bubbles:true}));"
             )
 
+        # "Verify you are a resident..." — the first radio is "Yes". Correct for
+        # any privacy-law state (a business honoring CCPA rights must honor the
+        # equivalent request from that state's residents).
         resident_radios = await tab.find(xpath="//input[@name='verify-resident']", find_all=True, raise_exc=False) or []
         if resident_radios:
             await resident_radios[0].click()
@@ -91,8 +100,7 @@ async def main():
             print(f"{super_scraper.OOPS} verify-resident radios not found")
 
         await asyncio.sleep(1)
-        await tab.take_screenshot(path="resources/screenshots/mobilewalla_dry_run.png")
-        print("Screenshot saved to resources/screenshots/mobilewalla_dry_run.png")
+        await SuperScraper.screenshot(tab, "resources/screenshots/mobilewalla_dry_run.png")
         print(
             "\nForm filled but NOT submitted — a reCAPTCHA v2 checkbox is present and "
             "requires a manual solve before submitting."

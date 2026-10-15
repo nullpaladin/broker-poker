@@ -19,20 +19,12 @@ from src.dsar.super_scraper import SuperScraper
 
 URL = "https://specialtycontactdatabases.com/do-not-sell/"
 
-RIGHTS = [
-    ("Request to Know", "access"),
-    ("Do Not Sell My Info", "opt_out"),
-]
-DELETE_RIGHT = ("Delete My Info", "delete")
-
-
-async def _select_by_text(select_element, text):
-    await select_element.execute_script(
-        "for (var i=0;i<this.options.length;i++){"
-        f"  if(this.options[i].text==={text!r}){{ this.selectedIndex=i; }}"
-        "}"
-        "this.dispatchEvent(new Event('change', {bubbles:true}));"
-    )
+RIGHT_MAP = {
+    "access": [("Request to Know", "access")],
+    "opt_out_sale_share": [("Do Not Sell My Info", "opt_out")],
+    "delete": [("Delete My Info", "delete")],
+}
+RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
 
 
 async def submit_request(tab, value_prefix, label, super_scraper):
@@ -71,11 +63,10 @@ async def submit_request(tab, value_prefix, label, super_scraper):
 
     country = await tab.find(id="input_2_6_6", raise_exc=False)
     if country:
-        await _select_by_text(country, "United States")
+        await SuperScraper.select_native_option(country, text="United States")
 
     await asyncio.sleep(1)
-    await tab.take_screenshot(path=f"resources/screenshots/specialtycontactdatabases_dry_run_{label}.png")
-    print(f"Screenshot saved to resources/screenshots/specialtycontactdatabases_dry_run_{label}.png")
+    await SuperScraper.screenshot(tab, f"resources/screenshots/specialtycontactdatabases_dry_run_{label}.png")
     print(
         f"'{value_prefix}' request filled but NOT submitted — a reCAPTCHA v2 "
         f"checkbox must be solved manually before Submit."
@@ -87,11 +78,12 @@ async def main():
     super_scraper = SuperScraper()
     options.binary_location = super_scraper.CHROMIUM_LOCATION
     options.add_argument("--no-sandbox")
-    options.add_argument("--window-size=1280,3000")
 
-    rights = list(RIGHTS)
-    if SuperScraper.REMOVE_INFORMATION:
-        rights.append(DELETE_RIGHT)
+    codes = SuperScraper.rights_to_exercise(RIGHT_MAP)
+    if not codes:
+        print("No requested privacy rights apply to this form — nothing to do.")
+        return
+    rights = [entry for code in codes for entry in RIGHT_MAP[code]]
 
     async with Chrome(options=options) as browser:
         tab = await browser.start()

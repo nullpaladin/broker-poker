@@ -20,14 +20,13 @@ async def main():
     super_scraper = SuperScraper()
     options.binary_location = super_scraper.CHROMIUM_LOCATION
     options.add_argument("--no-sandbox")
-    options.add_argument("--window-size=1280,2000")
 
     purpose = (
         "I am a resident exercising my privacy rights: please opt me out of the "
         "sale/sharing of my personal information and of targeted advertising, and "
         "provide me access to the personal information you hold about me"
     )
-    if SuperScraper.REMOVE_INFORMATION:
+    if SuperScraper.wants("delete"):
         purpose += ", and delete all personal information you hold about me"
     purpose += "."
 
@@ -51,9 +50,7 @@ async def main():
         submit = await tab.find(xpath="//form[@id='opt-out-form']//button[@type='submit']", raise_exc=False)
         if submit:
             await submit.scroll_into_view()
-        await tab.take_screenshot("resources/screenshots/vector_dry_run.png")
-        print("Screenshot saved to resources/screenshots/vector_dry_run.png")
-
+        await SuperScraper.screenshot(tab, "resources/screenshots/vector_dry_run.png")
         if SuperScraper.DRY_RUN:
             print(
                 f"DRY RUN: would submit opt-out for "

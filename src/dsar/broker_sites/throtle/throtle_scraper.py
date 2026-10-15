@@ -38,13 +38,16 @@ from pydoll.browser.options import ChromiumOptions
 
 URL = "https://privacyportal.onetrust.com/webform/07e8dc4d-6686-403e-9b11-39fe7347d2f4/2f999bd2-c826-498c-a504-894eaf543b6f"
 
-RIGHTS = [
-    "The right to access my personal information",
-    "The right to opt-out of the sale or “sharing” of my personal information",
-    "The right to opt-out of the use of my personal information for targeted advertising purposes",
-    "A data portability request",
-]
-DELETE_RIGHT = "The right to delete my personal information"
+RIGHT_MAP = {
+    "access": ["The right to access my personal information"],
+    "opt_out_sale_share": ["The right to opt-out of the sale or “sharing” of my personal information"],
+    "opt_out_targeted_ads": [
+        "The right to opt-out of the use of my personal information for targeted advertising purposes"
+    ],
+    "portability": ["A data portability request"],
+    "delete": ["The right to delete my personal information"],
+}
+RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
 
 
 async def _select_option(tab, option_text, super_scraper, description):
@@ -61,11 +64,12 @@ async def main():
     super_scraper = SuperScraper()
     options.binary_location = super_scraper.CHROMIUM_LOCATION
     options.add_argument("--no-sandbox")
-    options.add_argument("--window-size=1280,3000")
 
-    rights = list(RIGHTS)
-    if SuperScraper.REMOVE_INFORMATION:
-        rights.append(DELETE_RIGHT)
+    codes = SuperScraper.rights_to_exercise(RIGHT_MAP)
+    if not codes:
+        print("No requested privacy rights apply to this form — nothing to do.")
+        return
+    rights = list(dict.fromkeys(label for c in codes for label in RIGHT_MAP[c]))
 
     async with Chrome(options=options) as browser:
         tab = await browser.start()
@@ -160,8 +164,7 @@ async def main():
             print(f"{super_scraper.OOPS} Zip Code field not found")
 
         await asyncio.sleep(1)
-        await tab.take_screenshot(path="resources/screenshots/throtle_dry_run.png")
-        print("Screenshot saved to resources/screenshots/throtle_dry_run.png")
+        await SuperScraper.screenshot(tab, "resources/screenshots/throtle_dry_run.png")
         print(
             "\nRequest filled but NOT submitted — a reCAPTCHA v2 checkbox requires a manual "
             "solve before submitting."

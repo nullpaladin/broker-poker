@@ -31,8 +31,12 @@ from pydoll.browser.options import ChromiumOptions
 
 URL = "https://forms.monday.com/forms/2e643e95786ac0c2cdf2dca015d20c68?r=use1"
 
-RIGHTS = ["Right to Know or Access my Personal Data", "Right to opt-out of Sale"]
-DELETE_RIGHT = "Right to Delete my Personal Data"
+RIGHT_MAP = {
+    "access": ["Right to Know or Access my Personal Data"],
+    "opt_out_sale_share": ["Right to opt-out of Sale"],
+    "delete": ["Right to Delete my Personal Data"],
+}
+RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
 
 
 async def _open_and_select(tab, input_id, option_text, super_scraper, description):
@@ -93,9 +97,7 @@ async def submit_request(tab, right, super_scraper):
     label = "".join(c if c.isalnum() else "_" for c in right.lower())[:40].strip("_")
 
     await asyncio.sleep(1)
-    await tab.take_screenshot(path=f"resources/screenshots/perion_dry_run_{label}.png")
-    print(f"Screenshot saved to resources/screenshots/perion_dry_run_{label}.png")
-
+    await SuperScraper.screenshot(tab, f"resources/screenshots/perion_dry_run_{label}.png")
     if SuperScraper.DRY_RUN:
         print(f"DRY RUN: would submit '{right}' for {SuperScraper.FIRST_NAME} {SuperScraper.LAST_NAME}")
         return
@@ -115,9 +117,11 @@ async def main():
     options.binary_location = super_scraper.CHROMIUM_LOCATION
     options.add_argument("--no-sandbox")
 
-    rights = list(RIGHTS)
-    if SuperScraper.REMOVE_INFORMATION:
-        rights.append(DELETE_RIGHT)
+    codes = SuperScraper.rights_to_exercise(RIGHT_MAP)
+    if not codes:
+        print("No requested privacy rights apply to this form — nothing to do.")
+        return
+    rights = [entry for code in codes for entry in RIGHT_MAP[code]]
 
     async with Chrome(options=options) as browser:
         tab = await browser.start()

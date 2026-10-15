@@ -42,34 +42,13 @@ PRIVACY_RIGHTS_URL = "https://www.usa-people-search.com/privacy-rights"
 REMOVAL_URL = "https://www.usa-people-search.com/removal"
 
 
-async def _select_native_option(select_element, option_value):
-    await select_element.execute_script(
-        "for (var i=0;i<this.options.length;i++){"
-        f"  if(this.options[i].value==={option_value!r}){{ this.selectedIndex=i; }}"
-        "}"
-        "this.dispatchEvent(new Event('change', {bubbles:true}));"
-    )
-
-
-async def _set_text_via_js(field_element, value):
-    # A CSS fade/slide-in transition on this form intermittently makes
-    # pydoll's click-based type_text() raise ElementNotVisible even after
-    # confirming offsetParent is set — set the value directly via JS
-    # instead, which doesn't require the element to be clickable.
-    await field_element.execute_script(
-        f"this.value = {value!r};"
-        "this.dispatchEvent(new Event('input', {bubbles:true}));"
-        "this.dispatchEvent(new Event('change', {bubbles:true}));"
-    )
-
-
 async def submit_request(tab, request_type, super_scraper):
     await tab.go_to(PRIVACY_RIGHTS_URL)
     await asyncio.sleep(5)
 
     choose_option_select = await tab.find(id="chooseOption", raise_exc=False)
     if choose_option_select:
-        await _select_native_option(choose_option_select, "ADC")
+        await SuperScraper.select_native_option(choose_option_select, value="ADC")
         # The ADC form section fades/slides in — poll until it's actually
         # visible rather than a fixed sleep, since a fixed short sleep was
         # intermittently too short and caused ElementNotVisible errors.
@@ -90,13 +69,13 @@ async def submit_request(tab, request_type, super_scraper):
 
     request_type_select = await tab.find(id="adc-request-type", raise_exc=False)
     if request_type_select:
-        await _select_native_option(request_type_select, request_type)
+        await SuperScraper.select_native_option(request_type_select, value=request_type)
     else:
         print(f"{super_scraper.OOPS} Request Type select not found")
 
     interactions_select = await tab.find(id="adc-company-interactions", raise_exc=False)
     if interactions_select:
-        await _select_native_option(interactions_select, "no-relation")
+        await SuperScraper.select_native_option(interactions_select, value="no-relation")
     else:
         print(f"{super_scraper.OOPS} Company interactions select not found")
 
@@ -114,7 +93,7 @@ async def submit_request(tab, request_type, super_scraper):
             continue
         field = await tab.find(id=field_id, raise_exc=False)
         if field:
-            await _set_text_via_js(field, value)
+            await SuperScraper.js_set_value(field, value)
         else:
             print(f"{super_scraper.OOPS} field '{field_id}' not found")
 
@@ -123,26 +102,25 @@ async def submit_request(tab, request_type, super_scraper):
         dob_field = await tab.find(id="adc-dob", raise_exc=False)
         if dob_field:
             # Native <input type="date"> — set via JS in ISO format (YYYY-MM-DD).
-            await _set_text_via_js(dob_field, f"{year}-{month}-{day}")
+            await SuperScraper.js_set_value(dob_field, f"{year}-{month}-{day}")
         else:
             print(f"{super_scraper.OOPS} Date of Birth field not found")
 
     user_type_select = await tab.find(id="adc-user-type", raise_exc=False)
     if user_type_select:
-        await _select_native_option(user_type_select, "subject")
+        await SuperScraper.select_native_option(user_type_select, value="subject")
     else:
         print(f"{super_scraper.OOPS} 'I am' select not found")
 
     state_select = await tab.find(id="adc-state", raise_exc=False)
     if state_select:
-        await _select_native_option(state_select, SuperScraper.STATE.lower())
+        await SuperScraper.select_native_option(state_select, value=SuperScraper.STATE.lower())
     else:
         print(f"{super_scraper.OOPS} State select not found")
 
     label = "".join(c if c.isalnum() else "_" for c in request_type.lower())[:40].strip("_")
     await asyncio.sleep(1)
-    await tab.take_screenshot(path=f"resources/screenshots/usa_people_search_dry_run_{label}.png")
-    print(f"Screenshot saved to resources/screenshots/usa_people_search_dry_run_{label}.png")
+    await SuperScraper.screenshot(tab, f"resources/screenshots/usa_people_search_dry_run_{label}.png")
     print(
         f"\n'{request_type}' request filled but NOT submitted — Google reCAPTCHA Enterprise "
         "requires a manual solve before submitting."
@@ -155,7 +133,7 @@ async def submit_removal_step1(tab, super_scraper):
 
     user_type_select = await tab.find(id="user-type", raise_exc=False)
     if user_type_select:
-        await _select_native_option(user_type_select, "subject")
+        await SuperScraper.select_native_option(user_type_select, value="subject")
     else:
         print(f"{super_scraper.OOPS} 'I am' select not found")
 
@@ -167,7 +145,7 @@ async def submit_removal_step1(tab, super_scraper):
     for field_id, value in fields.items():
         field = await tab.find(id=field_id, raise_exc=False)
         if field:
-            await _set_text_via_js(field, value)
+            await SuperScraper.js_set_value(field, value)
         else:
             print(f"{super_scraper.OOPS} field '{field_id}' not found")
 
@@ -178,8 +156,7 @@ async def submit_removal_step1(tab, super_scraper):
         print(f"{super_scraper.OOPS} agreement checkbox not found")
 
     await asyncio.sleep(1)
-    await tab.take_screenshot(path="resources/screenshots/usa_people_search_dry_run_removal_step1.png")
-    print("Screenshot saved to resources/screenshots/usa_people_search_dry_run_removal_step1.png")
+    await SuperScraper.screenshot(tab, "resources/screenshots/usa_people_search_dry_run_removal_step1.png")
     print(
         "\nOpt-Out Form step 1 filled but NOT submitted — Google reCAPTCHA Enterprise requires "
         "a manual solve, and submitting only emails a continuation link (step 2, the actual "
@@ -192,12 +169,11 @@ async def main():
     super_scraper = SuperScraper()
     options.binary_location = super_scraper.CHROMIUM_LOCATION
     options.add_argument("--no-sandbox")
-    options.add_argument("--window-size=1280,3000")
 
     async with Chrome(options=options) as browser:
         tab = await browser.start()
         await submit_request(tab, "right_to_know", super_scraper)
-        if SuperScraper.REMOVE_INFORMATION:
+        if SuperScraper.wants("delete"):
             await submit_removal_step1(tab, super_scraper)
 
 

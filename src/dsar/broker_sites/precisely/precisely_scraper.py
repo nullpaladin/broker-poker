@@ -45,11 +45,17 @@ from pydoll.browser.options import ChromiumOptions
 PRECISELY_URL = "https://privacyportal-eu.onetrust.com/webform/d88b298e-1f7e-420f-949c-fedc475c1e77/draft/9c253316-9abf-49fb-a3e1-a4e214c4cf41"
 PLACEIQ_URL = "https://privacyportal-eu.onetrust.com/webform/d88b298e-1f7e-420f-949c-fedc475c1e77/83126462-6c9f-4d90-9077-f029b129a2a6"
 
-PRECISELY_RIGHTS = ["Right to Know - Categories", "Right to Opt Out of the Sale of Personal Information"]
-PRECISELY_DELETE_RIGHT = "Right to Delete"
-
-PLACEIQ_RIGHTS = ["Right to Know - Categories", "Opt-out of the Sale/Sharing of Personal Information"]
-PLACEIQ_DELETE_RIGHT = "Delete Personal Information"
+PRECISELY_RIGHT_MAP = {
+    "access": ["Right to Know - Categories"],
+    "opt_out_sale_share": ["Right to Opt Out of the Sale of Personal Information"],
+    "delete": ["Right to Delete"],
+}
+PLACEIQ_RIGHT_MAP = {
+    "access": ["Right to Know - Categories"],
+    "opt_out_sale_share": ["Opt-out of the Sale/Sharing of Personal Information"],
+    "delete": ["Delete Personal Information"],
+}
+RIGHTS_SUPPORTED = ("access", "opt_out_sale_share", "delete")
 
 
 async def _autocomplete_select(tab, field_id, text, super_scraper, description):
@@ -104,8 +110,7 @@ async def submit_precisely(tab, right, super_scraper):
 
     label = "".join(c if c.isalnum() else "_" for c in right.lower())[:40].strip("_")
     await asyncio.sleep(1)
-    await tab.take_screenshot(path=f"resources/screenshots/precisely_dry_run_{label}.png")
-    print(f"Screenshot saved to resources/screenshots/precisely_dry_run_{label}.png")
+    await SuperScraper.screenshot(tab, f"resources/screenshots/precisely_dry_run_{label}.png")
     print(f"\n[Precisely] '{right}' request filled but NOT submitted — reCAPTCHA v2 requires a manual solve.")
 
 
@@ -135,8 +140,7 @@ async def submit_placeiq(tab, right, super_scraper):
 
     label = "".join(c if c.isalnum() else "_" for c in right.lower())[:40].strip("_")
     await asyncio.sleep(1)
-    await tab.take_screenshot(path=f"resources/screenshots/placeiq_dry_run_{label}.png")
-    print(f"Screenshot saved to resources/screenshots/placeiq_dry_run_{label}.png")
+    await SuperScraper.screenshot(tab, f"resources/screenshots/placeiq_dry_run_{label}.png")
     print(f"\n[PlaceIQ] '{right}' request filled but NOT submitted — reCAPTCHA v2 requires a manual solve.")
 
 
@@ -146,11 +150,13 @@ async def main():
     options.binary_location = super_scraper.CHROMIUM_LOCATION
     options.add_argument("--no-sandbox")
 
-    precisely_rights = list(PRECISELY_RIGHTS)
-    placeiq_rights = list(PLACEIQ_RIGHTS)
-    if SuperScraper.REMOVE_INFORMATION:
-        precisely_rights.append(PRECISELY_DELETE_RIGHT)
-        placeiq_rights.append(PLACEIQ_DELETE_RIGHT)
+    precisely_codes = SuperScraper.rights_to_exercise(PRECISELY_RIGHT_MAP)
+    placeiq_codes = SuperScraper.rights_to_exercise(PLACEIQ_RIGHT_MAP)
+    if not (precisely_codes or placeiq_codes):
+        print("No requested privacy rights apply to these forms — nothing to do.")
+        return
+    precisely_rights = [r for c in precisely_codes for r in PRECISELY_RIGHT_MAP[c]]
+    placeiq_rights = [r for c in placeiq_codes for r in PLACEIQ_RIGHT_MAP[c]]
 
     async with Chrome(options=options) as browser:
         tab = await browser.start()

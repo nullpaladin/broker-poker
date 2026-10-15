@@ -24,7 +24,6 @@ async def main():
     super_scraper = SuperScraper()
     options.binary_location = super_scraper.CHROMIUM_LOCATION
     options.add_argument("--no-sandbox")
-    options.add_argument("--window-size=1280,2200")
 
     async with Chrome(options=options) as browser:
         tab = await browser.start()
@@ -45,9 +44,7 @@ async def main():
             print(f"{super_scraper.OOPS} 'Enter Advertising ID' field not found in iframe")
 
         await asyncio.sleep(1)
-        await tab.take_screenshot(path="resources/screenshots/motrixi_dry_run.png", beyond_viewport=True)
-        print("Screenshot saved to resources/screenshots/motrixi_dry_run.png")
-
+        await SuperScraper.screenshot(tab, "resources/screenshots/motrixi_dry_run.png", beyond_viewport=True)
         if SuperScraper.DRY_RUN:
             print(f"DRY RUN: would submit opt-out for advertising ID {SuperScraper.ADVERTISING_ID}")
             return

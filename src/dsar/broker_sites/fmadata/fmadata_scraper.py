@@ -17,20 +17,12 @@ from src.dsar.super_scraper import SuperScraper
 
 URL = "https://www.fmadata.com/opt-out-requests/new"
 
-RIGHTS = [
-    ("opt_out", "opt_out"),
-    ("disclosure", "access"),
-]
-DELETE_RIGHT = ("deletion", "delete")
-
-
-async def _select_by_value(select_element, value):
-    await select_element.execute_script(
-        "for (var i=0;i<this.options.length;i++){"
-        f"  if(this.options[i].value==={value!r}){{ this.selectedIndex=i; }}"
-        "}"
-        "this.dispatchEvent(new Event('change', {bubbles:true}));"
-    )
+RIGHT_MAP = {
+    "access": [("disclosure", "access")],
+    "opt_out_sale_share": [("opt_out", "opt_out")],
+    "delete": [("deletion", "delete")],
+}
+RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
 
 
 async def submit_request(tab, request_type, label, super_scraper):
@@ -41,7 +33,7 @@ async def submit_request(tab, request_type, label, super_scraper):
     if not rt:
         print(f"{super_scraper.OOPS} request_type select not found")
         return
-    await _select_by_value(rt, request_type)
+    await SuperScraper.select_native_option(rt, value=request_type)
     await asyncio.sleep(0.3)
 
     full_name = " ".join(p for p in (SuperScraper.FIRST_NAME, SuperScraper.LAST_NAME) if p)
@@ -70,8 +62,7 @@ async def submit_request(tab, request_type, label, super_scraper):
         print(f"{super_scraper.OOPS} authorized-agent 'No' radio not found")
 
     await asyncio.sleep(1)
-    await tab.take_screenshot(path=f"resources/screenshots/fmadata_dry_run_{label}.png")
-    print(f"Screenshot saved to resources/screenshots/fmadata_dry_run_{label}.png")
+    await SuperScraper.screenshot(tab, f"resources/screenshots/fmadata_dry_run_{label}.png")
     print(
         f"'{request_type}' request filled but NOT submitted — solve the hCaptcha "
         f"manually, then click Submit."
@@ -83,11 +74,12 @@ async def main():
     super_scraper = SuperScraper()
     options.binary_location = super_scraper.CHROMIUM_LOCATION
     options.add_argument("--no-sandbox")
-    options.add_argument("--window-size=1280,2400")
 
-    rights = list(RIGHTS)
-    if SuperScraper.REMOVE_INFORMATION:
-        rights.append(DELETE_RIGHT)
+    codes = SuperScraper.rights_to_exercise(RIGHT_MAP)
+    if not codes:
+        print("No requested privacy rights apply to this form — nothing to do.")
+        return
+    rights = [entry for code in codes for entry in RIGHT_MAP[code]]
 
     async with Chrome(options=options) as browser:
         tab = await browser.start()

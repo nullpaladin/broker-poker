@@ -22,7 +22,6 @@ async def main():
     super_scraper = SuperScraper()
     options.binary_location = super_scraper.CHROMIUM_LOCATION
     options.add_argument("--no-sandbox")
-    options.add_argument("--window-size=1280,1600")
 
     async with Chrome(options=options) as browser:
         tab = await browser.start()
@@ -33,8 +32,7 @@ async def main():
         await super_scraper.input_text_field(tab=tab, xpath="//input[@id='email_confirm']", text=SuperScraper.EMAIL, sleep=0.3)
 
         time.sleep(0.5)
-        await tab.take_screenshot("resources/screenshots/targetsmart_dry_run.png")
-        print("Screenshot saved to resources/screenshots/targetsmart_dry_run.png")
+        await SuperScraper.screenshot(tab, "resources/screenshots/targetsmart_dry_run.png")
         print(
             "Email verification form filled but NOT submitted — solve the reCAPTCHA and "
             "click Submit; then complete the request from the link emailed to you."

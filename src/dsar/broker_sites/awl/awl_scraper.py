@@ -13,8 +13,11 @@ from src.dsar.super_scraper import SuperScraper
 
 URL = "https://privacyportal-eu.onetrust.com/webform/031dc37f-2093-4055-9d04-22f83329fe9f/a4fb8ed6-8389-4a17-a3be-ca808c6b300e"
 
-RIGHTS = [("Request to Know", "access")]
-DELETE_RIGHT = ("Request to Delete", "delete")
+RIGHT_MAP = {
+    "access": ("Request to Know", "access"),
+    "delete": ("Request to Delete", "delete"),
+}
+RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
 
 
 async def submit_request(tab, right_label, screenshot_label, super_scraper):
@@ -66,7 +69,7 @@ async def submit_request(tab, right_label, screenshot_label, super_scraper):
     request_details = await tab.find(id="requestDetailsDSARElement", raise_exc=False)
     if request_details:
         await request_details.type_text(
-            f"I am exercising my {right_label.lower()} rights under applicable privacy law."
+            f"I am exercising my {right_label.lower()} rights under the {SuperScraper.LAW_FULL_NAME or 'applicable state and federal privacy law'}."
         )
 
     if SuperScraper.DRY_RUN:
@@ -75,8 +78,7 @@ async def submit_request(tab, right_label, screenshot_label, super_scraper):
             f"{SuperScraper.FIRST_NAME} {SuperScraper.LAST_NAME} <{SuperScraper.EMAIL}>"
         )
         await asyncio.sleep(1)
-        await tab.take_screenshot(path=f"resources/screenshots/awl_dry_run_{screenshot_label}.png")
-        print(f"Screenshot saved to resources/screenshots/awl_dry_run_{screenshot_label}.png")
+        await SuperScraper.screenshot(tab, f"resources/screenshots/awl_dry_run_{screenshot_label}.png")
         return
 
     print(f"\nForm filled for '{right_label}'. Solve the reCAPTCHA, click Submit,")
@@ -96,13 +98,15 @@ async def main():
     options.binary_location = super_scraper.CHROMIUM_LOCATION
     options.add_argument("--no-sandbox")
 
-    rights = list(RIGHTS)
-    if SuperScraper.REMOVE_INFORMATION:
-        rights.append(DELETE_RIGHT)
+    codes = SuperScraper.rights_to_exercise(RIGHT_MAP)
+    if not codes:
+        print("No requested privacy rights apply to this form — nothing to do.")
+        return
 
     async with Chrome(options=options) as browser:
         tab = await browser.start()
-        for right_label, screenshot_label in rights:
+        for code in codes:
+            right_label, screenshot_label = RIGHT_MAP[code]
             await submit_request(tab, right_label, screenshot_label, super_scraper)
 
 

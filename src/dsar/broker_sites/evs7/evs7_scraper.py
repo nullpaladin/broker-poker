@@ -12,11 +12,12 @@ from pydoll.browser.options import ChromiumOptions
 
 URL = "https://www.evs7.com/personal-information-request"
 
-CHECKBOXES = [
-    "I request to view the information that you have about me.",
-    "I request that any information about me will not be sold to anyone.",
-]
-DELETE_CHECKBOX = "I request that you delete any information about me."
+RIGHT_MAP = {
+    "access": ["I request to view the information that you have about me."],
+    "opt_out_sale_share": ["I request that any information about me will not be sold to anyone."],
+    "delete": ["I request that you delete any information about me."],
+}
+RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
 
 
 async def main():
@@ -44,9 +45,11 @@ async def main():
         await super_scraper.input_text_field(tab=tab, xpath="//input[@name='tel-877']", text=SuperScraper.PHONE_NUMBER, sleep=0.2)
         await super_scraper.input_text_field(tab=tab, xpath="//input[@name='email-382']", text=SuperScraper.EMAIL, sleep=0.2)
 
-        checkboxes = list(CHECKBOXES)
-        if SuperScraper.REMOVE_INFORMATION:
-            checkboxes.append(DELETE_CHECKBOX)
+        codes = SuperScraper.rights_to_exercise(RIGHT_MAP)
+        if not codes:
+            print("No requested privacy rights apply to this form — nothing to do.")
+            return
+        checkboxes = [entry for code in codes for entry in RIGHT_MAP[code]]
         for value in checkboxes:
             box = await tab.find(xpath=f"//input[@type='checkbox' and @value=\"{value}\"]", raise_exc=False)
             if box:
@@ -56,8 +59,7 @@ async def main():
         if SuperScraper.DRY_RUN:
             print(f"DRY RUN: would submit removal request for {SuperScraper.FIRST_NAME} {SuperScraper.LAST_NAME}")
             await asyncio.sleep(1)
-            await tab.take_screenshot(path="resources/screenshots/evs7_dry_run.png")
-            print("Screenshot saved to resources/screenshots/evs7_dry_run.png")
+            await SuperScraper.screenshot(tab, "resources/screenshots/evs7_dry_run.png")
             return
 
         await super_scraper.click_item_by_xpath(tab=tab, xpath="//input[@type='submit']", sleep=2)

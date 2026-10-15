@@ -29,8 +29,11 @@ from pydoll.browser.options import ChromiumOptions
 
 URL = "https://www.leadloft.com/user-agreements/personal-data"
 
-REQUEST_TYPES = ["Restrict Processing"]
-DELETE_REQUEST_TYPE = "Delete"
+RIGHT_MAP = {
+    "opt_out_sale_share": ["Restrict Processing"],
+    "delete": ["Delete"],
+}
+RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
 
 
 async def submit_request(tab, request_type, super_scraper):
@@ -67,7 +70,7 @@ async def submit_request(tab, request_type, super_scraper):
     details_field = await tab.find(id="field-2", raise_exc=False)
     if details_field:
         await details_field.type_text(
-            f"Please {request_type.lower()} my personal data pursuant to applicable privacy law."
+            f"Please {request_type.lower()} my personal data pursuant to the {SuperScraper.LAW_FULL_NAME or 'applicable state and federal privacy law'}."
         )
 
     label = request_type.lower().replace(" ", "_")
@@ -75,8 +78,7 @@ async def submit_request(tab, request_type, super_scraper):
     if SuperScraper.DRY_RUN:
         print(f"DRY RUN: would submit '{request_type}' request for {SuperScraper.FIRST_NAME} {SuperScraper.LAST_NAME}")
         await asyncio.sleep(1)
-        await tab.take_screenshot(path=f"resources/screenshots/leadloft_dry_run_{label}.png")
-        print(f"Screenshot saved to resources/screenshots/leadloft_dry_run_{label}.png")
+        await SuperScraper.screenshot(tab, f"resources/screenshots/leadloft_dry_run_{label}.png")
         return
 
     # NOT id="submit" — that belongs to an unrelated newsletter-signup form
@@ -100,9 +102,11 @@ async def main():
     options.binary_location = super_scraper.CHROMIUM_LOCATION
     options.add_argument("--no-sandbox")
 
-    request_types = list(REQUEST_TYPES)
-    if SuperScraper.REMOVE_INFORMATION:
-        request_types.append(DELETE_REQUEST_TYPE)
+    codes = SuperScraper.rights_to_exercise(RIGHT_MAP)
+    if not codes:
+        print("No requested privacy rights apply to this form — nothing to do.")
+        return
+    request_types = [entry for code in codes for entry in RIGHT_MAP[code]]
 
     async with Chrome(options=options) as browser:
         tab = await browser.start()

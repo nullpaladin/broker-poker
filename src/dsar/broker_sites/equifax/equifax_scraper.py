@@ -79,8 +79,7 @@ async def main():
         if SuperScraper.DRY_RUN:
             print(f"DRY RUN: would advance to Verify step for {SuperScraper.FIRST_NAME} {SuperScraper.LAST_NAME}")
             await asyncio.sleep(1)
-            await tab.take_screenshot(path="resources/screenshots/equifax_dry_run.png")
-            print("Screenshot saved to resources/screenshots/equifax_dry_run.png")
+            await SuperScraper.screenshot(tab, "resources/screenshots/equifax_dry_run.png")
             return
 
         clicked = await tab.execute_script(

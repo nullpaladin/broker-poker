@@ -9,7 +9,6 @@
 # scraper solves it and (in live mode) can submit for real without any
 # manual step.
 import asyncio
-import re
 
 from src.dsar.super_scraper import SuperScraper
 
@@ -17,6 +16,13 @@ from pydoll.browser.chromium import Chrome
 from pydoll.browser.options import ChromiumOptions
 
 URL = "https://www.mrginc.com/do-not-sell-my-personal-information"
+
+RIGHT_MAP = {
+    "access": ["checkbox_request"],
+    "opt_out_sale_share": ["checkbox"],
+    "delete": ["checkbox_delete"],
+}
+RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
 
 
 async def main():
@@ -47,9 +53,11 @@ async def main():
             else:
                 print(f"{super_scraper.OOPS} field '{field_name}' not found")
 
-        checkbox_ids = ["checkbox", "checkbox_request"]
-        if SuperScraper.REMOVE_INFORMATION:
-            checkbox_ids.append("checkbox_delete")
+        codes = SuperScraper.rights_to_exercise(RIGHT_MAP)
+        if not codes:
+            print("No requested privacy rights apply to this form — nothing to do.")
+            return
+        checkbox_ids = [cb for code in codes for cb in RIGHT_MAP[code]]
         for checkbox_id in checkbox_ids:
             checkbox = await tab.find(id=checkbox_id, raise_exc=False)
             if checkbox:
@@ -57,12 +65,9 @@ async def main():
             else:
                 print(f"{super_scraper.OOPS} checkbox '{checkbox_id}' not found")
 
-        page_text = await tab.execute_script("return document.body.innerText")
-        if isinstance(page_text, dict):
-            page_text = page_text.get("result", {}).get("result", {}).get("value", "")
-        match = re.search(r"What is (\d+)\s*\+\s*(\d+)\?", page_text or "")
-        if match:
-            answer = str(int(match.group(1)) + int(match.group(2)))
+        page_text = await SuperScraper.page_text(tab)
+        answer = SuperScraper.solve_math_captcha(page_text or "")
+        if answer is not None:
             answer_field = await tab.find(xpath="//input[@placeholder='Your answer']", raise_exc=False)
             if answer_field:
                 await answer_field.type_text(answer)
@@ -72,9 +77,7 @@ async def main():
             print(f"{super_scraper.OOPS} math-captcha question not found/parseable")
 
         await asyncio.sleep(1)
-        await tab.take_screenshot(path="resources/screenshots/mrginc_dry_run.png")
-        print("Screenshot saved to resources/screenshots/mrginc_dry_run.png")
-
+        await SuperScraper.screenshot(tab, "resources/screenshots/mrginc_dry_run.png")
         if SuperScraper.DRY_RUN:
             print(f"DRY RUN: would submit request for {SuperScraper.FIRST_NAME} {SuperScraper.LAST_NAME}")
             return

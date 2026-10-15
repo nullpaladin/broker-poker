@@ -17,8 +17,12 @@ from pydoll.browser.options import ChromiumOptions
 
 URL = "https://privacy.richmediallc.com/"
 
-RIGHTS = ["opt_out_sale_share", "access_request"]
-DELETE_RIGHT = "delete_request"
+RIGHT_MAP = {
+    "access": ["access_request"],
+    "opt_out_sale_share": ["opt_out_sale_share"],
+    "delete": ["delete_request"],
+}
+RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
 
 RIGHT_LABELS = {
     "opt_out_sale_share": "Opt out of sale/share",
@@ -50,7 +54,7 @@ async def submit_request(tab, right, super_scraper):
 
     state_select = await tab.find(id="state", raise_exc=False)
     if state_select:
-        state_abbrev = await SuperScraper.state_full_name_to_abbreviated(SuperScraper.STATE)
+        state_abbrev = SuperScraper.STATE_ABBREVIATED
         await state_select.execute_script(
             "for (var i=0;i<this.options.length;i++){"
             f"  if(this.options[i].value==={state_abbrev!r}){{ this.selectedIndex=i; }}"
@@ -67,8 +71,7 @@ async def submit_request(tab, right, super_scraper):
         print(f"{super_scraper.OOPS} request type '{right}' not found")
 
     await asyncio.sleep(1)
-    await tab.take_screenshot(path=f"resources/screenshots/richmediallc_dry_run_{right}.png")
-    print(f"Screenshot saved to resources/screenshots/richmediallc_dry_run_{right}.png")
+    await SuperScraper.screenshot(tab, f"resources/screenshots/richmediallc_dry_run_{right}.png")
     print(
         f"\n'{RIGHT_LABELS[right]}' request filled but NOT submitted — a Cloudflare "
         "Turnstile checkbox requires a manual solve."
@@ -81,9 +84,11 @@ async def main():
     options.binary_location = super_scraper.CHROMIUM_LOCATION
     options.add_argument("--no-sandbox")
 
-    rights = list(RIGHTS)
-    if SuperScraper.REMOVE_INFORMATION:
-        rights.append(DELETE_RIGHT)
+    codes = SuperScraper.rights_to_exercise(RIGHT_MAP)
+    if not codes:
+        print("No requested privacy rights apply to this form — nothing to do.")
+        return
+    rights = [entry for code in codes for entry in RIGHT_MAP[code]]
 
     async with Chrome(options=options) as browser:
         tab = await browser.start()

@@ -37,9 +37,7 @@ async def _fill_and_shot(tab, super_scraper, url, tag, message=None):
         print(f"{super_scraper.OOPS} [{tag}] email field not found")
 
     await asyncio.sleep(1)
-    await tab.take_screenshot(path=f"resources/screenshots/alphonso_dry_run_{tag}.png", beyond_viewport=True)
-    print(f"Screenshot saved to resources/screenshots/alphonso_dry_run_{tag}.png")
-
+    await SuperScraper.screenshot(tab, f"resources/screenshots/alphonso_dry_run_{tag}.png", beyond_viewport=True)
     if SuperScraper.DRY_RUN:
         print(f"DRY RUN [{tag}]: would submit for {SuperScraper.EMAIL}")
         return
@@ -56,14 +54,13 @@ async def main():
     super_scraper = SuperScraper()
     options.binary_location = super_scraper.CHROMIUM_LOCATION
     options.add_argument("--no-sandbox")
-    options.add_argument("--window-size=1280,1800")
 
     other_msg = (
         "I request access to the personal information Alphonso holds about me "
         "(including the specific pieces and categories, its sources, and the "
         "third parties it has been sold or shared with)."
     )
-    if SuperScraper.REMOVE_INFORMATION:
+    if SuperScraper.wants("delete"):
         other_msg += " I also request deletion of my personal information."
 
     async with Chrome(options=options) as browser:

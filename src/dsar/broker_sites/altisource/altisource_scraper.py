@@ -88,7 +88,7 @@ async def main():
         if area_of_interest:
             await area_of_interest.click()
 
-        if SuperScraper.REMOVE_INFORMATION:
+        if SuperScraper.wants("delete"):
             request_text = (
                 f"I am {SuperScraper.FIRST_NAME} {SuperScraper.LAST_NAME}. I am requesting access to "
                 "the personal information you have collected about me, that you do not sell/share it, "
@@ -106,8 +106,7 @@ async def main():
         if SuperScraper.DRY_RUN:
             print(f"DRY RUN: would submit removal request for {SuperScraper.FIRST_NAME} {SuperScraper.LAST_NAME}")
             await asyncio.sleep(1)
-            await tab.take_screenshot(path="resources/screenshots/altisource_dry_run.png")
-            print("Screenshot saved to resources/screenshots/altisource_dry_run.png")
+            await SuperScraper.screenshot(tab, "resources/screenshots/altisource_dry_run.png")
             return
 
         submit_btn = await tab.find(id="gform_submit_button_1", raise_exc=False)

@@ -18,11 +18,12 @@ from src.dsar.super_scraper import SuperScraper
 URL = "https://my.monitorbase.com/privacypolicy"
 
 # (visible option text, screenshot label)
-REQUESTS = [
-    ("What Information of Mine Do You Have?", "access"),
-    ("Opt Me Out Of Having My Data Sold", "optout"),
-]
-DELETE_REQUEST = ("Delete My Information", "delete")
+RIGHT_MAP = {
+    "access": [("What Information of Mine Do You Have?", "access")],
+    "opt_out_sale_share": [("Opt Me Out Of Having My Data Sold", "optout")],
+    "delete": [("Delete My Information", "delete")],
+}
+RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
 
 
 async def submit_request(tab, option_text, label, super_scraper):
@@ -48,12 +49,10 @@ async def submit_request(tab, option_text, label, super_scraper):
 
     agreement = await tab.find(id="agreement", raise_exc=False)
     if agreement:
-        await agreement.execute_script("if (!this.checked) this.click();")
+        await SuperScraper.js_check(agreement)
 
     time.sleep(0.5)
-    await tab.take_screenshot(f"resources/screenshots/monitorbase_dry_run_{label}.png")
-    print(f"Screenshot saved to resources/screenshots/monitorbase_dry_run_{label}.png")
-
+    await SuperScraper.screenshot(tab, f"resources/screenshots/monitorbase_dry_run_{label}.png")
     if SuperScraper.DRY_RUN:
         print(
             f"DRY RUN: would submit '{option_text}' for "
@@ -77,11 +76,12 @@ async def main():
     super_scraper = SuperScraper()
     options.binary_location = super_scraper.CHROMIUM_LOCATION
     options.add_argument("--no-sandbox")
-    options.add_argument("--window-size=1280,2400")
 
-    requests = list(REQUESTS)
-    if SuperScraper.REMOVE_INFORMATION:
-        requests.append(DELETE_REQUEST)
+    codes = SuperScraper.rights_to_exercise(RIGHT_MAP)
+    if not codes:
+        print("No requested privacy rights apply to this form — nothing to do.")
+        return
+    requests = [entry for code in codes for entry in RIGHT_MAP[code]]
 
     async with Chrome(options=options) as browser:
         tab = await browser.start()

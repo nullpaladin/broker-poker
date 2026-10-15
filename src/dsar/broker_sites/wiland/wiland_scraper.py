@@ -12,7 +12,6 @@ from pydoll.browser.chromium import Chrome
 from pydoll.browser.options import ChromiumOptions
 
 from src.dsar.super_scraper import SuperScraper
-from src.state_privacy_request_factory.state_name_abbreviation import StateAbbreviation
 
 ACCESS_URL = "https://privacyportal.onetrust.com/webform/7567ece3-2d27-4ee0-a506-1153cb7a62b7/a1e6c0c7-b7ff-45f9-9c62-7f1eb47a6e77"
 DELETE_URL = "https://privacyportal.onetrust.com/webform/7567ece3-2d27-4ee0-a506-1153cb7a62b7/718ad3c3-e1f5-4463-a301-2d6f84938588"
@@ -64,6 +63,17 @@ async def submit_access(tab, state_abbr, super_scraper):
         await auth.click_using_js()
     await asyncio.sleep(0.5)
 
+    if SuperScraper.HEALTH_CHECK:
+        await SuperScraper.assert_fields_filled(tab, {
+            "First name": "//input[@id='firstNameDSARElement']",
+            "Last name": "//input[@id='lastNameDSARElement']",
+            "Email": "//input[@id='email']",
+            "Address": "//input[@id='addressDSARElement']",
+            "City": "//input[@id='cityDSARElement']",
+            "State": "//input[@id='formField79DSARElement']",
+            "Zip": "//input[@id='zipDSARElement']",
+        })
+
     if SuperScraper.DRY_RUN:
         print(
             f"DRY RUN: would submit Access for "
@@ -73,8 +83,7 @@ async def submit_access(tab, state_abbr, super_scraper):
         if captcha_field:
             await captcha_field.scroll_into_view()
         await asyncio.sleep(1)
-        await tab.take_screenshot("resources/screenshots/wiland_dry_run_access.png")
-        print("Screenshot saved to resources/screenshots/wiland_dry_run_access.png")
+        await SuperScraper.screenshot(tab, "resources/screenshots/wiland_dry_run_access.png")
         return
 
     print(
@@ -111,8 +120,7 @@ async def submit_delete(tab, state_abbr, super_scraper):
         if captcha_field:
             await captcha_field.scroll_into_view()
         await asyncio.sleep(1)
-        await tab.take_screenshot("resources/screenshots/wiland_dry_run_delete.png")
-        print("Screenshot saved to resources/screenshots/wiland_dry_run_delete.png")
+        await SuperScraper.screenshot(tab, "resources/screenshots/wiland_dry_run_delete.png")
         return
 
     print(
@@ -134,14 +142,13 @@ async def main():
     super_scraper = SuperScraper()
     options.binary_location = super_scraper.CHROMIUM_LOCATION
     options.add_argument("--no-sandbox")
-    options.add_argument("--window-size=1280,3000")
 
-    state_abbr = StateAbbreviation[SuperScraper.STATE.upper()].value
+    state_abbr = SuperScraper.STATE_ABBREVIATED
 
     async with Chrome(options=options) as browser:
         tab = await browser.start()
         await submit_access(tab, state_abbr, super_scraper)
-        if SuperScraper.REMOVE_INFORMATION:
+        if SuperScraper.wants("delete"):
             await submit_delete(tab, state_abbr, super_scraper)
 
 

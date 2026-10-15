@@ -13,11 +13,12 @@ from src.dsar.super_scraper import SuperScraper
 URL = "https://www.reklaimyou.com/optout"
 
 # (radio button id, screenshot label)
-REQUESTS = [
-    ("requestType-do_not_sell", "optout"),
-    ("requestType-access",      "access"),
-]
-DELETE_REQUEST = ("requestType-delete", "delete")
+RIGHT_MAP = {
+    "access": [("requestType-access", "access")],
+    "opt_out_sale_share": [("requestType-do_not_sell", "optout")],
+    "delete": [("requestType-delete", "delete")],
+}
+RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
 
 
 async def submit_request(tab, radio_id, label, super_scraper):
@@ -42,7 +43,7 @@ async def submit_request(tab, radio_id, label, super_scraper):
     time.sleep(0.5)
 
     if SuperScraper.DRY_RUN:
-        await tab.take_screenshot(f"resources/screenshots/reklaimyours_dry_run_{label}.png")
+        await SuperScraper.screenshot(tab, f"resources/screenshots/reklaimyours_dry_run_{label}.png")
         print(
             f"DRY RUN: would submit '{label}' for "
             f"{SuperScraper.FIRST_NAME} {SuperScraper.LAST_NAME} <{SuperScraper.EMAIL}>"
@@ -66,11 +67,12 @@ async def main():
     super_scraper = SuperScraper()
     options.binary_location = super_scraper.CHROMIUM_LOCATION
     options.add_argument("--no-sandbox")
-    options.add_argument("--window-size=1280,2000")
 
-    requests = list(REQUESTS)
-    if SuperScraper.REMOVE_INFORMATION:
-        requests.append(DELETE_REQUEST)
+    codes = SuperScraper.rights_to_exercise(RIGHT_MAP)
+    if not codes:
+        print("No requested privacy rights apply to this form — nothing to do.")
+        return
+    requests = [entry for code in codes for entry in RIGHT_MAP[code]]
 
     async with Chrome(options=options) as browser:
         tab = await browser.start()

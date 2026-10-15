@@ -28,6 +28,13 @@ URL = "https://privacyportal.onetrust.com/webform/0f61f895-d08d-410f-b96d-ecfd34
 GRANULAR_RIGHTS = ["Right to Know / Access", "Right to Object / Opt out of Sales"]
 GRANULAR_DELETE = "Right to Delete"
 
+RIGHT_MAP = {
+    "access": ["Right to Know / Access"],
+    "opt_out_sale_share": ["Right to Object / Opt out of Sales"],
+    "delete": ["Right to Delete"],
+}
+RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
+
 
 async def _field_value(field):
     res = await field.execute_script("return this.value;")
@@ -83,16 +90,17 @@ async def main():
     super_scraper = SuperScraper()
     options.binary_location = super_scraper.CHROMIUM_LOCATION
     options.add_argument("--no-sandbox")
-    options.add_argument("--window-size=1280,2400")
 
     async with Chrome(options=options) as browser:
         tab = await browser.start()
         await tab.go_to(URL)
         await asyncio.sleep(8)
 
-        wanted = list(GRANULAR_RIGHTS)
-        if SuperScraper.REMOVE_INFORMATION:
-            wanted.append(GRANULAR_DELETE)
+        codes = SuperScraper.rights_to_exercise(RIGHT_MAP)
+        if not codes:
+            print("No requested privacy rights apply to this form — nothing to do.")
+            return
+        wanted = [r for code in codes for r in RIGHT_MAP[code]]
         picked_any = False
         for right in wanted:
             if await _click_listbox_option(tab, right):
@@ -124,7 +132,7 @@ async def main():
             "the sale and sharing of my personal information and of targeted "
             "advertising / profiling"
         )
-        if SuperScraper.REMOVE_INFORMATION:
+        if SuperScraper.wants("delete"):
             rights_text += "; (3) deletion of all personal information you hold about me"
         rights_text += "."
         details = await tab.find(id="requestDetailsDSARElement", raise_exc=False)
@@ -135,9 +143,7 @@ async def main():
         submit_btn = await tab.find(id="dsar-webform-submit-button", raise_exc=False)
         if submit_btn:
             await submit_btn.scroll_into_view()
-        await tab.take_screenshot("resources/screenshots/rhetorik_dry_run.png")
-        print("Screenshot saved to resources/screenshots/rhetorik_dry_run.png")
-
+        await SuperScraper.screenshot(tab, "resources/screenshots/rhetorik_dry_run.png")
         if SuperScraper.DRY_RUN:
             print(
                 f"DRY RUN: would submit combined privacy request for "

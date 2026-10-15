@@ -58,9 +58,7 @@ async def _check(tab, checkbox_id, super_scraper):
 
 async def _submit_or_dry_run(tab, submit_button_id, label, super_scraper):
     await asyncio.sleep(1)
-    await tab.take_screenshot(path=f"resources/screenshots/locatesmarter_dry_run_{label}.png")
-    print(f"Screenshot saved to resources/screenshots/locatesmarter_dry_run_{label}.png")
-
+    await SuperScraper.screenshot(tab, f"resources/screenshots/locatesmarter_dry_run_{label}.png")
     if SuperScraper.DRY_RUN:
         print(f"DRY RUN: would submit '{label}' request for {SuperScraper.EMAIL}")
         return
@@ -84,7 +82,7 @@ async def submit_know_delete(tab, super_scraper):
     await _check(tab, "choice_2_14_1", super_scraper)  # own personal information
     await _check(tab, "choice_2_29_1", super_scraper)  # know for past 12 months
     await _check(tab, "choice_2_20_1", super_scraper)  # receive copy of personal information (access)
-    if SuperScraper.REMOVE_INFORMATION:
+    if SuperScraper.wants("delete"):
         await _check(tab, "choice_2_32_1", super_scraper)  # delete personal information
 
     await _submit_or_dry_run(tab, "gform_submit_button_2", "know_delete", super_scraper)
@@ -107,7 +105,6 @@ async def main():
     super_scraper = SuperScraper()
     options.binary_location = super_scraper.CHROMIUM_LOCATION
     options.add_argument("--no-sandbox")
-    options.add_argument("--window-size=1280,3000")
 
     async with Chrome(options=options) as browser:
         tab = await browser.start()

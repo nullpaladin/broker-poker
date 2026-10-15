@@ -8,18 +8,34 @@
 # requires manual solve in live mode. After submission Alliant runs its own
 # identity-verification quiz (several knowledge-based questions) before
 # processing — cannot be automated; the user must answer those manually.
+# Which rights run is decided only by SuperScraper.rights_to_exercise.
+#
+# Page elements (ids as used on the forms):
+#   #firstNameDSARElement / #lastNameDSARElement   First / Last name
+#   #emailDSARElement                              Email
+#   #countryDSARElement                            Country combobox -> "United States" (Access/Delete)
+#   #addressDSARElement                            Address
+#   #cityDSARElement                               City
+#   #stateDSARElement                              State combobox (Access/Delete)
+#   #formField21DSARElement                        State combobox (Opt-Out form)
+#   #zipDSARElement                                Zip code
+#   #phoneNumber                                   Phone (Access/Delete only)
+#   g-recaptcha-response                           reCAPTCHA v2 checkbox (manual solve)
 import asyncio
 
 from pydoll.browser.chromium import Chrome
 from pydoll.constants import Key
 
+from src.dsar.rights import Right
 from src.dsar.super_scraper import SuperScraper
 
-URLS = {
-    "access": "https://privacyportal-cdn.onetrust.com/dsarwebform/591ac1c1-3a1e-496f-9e43-ff4afb5fef85/ed491735-e5be-4f7b-80dd-153c159744b2.html",
-    "optout": "https://privacyportal-cdn.onetrust.com/dsarwebform/591ac1c1-3a1e-496f-9e43-ff4afb5fef85/2b52262e-8ada-4725-b86e-e4b960336f96.html",
+# One separate form (URL) per right.
+RIGHT_MAP = {
+    Right.RIGHT_TO_ACCESS: "https://privacyportal-cdn.onetrust.com/dsarwebform/591ac1c1-3a1e-496f-9e43-ff4afb5fef85/ed491735-e5be-4f7b-80dd-153c159744b2.html",
+    Right.RIGHT_TO_OPT_OUT: "https://privacyportal-cdn.onetrust.com/dsarwebform/591ac1c1-3a1e-496f-9e43-ff4afb5fef85/2b52262e-8ada-4725-b86e-e4b960336f96.html",
+    Right.RIGHT_TO_DELETE: "https://privacyportal-cdn.onetrust.com/dsarwebform/591ac1c1-3a1e-496f-9e43-ff4afb5fef85/604f597f-4486-46cd-99d2-ffa1218c7d6b.html",
 }
-DELETE_URL = "https://privacyportal-cdn.onetrust.com/dsarwebform/591ac1c1-3a1e-496f-9e43-ff4afb5fef85/604f597f-4486-46cd-99d2-ffa1218c7d6b.html"
+RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
 
 
 async def _fill_autocomplete(tab, field_id, value):
@@ -35,7 +51,7 @@ async def _fill_autocomplete(tab, field_id, value):
     await asyncio.sleep(0.5)
 
 
-async def submit_request(tab, url, label, super_scraper):
+async def submit_request(tab, right, url, super_scraper):
     await tab.go_to(url)
     await asyncio.sleep(6)
 
@@ -74,36 +90,34 @@ async def submit_request(tab, url, label, super_scraper):
 
     if SuperScraper.DRY_RUN:
         print(
-            f"DRY RUN: would submit '{label}' for "
-            f"{SuperScraper.FIRST_NAME} {SuperScraper.LAST_NAME} <{SuperScraper.EMAIL}>"
+            f"DRY RUN: would submit '{right.name}' for {SuperScraper.EMAIL}"
         )
         await asyncio.sleep(1)
-        await SuperScraper.screenshot(tab, f"dry_run_{label}")
+        await SuperScraper.screenshot(tab, f"dry_run_{right.value}")
         return
 
-    print(f"\nForm filled for '{label}'. Solve the reCAPTCHA checkbox, click Submit,")
+    print(f"\nForm filled for '{right.name}'. Solve the reCAPTCHA checkbox, click Submit,")
     print("then complete Alliant's identity-verification quiz. Press Enter when done...")
     input()
 
-    source = await tab.page_source
-    if any(w in source.lower() for w in ("thank", "success", "received", "submitted", "confirmation")):
-        print(f"Submitted '{label}' for {SuperScraper.FIRST_NAME} {SuperScraper.LAST_NAME}")
-    else:
-        print(f"{super_scraper.OOPS} Confirmation unclear for '{label}' — verify in browser")
+    print(f"Submitted '{right.name}' for {SuperScraper.EMAIL} — confirm in the browser.")
 
 
 async def main():
     super_scraper = SuperScraper()
+    if SuperScraper.bail_if_not_automatable(globals()):
+        return
+
+    rights = SuperScraper.rights_to_exercise(RIGHT_MAP)
+    if not rights:
+        print("No requested privacy rights apply to this form — nothing to do.")
+        return
+
     options = SuperScraper.build_chromium_options()
-
-    urls = dict(URLS)
-    if SuperScraper.wants("delete"):
-        urls["delete"] = DELETE_URL
-
     async with Chrome(options=options) as browser:
         tab = await browser.start()
-        for label, url in urls.items():
-            await submit_request(tab, url, label, super_scraper)
+        for right in rights:
+            await submit_request(tab, right, RIGHT_MAP[right], super_scraper)
 
 
 asyncio.run(main())

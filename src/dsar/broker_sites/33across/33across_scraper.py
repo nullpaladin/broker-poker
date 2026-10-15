@@ -2,26 +2,35 @@ import asyncio
 import json
 import time
 
-from src.dsar.super_scraper import SuperScraper
 from src.dsar import js_utils
+from src.dsar.rights import Right
+from src.dsar.super_scraper import SuperScraper
 
 from pydoll.browser.chromium import Chrome
 
-# Rights exercised: Right to Access, Do Not Sell/Share, Right to Delete (gated on REMOVE_INFORMATION).
-# Server-rendered POST form. No captcha. Only requires email.
+# 33across.com — server-rendered POST form at udp.33across.com. No captcha. Only requires email.
+# Rights the form exposes: Right to Access, Do Not Sell / Share, Right to Delete. Which of them
+# run is decided ONLY by SuperScraper.rights_to_exercise(RIGHT_MAP).
+#
+# Page elements:
+#   ?type=<access|donotsell|delete>  URL parameter that pre-selects the request type
+#   #request_type                    Request type <select> (also set explicitly)
+#   #email                           Email                       (required)
+#   #terms                           Terms checkbox (enables the submit button via toggleSubmit())
+#   #submit                          Submit button
 BASE_URL = "https://udp.33across.com/udp_opt_out/submit_request?type={}"
 
 RIGHT_MAP = {
-    "access":              ("access",    "Right to Access"),
-    "opt_out_sale_share":  ("donotsell", "Do Not Sell / Share"),
-    "delete":              ("delete",    "Right to Delete"),
+    Right.RIGHT_TO_ACCESS: ("access",    "Right to Access"),
+    Right.RIGHT_TO_OPT_OUT: ("donotsell", "Do Not Sell / Share"),
+    Right.RIGHT_TO_DELETE: ("delete",    "Right to Delete"),
 }
 RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
 
 EMAIL_XPATH = '//input[@id="email"]'
 
 
-async def submit_request(tab, request_type, label, super_scraper):
+async def submit_request(tab, right, request_type, label, super_scraper):
     await tab.go_to(BASE_URL.format(request_type))
     time.sleep(3)
 
@@ -42,8 +51,8 @@ async def submit_request(tab, request_type, label, super_scraper):
         await SuperScraper.assert_fields_filled(tab, {"Email": EMAIL_XPATH})
 
     if SuperScraper.DRY_RUN:
-        await SuperScraper.screenshot(tab, f"dry_run")
-        print(f"DRY RUN: would submit '{label}' for {SuperScraper.EMAIL}")
+        await SuperScraper.screenshot(tab, f"dry_run_{right.value}")
+        print(f"DRY RUN: would submit '{right.name}' for {SuperScraper.EMAIL}")
         await asyncio.sleep(2)
         return
 
@@ -51,23 +60,25 @@ async def submit_request(tab, request_type, label, super_scraper):
     await asyncio.sleep(4)
     result = await js_utils.page_text(tab)
     print(result[:500])
-    print(f"Submitted '{label}' for {SuperScraper.EMAIL}")
+    print(f"Submitted '{right.name}' for {SuperScraper.EMAIL} — confirm in the browser.")
 
 
 async def main():
     super_scraper = SuperScraper()
-    options = SuperScraper.build_chromium_options()
+    if SuperScraper.bail_if_not_automatable(globals()):
+        return
 
-    codes = SuperScraper.rights_to_exercise(RIGHT_MAP)
-    if not codes:
+    rights = SuperScraper.rights_to_exercise(RIGHT_MAP)
+    if not rights:
         print("No requested privacy rights apply to this form — nothing to do.")
         return
 
+    options = SuperScraper.build_chromium_options()
     async with Chrome(options=options) as browser:
         tab = await browser.start()
-        for code in codes:
-            request_type, label = RIGHT_MAP[code]
-            await submit_request(tab, request_type, label, super_scraper)
+        for right in rights:
+            request_type, label = RIGHT_MAP[right]
+            await submit_request(tab, right, request_type, label, super_scraper)
 
 
 asyncio.run(main())

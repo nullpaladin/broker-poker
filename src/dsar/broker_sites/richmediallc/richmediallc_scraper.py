@@ -1,15 +1,25 @@
 # richmediallc.com — custom (non-OneTrust) server-rendered "Privacy
 # Request Form". "Request Type" is single-select (the page's own copy
 # says to submit a separate request for each right) — one submission per
-# right: Opt out of sale/share, Right to know, Right to delete (gated on
-# REMOVE_INFORMATION). "Limit use of sensitive personal information" and
+# right: Opt out of sale/share, Right to know, Right to delete (each gated by
+# SuperScraper.rights_to_exercise(RIGHT_MAP)). "Limit use of sensitive personal information" and
 # "Correct inaccurate personal information" are skipped (no concrete
 # sensitive-use limitation or inaccuracy to describe). Postal
 # Address/City/Zip are optional (only relevant "if your request relates
 # to postal marketing") — filled anyway since the data is available.
 # Cloudflare Turnstile checkbox — **CAPTCHA solution required**.
+#
+# Page elements:
+#   #firstName / #lastName / #email   First / Last name, Email
+#   #postalAddress / #city / #zipCode Postal Address / City / Zip (optional)
+#   #state                            State <select>
+#   input[name=requestType] radios    "Request Type": access_request ("Right to know"),
+#                                     opt_out_sale_share ("Opt out of sale/share"),
+#                                     delete_request ("Right to delete")
 import asyncio
 
+from src.dsar import js_utils
+from src.dsar.rights import Right
 from src.dsar.super_scraper import SuperScraper
 
 from pydoll.browser.chromium import Chrome
@@ -17,9 +27,9 @@ from pydoll.browser.chromium import Chrome
 URL = "https://privacy.richmediallc.com/"
 
 RIGHT_MAP = {
-    "access": ["access_request"],
-    "opt_out_sale_share": ["opt_out_sale_share"],
-    "delete": ["delete_request"],
+    Right.RIGHT_TO_ACCESS: ["access_request"],
+    Right.RIGHT_TO_OPT_OUT: ["opt_out_sale_share"],
+    Right.RIGHT_TO_DELETE: ["delete_request"],
 }
 RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
 
@@ -54,12 +64,7 @@ async def submit_request(tab, right, super_scraper):
     state_select = await tab.find(id="state", raise_exc=False)
     if state_select:
         state_abbrev = SuperScraper.STATE_ABBREVIATED
-        await state_select.execute_script(
-            "for (var i=0;i<this.options.length;i++){"
-            f"  if(this.options[i].value==={state_abbrev!r}){{ this.selectedIndex=i; }}"
-            "}"
-            "this.dispatchEvent(new Event('change', {bubbles:true}));"
-        )
+        await js_utils.select_native_option(state_select, value=state_abbrev)
     else:
         print(f"{super_scraper.OOPS} State select not found")
 
@@ -81,16 +86,16 @@ async def main():
     super_scraper = SuperScraper()
     options = SuperScraper.build_chromium_options()
 
-    codes = SuperScraper.rights_to_exercise(RIGHT_MAP)
-    if not codes:
+    rights = SuperScraper.rights_to_exercise(RIGHT_MAP)
+    if not rights:
         print("No requested privacy rights apply to this form — nothing to do.")
         return
-    rights = [entry for code in codes for entry in RIGHT_MAP[code]]
+    request_values = [entry for right in rights for entry in RIGHT_MAP[right]]
 
     async with Chrome(options=options) as browser:
         tab = await browser.start()
-        for right in rights:
-            await submit_request(tab, right, super_scraper)
+        for request_value in request_values:
+            await submit_request(tab, request_value, super_scraper)
 
 
 asyncio.run(main())

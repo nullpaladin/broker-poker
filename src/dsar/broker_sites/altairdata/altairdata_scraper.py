@@ -8,28 +8,49 @@
 # consumer's behalf, this scraper fills every field but deliberately stops short of
 # checking the "manual submission" attestation or clicking Submit, regardless of
 # DRY_RUN — a human must review and finish it themselves.
-# Checkboxes selected: Opt-Out of Sale, Opt-Out of Information Sharing, Opt-Out of
-# Sensitive PI Use unconditionally; Deletion of My Consumer Information gated on
-# REMOVE_INFORMATION. "Opt-Out of Postal Mailings to Deceased Persons" is skipped
-# (not applicable). reCAPTCHA v2 checkbox also requires a manual solve.
+# Rights the form exposes: opt-out (three separate checkboxes) and deletion. Which run is
+# decided ONLY by SuperScraper.rights_to_exercise(RIGHT_MAP). "Opt-Out of Postal Mailings
+# to Deceased Persons" is skipped (not applicable). reCAPTCHA v2 checkbox also requires
+# a manual solve.
+#
+# Page elements (keep this list current):
+#   #email                  Email
+#   #summary                Full name (First + Last)
+#   #customfield_10354      First name
+#   #customfield_10355      Last name
+#   #customfield_10465      Address
+#   #customfield_10466      City
+#   #customfield_10467      State
+#   #customfield_10468      Zip code
+#   checkbox name="Opt-Out of Sale of Personal Information"
+#   checkbox name="Opt-Out of Information Sharing"
+#   checkbox name="Opt-Out of Use of Sensitive Personal Information"
+#   checkbox name="Deletion of My Consumer Information"
+#   "Accept all"            Cookie banner button
 import asyncio
 
 from pydoll.browser.chromium import Chrome
 
+from src.dsar.rights import Right
 from src.dsar.super_scraper import SuperScraper
 
 URL = "https://datacloudhome.atlassian.net/servicedesk/customer/portal/12/group/35/create/158"
 
 RIGHT_MAP = {
-    "opt_out_sale_share": ["Opt-Out of Sale of Personal Information", "Opt-Out of Information Sharing"],
-    "limit_sensitive_pi": ["Opt-Out of Use of Sensitive Personal Information"],
-    "delete": ["Deletion of My Consumer Information"],
+    Right.RIGHT_TO_OPT_OUT: [
+        "Opt-Out of Sale of Personal Information",
+        "Opt-Out of Information Sharing",
+        "Opt-Out of Use of Sensitive Personal Information",
+    ],
+    Right.RIGHT_TO_DELETE: ["Deletion of My Consumer Information"],
 }
 RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
 
 
 async def main():
     super_scraper = SuperScraper()
+    if SuperScraper.bail_if_not_automatable(globals()):
+        return
     options = SuperScraper.build_chromium_options()
 
     async with Chrome(options=options) as browser:
@@ -74,11 +95,11 @@ async def main():
         if zip_field:
             await zip_field.type_text(SuperScraper.ZIP_CODE)
 
-        codes = SuperScraper.rights_to_exercise(RIGHT_MAP)
-        if not codes:
+        rights = SuperScraper.rights_to_exercise(RIGHT_MAP)
+        if not rights:
             print("No requested privacy rights apply to this form — nothing to do.")
             return
-        checkboxes = [entry for code in codes for entry in RIGHT_MAP[code]]
+        checkboxes = [entry for right in rights for entry in RIGHT_MAP[right]]
         for label in checkboxes:
             box = await tab.find(name=label, raise_exc=False)
             if box:

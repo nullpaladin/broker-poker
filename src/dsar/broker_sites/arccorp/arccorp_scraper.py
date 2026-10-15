@@ -5,30 +5,44 @@
 # o-Credit Card and o-Minor Children (left empty) and a "representative-type"
 # select ("Myself"). The o-* fields are single free-text inputs.
 # Cards found by their h4[data-testid="card-title"] text. One card/right per
-# pass: Summarize (Access), Do Not Sell or Share to a Third Party, Don't use my
-# personal information for advertising, Opt Out of Profiling / Automated
-# Decision-Making, Transfer my personal information (portability), "Third
-# parties your data was sold or shared with" unconditionally; Delete my personal
-# information gated on REMOVE_INFORMATION. "Correct my personal information"
-# skipped (nothing concrete to describe).
+# pass. Rights the form exposes: Summarize my personal information (Access), Transfer my
+# personal information (portability, also RIGHT_TO_ACCESS), Do Not Sell or Share to a Third
+# Party / Don't use my personal information for advertising / Opt Out of Profiling /
+# Automated Decision-Making (all RIGHT_TO_OPT_OUT), "Third parties your data was sold or
+# shared with" (list of third parties) and Delete my personal information. Which run is
+# decided ONLY by SuperScraper.rights_to_exercise(RIGHT_MAP). "Correct my personal
+# information" is skipped (nothing concrete to describe).
 # Cloudflare Turnstile gates the submit — form filled and left for a manual
 # solve.  **CAPTCHA solution required**
+#
+# Page elements (keep this list current):
+#   h4[data-testid=card-title]   Request-type cards (see RIGHT_MAP)
+#   name=given-name / family-name   First / Last name
+#   name=email                   Email
+#   name=o-Physical Address / o-City / o-State / o-Zip Code / o-Country   Address fields
+#   name=representative-type     "I am submitting this request on behalf of someone other than
+#                                myself." checkbox (left unchecked)
 import asyncio
 
 from pydoll.browser.chromium import Chrome
 
+from src.dsar.rights import Right
 from src.dsar.super_scraper import SuperScraper
 
 URL = "https://my.datasubject.com/Uw03R7mCGS/60313"
 
 RIGHT_MAP = {
-    "access": [("Summarize my personal information", "access")],
-    "opt_out_sale_share": [("Do Not Sell or Share to a Third Party", "opt_out_sale")],
-    "opt_out_targeted_ads": [("Don't use my personal information for advertising", "opt_out_ads")],
-    "opt_out_profiling": [("Opt Out of Profiling / Automated Decision-Making", "opt_out_profiling")],
-    "portability": [("Transfer my personal information", "portability")],
-    "know_third_parties": [("Third parties your data was sold or shared with", "third_parties")],
-    "delete": [("Delete my personal information", "delete")],
+    Right.RIGHT_TO_ACCESS: [
+        ("Summarize my personal information", "access"),
+        ("Transfer my personal information", "transfer"),
+    ],
+    Right.RIGHT_TO_OPT_OUT: [
+        ("Do Not Sell or Share to a Third Party", "opt_out_sale"),
+        ("Don't use my personal information for advertising", "opt_out_ads"),
+        ("Opt Out of Profiling / Automated Decision-Making", "opt_out_automated_decisions"),
+    ],
+    Right.RIGHT_TO_LIST_OF_THIRD_PARTIES: [("Third parties your data was sold or shared with", "third_parties")],
+    Right.RIGHT_TO_DELETE: [("Delete my personal information", "delete")],
 }
 RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
 
@@ -84,18 +98,21 @@ async def submit_request(tab, card_text, label, super_scraper):
 
 async def main():
     super_scraper = SuperScraper()
-    options = SuperScraper.build_chromium_options()
+    if SuperScraper.bail_if_not_automatable(globals()):
+        return
 
-    codes = SuperScraper.rights_to_exercise(RIGHT_MAP)
-    if not codes:
+    rights = SuperScraper.rights_to_exercise(RIGHT_MAP)
+    if not rights:
         print("No requested privacy rights apply to this form — nothing to do.")
         return
-    rights = [entry for code in codes for entry in RIGHT_MAP[code]]
+
+    options = SuperScraper.build_chromium_options()
 
     async with Chrome(options=options) as browser:
         tab = await browser.start()
-        for card_text, label in rights:
-            await submit_request(tab, card_text, label, super_scraper)
+        for right in rights:
+            for card_text, label in RIGHT_MAP[right]:
+                await submit_request(tab, card_text, label, super_scraper)
 
 
 asyncio.run(main())

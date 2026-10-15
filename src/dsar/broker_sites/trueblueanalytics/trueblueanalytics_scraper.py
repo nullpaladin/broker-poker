@@ -6,25 +6,35 @@
 # by 2-letter code) — selecting it reveals a State select
 # (id="state", native select keyed by FULL state name, not abbreviation),
 # which in turn reveals the "Your Rights" checkbox group (stable ids):
-# data_categories_request (Access), do_not_sell (Opt-out),
-# erase_my_information (Delete, gated on REMOVE_INFORMATION),
-# send_me_a_copy_of_information (portability) checked unconditionally;
+# data_categories_request (Access), send_me_a_copy_of_information (Access),
+# do_not_sell (Opt-out), erase_my_information (Delete) — only the ones chosen by
+# SuperScraper.rights_to_exercise(RIGHT_MAP) are ticked, in one combined submission;
 # correct_my_information and appeal_a_decision skipped (no concrete
 # inaccuracy/decision to reference); "other" (free-text) skipped. Visible
 # (non-invisible) reCAPTCHA v2 — **CAPTCHA solution required**.
+#
+# Page elements:
+#   #first_name / #last_name / #email   First / Last name, Email
+#   #requester_type                     "I am a" <select> -> "other"
+#   #country                            Country <select> -> "US"
+#   #state                              State <select> (full state name; revealed after Country)
+#   #data_categories_request, #send_me_a_copy_of_information, #do_not_sell,
+#   #erase_my_information               "Your Rights" checkboxes (revealed after State)
 import asyncio
 
-from src.dsar.super_scraper import SuperScraper
 from src.dsar import js_utils
+from src.dsar.rights import Right
+from src.dsar.super_scraper import SuperScraper
 
 from pydoll.browser.chromium import Chrome
 
 URL = "https://trueblueanalytics.org/dont-sell"
 
+# Right -> "Your Rights" checkbox id(s).
 RIGHT_MAP = {
-    "access": ["data_categories_request", "send_me_a_copy_of_information"],
-    "opt_out_sale_share": ["do_not_sell"],
-    "delete": ["erase_my_information"],
+    Right.RIGHT_TO_ACCESS: ["data_categories_request", "send_me_a_copy_of_information"],
+    Right.RIGHT_TO_OPT_OUT: ["do_not_sell"],
+    Right.RIGHT_TO_DELETE: ["erase_my_information"],
 }
 RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
 
@@ -33,11 +43,11 @@ async def main():
     super_scraper = SuperScraper()
     options = SuperScraper.build_chromium_options()
 
-    codes = SuperScraper.rights_to_exercise(RIGHT_MAP)
-    if not codes:
+    rights = SuperScraper.rights_to_exercise(RIGHT_MAP)
+    if not rights:
         print("No requested privacy rights apply to this form — nothing to do.")
         return
-    right_ids = [entry for code in codes for entry in RIGHT_MAP[code]]
+    right_ids = [entry for right in rights for entry in RIGHT_MAP[right]]
 
     async with Chrome(options=options) as browser:
         tab = await browser.start()

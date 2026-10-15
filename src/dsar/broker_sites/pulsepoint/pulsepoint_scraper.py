@@ -10,12 +10,21 @@
 # comboboxes (type then click the matching role="option"). "Mobile
 # Advertiser ID or Cookie" (formField78DSARElement) required. captchaCode
 # is a BotDetect image CAPTCHA — **CAPTCHA solution required**. Exercises
-# "Request to Access or Know" unconditionally; "Request to Delete Personal
-# Information" gated on REMOVE_INFORMATION. ("Request to Correct
-# Inaccurate Personal Information" skipped — no concrete inaccuracy to
-# describe.)
+# "Request to Access or Know" and "Request to Delete Personal Information",
+# as decided ONLY by SuperScraper.rights_to_exercise(RIGHT_MAP). ("Request to
+# Correct Inaccurate Personal Information" is not automated.)
+#
+# Page elements:
+#   role=option aria-label="Consumer"   "I am a (an)" -> Consumer
+#   role=option request types           see RIGHT_MAP
+#   #countryDSARElement                 Country (autocomplete) -> "United States"
+#   #stateDSARElement                   State (autocomplete)
+#   #emailDSARElement                   Email
+#   #formField78DSARElement             "Mobile Advertiser ID or Cookie" (required)
+#   #captchaCode                        BotDetect image CAPTCHA (manual)
 import asyncio
 
+from src.dsar.rights import Right
 from src.dsar.super_scraper import SuperScraper
 
 from pydoll.browser.chromium import Chrome
@@ -23,8 +32,8 @@ from pydoll.browser.chromium import Chrome
 URL = "https://mynt-test-privacy.my.onetrust.com/webform/ebe19500-bc8d-487f-9d89-98fde8b270e2/bac5d2a2-fd3e-4830-99b6-bd2a69fec1c9"
 
 RIGHT_MAP = {
-    "access": ["Request to Access or Know"],
-    "delete": ["Request to Delete Personal Information"],
+    Right.RIGHT_TO_ACCESS: ["Request to Access or Know"],
+    Right.RIGHT_TO_DELETE: ["Request to Delete Personal Information"],
 }
 RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
 
@@ -90,18 +99,20 @@ async def submit_request(tab, right, super_scraper):
 
 async def main():
     super_scraper = SuperScraper()
+    if SuperScraper.bail_if_not_automatable(globals()):
+        return
     options = SuperScraper.build_chromium_options()
 
-    codes = SuperScraper.rights_to_exercise(RIGHT_MAP)
-    if not codes:
+    rights = SuperScraper.rights_to_exercise(RIGHT_MAP)
+    if not rights:
         print("No requested privacy rights apply to this form — nothing to do.")
         return
-    rights = [entry for code in codes for entry in RIGHT_MAP[code]]
+    entries = [entry for right in rights for entry in RIGHT_MAP[right]]
 
     async with Chrome(options=options) as browser:
         tab = await browser.start()
-        for right in rights:
-            await submit_request(tab, right, super_scraper)
+        for entry in entries:
+            await submit_request(tab, entry, super_scraper)
 
 
 asyncio.run(main())

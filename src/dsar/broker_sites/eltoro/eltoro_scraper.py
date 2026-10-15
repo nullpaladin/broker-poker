@@ -2,17 +2,28 @@
 # Three separate OneTrust Angular portals (privacyportal.onetrust.com):
 #   Access form: all 4 sub-types selected in one submission
 #   Opt-Out form: Limit Sensitive + Do Not Sell/Share in one submission
-#   Delete form (gated): Delete My Information
+#   Delete form: Delete My Information
 # Request type and subject type buttons are role="option" divs — click_using_js().
 # Country and state use autocomplete comboboxes — type, then click first visible
 # role="option" element.
 # Image CAPTCHA (captchaCode text input) — manual entry required in live mode.
 # No phone field. Email verification required within 5 days of submission.
+#
+# Page elements (all three portals share them):
+#   aria-label=<request type>          request-type option buttons (names in the *_REQUESTS lists)
+#   aria-label="Consumer"              subject-type button
+#   #firstNameDSARElement / #lastNameDSARElement / #emailDSARElement   First / Last name / Email
+#   #addressDSARElement / #cityDSARElement                             Address / City
+#   #countryDSARElement / #stateDSARElement                            Country / State comboboxes
+#   #zipDSARElement                                                    Zip code
+#   #captchaCode                       image CAPTCHA text input
+#   aria-label="Click to submit form"  Submit button
 import asyncio
 import time
 
 from pydoll.browser.chromium import Chrome
 
+from src.dsar.rights import Right
 from src.dsar.super_scraper import SuperScraper
 
 ACCESS_URL = "https://privacyportal.onetrust.com/webform/96e88ef7-218d-4979-ba92-634d98263159/0a4612df-27c0-4726-8f16-a0a5f516997e"
@@ -30,6 +41,14 @@ OPTOUT_REQUESTS = [
     "Do Not Sell or Share My Information",
 ]
 DELETE_REQUESTS = ["Delete My Information"]
+
+# Right -> (portal URL, request-type buttons to click on it). One portal per right.
+RIGHT_MAP = {
+    Right.RIGHT_TO_ACCESS: (ACCESS_URL, ACCESS_REQUESTS),
+    Right.RIGHT_TO_OPT_OUT: (OPTOUT_URL, OPTOUT_REQUESTS),
+    Right.RIGHT_TO_DELETE: (DELETE_URL, DELETE_REQUESTS),
+}
+RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
 
 
 async def _select_autocomplete(tab, field_id, text):
@@ -49,7 +68,7 @@ async def _select_autocomplete(tab, field_id, text):
                 return
 
 
-async def submit_form(tab, url, request_types, label, super_scraper):
+async def submit_form(tab, url, request_types, right, super_scraper):
     await tab.go_to(url)
     await asyncio.sleep(7)
 
@@ -101,14 +120,13 @@ async def submit_form(tab, url, request_types, label, super_scraper):
 
     if SuperScraper.DRY_RUN:
         print(
-            f"DRY RUN: would submit '{label}' for "
-            f"{SuperScraper.FIRST_NAME} {SuperScraper.LAST_NAME} <{SuperScraper.EMAIL}>"
+            f"DRY RUN: would submit '{right.name}' for {SuperScraper.EMAIL}"
         )
         submit_btn = await tab.find(**{"aria-label": "Click to submit form"}, raise_exc=False)
         if submit_btn:
             await submit_btn.scroll_into_view()
         await asyncio.sleep(2)
-        await SuperScraper.screenshot(tab, f"dry_run_{label}")
+        await SuperScraper.screenshot(tab, f"dry_run_{right.value}")
         return
 
     captcha = await tab.find(id="captchaCode", raise_exc=False)
@@ -116,27 +134,29 @@ async def submit_form(tab, url, request_types, label, super_scraper):
         code = input("Enter the CAPTCHA text shown in the browser: ")
         await captcha.type_text(code)
 
-    print(f"\nForm filled for '{label}'.")
+    print(f"\nForm filled for '{right.name}'.")
     print("Click Submit in the browser, then press Enter after the confirmation page appears...")
     input()
 
-    source = await tab.page_source
-    if any(w in source.lower() for w in ("thank", "success", "received", "submitted", "confirmation")):
-        print(f"Submitted '{label}' for {SuperScraper.FIRST_NAME} {SuperScraper.LAST_NAME}")
-    else:
-        print(f"{super_scraper.OOPS} Confirmation unclear for '{label}' — verify in browser")
+    print(f"Submitted '{right.name}' for {SuperScraper.EMAIL} — confirm in the browser.")
 
 
 async def main():
     super_scraper = SuperScraper()
-    options = SuperScraper.build_chromium_options()
+    if SuperScraper.bail_if_not_automatable(globals()):
+        return
 
+    rights = SuperScraper.rights_to_exercise(RIGHT_MAP)
+    if not rights:
+        print("No requested privacy rights apply to this form — nothing to do.")
+        return
+
+    options = SuperScraper.build_chromium_options()
     async with Chrome(options=options) as browser:
         tab = await browser.start()
-        await submit_form(tab, ACCESS_URL, ACCESS_REQUESTS, "access", super_scraper)
-        await submit_form(tab, OPTOUT_URL, OPTOUT_REQUESTS, "optout", super_scraper)
-        if SuperScraper.wants("delete"):
-            await submit_form(tab, DELETE_URL, DELETE_REQUESTS, "delete", super_scraper)
+        for right in rights:
+            url, request_types = RIGHT_MAP[right]
+            await submit_form(tab, url, request_types, right, super_scraper)
 
 
 asyncio.run(main())

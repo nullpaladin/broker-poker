@@ -4,24 +4,34 @@
 # This deployment is the MINIMAL DataSubject variant: after a card is clicked
 # the only fields are email / given-name / family-name (no address, phone, or
 # representative-type — unlike arccorp.com/windfall.com elsewhere in this repo).
-# Jurisdiction auto-detects from the request context. One card/right per pass —
-# Summarize (Access), Do Not Sell or Share, Don't use for advertising
-# unconditional; Delete gated on REMOVE_INFORMATION. "Correct" and "Other"
-# skipped (nothing concrete to describe). Cloudflare Turnstile gates the
-# submit — form filled and left for a manual solve.  **CAPTCHA solution required**
+# Jurisdiction auto-detects from the request context. One card/right per pass.
+# Which cards run is decided ONLY by SuperScraper.rights_to_exercise(RIGHT_MAP).
+# "Correct" and "Other" cards are skipped (nothing concrete to describe).
+# Cloudflare Turnstile gates the submit — form filled and left for a manual
+# solve.  **CAPTCHA solution required**
+#
+# Page elements:
+#   h4[data-testid=card-title]   Request cards (texts in RIGHT_MAP)
+#   [name=given-name] / [name=family-name] / [name=email]   First name / Last name / Email
+#   [name=phone-number], [name=o-Physical Address], [name=o-City], [name=o-State],
+#   [name=o-Zip Code]            Optional fields (filled only when the form shows them)
+#   [name=representative-type]   "On behalf of someone else" checkbox — left unchecked
 import asyncio
 
 from pydoll.browser.chromium import Chrome
 
+from src.dsar.rights import Right
 from src.dsar.super_scraper import SuperScraper
 
 URL = "https://my.datasubject.com/aSCwO6P3vw/60584"
 
 RIGHT_MAP = {
-    "access": [("Summarize my personal information", "access")],
-    "opt_out_sale_share": [("Do Not Sell or Share to a Third Party", "opt_out_sale")],
-    "opt_out_targeted_ads": [("Don't use my personal information for advertising", "opt_out_ads")],
-    "delete": [("Delete my personal information", "delete")],
+    Right.RIGHT_TO_ACCESS: [("Summarize my personal information", "access")],
+    Right.RIGHT_TO_OPT_OUT: [
+        ("Do Not Sell or Share to a Third Party", "opt_out_sale"),
+        ("Don't use my personal information for advertising", "opt_out_ads"),
+    ],
+    Right.RIGHT_TO_DELETE: [("Delete my personal information", "delete")],
 }
 RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
 
@@ -72,18 +82,20 @@ async def submit_request(tab, card_text, label, super_scraper):
 
 async def main():
     super_scraper = SuperScraper()
-    options = SuperScraper.build_chromium_options()
+    if SuperScraper.bail_if_not_automatable(globals()):
+        return
 
-    codes = SuperScraper.rights_to_exercise(RIGHT_MAP)
-    if not codes:
+    rights = SuperScraper.rights_to_exercise(RIGHT_MAP)
+    if not rights:
         print("No requested privacy rights apply to this form — nothing to do.")
         return
-    rights = [entry for code in codes for entry in RIGHT_MAP[code]]
 
+    options = SuperScraper.build_chromium_options()
     async with Chrome(options=options) as browser:
         tab = await browser.start()
-        for card_text, label in rights:
-            await submit_request(tab, card_text, label, super_scraper)
+        for right in rights:
+            for card_text, label in RIGHT_MAP[right]:
+                await submit_request(tab, card_text, label, super_scraper)
 
 
 asyncio.run(main())

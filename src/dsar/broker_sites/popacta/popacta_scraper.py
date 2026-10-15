@@ -1,32 +1,49 @@
 # popacta.com (optout.popacta.com) — general DSAR contact form.
 # No request-type picker; rights are expressed in the free-text message.
-# Exercises Access, Opt-Out, and Delete (gated on REMOVE_INFORMATION).
+# Exercises Access, Opt-Out, and Delete as decided ONLY by
+# SuperScraper.rights_to_exercise(RIGHT_MAP); one submission covers all of them.
 # reCAPTCHA v3 invisible — token auto-injected by the page JS before submit.
-# Message field is required with a 250-character limit.
+# Message field is required with a 250-character limit, so a short fixed phrase is
+# used instead of SuperScraper.request_statement (which would be truncated).
+#
+# Page elements:
+#   input[name=email]            Email
+#   input[name=fname]            First name
+#   input[name=lname]            Last name
+#   textarea[name=form_message]  Message (required, max 250 chars)
+#   #submit-btn                  Submit button
 import asyncio
 import time
 
 from pydoll.browser.chromium import Chrome
 
+from src.dsar.rights import Right
 from src.dsar.super_scraper import SuperScraper
 
 URL = "https://optout.popacta.com/contact-us"
 
-_MSG_BASE = (
-    "I am submitting a DSAR to exercise my right to access "
-    "and opt out of the processing and sale of my personal data."
-)
-_MSG_DELETE = (
-    "I am submitting a DSAR to exercise my right to access, "
-    "opt out, and delete my personal data."
-)
+# No request-type picker: rights are expressed only in the free-text message.
+RIGHT_MAP = {
+    Right.RIGHT_TO_ACCESS: "access to my personal data",
+    Right.RIGHT_TO_OPT_OUT: "opt-out of the processing and sale of my personal data",
+    Right.RIGHT_TO_DELETE: "deletion of my personal data",
+}
+RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
 
 
 async def main():
     super_scraper = SuperScraper()
+    if SuperScraper.bail_if_not_automatable(globals()):
+        return
+
+    rights = SuperScraper.rights_to_exercise(RIGHT_MAP)
+    if not rights:
+        print("No requested privacy rights apply to this form — nothing to do.")
+        return
+
     options = SuperScraper.build_chromium_options()
 
-    message = _MSG_DELETE if SuperScraper.wants("delete") else _MSG_BASE
+    message = "I am submitting a DSAR to exercise my rights: " + "; ".join(RIGHT_MAP[r] for r in rights) + "."
 
     async with Chrome(options=options) as browser:
         tab = await browser.start()
@@ -66,11 +83,7 @@ async def main():
         await submit_btn.click()
         await asyncio.sleep(5)
 
-        source = await tab.page_source
-        if any(w in source.lower() for w in ("thank", "success", "received", "submitted", "confirmation")):
-            print(f"Submitted DSAR for {SuperScraper.FIRST_NAME} {SuperScraper.LAST_NAME}")
-        else:
-            print(f"{super_scraper.OOPS} Confirmation unclear — verify in browser")
+        print(f"Submitted DSAR for {SuperScraper.EMAIL} — confirm in the browser.")
 
 
 asyncio.run(main())

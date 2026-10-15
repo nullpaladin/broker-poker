@@ -5,29 +5,39 @@
 # the ONLY privacy mechanism vrtcal.com offers. The page shows "YOU ARE
 # CURRENTLY: Not Opted Out" / "Opted Out" and a single "CHANGE OPT-OUT
 # STATUS" link that flips the state (confirmed via before/after screenshot
-# — text changes from "Not Opted Out" to "Opted Out"). No CAPTCHA. This is
-# gated on REMOVE_INFORMATION as an opt-out-style action even though this
-# repo's other REMOVE_INFORMATION-gated actions are usually deletions —
-# treated as "opt out of tracking" being the closest fit to that flag's
-# intent, since there is no separate unconditional right offered here to
-# exercise instead.
+# — text changes from "Not Opted Out" to "Opted Out"). No CAPTCHA. The toggle is
+# Right.RIGHT_TO_OPT_OUT; it runs only when SuperScraper.rights_to_exercise(RIGHT_MAP)
+# includes it.
+#
+# Page elements:
+#   "Not Opted Out" / "Opted Out"   Current-status text ("YOU ARE CURRENTLY: ...")
+#   "CHANGE OPT-OUT STATUS"         Link that flips the cookie opt-out state
 import asyncio
 
+from src.dsar.rights import Right
 from src.dsar.super_scraper import SuperScraper
 
 from pydoll.browser.chromium import Chrome
 
 URL = "https://www.vrtcal.com/opt-out/"
 
+RIGHT_MAP = {
+    Right.RIGHT_TO_OPT_OUT: "CHANGE OPT-OUT STATUS",
+}
+RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
+
 
 async def main():
     super_scraper = SuperScraper()
     options = SuperScraper.build_chromium_options()
 
-    if not SuperScraper.wants("delete"):
+    if SuperScraper.bail_if_not_automatable(globals()):
+        return
+    rights = SuperScraper.rights_to_exercise(RIGHT_MAP)
+    if not rights:
         print(
             "vrtcal.com only offers a browser-cookie opt-out toggle (no Access/Delete/Correct "
-            "mechanism exists) — skipping since REMOVE_INFORMATION is not set."
+            "mechanism exists) — opt-out not requested, nothing to do."
         )
         return
 
@@ -47,7 +57,7 @@ async def main():
             print("DRY RUN: would click 'CHANGE OPT-OUT STATUS' to flip cookie state to Opted Out")
             return
 
-        link = await tab.find(text="CHANGE OPT-OUT STATUS", raise_exc=False)
+        link = await tab.find(text=RIGHT_MAP[Right.RIGHT_TO_OPT_OUT], raise_exc=False)
         if link:
             await link.click()
             await asyncio.sleep(2)

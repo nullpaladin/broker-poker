@@ -1,45 +1,46 @@
 # penlink.com — /your-privacy-choices/ Gravity Forms (form 9), server-rendered.
-# One submission per "Request Type" (input_9_33 <select>):
-#   "Access my personal information / Port my personal information"       -> Access
-#   "Opt out of sale or sharing of my personal information"              -> Opt-Out
-#   "Request list of third parties to which personal information was
-#    disclosed (Oregon and Minnesota only)"                             -> 3rd-parties
-#       (offered because the .env persona's state is Minnesota)
-#   "Delete my personal information"                                     -> Delete
-#       (gated on REMOVE_INFORMATION)
-#   Correct / Object / "Opt out of marketing" are skipped as non-core.
-# Fields: input_9_1 first, input_9_10 last, input_9_2 email, input_9_23
-#   Advertising ID, input_9_24_1..5 street/line2/city/state/zip, input_9_24_6
-#   <select> country, input_25 radio -> "The consumer named above",
-#   input_9_34 comments (blank).
-# reCAPTCHA gates submit — filled to that point.  **CAPTCHA solution required**
+# One submission per "Request Type" (input_9_33 <select>); which rights run is decided ONLY by
+# SuperScraper.rights_to_exercise(RIGHT_MAP). Options offered but not automated: Correct,
+# Object, "Opt out of marketing". The third-parties option is labelled "(Oregon and Minnesota
+# only)" on the page. reCAPTCHA gates submit — filled to that point.  **CAPTCHA solution required**
+#
+# Page elements (keep this list current):
+#   #input_9_33 (REQUEST_TYPE_SELECT)  "Request Type" <select>, options -> see RIGHT_MAP
+#   #input_9_1 / #input_9_10           First / Last name
+#   #input_9_2                         Email
+#   #input_9_23                        Advertising ID
+#   #input_9_24_1 .. _5                Street / Line 2 / City / State / ZIP
+#   #input_9_24_6                      Country <select> -> "United States"
+#   #choice_9_25_0                     Radio "The consumer named above"
+#   #input_9_34                        Comments (left blank)
 import asyncio
 
 from pydoll.browser.chromium import Chrome
 
+from src.dsar.rights import Right
 from src.dsar.super_scraper import SuperScraper
 from src.dsar import js_utils
 
 URL = "https://www.penlink.com/your-privacy-choices/"
 
 RIGHT_MAP = {
-    "access": [("Access my personal information / Port my personal information", "access")],
-    "portability": [("Access my personal information / Port my personal information", "access")],
-    "opt_out_sale_share": [("Opt out of sale or sharing of my personal information", "opt_out")],
-    "know_third_parties": [
+    Right.RIGHT_TO_ACCESS: [("Access my personal information / Port my personal information", "access")],
+    Right.RIGHT_TO_OPT_OUT: [("Opt out of sale or sharing of my personal information", "opt_out")],
+    Right.RIGHT_TO_LIST_OF_THIRD_PARTIES: [
         ("Request list of third parties to which personal information was disclosed "
          "(Oregon and Minnesota only)", "third_parties")
     ],
-    "delete": [("Delete my personal information", "delete")],
+    Right.RIGHT_TO_DELETE: [("Delete my personal information", "delete")],
 }
 RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
+REQUEST_TYPE_SELECT = "input_9_33"
 
 
 async def submit_request(tab, right_label, tag, super_scraper):
     await tab.go_to(URL)
     await asyncio.sleep(6)
 
-    rt = await tab.find(id="input_9_33", raise_exc=False)
+    rt = await tab.find(id=REQUEST_TYPE_SELECT, raise_exc=False)
     if rt:
         await js_utils.select_native_option(rt, text=right_label)
         await asyncio.sleep(0.5)
@@ -84,15 +85,18 @@ async def main():
     super_scraper = SuperScraper()
     options = SuperScraper.build_chromium_options()
 
-    codes = SuperScraper.rights_to_exercise(RIGHT_MAP)
-    if not codes:
+    if SuperScraper.bail_if_not_automatable(globals()):
+        return
+
+    rights = SuperScraper.rights_to_exercise(RIGHT_MAP)
+    if not rights:
         print("No requested privacy rights apply to this form — nothing to do.")
         return
-    rights = [entry for code in codes for entry in RIGHT_MAP[code]]
+    requests = [entry for right in rights for entry in RIGHT_MAP[right]]
 
     async with Chrome(options=options) as browser:
         tab = await browser.start()
-        for right_label, tag in rights:
+        for right_label, tag in requests:
             await submit_request(tab, right_label, tag, super_scraper)
 
 

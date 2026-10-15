@@ -1,23 +1,50 @@
-# path2response.com — OneTrust CDN Angular DSAR form. Exercises Do Not Sell or
-# Share / Opt-Out, Access My Data, and Delete My Data (gated on
-# REMOVE_INFORMATION). No subject type step. formField17DSARElement is
-# "Are you submitting this request for yourself?" (autocomplete Yes/No).
-# Affirmation "Yes" button required at bottom. Country and state are autocomplete
-# comboboxes (ArrowDown+Enter). Phone country code vt-input-5. reCAPTCHA v2
-# requires manual solve before submit.
+# path2response.com — OneTrust CDN Angular DSAR form. Rights the form exposes: Do Not Sell or
+# Share / Opt-Out, Access My Data, Delete My Data (no Correct). The request-type cards are
+# multi-selected in ONE submission; which of them are clicked is decided ONLY by
+# SuperScraper.rights_to_exercise(RIGHT_MAP). No subject type step. reCAPTCHA v2 requires a
+# manual solve before submit.
+#
+# Page elements (keep this list current):
+#   aria-label "Do Not Sell or Share My Personal Information / Opt-Out"   -> RIGHT_TO_OPT_OUT
+#   aria-label "Access My Data"                                           -> RIGHT_TO_ACCESS
+#   aria-label "Delete My Data"                                           -> RIGHT_TO_DELETE
+#   #emailDSARElement / #firstNameDSARElement / #lastNameDSARElement      Email / First / Last name
+#   #formField17DSARElement   "Are you submitting this request for yourself?" autocomplete (Yes/No) -> "Yes"
+#   vt-input-5 (PHONE_COUNTRY_CODE)   Phone country code (type "1")
+#   #phoneNumberDSARElement   Phone number
+#   #addressDSARElement / #cityDSARElement / #zipDSARElement   Street address / City / ZIP
+#   #stateDSARElement / #countryDSARElement   State / Country autocomplete comboboxes (ArrowDown+Enter/Tab)
+#   aria-label "Yes"          Affirmation button at the bottom (click_using_js)
+#   aria-label "click to submit form"   Submit button
 import asyncio
 
 from pydoll.browser.chromium import Chrome
 from pydoll.constants import Key
 
+from src.dsar.rights import Right
 from src.dsar.super_scraper import SuperScraper
 
 URL = "https://privacyportal-cdn.onetrust.com/dsarwebform/2de26f06-de6f-45a7-8e1d-7d1148a3f301/draft/7a5dc7d1-cc7e-43a8-9f24-702807deb65b.html"
 
+RIGHT_MAP = {
+    Right.RIGHT_TO_OPT_OUT: "Do Not Sell or Share My Personal Information / Opt-Out",
+    Right.RIGHT_TO_ACCESS: "Access My Data",
+    Right.RIGHT_TO_DELETE: "Delete My Data",
+}
+RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
+PHONE_COUNTRY_CODE = "vt-input-5"
+
 
 async def main():
     super_scraper = SuperScraper()
+    if SuperScraper.bail_if_not_automatable(globals()):
+        return
     options = SuperScraper.build_chromium_options()
+
+    rights = SuperScraper.rights_to_exercise(RIGHT_MAP)
+    if not rights:
+        print("No requested privacy rights apply to this form — nothing to do.")
+        return
 
     async with Chrome(options=options) as browser:
         tab = await browser.start()
@@ -25,23 +52,10 @@ async def main():
         await asyncio.sleep(6)
 
         # Select request types
-        optout_btn = await tab.find(
-            **{"aria-label": "Do Not Sell or Share My Personal Information / Opt-Out"},
-            raise_exc=False,
-        )
-        if optout_btn:
-            await optout_btn.click_using_js()
-        await asyncio.sleep(0.3)
-
-        access_btn = await tab.find(**{"aria-label": "Access My Data"}, raise_exc=False)
-        if access_btn:
-            await access_btn.click_using_js()
-        await asyncio.sleep(0.3)
-
-        if SuperScraper.wants("delete"):
-            delete_btn = await tab.find(**{"aria-label": "Delete My Data"}, raise_exc=False)
-            if delete_btn:
-                await delete_btn.click_using_js()
+        for right in rights:
+            btn = await tab.find(**{"aria-label": RIGHT_MAP[right]}, raise_exc=False)
+            if btn:
+                await btn.click_using_js()
             await asyncio.sleep(0.3)
 
         email = await tab.find(id="emailDSARElement", raise_exc=False)
@@ -67,7 +81,7 @@ async def main():
         if last:
             await last.type_text(SuperScraper.LAST_NAME)
 
-        phone_cc = await tab.find(id="vt-input-5", raise_exc=False)
+        phone_cc = await tab.find(id=PHONE_COUNTRY_CODE, raise_exc=False)
         if phone_cc:
             await phone_cc.click()
             await tab.keyboard.type_text("1")
@@ -124,18 +138,14 @@ async def main():
             if submit_btn:
                 await submit_btn.scroll_into_view()
             await asyncio.sleep(1)
-            await SuperScraper.screenshot(tab, "dry_run")
+            await SuperScraper.screenshot(tab, "dry_run_" + "_".join(r.value for r in rights))
             return
 
         print("\nForm filled. Solve the reCAPTCHA in the browser, then click Submit.")
         print("Press Enter after the confirmation page appears...")
         input()
 
-        source = await tab.page_source
-        if any(w in source.lower() for w in ("thank", "success", "received", "submitted", "confirmation")):
-            print(f"Submitted DSAR for {SuperScraper.FIRST_NAME} {SuperScraper.LAST_NAME}")
-        else:
-            print(f"{super_scraper.OOPS} Confirmation unclear — verify in browser")
+        print(f"Submitted [{', '.join(r.name for r in rights)}] for {SuperScraper.EMAIL} — confirm in the browser.")
 
 
 asyncio.run(main())

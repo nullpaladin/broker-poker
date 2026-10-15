@@ -5,13 +5,21 @@
 # the same "We need to verify your identity" screen: "Use My Email" reveals
 # an email field and a "Send Me A Code" button — a real OTP email send, so
 # this scraper fills the email and stops there regardless of DRY_RUN;
-# entering the code and continuing must be done manually. Exercises Access
-# and Do Not Sell/Share unconditionally; Delete gated on REMOVE_INFORMATION.
+# entering the code and continuing must be done manually. Which cards run is
+# decided ONLY by SuperScraper.rights_to_exercise(RIGHT_MAP).
+#
+# Page elements:
+#   Card "Access My Data" / "Do Not Sell or Share My Data" / "Delete My Data"
+#   Button "Continue"            (country step of "Access My Data"; default United States)
+#   Button "Use My Email"        reveals the email field
+#   input placeholder "Enter Your Email Address"   Email
+#   Button "Send Me A Code"      (never clicked by this scraper — sends a real OTP)
 import asyncio
 
-from src.dsar.super_scraper import SuperScraper
-
 from pydoll.browser.chromium import Chrome
+
+from src.dsar.rights import Right
+from src.dsar.super_scraper import SuperScraper
 
 URL = "https://platform.fullcontact.com/your-privacy-choices"
 
@@ -21,9 +29,9 @@ NOT_AUTOMATABLE_REASON = (
 )
 
 RIGHT_MAP = {
-    "access": ["Access My Data"],
-    "opt_out_sale_share": ["Do Not Sell or Share My Data"],
-    "delete": ["Delete My Data"],
+    Right.RIGHT_TO_ACCESS: "Access My Data",
+    Right.RIGHT_TO_OPT_OUT: "Do Not Sell or Share My Data",
+    Right.RIGHT_TO_DELETE: "Delete My Data",
 }
 RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
 
@@ -74,16 +82,15 @@ async def main():
     super_scraper = SuperScraper()
     options = SuperScraper.build_chromium_options()
 
-    codes = SuperScraper.rights_to_exercise(RIGHT_MAP)
-    if not codes:
+    rights = SuperScraper.rights_to_exercise(RIGHT_MAP)
+    if not rights:
         print("No requested privacy rights apply to this form — nothing to do.")
         return
-    cards = [entry for code in codes for entry in RIGHT_MAP[code]]
 
     async with Chrome(options=options) as browser:
         tab = await browser.start()
-        for card_text in cards:
-            await submit_request(tab, card_text, super_scraper)
+        for right in rights:
+            await submit_request(tab, RIGHT_MAP[right], super_scraper)
 
 
 asyncio.run(main())

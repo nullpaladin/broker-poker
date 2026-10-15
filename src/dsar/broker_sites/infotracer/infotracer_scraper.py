@@ -5,10 +5,11 @@
 # populate after you TYPE into the control, so each is driven by typing a
 # keyword then clicking the matching `.select__option`.
 # Name is a single field (...-001002 "Enter Full Name"), email is ...-001003,
-# "Request Details" is a textarea. One submission per right — the Type of
-# Request options seen are "Right to Know or Access", "Right to Correct", and
-# (presumably) "Right to Delete"; matched by keyword. Access + Correct
-# unconditionally; Delete gated on REMOVE_INFORMATION. Do Not Sell / Opt-Out is
+# "Request Details" is a textarea (not filled by this scraper). One submission per
+# right — the Type of Request options seen are "Right to Know or Access" and
+# "Right to Correct" (correct is not automated); a Delete option has not been
+# confirmed on the page. Matched by keyword; which run is decided only by
+# SuperScraper.rights_to_exercise. Do Not Sell / Opt-Out is
 # a SEPARATE link in the site footer (not this form) and is not handled here.
 # A final "By submitting this request, I am confirming ..." accuracy/consent
 # checkbox is checked.
@@ -17,10 +18,20 @@
 # reCAPTCHA gates submit. This TrustArc host also throws a PerimeterX wall after
 # rapid repeated loads — retry from a fresh session if the form won't render.
 # **CAPTCHA solution required**
+#
+# Page elements:
+#   #00000000-0000-0000-0000-000000001001-select-container   "on behalf of" (-> "Myself")
+#   input[aria-label='Enter Full Name'] (id ...-001002)       Full name
+#   input[aria-label='Enter Email'] (id ...-001003)           Email
+#   #00000000-0000-0000-0000-000000001004-select-container   "Resident of" (state)
+#   #00000000-0000-0000-0000-000000001005-select-container   "Type of Request"
+#   input[type=checkbox]                                      "By submitting this request, I am confirming ..."
 import asyncio
 
 from pydoll.browser.chromium import Chrome
 
+from src.dsar import js_utils
+from src.dsar.rights import Right
 from src.dsar.super_scraper import SuperScraper
 
 URL = (
@@ -34,9 +45,8 @@ REQUEST_TYPE_CONTAINER = "00000000-0000-0000-0000-000000001005-select-container"
 
 # (keyword typed into the request-type control, screenshot label)
 RIGHT_MAP = {
-    "access": [("Access", "access")],
-    "correct": [("Correct", "correct")],
-    "delete": [("Delete", "delete")],
+    Right.RIGHT_TO_ACCESS: [("Access", "access")],
+    Right.RIGHT_TO_DELETE: [("Delete", "delete")],
 }
 RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
 
@@ -64,7 +74,7 @@ async def _select_option(tab, super_scraper, container_id, text, label=""):
         print(f"{super_scraper.OOPS} no '{label or container_id}' option matched {text!r}")
 
 
-async def submit_request(tab, keyword, tag, super_scraper):
+async def submit_request(tab, right, keyword, tag, super_scraper):
     await tab.go_to(URL)
     await asyncio.sleep(9)
 
@@ -97,11 +107,7 @@ async def submit_request(tab, keyword, tag, super_scraper):
     checkboxes = await tab.find(xpath="//input[@type='checkbox']", find_all=True, raise_exc=False) or []
     for cb in checkboxes:
         try:
-            await cb.execute_script(
-                "if(!this.checked){this.checked=true;"
-                "this.dispatchEvent(new Event('click',{bubbles:true}));"
-                "this.dispatchEvent(new Event('change',{bubbles:true}));}"
-            )
+            await js_utils.js_check(cb)
         except Exception:
             pass
 
@@ -114,16 +120,16 @@ async def main():
     super_scraper = SuperScraper()
     options = SuperScraper.build_chromium_options()
 
-    codes = SuperScraper.rights_to_exercise(RIGHT_MAP)
-    if not codes:
+    rights = SuperScraper.rights_to_exercise(RIGHT_MAP)
+    if not rights:
         print("No requested privacy rights apply to this form — nothing to do.")
         return
-    rights = [entry for code in codes for entry in RIGHT_MAP[code]]
 
     async with Chrome(options=options) as browser:
         tab = await browser.start()
-        for keyword, tag in rights:
-            await submit_request(tab, keyword, tag, super_scraper)
+        for right in rights:
+            for keyword, tag in RIGHT_MAP[right]:
+                await submit_request(tab, right, keyword, tag, super_scraper)
 
 
 asyncio.run(main())

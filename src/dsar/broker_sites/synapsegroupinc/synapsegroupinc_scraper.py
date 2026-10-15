@@ -2,26 +2,28 @@
 # (privacyportalde-cdn.onetrust.com/dsarwebform). The portal's own copy says it
 # "has been developed to allow California users to submit a request", and the
 # only residency question is a required "Are you a California Resident?" Yes/No.
-# There is no path for a non-CA resident. "Yes" is selected for any user in a
-# state with a privacy law (such a law entitles its residents to the same
-# treatment a business gives CCPA requesters); for a genuine no-law state there
-# is nothing on this form that would apply, so it is left as a documented gap.
+# There is no path for a non-CA resident, so "Yes" is selected ONLY when the
+# configured STATE is California; for any other state the question is left
+# unanswered (we do not claim a residency we do not have) and must be handled
+# manually.
 #
 #   requestTypesDSARElement  role="option" group, single-select (one submission
 #       per right): "Request a Copy of My Personal Information" (Access) +
 #       "Request More Information about How Synapse Processes My Personal
-#       Information" unconditionally; "Request Deletion of My Personal
-#       Information" gated on REMOVE_INFORMATION.
+#       Information" (both RIGHT_TO_ACCESS); "Request Deletion of My Personal
+#       Information" (RIGHT_TO_DELETE). Which run is decided ONLY by
+#       SuperScraper.rights_to_exercise(RIGHT_MAP).
 #   firstNameDSARElement / lastNameDSARElement / emailDSARElement
 #   addressDSARElement / formField20DSARElement (line 2) / cityDSARElement /
 #       formField17DSARElement (state) / zipDSARElement  — labelled "Required
 #       for print subscribers only"; filled anyway from the persona.
-#   "Are you a California Resident?" -> "Yes"
+#   "Are you a California Resident?" Yes/No role="option" -> "Yes" only for California
 # reCAPTCHA gates submit — filled to that point.  **CAPTCHA solution required**
 import asyncio
 
 from pydoll.browser.chromium import Chrome
 
+from src.dsar.rights import Right
 from src.dsar.super_scraper import SuperScraper
 
 URL = (
@@ -30,11 +32,11 @@ URL = (
 )
 
 RIGHT_MAP = {
-    "access": [
+    Right.RIGHT_TO_ACCESS: [
         ("Request a Copy of My Personal Information", "access"),
         ("Request More Information about How Synapse Processes My Personal Information", "info"),
     ],
-    "delete": [("Request Deletion of My Personal Information", "delete")],
+    Right.RIGHT_TO_DELETE: [("Request Deletion of My Personal Information", "delete")],
 }
 RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
 
@@ -77,7 +79,13 @@ async def submit_request(tab, right_label, tag, super_scraper):
         else:
             print(f"{super_scraper.OOPS} field '{field_id}' not found")
 
-    await _pick(tab, super_scraper, "Yes")  # "Are you a California Resident?"
+    if (SuperScraper.STATE or "").strip().upper() == "CALIFORNIA":
+        await _pick(tab, super_scraper, "Yes")  # "Are you a California Resident?"
+    else:
+        print(
+            f"{super_scraper.OOPS} 'Are you a California Resident?' left unanswered — "
+            f"STATE={SuperScraper.STATE!r}; this form only accepts California residents."
+        )
 
     await asyncio.sleep(1)
     await SuperScraper.screenshot(tab, f"dry_run_{tag}")
@@ -88,15 +96,15 @@ async def main():
     super_scraper = SuperScraper()
     options = SuperScraper.build_chromium_options()
 
-    codes = SuperScraper.rights_to_exercise(RIGHT_MAP)
-    if not codes:
+    rights = SuperScraper.rights_to_exercise(RIGHT_MAP)
+    if not rights:
         print("No requested privacy rights apply to this form — nothing to do.")
         return
-    rights = [entry for code in codes for entry in RIGHT_MAP[code]]
+    requests = [entry for right in rights for entry in RIGHT_MAP[right]]
 
     async with Chrome(options=options) as browser:
         tab = await browser.start()
-        for right_label, tag in rights:
+        for right_label, tag in requests:
             await submit_request(tab, right_label, tag, super_scraper)
 
 

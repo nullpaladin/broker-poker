@@ -16,17 +16,41 @@
 # lives beyond it) could not be observed or automated. A real user with their
 # genuine details should get through to Verify; that step onward requires
 # manual completion.
+#
+# Page elements (Info step):
+#   aria-label="close banner"                       "Your Privacy Choices" (Ketch) banner close button
+#   #firstname / #lastname                          First / Last name
+#   #address1 / #city / #zipCode                    Address / City / Zip code
+#   #email                                          Email
+#   #dateOfBirth / #mobileNumber                    Date of birth / Mobile number (optional)
+#   select#state                                    State (composite option values; matched by visible text)
+#   #touCheckbox-input                              terms-of-use checkbox (clicked via its label)
+#   "Go to next step" button
 import asyncio
 
+from src.dsar.rights import Right
 from src.dsar.super_scraper import SuperScraper
 
 from pydoll.browser.chromium import Chrome
 
 URL = "https://myprivacy.equifax.com/opt-in-opt-out/personal-info"
 
+# The Info step is shared by every choice on the portal and the right-selection UI beyond
+# Verify was never observed, so only the opt-out entry point is mapped.
+RIGHT_MAP = {Right.RIGHT_TO_OPT_OUT: "Info step of the opt-in/opt-out wizard"}
+RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
+
 
 async def main():
     super_scraper = SuperScraper()
+    if SuperScraper.bail_if_not_automatable(globals()):
+        return
+
+    rights = SuperScraper.rights_to_exercise(RIGHT_MAP)
+    if not rights:
+        print("No requested privacy rights apply to this form — nothing to do.")
+        return
+
     options = SuperScraper.build_chromium_options()
 
     async with Chrome(options=options) as browser:
@@ -74,7 +98,7 @@ async def main():
         await asyncio.sleep(1)
 
         if SuperScraper.DRY_RUN:
-            print(f"DRY RUN: would advance to Verify step for {SuperScraper.FIRST_NAME} {SuperScraper.LAST_NAME}")
+            print(f"DRY RUN: would advance to Verify step for {SuperScraper.EMAIL}")
             await asyncio.sleep(1)
             await SuperScraper.screenshot(tab, "dry_run")
             return

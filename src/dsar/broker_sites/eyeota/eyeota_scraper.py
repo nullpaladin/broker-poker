@@ -4,11 +4,10 @@
 # Fields: firstname, lastname, email; "nature_of_request" checkbox group
 # (Access Request / Deletion / Update Request / HEM Opt-out / Opt-out /
 # Questions / Complaints) — multi-select, one combined submission: Access
-# Request + Opt-out + HEM Opt-out unconditionally; Deletion gated on
-# REMOVE_INFORMATION; Update/Questions/Complaints skipped. "regulation" <select>
+# Request, Opt-out + HEM Opt-out, Deletion; Update/Questions/Complaints skipped
+# (Update is not automatable). "regulation" <select>
 # has no home-state option for most users (its list is CCPA-era only:
-# CA/CO/CT/VA/UT/NV) so "Other / Generic" is used regardless of state — every
-# state privacy law treats a request framed under CCPA the same way.
+# CA/CO/CT/VA/UT/NV) so "Other / Generic" is used regardless of state.
 # An invisible reCAPTCHA is present; it resolves without interaction.
 #
 # "HEM Opt-out": HEM = Hashed Email — a hash (e.g. SHA-256) of your email address
@@ -17,46 +16,55 @@
 # "HEM based targeting" is ad targeting keyed off that hash; this dedicated
 # checkbox (separate from the generic "Opt-out") asks Eyeota to stop using your
 # hashed email for that identity resolution / targeting.
+#
+# Page elements (all by name):
+#   input[name=firstname] / [name=lastname] / [name=email]   First / Last name / Email
+#   input[name=nature_of_request]   "nature_of_request" checkbox group (values in RIGHT_MAP)
+#   select[name=regulation]         "regulation" select -> "Other / Generic"
+#   textarea[name=message]          Message
+#   "Agree & Proceed" / "Required Only"   Dun & Bradstreet cookie banner buttons
+#   input/button[type=submit]       Submit
 import asyncio
 import time
 
 from pydoll.browser.chromium import Chrome
 
+from src.dsar.rights import Right
 from src.dsar.super_scraper import SuperScraper
 from src.dsar import js_utils
 
 URL = "https://www.eyeota.com/data-subject-request"
 
-# Canonical right code -> this form's "nature_of_request" checkbox value(s).
-# "HEM Opt-out" rides along with any sale/share or targeted-ads opt-out.
+# Right -> this form's "nature_of_request" checkbox value(s).
+# "HEM Opt-out" rides along with the opt-out.
 RIGHT_MAP = {
-    "access": ["Access Request"],
-    "opt_out_sale_share": ["Opt-out", "HEM Opt-out"],
-    "opt_out_targeted_ads": ["Opt-out", "HEM Opt-out"],
-    "delete": ["Deletion"],
+    Right.RIGHT_TO_ACCESS: ["Access Request"],
+    Right.RIGHT_TO_OPT_OUT: ["Opt-out", "HEM Opt-out"],
+    Right.RIGHT_TO_DELETE: ["Deletion"],
 }
 RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
 
 
 async def _set_text(tab, xpath, value):
-    """Set an input/textarea via the native value setter + input/change events —
-    HubSpot's React fields don't reliably accept click()+type here (a D&B cookie
-    banner also overlaps the lower fields)."""
+    """HubSpot's React fields don't reliably accept click()+type here (a D&B cookie
+    banner also overlaps the lower fields), so set the value in JS."""
     el = await tab.find(xpath=xpath, raise_exc=False)
     if not el:
         return
-    await el.execute_script(
-        f"const p=this.tagName==='TEXTAREA'?window.HTMLTextAreaElement.prototype:window.HTMLInputElement.prototype;"
-        f"const s=Object.getOwnPropertyDescriptor(p,'value').set; s.call(this,{value!r});"
-        "this.dispatchEvent(new Event('input',{bubbles:true}));"
-        "this.dispatchEvent(new Event('change',{bubbles:true}));"
-        "this.dispatchEvent(new Event('blur',{bubbles:true}));"
-    )
+    await js_utils.js_set_value(el, value, blur=True)
     await asyncio.sleep(0.2)
 
 
 async def main():
     super_scraper = SuperScraper()
+    if SuperScraper.bail_if_not_automatable(globals()):
+        return
+
+    rights = SuperScraper.rights_to_exercise(RIGHT_MAP)
+    if not rights:
+        print("No requested privacy rights apply to this form — nothing to do.")
+        return
+
     options = SuperScraper.build_chromium_options()
 
     async with Chrome(options=options) as browser:
@@ -79,11 +87,7 @@ async def main():
         ]:
             await _set_text(tab, f"//input[@name={name!r}]", value)
 
-        codes = SuperScraper.rights_to_exercise(RIGHT_MAP)
-        if not codes:
-            print("No requested privacy rights apply to this form — nothing to do.")
-            return
-        checkbox_values = list(dict.fromkeys(v for c in codes for v in RIGHT_MAP[c]))
+        checkbox_values = list(dict.fromkeys(v for r in rights for v in RIGHT_MAP[r]))
         for value in checkbox_values:
             box = await tab.find(
                 xpath=f"//input[@name='nature_of_request' and @value={value!r}]", raise_exc=False
@@ -100,8 +104,8 @@ async def main():
                 "s.call(this,o.value);this.dispatchEvent(new Event('change',{bubbles:true}));}"
             )
 
-        msg = SuperScraper.request_statement(codes, broker="Eyeota")
-        if {"opt_out_sale_share", "opt_out_targeted_ads"} & set(codes):
+        msg = SuperScraper.request_statement(rights, broker="Eyeota")
+        if Right.RIGHT_TO_OPT_OUT in rights:
             msg += (" This includes any hashed-email / HEM based targeting or identity "
                     "resolution keyed off a hash of my email address.")
         await _set_text(tab, "//textarea[@name='message']", msg)
@@ -118,21 +122,14 @@ async def main():
 
         await SuperScraper.screenshot(tab, "dry_run")
         if SuperScraper.DRY_RUN:
-            print(
-                f"DRY RUN: would submit privacy request for "
-                f"{SuperScraper.FIRST_NAME} {SuperScraper.LAST_NAME} <{SuperScraper.EMAIL}>"
-            )
+            print(f"DRY RUN: would submit {[r.name for r in rights]} for {SuperScraper.EMAIL}")
             return
 
         submit = await tab.find(xpath="//input[@type='submit'] | //button[@type='submit']", raise_exc=False)
         if submit:
             await submit.click()
             await asyncio.sleep(3)
-        source = await tab.page_source
-        if any(w in source.lower() for w in ("thank", "success", "received", "submitted", "confirmation")):
-            print(f"Submitted for {SuperScraper.FIRST_NAME} {SuperScraper.LAST_NAME}")
-        else:
-            print(f"{super_scraper.OOPS} Confirmation unclear — verify in browser")
+        print(f"Submitted {[r.name for r in rights]} for {SuperScraper.EMAIL} — confirm in the browser.")
 
 
 asyncio.run(main())

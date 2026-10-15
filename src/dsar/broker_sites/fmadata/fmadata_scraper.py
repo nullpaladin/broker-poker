@@ -1,31 +1,39 @@
 # fmadata.com — /opt-out-requests/new Rails-rendered form, POSTs in place.
 # One submission per right via the opt_out_request[request_type] <select>:
-#   - "Opt out"    (opt_out)    -> Opt-Out   (unconditional)
-#   - "Disclosure" (disclosure) -> Access     (unconditional)
-#   - "Deletion"   (deletion)   -> Delete      (gated on REMOVE_INFORMATION)
+#   - "Opt out"    (opt_out)    -> Opt-Out
+#   - "Disclosure" (disclosure) -> Access
+#   - "Deletion"   (deletion)   -> Delete
 # Fields: opt_out_request[name] (full name), [street_address], [city], [state],
 # [postal_code]; is_authorized_agent radio -> "false"; [authorized_agent_name]
 # left blank. Note: this form has NO email field. Ends in an hCaptcha widget —
 # filled to that point and left for a manual solve + Submit.
 # **CAPTCHA solution required**
+#
+# Page elements:
+#   #opt_out_request_request_type              "request_type" select
+#   #opt_out_request_name                      Full name
+#   #opt_out_request_street_address / _city / _state / _postal_code   Street address / City / State / Postal code
+#   #opt_out_request_is_authorized_agent_false is_authorized_agent radio -> "No"
+#   hCaptcha widget + Submit                   left for the user
 import asyncio
 
 from pydoll.browser.chromium import Chrome
 
+from src.dsar.rights import Right
 from src.dsar.super_scraper import SuperScraper
 from src.dsar import js_utils
 
 URL = "https://www.fmadata.com/opt-out-requests/new"
 
 RIGHT_MAP = {
-    "access": [("disclosure", "access")],
-    "opt_out_sale_share": [("opt_out", "opt_out")],
-    "delete": [("deletion", "delete")],
+    Right.RIGHT_TO_ACCESS: [("disclosure", "access")],
+    Right.RIGHT_TO_OPT_OUT: [("opt_out", "opt_out")],
+    Right.RIGHT_TO_DELETE: [("deletion", "delete")],
 }
 RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
 
 
-async def submit_request(tab, request_type, label, super_scraper):
+async def submit_request(tab, right, request_type, super_scraper):
     await tab.go_to(URL)
     await asyncio.sleep(4)
 
@@ -62,27 +70,29 @@ async def submit_request(tab, request_type, label, super_scraper):
         print(f"{super_scraper.OOPS} authorized-agent 'No' radio not found")
 
     await asyncio.sleep(1)
-    await SuperScraper.screenshot(tab, f"dry_run_{label}")
+    await SuperScraper.screenshot(tab, f"dry_run_{right.value}")
     print(
-        f"'{request_type}' request filled but NOT submitted — solve the hCaptcha "
+        f"'{right.name}' request filled but NOT submitted — solve the hCaptcha "
         f"manually, then click Submit."
     )
 
 
 async def main():
     super_scraper = SuperScraper()
-    options = SuperScraper.build_chromium_options()
+    if SuperScraper.bail_if_not_automatable(globals()):
+        return
 
-    codes = SuperScraper.rights_to_exercise(RIGHT_MAP)
-    if not codes:
+    rights = SuperScraper.rights_to_exercise(RIGHT_MAP)
+    if not rights:
         print("No requested privacy rights apply to this form — nothing to do.")
         return
-    rights = [entry for code in codes for entry in RIGHT_MAP[code]]
 
+    options = SuperScraper.build_chromium_options()
     async with Chrome(options=options) as browser:
         tab = await browser.start()
-        for request_type, label in rights:
-            await submit_request(tab, request_type, label, super_scraper)
+        for right in rights:
+            for request_type, _label in RIGHT_MAP[right]:
+                await submit_request(tab, right, request_type, super_scraper)
 
 
 asyncio.run(main())

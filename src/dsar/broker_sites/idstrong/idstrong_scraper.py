@@ -8,13 +8,18 @@
 #   subjectTypesDSARElement  "I am submitting on behalf of" -> "Myself"
 #   requestTypesDSARElement   SINGLE-select role="option" group (picking a
 #       second option deselects the first), so this submits one request per
-#       right: Access + Opt-Out + Data Portability unconditionally; Delete
-#       gated on REMOVE_INFORMATION; Correct skipped.
+#       form option. Which run is decided only by SuperScraper.rights_to_exercise;
+#       Access + Data Portability map to RIGHT_TO_ACCESS, Opt-Out to
+#       RIGHT_TO_OPT_OUT, Delete to RIGHT_TO_DELETE; Correct is skipped.
 #   firstNameDSARElement / lastNameDSARElement / emailDSARElement
 #   dateOfBirthDSARElement  required date picker (MM/DD/YYYY, converted from the
 #       .env DD/MM/YYYY)
 #   An optional ID-document upload (only needed for authorised-agent requests)
 #       is left blank.
+#   Page elements (ids): #countryDSARElement (Country), #stateDSARElement (State),
+#       #cityDSARElement (City), #subjectTypesDSARElement (-> "Myself"),
+#       #requestTypesDSARElement (request type options), #firstNameDSARElement,
+#       #lastNameDSARElement, #emailDSARElement, #dateOfBirthDSARElement.
 # reCAPTCHA gates the submit — every field is filled and the form is left for a
 # manual solve.  **CAPTCHA solution required**
 import asyncio
@@ -22,6 +27,7 @@ import asyncio
 from pydoll.browser.chromium import Chrome
 from pydoll.constants import Key
 
+from src.dsar.rights import Right
 from src.dsar.super_scraper import SuperScraper
 
 URL = (
@@ -30,12 +36,14 @@ URL = (
 )
 
 RIGHT_MAP = {
-    "access": [("Request Access to Personal Information", "access")],
-    "opt_out_sale_share": [
+    Right.RIGHT_TO_ACCESS: [
+        ("Request Access to Personal Information", "access"),
+        ("Request to Data Portability", "portability"),
+    ],
+    Right.RIGHT_TO_OPT_OUT: [
         ("Request to Opt-Out (Do Not Sell or Share My Personal Information)", "opt_out")
     ],
-    "portability": [("Request to Data Portability", "portability")],
-    "delete": [("Request to Delete Personal Information", "delete")],
+    Right.RIGHT_TO_DELETE: [("Request to Delete Personal Information", "delete")],
 }
 RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
 
@@ -132,16 +140,16 @@ async def main():
     super_scraper = SuperScraper()
     options = SuperScraper.build_chromium_options()
 
-    codes = SuperScraper.rights_to_exercise(RIGHT_MAP)
-    if not codes:
+    rights = SuperScraper.rights_to_exercise(RIGHT_MAP)
+    if not rights:
         print("No requested privacy rights apply to this form — nothing to do.")
         return
-    rights = [entry for code in codes for entry in RIGHT_MAP[code]]
 
     async with Chrome(options=options) as browser:
         tab = await browser.start()
-        for right_label, tag in rights:
-            await submit_request(tab, right_label, tag, super_scraper)
+        for right in rights:
+            for right_label, tag in RIGHT_MAP[right]:
+                await submit_request(tab, right_label, tag, super_scraper)
 
 
 asyncio.run(main())

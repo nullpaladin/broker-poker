@@ -1,33 +1,44 @@
-# hartehanks.com — exercises Request My Data (Access), Do Not Sell, Delete Data (gated).
+# hartehanks.com — Request My Data (Access), Do Not Sell My Information (Opt-out), Delete Data.
+# Which of them run is decided ONLY by SuperScraper.rights_to_exercise(RIGHT_MAP).
 # Custom vt-autocomplete portal (privacy-in-action.hartehanks.com). Subject type = "Individual".
 # Subject type + country use ArrowDown+Enter. State uses vt-option click (full state names).
 # Text fields use Angular-compatible JS value dispatch (click + InputEvent bubbles).
 # After "Request My Data": infoRequestOptionDSARElement sub-field; select both categories via vt-option.
 # After "Delete Data": deleteRequestConfirmationDSARElement appears; click "Yes" via role=option.
 # Phone country code vt-input-14, reCAPTCHA v2 manual. Single submission covers all rights.
+#
+# Page elements:
+#   subjectTypesDSARElement      "I am a" subject type -> "Individual"
+#   firstNameDSARElement / lastNameDSARElement   First / Last name
+#   countryDSARElement           Country -> "United States"
+#   addressDSARElement / cityDSARElement         Street address / City
+#   stateDSARElement             State (vt-option list, full state names)
+#   zipDSARElement / emailDSARElement            ZIP / Email
+#   vt-input-14                  Phone country code -> "1"
+#   phoneNumberDSARElement       Phone number
+#   requestTypesDSARElement      Request types (multi-select role=option list)
+#   infoRequestOptionDSARElement "Which would you like to receive?" (categories of personal
+#                                information + specific pieces of data)
+#   deleteRequestConfirmationDSARElement   Delete confirmation -> "Yes"
+#   dsar-webform-submit-button   Submit button (clicked manually after the reCAPTCHA v2)
 import asyncio
-import time
 
 from pydoll.browser.chromium import Chrome
 from pydoll.constants import Key
 
+from src.dsar import js_utils
+from src.dsar.rights import Right
 from src.dsar.super_scraper import SuperScraper
 
 URL = "https://privacy-in-action.hartehanks.com/"
 
-_FILL_JS = """
-(function(id, value) {
-    var el = document.getElementById(id);
-    if (!el) return 'not found: ' + id;
-    var inp = el.tagName === 'INPUT' ? el : el.querySelector('input');
-    if (!inp) return 'no input in ' + id;
-    var setter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value').set;
-    setter.call(inp, value);
-    inp.dispatchEvent(new Event('input', {bubbles: true}));
-    inp.dispatchEvent(new Event('change', {bubbles: true}));
-    return 'ok';
-})('%s', '%s');
-"""
+# Right -> "Select request type(s)" option text.
+RIGHT_MAP = {
+    Right.RIGHT_TO_ACCESS: "Request My Data",
+    Right.RIGHT_TO_OPT_OUT: "Do Not Sell My Information",
+    Right.RIGHT_TO_DELETE: "Delete Data",
+}
+RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
 
 _CLICK_VT_OPTION_JS = """
 (function(text) {
@@ -45,8 +56,9 @@ _CLICK_VT_OPTION_JS = """
 
 async def _js_fill(tab, field_id, value):
     """Set an Angular input value by triggering native InputEvent."""
-    js = _FILL_JS % (field_id, value.replace("'", "\\'"))
-    await tab.execute_script(js)
+    el = await tab.find(id=field_id, raise_exc=False)
+    if el:
+        await js_utils.js_set_value(el, value)
     await asyncio.sleep(0.2)
 
 
@@ -95,6 +107,11 @@ async def main():
     super_scraper = SuperScraper()
     options = SuperScraper.build_chromium_options()
 
+    rights = SuperScraper.rights_to_exercise(RIGHT_MAP)
+    if not rights:
+        print("No requested privacy rights apply to this form — nothing to do.")
+        return
+
     async with Chrome(options=options) as browser:
         tab = await browser.start()
         await tab.go_to(URL)
@@ -142,14 +159,10 @@ async def main():
 
         await _js_fill(tab, "phoneNumberDSARElement", SuperScraper.PHONE_NUMBER)
 
-        # Request types: select all, then close before handling sub-fields
-        await _pick_visible_role_option(tab, "requestTypesDSARElement", "Request My Data")
-        await asyncio.sleep(0.3)
-        await _pick_visible_role_option(tab, "requestTypesDSARElement", "Do Not Sell My Information")
-
-        if SuperScraper.wants("delete"):
+        # Request types: select all wanted rights, then close before handling sub-fields
+        for right in rights:
+            await _pick_visible_role_option(tab, "requestTypesDSARElement", RIGHT_MAP[right])
             await asyncio.sleep(0.3)
-            await _pick_visible_role_option(tab, "requestTypesDSARElement", "Delete Data")
 
         # Close request type dropdown before interacting with sub-fields
         await tab.keyboard.press(Key.ESCAPE)
@@ -157,7 +170,7 @@ async def main():
 
         # Sub-field: "Which would you like to receive?" — both categories via JS role=option click
         info_field = await tab.find(id="infoRequestOptionDSARElement", raise_exc=False)
-        if info_field:
+        if Right.RIGHT_TO_ACCESS in rights and info_field:
             for snippet in ("categories of personal", "specific pieces of data"):
                 await tab.execute_script(
                     "document.getElementById('infoRequestOptionDSARElement').click();"
@@ -176,10 +189,10 @@ async def main():
                 await tab.keyboard.press(Key.ESCAPE)
                 await asyncio.sleep(0.3)
 
-        if SuperScraper.wants("delete"):
+        if Right.RIGHT_TO_DELETE in rights:
             await _pick_visible_role_option(tab, "deleteRequestConfirmationDSARElement", "Yes")
 
-        time.sleep(0.5)
+        await asyncio.sleep(0.5)
 
         if SuperScraper.DRY_RUN:
             # Screenshot top of form first, then scroll to submit
@@ -189,15 +202,14 @@ async def main():
                 await submit_btn.scroll_into_view()
             await SuperScraper.screenshot(tab, "dry_run")
             print(
-                f"DRY RUN: would submit for "
-                f"{SuperScraper.FIRST_NAME} {SuperScraper.LAST_NAME} <{SuperScraper.EMAIL}>"
+                f"DRY RUN: would submit {[r.name for r in rights]} for {SuperScraper.EMAIL}"
             )
             return
 
         print("\nForm filled. Solve the reCAPTCHA v2, then click Submit.")
         print("Press Enter after the confirmation page appears...")
         input()
-        print(f"Submitted for {SuperScraper.FIRST_NAME} {SuperScraper.LAST_NAME}")
+        print(f"Submitted {[r.name for r in rights]} for {SuperScraper.EMAIL} — confirm in the browser.")
 
 
 asyncio.run(main())

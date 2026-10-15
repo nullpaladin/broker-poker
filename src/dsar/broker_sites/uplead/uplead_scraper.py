@@ -3,26 +3,37 @@
 # Information" (Access) and "Delete my Information" — the page's own copy
 # states opt-out of sale/sharing is achieved via the SAME "Delete my
 # information" option (there is no separate opt-out-only choice), so that
-# submission stays gated on REMOVE_INFORMATION like other deletion requests
-# in this repo, even though it also covers opt-out. "Data Privacy
+# submission is mapped to delete only (like other deletion requests in this
+# repo), even though it also covers opt-out. Which run is decided ONLY by
+# SuperScraper.rights_to_exercise(RIGHT_MAP). "Data Privacy
 # Jurisdiction options" only lists CCPA/VDPA/OCPA/TDPSA/GDPR/Other — none
 # apply directly to a Minnesota resident, so "Other" is used (same
 # closest-available-option precedent as reonomy.com/finthrive.com
 # elsewhere in this repo). Contact Email and Email (the email being
 # requested-about) may differ per the page's own note; both filled with the
 # same persona email. reCAPTCHA v2 — **CAPTCHA solution required**.
+#
+# Page elements:
+#   #form-field-full_name              Full name
+#   #form-field-contact_email_address  Contact Email
+#   #form-field-email                  Email (being requested about)
+#   #form-field-phone_number           Phone number
+#   #form-field-jurisdiction           "Data Privacy Jurisdiction" <select> -> "Other"
+#   #form-field-type                   "Request Type" <select> (see RIGHT_MAP)
 import asyncio
 
-from src.dsar.super_scraper import SuperScraper
 from src.dsar import js_utils
+from src.dsar.rights import Right
+from src.dsar.super_scraper import SuperScraper
 
 from pydoll.browser.chromium import Chrome
 
 URL = "https://www.uplead.com/opt-out/"
 
+# Right -> "Request Type" option.
 RIGHT_MAP = {
-    "access": ["Request my Information"],
-    "delete": ["Delete my Information"],
+    Right.RIGHT_TO_ACCESS: "Request my Information",
+    Right.RIGHT_TO_DELETE: "Delete my Information",
 }
 RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
 
@@ -71,11 +82,11 @@ async def main():
     super_scraper = SuperScraper()
     options = SuperScraper.build_chromium_options()
 
-    codes = SuperScraper.rights_to_exercise(RIGHT_MAP)
-    if not codes:
+    rights = SuperScraper.rights_to_exercise(RIGHT_MAP)
+    if not rights:
         print("No requested privacy rights apply to this form — nothing to do.")
         return
-    request_types = [entry for code in codes for entry in RIGHT_MAP[code]]
+    request_types = [RIGHT_MAP[right] for right in rights]
 
     async with Chrome(options=options) as browser:
         tab = await browser.start()

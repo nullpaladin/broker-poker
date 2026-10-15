@@ -6,13 +6,22 @@
 # combined submission: Request a copy of identifiable information
 # (Access), Opt out of receiving email from Zeta on behalf of clients, Do
 # not sell or share my identifiable information, Opt out of Zeta using
-# sensitive information unconditionally; Delete identifiable information
-# gated on REMOVE_INFORMATION. "Ask a question, report a problem, or file
-# a complaint" skipped (nothing to report). No State field exists on this
+# sensitive information; Delete identifiable information. Which of them are
+# selected is decided ONLY by SuperScraper.rights_to_exercise(RIGHT_MAP).
+# "Ask a question, report a problem, or file a complaint" is not automated. No State field exists on this
 # form (unlike most OneTrust CDN forms in this repo) — just Country.
 # reCAPTCHA v2 — **CAPTCHA solution required**.
+#
+# Page elements:
+#   #subjectTypesDSARElement     "I am an" toggle ("Email recipient or Internet user")
+#   #requestTypesDSARElement     "Select request type(s)" options (see RIGHT_MAP)
+#   #firstNameDSARElement / #lastNameDSARElement   First / Last name
+#   #emailDSARElement            Email
+#   #countryDSARElement          Country (-> "United States")
+#   #requestDetailsDSARElement   Request details textarea
 import asyncio
 
+from src.dsar.rights import Right
 from src.dsar.super_scraper import SuperScraper
 
 from pydoll.browser.chromium import Chrome
@@ -23,13 +32,13 @@ URL = (
 )
 
 RIGHT_MAP = {
-    "access": ["Request a copy of identifiable information that relates to me"],
-    "opt_out_sale_share": [
+    Right.RIGHT_TO_ACCESS: "Request a copy of identifiable information that relates to me",
+    Right.RIGHT_TO_OPT_OUT: [
         "Do not sell or share my identifiable information",
         "Opt out of receiving email from Zeta on behalf of its clients",
+        "Opt out of Zeta using sensitive information that relates to me",
     ],
-    "limit_sensitive_pi": ["Opt out of Zeta using sensitive information that relates to me"],
-    "delete": ["Delete identifiable information that relates to me"],
+    Right.RIGHT_TO_DELETE: "Delete identifiable information that relates to me",
 }
 RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
 
@@ -47,11 +56,16 @@ async def main():
     super_scraper = SuperScraper()
     options = SuperScraper.build_chromium_options()
 
-    codes = SuperScraper.rights_to_exercise(RIGHT_MAP)
-    if not codes:
+    if SuperScraper.bail_if_not_automatable(globals()):
+        return
+    rights = SuperScraper.rights_to_exercise(RIGHT_MAP)
+    if not rights:
         print("No requested privacy rights apply to this form — nothing to do.")
         return
-    request_types = [entry for code in codes for entry in RIGHT_MAP[code]]
+    request_types = []
+    for right in rights:
+        entries = RIGHT_MAP[right]
+        request_types += entries if isinstance(entries, list) else [entries]
 
     async with Chrome(options=options) as browser:
         tab = await browser.start()
@@ -98,10 +112,7 @@ async def main():
 
         details_field = await tab.find(id="requestDetailsDSARElement", raise_exc=False)
         if details_field:
-            request_text = "I am requesting access to and opting out of the sale/sharing of my personal information."
-            if SuperScraper.wants("delete"):
-                request_text += " I am also requesting deletion of my personal information."
-            await details_field.type_text(request_text)
+            await details_field.type_text(SuperScraper.request_statement(rights, broker="Zeta Global"))
 
         await asyncio.sleep(1)
         await SuperScraper.screenshot(tab, "dry_run")

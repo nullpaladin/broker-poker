@@ -6,28 +6,42 @@
 # select checkboxes (confirmed via markup, not just wording) — all
 # applicable rights checked in ONE combined submission: Info Request, Data
 # Access, "Do Not Sell or Share My Personal Information", "Limit the Use
-# of My Sensitive Personal Information" unconditionally; Data Deletion
-# gated on REMOVE_INFORMATION. Correct Data and File a Complaint skipped
-# (no concrete inaccuracy/complaint to describe). Matched by stable field
+# of My Sensitive Personal Information", Data Deletion. Which of them are
+# checked is decided ONLY by SuperScraper.rights_to_exercise(RIGHT_MAP).
+# Correct Data and File a Complaint are not automated. Matched by stable field
 # id (field_ebdv3-N) rather than by option value text, since one value
 # string has an odd embedded literal quote/asterisk
 # ("Limit the Use of My Sensitive Personal Information*"). Country is a
 # plain free-text field (not a dropdown) — filled "United States". reCAPTCHA
 # v2 is invisible (data-size="invisible") — auto-resolves, no manual
 # solve needed.
+#
+# Page elements:
+#   #field_u1j66-3             "I am a (an)" radio -> "End-User"
+#   #field_ebdv3-N             "Select request type(s)" checkboxes (see constants below)
+#   #field_xr2fa_first / #field_xr2fa_last   First / Last name
+#   #field_ayz61               Email
+#   #field_zf5gh               Country (free text -> "United States")
+#   #field_ck1lr               Request details textarea
 import asyncio
 
+from src.dsar.rights import Right
 from src.dsar.super_scraper import SuperScraper
 
 from pydoll.browser.chromium import Chrome
 
 URL = "https://verve.com/data-subject-request-form/"
 
+# "Info Request" and "Data Access" are field_ebdv3-1 / -4 (which is which is not recorded here).
+INFO_REQUEST_AND_DATA_ACCESS = ["field_ebdv3-1", "field_ebdv3-4"]
+DO_NOT_SELL_OR_SHARE = "field_ebdv3-5"  # "Do Not Sell or Share My Personal Information"
+LIMIT_SENSITIVE_PI = "field_ebdv3-6"  # "Limit the Use of My Sensitive Personal Information"
+DATA_DELETION = "field_ebdv3-2"  # "Data Deletion"
+
 RIGHT_MAP = {
-    "access": ["field_ebdv3-1", "field_ebdv3-4"],
-    "opt_out_sale_share": ["field_ebdv3-5"],
-    "limit_sensitive_pi": ["field_ebdv3-6"],
-    "delete": ["field_ebdv3-2"],
+    Right.RIGHT_TO_ACCESS: INFO_REQUEST_AND_DATA_ACCESS,
+    Right.RIGHT_TO_OPT_OUT: [DO_NOT_SELL_OR_SHARE, LIMIT_SENSITIVE_PI],
+    Right.RIGHT_TO_DELETE: DATA_DELETION,
 }
 RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
 
@@ -36,11 +50,16 @@ async def main():
     super_scraper = SuperScraper()
     options = SuperScraper.build_chromium_options()
 
-    codes = SuperScraper.rights_to_exercise(RIGHT_MAP)
-    if not codes:
+    if SuperScraper.bail_if_not_automatable(globals()):
+        return
+    rights = SuperScraper.rights_to_exercise(RIGHT_MAP)
+    if not rights:
         print("No requested privacy rights apply to this form — nothing to do.")
         return
-    request_type_ids = [entry for code in codes for entry in RIGHT_MAP[code]]
+    request_type_ids = []
+    for right in rights:
+        entries = RIGHT_MAP[right]
+        request_type_ids += entries if isinstance(entries, list) else [entries]
 
     async with Chrome(options=options) as browser:
         tab = await browser.start()
@@ -86,10 +105,7 @@ async def main():
 
         details_field = await tab.find(id="field_ck1lr", raise_exc=False)
         if details_field:
-            request_text = "I am requesting access to and opting out of the sale/sharing of my personal information."
-            if SuperScraper.wants("delete"):
-                request_text += " I am also requesting deletion of my personal information."
-            await details_field.type_text(request_text)
+            await details_field.type_text(SuperScraper.request_statement(rights, broker="Verve"))
         else:
             print(f"{super_scraper.OOPS} Request Details field not found")
 

@@ -7,6 +7,9 @@
 # Submitting this form sends a real verification email, so the scraper fills the
 # email field and stops there regardless of DRY_RUN — it never clicks Submit.
 # No CAPTCHA.
+#
+# Page elements:
+#   input[type=email] / input[name=email]   The portal's only field: email address
 import asyncio
 
 from pydoll.browser.chromium import Chrome

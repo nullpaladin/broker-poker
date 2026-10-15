@@ -10,23 +10,44 @@
 # the general location of your connection" for fraud prevention — worth
 # knowing if a submission is unexpectedly rejected, doesn't change what
 # gets filled here. reCAPTCHA v2 present — **CAPTCHA solution required**.
-# Exercises Opt-Out unconditionally; Delete checkbox gated on
-# REMOVE_INFORMATION.
+# Rights the form exposes: Opt-Out and Delete (checkboxes). Which of them are
+# checked is decided ONLY by SuperScraper.rights_to_exercise(RIGHT_MAP).
+# The non-CA form is used; the page itself says it compares the chosen state to the
+# connection location (fraud prevention) — no residency bail needed.
+#
+# Page elements (keep this list current):
+#   text "I am submitting this request for myself"   Requester type (vs. authorized agent)
+#   #optOut                    "Right to Opt Out" checkbox -> RIGHT_TO_OPT_OUT
+#   #deleteInfo                "Right to Delete" checkbox  -> RIGHT_TO_DELETE
+#   #firstName / #lastName / #email   First / Last name, Email
+#   #address1 / #address2 / #city / #zip   Address
+#   #state                     State <select> (2-letter abbreviation text)
+#   reCAPTCHA v2 checkbox      manual solve
 import asyncio
 
+from src.dsar.rights import Right
 from src.dsar.super_scraper import SuperScraper
 
 from pydoll.browser.chromium import Chrome
 
+from src.dsar import js_utils
+
 URL = "https://paramountdirectmarketing.com/do-not-sell-non-ca"
 
-RIGHT_MAP = {"opt_out_sale_share": ["optOut"], "delete": ["deleteInfo"]}
+RIGHT_MAP = {Right.RIGHT_TO_OPT_OUT: ["optOut"], Right.RIGHT_TO_DELETE: ["deleteInfo"]}
 RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
 
 
 async def main():
     super_scraper = SuperScraper()
+    if SuperScraper.bail_if_not_automatable(globals()):
+        return
     options = SuperScraper.build_chromium_options()
+
+    rights = SuperScraper.rights_to_exercise(RIGHT_MAP)
+    if not rights:
+        print("No requested privacy rights apply to this form — nothing to do.")
+        return
 
     async with Chrome(options=options) as browser:
         tab = await browser.start()
@@ -40,11 +61,7 @@ async def main():
         else:
             print(f"{super_scraper.OOPS} 'I am submitting this request for myself' option not found")
 
-        codes = SuperScraper.rights_to_exercise(RIGHT_MAP)
-        if not codes:
-            print("No requested privacy rights apply to this form — nothing to do.")
-            return
-        checkbox_ids = [cb for code in codes for cb in RIGHT_MAP[code]]
+        checkbox_ids = [cb for right in rights for cb in RIGHT_MAP[right]]
         for checkbox_id in checkbox_ids:
             checkbox = await tab.find(id=checkbox_id, raise_exc=False)
             if checkbox:
@@ -73,15 +90,10 @@ async def main():
         state_select = await tab.find(id="state", raise_exc=False)
         if state_select:
             state_abbrev = SuperScraper.STATE_ABBREVIATED
-            await state_select.execute_script(
-                "for (var i=0;i<this.options.length;i++){"
-                f"  if(this.options[i].text==={state_abbrev!r}){{ this.selectedIndex=i; }}"
-                "}"
-                "this.dispatchEvent(new Event('change', {bubbles:true}));"
-            )
+            await js_utils.select_native_option(state_select, text=state_abbrev)
 
         await asyncio.sleep(1)
-        await SuperScraper.screenshot(tab, "dry_run")
+        await SuperScraper.screenshot(tab, "dry_run_" + "_".join(r.value for r in rights))
         print(
             "\nForm filled but NOT submitted — a reCAPTCHA v2 checkbox is present and "
             "requires a manual solve before submitting."

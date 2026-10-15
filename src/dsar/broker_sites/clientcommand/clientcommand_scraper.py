@@ -1,29 +1,45 @@
 # clientcommand.com (Summit Resources, LLC d/b/a Client Command) — OneTrust CDN
-# Angular DSAR form. Exercises Know/Access, Opt-Out, and Deletion (gated).
-# Subject: "Marketing Recipient". Request type buttons (Know/Access, Deletion,
-# Opt-Out) only appear after all personal info fields (including state) are
+# Angular DSAR form. Subject: "Marketing Recipient". Request type buttons (Know/Access,
+# Deletion, Opt-Out) only appear after all personal info fields (including state) are
 # filled. One submission per right (form processes only one selection at a time).
 # State is an autocomplete combobox (ArrowDown+Enter). Phone country code
 # vt-input-9 (type "1" for US +1). captchaCode image CAPTCHA requires manual
 # entry in live mode.
+#
+# Page elements:
+#   [aria-label="Marketing Recipient"]   Subject-type button
+#   #formField23DSARElement              "From" free-text field (company/service the data is from)
+#   #emailDSARElement                    Email
+#   #firstNameDSARElement                First name
+#   #lastNameDSARElement                 Last name
+#   #addressDSARElement                  Address
+#   #cityDSARElement                     City
+#   #stateDSARElement                    State autocomplete
+#   #zipDSARElement                      ZIP code
+#   #vt-input-9                          Phone country code
+#   #phoneNumberDSARElement              Phone number
+#   [aria-label="Know/Access"] / ["Opt-Out"] / ["Deletion"]   Request type buttons
+#   #requestDetailsDSARElement           Request details textarea
+#   #captchaCode                         Image CAPTCHA code (manual entry)
 import asyncio
 
 from pydoll.browser.chromium import Chrome
 from pydoll.constants import Key
 
+from src.dsar.rights import Right
 from src.dsar.super_scraper import SuperScraper
 
 URL = "https://privacyportal-cdn.onetrust.com/dsarwebform/555c3377-7eb2-4e7a-bf30-c408de4ab483/70df6685-8289-4d72-a9d7-9a736b3b837f.html"
 
 RIGHT_MAP = {
-    "access": [("Know/Access", "access", "I am requesting access to all personal data you hold about me.")],
-    "opt_out_sale_share": [("Opt-Out", "optout", "I am opting out of the sale or sharing of my personal data.")],
-    "delete": [("Deletion", "delete", "I am requesting deletion of all personal data you hold about me.")],
+    Right.RIGHT_TO_ACCESS: "Know/Access",
+    Right.RIGHT_TO_OPT_OUT: "Opt-Out",
+    Right.RIGHT_TO_DELETE: "Deletion",
 }
 RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
 
 
-async def fill_and_submit(tab, req_label, screenshot_label, details_text, super_scraper):
+async def fill_and_submit(tab, right, req_label, super_scraper):
     await tab.go_to(URL)
     await asyncio.sleep(6)
 
@@ -92,18 +108,15 @@ async def fill_and_submit(tab, req_label, screenshot_label, details_text, super_
 
     details = await tab.find(id="requestDetailsDSARElement", raise_exc=False)
     if details:
-        await details.type_text(details_text)
+        await details.type_text(SuperScraper.request_statement([right], broker="Client Command"))
 
     if SuperScraper.DRY_RUN:
-        print(
-            f"DRY RUN: would submit '{req_label}' for "
-            f"{SuperScraper.FIRST_NAME} {SuperScraper.LAST_NAME} <{SuperScraper.EMAIL}>"
-        )
         captcha_field = await tab.find(id="captchaCode", raise_exc=False)
         if captcha_field:
             await captcha_field.scroll_into_view()
         await asyncio.sleep(1)
-        await SuperScraper.screenshot(tab, f"dry_run_{screenshot_label}")
+        await SuperScraper.screenshot(tab, f"dry_run_{right.value}")
+        print(f"DRY RUN: would submit '{right.name}' for {SuperScraper.EMAIL}")
         return
 
     print(f"\nForm filled for '{req_label}'.")
@@ -111,27 +124,22 @@ async def fill_and_submit(tab, req_label, screenshot_label, details_text, super_
     print("then click Submit. Press Enter after the confirmation page appears...")
     input()
 
-    source = await tab.page_source
-    if any(w in source.lower() for w in ("thank", "success", "received", "submitted", "confirmation")):
-        print(f"Submitted '{req_label}' for {SuperScraper.FIRST_NAME} {SuperScraper.LAST_NAME}")
-    else:
-        print(f"{super_scraper.OOPS} Confirmation unclear for '{req_label}' — verify in browser")
+    print(f"Submitted '{right.name}' for {SuperScraper.EMAIL} — confirm in the browser.")
 
 
 async def main():
     super_scraper = SuperScraper()
     options = SuperScraper.build_chromium_options()
 
-    codes = SuperScraper.rights_to_exercise(RIGHT_MAP)
-    if not codes:
+    rights = SuperScraper.rights_to_exercise(RIGHT_MAP)
+    if not rights:
         print("No requested privacy rights apply to this form — nothing to do.")
         return
-    requests = [entry for code in codes for entry in RIGHT_MAP[code]]
 
     async with Chrome(options=options) as browser:
         tab = await browser.start()
-        for req_label, screenshot_label, details_text in requests:
-            await fill_and_submit(tab, req_label, screenshot_label, details_text, super_scraper)
+        for right in rights:
+            await fill_and_submit(tab, right, RIGHT_MAP[right], super_scraper)
 
 
 asyncio.run(main())

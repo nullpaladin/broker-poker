@@ -4,18 +4,39 @@
 # Fields: am=subject, firstname, middlename (optional), lastname, email, legal checkbox.
 # reCAPTCHA v2 requires manual solve in live mode.
 # Cookie popup dismissed via "Accept" button before form interaction.
+#
+# Page elements:
+#   "Accept" button                 cookie popup
+#   #firstname / #lastname / #email First / Last name / Email
+#   input[name=legal]               legal checkbox
+#   select[name=am]                 subject select (option index 1 chosen, set last)
+#   .g-recaptcha                    reCAPTCHA v2
+#   button[type=submit]             Submit
 import asyncio
 import time
 
 from pydoll.browser.chromium import Chrome
 
+from src.dsar import js_utils
+from src.dsar.rights import Right
 from src.dsar.super_scraper import SuperScraper
 
 URL = "https://www.fastpeoplesearch.com/removal"
 
+RIGHT_MAP = {Right.RIGHT_TO_OPT_OUT: "removal"}
+RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
+
 
 async def main():
     super_scraper = SuperScraper()
+    if SuperScraper.bail_if_not_automatable(globals()):
+        return
+
+    rights = SuperScraper.rights_to_exercise(RIGHT_MAP)
+    if not rights:
+        print("No requested privacy rights apply to this form — nothing to do.")
+        return
+
     opts = SuperScraper.build_chromium_options()
 
     async with Chrome(options=opts) as browser:
@@ -49,18 +70,13 @@ async def main():
             await asyncio.sleep(0.3)
 
         # Set am select last — the framework resets it if set before other inputs fire
-        await tab.execute_script(
-            "var s = document.querySelector('select[name=\"am\"]');"
-            "s.selectedIndex = 1;"
-            "s.dispatchEvent(new Event('change', {bubbles:true}));"
-        )
+        am_select = await tab.find(tag_name="select", name="am", raise_exc=False)
+        if am_select:
+            await js_utils.select_native_option(am_select, index=1)
         await asyncio.sleep(0.3)
 
         if SuperScraper.DRY_RUN:
-            print(
-                f"DRY RUN: would submit opt-out for "
-                f"{SuperScraper.FIRST_NAME} {SuperScraper.LAST_NAME} <{SuperScraper.EMAIL}>"
-            )
+            print(f"DRY RUN: would submit opt-out for {SuperScraper.EMAIL}")
             captcha_area = await tab.find(**{"class": "g-recaptcha"}, raise_exc=False)
             if captcha_area:
                 await captcha_area.scroll_into_view()
@@ -71,7 +87,7 @@ async def main():
         captcha_area = await tab.find(**{"class": "g-recaptcha"}, raise_exc=False)
         if captcha_area:
             await captcha_area.scroll_into_view()
-        print(f"\nForm filled. Solve the reCAPTCHA and press Enter to submit.")
+        print("\nForm filled. Solve the reCAPTCHA and press Enter to submit.")
         input("Press Enter after solving reCAPTCHA: ")
 
         submit_btn = await tab.find(tag_name="button", type="submit", raise_exc=False)
@@ -79,12 +95,8 @@ async def main():
             await submit_btn.click()
             await asyncio.sleep(5)
 
-        source = await tab.page_source
-        if any(w in source.lower() for w in ("thank", "success", "email", "sent", "check")):
-            print(f"Step 1 submitted for {SuperScraper.FIRST_NAME} {SuperScraper.LAST_NAME}")
-            print(f"  Check {SuperScraper.EMAIL} for a removal link — click it to complete removal.")
-        else:
-            print(f"{super_scraper.OOPS} Confirmation unclear — verify in browser")
+        print(f"Step 1 submitted for {SuperScraper.EMAIL} — confirm in the browser.")
+        print(f"  Check {SuperScraper.EMAIL} for a removal link — click it to complete removal.")
 
 
 asyncio.run(main())

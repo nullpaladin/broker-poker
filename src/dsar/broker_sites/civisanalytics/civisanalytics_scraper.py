@@ -16,6 +16,12 @@
 # limitation of the form (it doesn't functionally solicit an actionable
 # request from residents of uncovered states), not something this scraper
 # works around. Google Forms radios/checkboxes carry aria-label directly.
+#
+# Page elements:
+#   radio[aria-label="None of the above."]   Residency question
+#   "Next" button                            Advance past residency
+#   checkbox[aria-label=ATTESTATION_LABEL]   "I declare, under the penalty of perjury ..." attestation
+#   "Submit" button
 import asyncio
 
 from src.dsar.super_scraper import SuperScraper
@@ -73,7 +79,7 @@ async def main():
 
         await super_scraper.click_item_by_text(tab=tab, text="Submit", sleep=2)
         await asyncio.sleep(2)
-        print(f"Submitted attestation-only request for {SuperScraper.FIRST_NAME} {SuperScraper.LAST_NAME}")
+        print(f"Submitted attestation-only request for {SuperScraper.EMAIL} — confirm in the browser.")
 
 
 asyncio.run(main())

@@ -14,9 +14,21 @@
 # S&P Global Ratings / S&P Dow Jones Indices / S&P Global Market Intelligence /
 # S&P Global Platts / S&P Global Corporate / Panjiva / 451 Research /
 # 451 Alliance); requestDetailsDSARElement.
-# Exercises Access Data, Do Not Sell my information, Opt-Out of profiling,
-# "Obtain list of specific 3rd parties ...", "Correct or update my data"
-# unconditionally; "Delete my data" gated on REMOVE_INFORMATION.
+# Exercises Access Data, Do Not Sell my information + Opt-Out of profiling (both
+# RIGHT_TO_OPT_OUT), "Obtain list of specific 3rd parties ..." and "Delete my data",
+# as decided ONLY by SuperScraper.rights_to_exercise(RIGHT_MAP). "Correct or update
+# my data" is on the page but not automated (PAGE_RIGHTS: None).
+# Page elements:
+#   role=option "I am making a request for myself"   Requesting Party
+#   #countryDSARElement / #stateDSARElement          Country / State comboboxes
+#   role=option <request type label>                 request-type listbox (RIGHT_MAP)
+#   role=option "Customer" / "No"                    "I am a (an)" / Panjiva.com question
+#   #formField29DSARElement                          Division combobox -> DIVISION
+#   #firstNameDSARElement / #lastNameDSARElement / #emailDSARElement
+#   #formField37DSARElement                          Company Name
+#   #formField49DSARElement / #formField50DSARElement / #formField51DSARElement   Address / City / Zip
+#   #requestDetailsDSARElement                       Request details textarea
+#   #dsar-webform-submit-button                      Submit
 # reCAPTCHA v2 requires a manual solve per pass.  **CAPTCHA solution required**
 import asyncio
 import time
@@ -24,35 +36,47 @@ import time
 from pydoll.browser.chromium import Chrome
 from pydoll.constants import Key
 
+from src.dsar import js_utils
+from src.dsar.rights import Right
 from src.dsar.super_scraper import SuperScraper
 
 URL = "https://privacyportal.onetrust.com/webform/5cb57702-8ef7-437e-a62b-408fe78cd310/93391c3d-d6c8-45b1-a169-39a0b7f9fb74"
 DIVISION = "Not Sure"
 
-# canonical right code -> (form option label, screenshot/label slug)
+# Right -> list of (form option label, screenshot/label slug); the form splits
+# RIGHT_TO_OPT_OUT into two choices, so one submission per entry.
 RIGHT_MAP = {
-    "access": ("Access Data", "access"),
-    "opt_out_sale_share": ("Do Not Sell my information", "do_not_sell"),
-    "opt_out_profiling": (
-        "Opt-Out of profiling in furtherance of decisions that produce legal / similarly significant effects",
-        "opt_out_profiling",
-    ),
-    "know_third_parties": (
-        "Obtain list of specific 3rd parties to which personal data was disclosed",
-        "third_parties",
-    ),
-    "correct": ("Correct or update my data", "correct"),
-    "delete": ("Delete my data", "delete"),
+    Right.RIGHT_TO_ACCESS: [("Access Data", "access")],
+    Right.RIGHT_TO_OPT_OUT: [
+        ("Do Not Sell my information", "do_not_sell"),
+        (
+            "Opt-Out of profiling in furtherance of decisions that produce legal / similarly significant effects",
+            "opt_out_adm",
+        ),
+    ],
+    Right.RIGHT_TO_LIST_OF_THIRD_PARTIES: [
+        (
+            "Obtain list of specific 3rd parties to which personal data was disclosed",
+            "third_parties",
+        ),
+    ],
+    Right.RIGHT_TO_DELETE: [("Delete my data", "delete")],
 }
 RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
 
+# Every request-type option on the page -> Right (None = deliberately not automated).
+PAGE_RIGHTS = {
+    "Access Data": Right.RIGHT_TO_ACCESS,
+    "Do Not Sell my information": Right.RIGHT_TO_OPT_OUT,
+    "Opt-Out of profiling in furtherance of decisions that produce legal / similarly significant effects": Right.RIGHT_TO_OPT_OUT,
+    "Obtain list of specific 3rd parties to which personal data was disclosed": Right.RIGHT_TO_LIST_OF_THIRD_PARTIES,
+    "Correct or update my data": None,
+    "Delete my data": Right.RIGHT_TO_DELETE,
+}
+
 
 async def _field_value(field):
-    res = await field.execute_script("return this.value;")
-    try:
-        return (res["result"]["result"]["value"] or "").strip()
-    except (KeyError, TypeError):
-        return ""
+    return ((await js_utils.js_eval(field, "return this.value;")) or "").strip()
 
 
 async def _select_combobox(tab, field_id, search_text):
@@ -96,7 +120,7 @@ async def _click_listbox_option(tab, aria_label):
     return False
 
 
-async def submit_request(tab, request_type, label, super_scraper, code):
+async def submit_request(tab, request_type, label, super_scraper, right):
     await tab.go_to(URL)
     await asyncio.sleep(9)
 
@@ -143,7 +167,7 @@ async def submit_request(tab, request_type, label, super_scraper, code):
 
     details = await tab.find(id="requestDetailsDSARElement", raise_exc=False)
     if details:
-        await details.type_text(SuperScraper.request_statement([code], broker="S&P Global"))
+        await details.type_text(SuperScraper.request_statement([right], broker="S&P Global"))
 
     time.sleep(0.5)
 
@@ -161,7 +185,7 @@ async def submit_request(tab, request_type, label, super_scraper, code):
     await SuperScraper.screenshot(tab, f"dry_run_{label}")
     if SuperScraper.DRY_RUN:
         print(
-            f"DRY RUN: would submit '{request_type}' (division: '{DIVISION}') for "
+            f"DRY RUN: would submit '{right.name}' / '{request_type}' (division: '{DIVISION}') for "
             f"{SuperScraper.FIRST_NAME} {SuperScraper.LAST_NAME} <{SuperScraper.EMAIL}>"
         )
         return
@@ -170,27 +194,23 @@ async def submit_request(tab, request_type, label, super_scraper, code):
     print("then press Enter once the confirmation page appears...")
     input()
 
-    source = await tab.page_source
-    if any(w in source.lower() for w in ("thank", "success", "received", "submitted", "confirmation")):
-        print(f"Submitted '{request_type}' for {SuperScraper.FIRST_NAME} {SuperScraper.LAST_NAME}")
-    else:
-        print(f"{super_scraper.OOPS} Confirmation unclear for '{request_type}' — verify in browser")
+    print(f"Submitted '{right.name}' for {SuperScraper.EMAIL} — confirm in the browser.")
 
 
 async def main():
     super_scraper = SuperScraper()
     options = SuperScraper.build_chromium_options()
 
-    codes = SuperScraper.rights_to_exercise(RIGHT_MAP)
-    if not codes:
+    rights = SuperScraper.rights_to_exercise(RIGHT_MAP)
+    if not rights:
         print("No requested privacy rights apply to this form — nothing to do.")
         return
 
     async with Chrome(options=options) as browser:
         tab = await browser.start()
-        for code in codes:
-            request_type, label = RIGHT_MAP[code]
-            await submit_request(tab, request_type, label, super_scraper, code)
+        for right in rights:
+            for request_type, label in RIGHT_MAP[right]:
+                await submit_request(tab, request_type, label, super_scraper, right)
 
 
 asyncio.run(main())

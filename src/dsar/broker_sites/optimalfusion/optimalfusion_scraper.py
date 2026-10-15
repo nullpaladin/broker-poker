@@ -1,28 +1,36 @@
 # optimalfusion.com — /do-not-sell-my-personal-information/ custom server-rendered
 # form (id="ccpa-form", POSTs in place). One submission per right, chosen via the
-# "reason" radio group:
-#   - "Request to know"            -> Access        (unconditional)
-#   - "Do not sell my information" -> Opt-Out        (unconditional)
-#   - "Delete my information"      -> Delete          (gated on REMOVE_INFORMATION)
-# Fields: firstName, lastName, postalCode, email, and a required "accept"
-# attestation checkbox (worded as a California perjury declaration — checked per
-# this repo's precedent of completing attestation boxes; the requester exercises
-# equivalent rights under the MCDPA). reCAPTCHA v3 is invisible (a token is
-# injected into #recaptcha_token by the page's own grecaptcha.execute call), so
-# no manual solve is needed for a dry run; a live submit still depends on Google
-# scoring the automated session, which it may reject.
+# "reason" radio group. Which rights run is decided ONLY by
+# SuperScraper.rights_to_exercise(RIGHT_MAP).
+# The required "accept" attestation checkbox is worded as a California perjury
+# declaration; it is checked per this repo's precedent of completing attestation boxes.
+# reCAPTCHA v3 is invisible (a token is injected into #recaptcha_token by the page's own
+# grecaptcha.execute call), so no manual solve is needed for a dry run; a live submit still
+# depends on Google scoring the automated session, which it may reject.
+#
+# Page elements (keep this list current):
+#   input[name=reason] value "Request to know"             -> RIGHT_TO_ACCESS
+#   input[name=reason] value "Do not sell my information"  -> RIGHT_TO_OPT_OUT
+#   input[name=reason] value "Delete my information"       -> RIGHT_TO_DELETE
+#   #firstName / #lastName   First / Last name
+#   #postalCode              ZIP code
+#   #email                   Email
+#   input[name=accept]       Required attestation checkbox (California perjury declaration wording)
+#   #recaptcha_token         Invisible reCAPTCHA v3 token (filled by the page)
+#   form#ccpa-form button[type=submit]   Submit button
 import asyncio
 
 from pydoll.browser.chromium import Chrome
 
+from src.dsar.rights import Right
 from src.dsar.super_scraper import SuperScraper
 
 URL = "https://optimalfusion.com/do-not-sell-my-personal-information/"
 
 RIGHT_MAP = {
-    "access": [("Request to know", "access")],
-    "opt_out_sale_share": [("Do not sell my information", "opt_out")],
-    "delete": [("Delete my information", "delete")],
+    Right.RIGHT_TO_ACCESS: [("Request to know", "access")],
+    Right.RIGHT_TO_OPT_OUT: [("Do not sell my information", "opt_out")],
+    Right.RIGHT_TO_DELETE: [("Delete my information", "delete")],
 }
 RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
 
@@ -82,15 +90,17 @@ async def main():
     super_scraper = SuperScraper()
     options = SuperScraper.build_chromium_options()
 
-    codes = SuperScraper.rights_to_exercise(RIGHT_MAP)
-    if not codes:
+    if SuperScraper.bail_if_not_automatable(globals()):
+        return
+    rights = SuperScraper.rights_to_exercise(RIGHT_MAP)
+    if not rights:
         print("No requested privacy rights apply to this form — nothing to do.")
         return
-    rights = [entry for code in codes for entry in RIGHT_MAP[code]]
+    requests = [entry for right in rights for entry in RIGHT_MAP[right]]
 
     async with Chrome(options=options) as browser:
         tab = await browser.start()
-        for reason_value, label in rights:
+        for reason_value, label in requests:
             await submit_request(tab, reason_value, label, super_scraper)
 
 

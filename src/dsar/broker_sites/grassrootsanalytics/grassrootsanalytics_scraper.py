@@ -1,24 +1,33 @@
 # grassrootsanalytics.com — Wix site, single submission. Rights via checkbox
-# group: Access My Personal Information and Do Not Sell My Personal
-# Information unconditionally; Delete My Personal Information gated on
-# REMOVE_INFORMATION. Wix checkboxes are visually hidden (opacity:0) —
+# group; which boxes get ticked is decided ONLY by
+# SuperScraper.rights_to_exercise(RIGHT_MAP). Wix checkboxes are visually hidden (opacity:0) —
 # clicked via their wrapping <label> ancestor, not the input directly. The
 # "Do Not Sell" label text is truncated on the live site (missing its final
 # "n" — "...Informatio") so the match string below is deliberately a shorter
 # substring that survives either spelling. Wix's own CAPTCHA widget requires
 # manual solve in live mode.
+#
+# Page elements (inputs located by name):
+#   first-name / last-name   First / Last name
+#   email                    Email
+#   phone-number             Phone number
+#   street-address / city / state   Street address / City / State
+#   Checkbox "Access My Personal Information"
+#   Checkbox "Do Not Sell My Personal Information" (matched on "...Informat")
+#   Checkbox "Delete My Personal Information"
 import asyncio
 
-from src.dsar.super_scraper import SuperScraper
-
 from pydoll.browser.chromium import Chrome
+
+from src.dsar.rights import Right
+from src.dsar.super_scraper import SuperScraper
 
 URL = "https://www.grassrootsanalytics.com/california-consumer-privacy-act-ccpa"
 
 RIGHT_MAP = {
-    "access": ["Access My Personal Information"],
-    "opt_out_sale_share": ["Do Not Sell My Personal Informat"],
-    "delete": ["Delete My Personal Information"],
+    Right.RIGHT_TO_ACCESS: "Access My Personal Information",
+    Right.RIGHT_TO_OPT_OUT: "Do Not Sell My Personal Informat",
+    Right.RIGHT_TO_DELETE: "Delete My Personal Information",
 }
 RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
 
@@ -26,6 +35,11 @@ RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
 async def main():
     super_scraper = SuperScraper()
     options = SuperScraper.build_chromium_options()
+
+    rights = SuperScraper.rights_to_exercise(RIGHT_MAP)
+    if not rights:
+        print("No requested privacy rights apply to this form — nothing to do.")
+        return
 
     async with Chrome(options=options) as browser:
         tab = await browser.start()
@@ -46,19 +60,15 @@ async def main():
                 await field.type_text(value)
                 await asyncio.sleep(0.2)
 
-        codes = SuperScraper.rights_to_exercise(RIGHT_MAP)
-        if not codes:
-            print("No requested privacy rights apply to this form — nothing to do.")
-            return
-        checkboxes = [entry for code in codes for entry in RIGHT_MAP[code]]
-        for text in checkboxes:
+        for right in rights:
+            text = RIGHT_MAP[right]
             label = await tab.find(xpath=f"//label[.//span[contains(text(),'{text}')]]", raise_exc=False)
             if label:
                 await label.click()
                 await asyncio.sleep(0.2)
 
         if SuperScraper.DRY_RUN:
-            print(f"DRY RUN: would submit removal request for {SuperScraper.FIRST_NAME} {SuperScraper.LAST_NAME}")
+            print(f"DRY RUN: would submit {[r.name for r in rights]} for {SuperScraper.EMAIL}")
             await asyncio.sleep(1)
             await SuperScraper.screenshot(tab, "dry_run")
             return
@@ -67,11 +77,7 @@ async def main():
         print("then press Enter once the confirmation appears...")
         input()
 
-        source = await tab.page_source
-        if any(w in source.lower() for w in ("thank", "success", "received", "submitted", "confirmation")):
-            print(f"Submitted removal request for {SuperScraper.FIRST_NAME} {SuperScraper.LAST_NAME}")
-        else:
-            print(f"{super_scraper.OOPS} Confirmation unclear — verify in browser")
+        print(f"Submitted {[r.name for r in rights]} for {SuperScraper.EMAIL} — confirm in the browser.")
 
 
 asyncio.run(main())

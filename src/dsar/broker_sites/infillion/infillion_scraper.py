@@ -1,29 +1,42 @@
 # infillion.com — Custom OneTrust Angular DSAR portal, MAID-based (no
 # address). "I am submitting this information on behalf of" set to "Myself".
 # Request type is single-select (one submission per right): Info Request
-# (Access) and Do Not Sell My Information unconditionally; Data Deletion
-# gated on REMOVE_INFORMATION. Type of Mobile Advertising ID defaults to GAID
+# (Access), Do Not Sell My Information, Data Deletion; which run is decided only
+# by SuperScraper.rights_to_exercise. Type of Mobile Advertising ID defaults to GAID
 # (Android) — change to IDFA manually for an Apple identifier. Authorized
 # agent question answered "No, the request is for myself". Country/State are
 # vt-autocomplete comboboxes. reCAPTCHA v2 requires manual solve in live mode.
+#
+# Page elements:
+#   [aria-label=Myself]                      "on behalf of" -> Myself
+#   [aria-label=<request type>]              request type buttons (see RIGHT_MAP)
+#   #countryDSARElement                      Country (vt-autocomplete) -> United States
+#   #stateDSARElement                        State (vt-autocomplete)
+#   #firstNameDSARElement / #lastNameDSARElement   First / Last name
+#   #emailDSARElement                        Email
+#   [aria-label="GAID (Google Android)"]     Type of Mobile Advertising ID
+#   #formField57DSARElement                  Mobile Advertising ID
+#   #requestDetailsDSARElement               Request details textarea
+#   [aria-label="No, the request is for myself"]   Authorized-agent question
 import asyncio
 
 from pydoll.browser.chromium import Chrome
 from pydoll.constants import Key
 
+from src.dsar.rights import Right
 from src.dsar.super_scraper import SuperScraper
 
 URL = "https://privacyportal.onetrust.com/webform/f7e3f6db-ed65-4759-a3f5-3b5c8b7e9bff/draft/9949a1a8-aa69-4848-a93f-d093d877a981"
 
 RIGHT_MAP = {
-    "access": [("Info Request", "access")],
-    "opt_out_sale_share": [("Do Not Sell My Information", "opt_out")],
-    "delete": [("Data Deletion", "delete")],
+    Right.RIGHT_TO_ACCESS: [("Info Request", "access")],
+    Right.RIGHT_TO_OPT_OUT: [("Do Not Sell My Information", "opt_out")],
+    Right.RIGHT_TO_DELETE: [("Data Deletion", "delete")],
 }
 RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
 
 
-async def submit_request(tab, right, label, super_scraper):
+async def submit_request(tab, right, req_type, label, super_scraper):
     await tab.go_to(URL)
     await asyncio.sleep(6)
 
@@ -32,9 +45,9 @@ async def submit_request(tab, right, label, super_scraper):
         await myself_btn.click_using_js()
         await asyncio.sleep(1)
 
-    req_btn = await tab.find(**{"aria-label": right}, raise_exc=False)
+    req_btn = await tab.find(**{"aria-label": req_type}, raise_exc=False)
     if not req_btn:
-        print(f"{super_scraper.OOPS} Request type button '{right}' not found")
+        print(f"{super_scraper.OOPS} Request type button '{req_type}' not found")
         return
     await req_btn.click_using_js()
     await asyncio.sleep(1)
@@ -82,7 +95,7 @@ async def submit_request(tab, right, label, super_scraper):
     request_details = await tab.find(id="requestDetailsDSARElement", raise_exc=False)
     if request_details:
         await request_details.type_text(
-            f"I am exercising my '{right}' rights under the {SuperScraper.LAW_FULL_NAME or 'applicable state and federal privacy law'}."
+            SuperScraper.request_statement([right], broker="Infillion")
         )
 
     not_agent_btn = await tab.find(**{"aria-label": "No, the request is for myself"}, raise_exc=False)
@@ -90,39 +103,31 @@ async def submit_request(tab, right, label, super_scraper):
         await not_agent_btn.click_using_js()
 
     if SuperScraper.DRY_RUN:
-        print(
-            f"DRY RUN: would submit '{right}' for "
-            f"{SuperScraper.FIRST_NAME} {SuperScraper.LAST_NAME} <{SuperScraper.EMAIL}>"
-        )
         await asyncio.sleep(1)
-        await SuperScraper.screenshot(tab, f"dry_run_{label}")
+        await SuperScraper.screenshot(tab, f"dry_run_{right.value}")
+        print(f"DRY RUN: would submit '{right.name}' ({req_type}) for {SuperScraper.EMAIL}")
         return
 
-    print(f"\nForm filled for '{right}'. Solve the reCAPTCHA, click Submit,")
+    print(f"\nForm filled for '{req_type}'. Solve the reCAPTCHA, click Submit,")
     print("then press Enter once the confirmation page appears...")
     input()
-
-    source = await tab.page_source
-    if any(w in source.lower() for w in ("thank", "success", "received", "submitted", "confirmation")):
-        print(f"Submitted '{right}' for {SuperScraper.FIRST_NAME} {SuperScraper.LAST_NAME}")
-    else:
-        print(f"{super_scraper.OOPS} Confirmation unclear for '{right}' — verify in browser")
+    print(f"Submitted '{right.name}' ({req_type}) for {SuperScraper.EMAIL} — confirm in the browser.")
 
 
 async def main():
     super_scraper = SuperScraper()
     options = SuperScraper.build_chromium_options()
 
-    codes = SuperScraper.rights_to_exercise(RIGHT_MAP)
-    if not codes:
+    rights = SuperScraper.rights_to_exercise(RIGHT_MAP)
+    if not rights:
         print("No requested privacy rights apply to this form — nothing to do.")
         return
-    rights = [entry for code in codes for entry in RIGHT_MAP[code]]
 
     async with Chrome(options=options) as browser:
         tab = await browser.start()
-        for right, label in rights:
-            await submit_request(tab, right, label, super_scraper)
+        for right in rights:
+            for req_type, label in RIGHT_MAP[right]:
+                await submit_request(tab, right, req_type, label, super_scraper)
 
 
 asyncio.run(main())

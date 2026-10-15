@@ -1,28 +1,37 @@
 # specialtycontactdatabases.com — /do-not-sell/ Gravity Forms (form id 2),
 # server-rendered, POSTs in place. One submission per right, chosen via the
 # "input_7" radio group:
-#   - "Request to Know ..."  -> Access  (unconditional)
-#   - "Do Not Sell My Info ..." -> Opt-Out (unconditional)
-#   - "Delete My Info ..."   -> Delete   (gated on REMOVE_INFORMATION)
-# Fields (GF renders name='input_N' as id='input_2_N', name='input_6.1' as
-# id='input_2_6_1'): first input_2_3_3, last input_2_3_6, email input_2_4,
-# phone input_2_5, street input_2_6_1, line2 input_2_6_2, city input_2_6_3,
-# state (plain text) input_2_6_4, zip input_2_6_5, country <select> input_2_6_6.
+#   - "Request to Know ..."  -> Access
+#   - "Do Not Sell My Info ..." -> Opt-Out
+#   - "Delete My Info ..."   -> Delete
+# Which of them run is decided ONLY by SuperScraper.rights_to_exercise(RIGHT_MAP).
+# Page elements (GF renders name='input_N' as id='input_2_N', name='input_6.1' as
+# id='input_2_6_1'):
+#   input[name=input_7]  Request-type radio group (values above)
+#   input_2_3_3 / input_2_3_6   First / Last name
+#   input_2_4            Email
+#   input_2_5            Phone
+#   input_2_6_1 / input_2_6_2   Street / Address line 2
+#   input_2_6_3          City
+#   input_2_6_4          State (plain text)
+#   input_2_6_5          Zip
+#   input_2_6_6          Country <select> -> "United States"
 # Ends in a Gravity Forms reCAPTCHA v2 checkbox — every other field is filled
 # and the form is left for a manual solve + Submit.  **CAPTCHA solution required**
 import asyncio
 
 from pydoll.browser.chromium import Chrome
 
+from src.dsar.rights import Right
 from src.dsar.super_scraper import SuperScraper
 from src.dsar import js_utils
 
 URL = "https://specialtycontactdatabases.com/do-not-sell/"
 
 RIGHT_MAP = {
-    "access": [("Request to Know", "access")],
-    "opt_out_sale_share": [("Do Not Sell My Info", "opt_out")],
-    "delete": [("Delete My Info", "delete")],
+    Right.RIGHT_TO_ACCESS: [("Request to Know", "access")],
+    Right.RIGHT_TO_OPT_OUT: [("Do Not Sell My Info", "opt_out")],
+    Right.RIGHT_TO_DELETE: [("Delete My Info", "delete")],
 }
 RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
 
@@ -77,15 +86,15 @@ async def main():
     super_scraper = SuperScraper()
     options = SuperScraper.build_chromium_options()
 
-    codes = SuperScraper.rights_to_exercise(RIGHT_MAP)
-    if not codes:
+    rights = SuperScraper.rights_to_exercise(RIGHT_MAP)
+    if not rights:
         print("No requested privacy rights apply to this form — nothing to do.")
         return
-    rights = [entry for code in codes for entry in RIGHT_MAP[code]]
+    requests = [entry for right in rights for entry in RIGHT_MAP[right]]
 
     async with Chrome(options=options) as browser:
         tab = await browser.start()
-        for value_prefix, label in rights:
+        for value_prefix, label in requests:
             await submit_request(tab, value_prefix, label, super_scraper)
 
 

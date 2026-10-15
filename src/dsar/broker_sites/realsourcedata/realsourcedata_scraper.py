@@ -9,13 +9,22 @@
 # Phone Number, Email) rather than by id directly, since Tally regenerates a
 # fresh UUID per field on every page load. reCAPTCHA v2 present —
 # **CAPTCHA solution required**.
+#
+# Page elements (inside the Tally iframe, matched by DOM order):
+#   1 First Name, 2 Last Name, 3 Street Address, 4 City, 5 State, 6 Zip Code,
+#   7 Phone Number, 8 Email  (all text/tel/email inputs)
 import asyncio
 
+from src.dsar.rights import Right
 from src.dsar.super_scraper import SuperScraper
 
 from pydoll.browser.chromium import Chrome
 
 URL = "https://www.realsourcedata.com/do-not-sell-my-personal-information"
+
+# Opt-out only: the form is the site's "Do Not Sell My Personal Information" opt-out.
+RIGHT_MAP = {Right.RIGHT_TO_OPT_OUT: "Do Not Sell My Personal Information"}
+RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
 
 FIELD_VALUES = [
     SuperScraper.FIRST_NAME,
@@ -31,6 +40,12 @@ FIELD_VALUES = [
 
 async def main():
     super_scraper = SuperScraper()
+    if SuperScraper.bail_if_not_automatable(globals()):
+        return
+    if not SuperScraper.rights_to_exercise(RIGHT_MAP):
+        print("No requested privacy rights apply to this form — nothing to do.")
+        return
+
     options = SuperScraper.build_chromium_options()
 
     async with Chrome(options=options) as browser:

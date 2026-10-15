@@ -1,18 +1,42 @@
-# leadpost.com — exercises Opt-Out, Access (copy of data + list of recipients), Delete (gated).
-# Server-rendered POST form, single submission for all rights. State requires 2-letter abbreviation.
+# leadpost.com — Opt-Out, Access (copy of data + list of recipients), Delete.
+# Server-rendered POST form, single submission with the checkboxes of every selected right.
+# State requires 2-letter abbreviation. Which rights run is decided ONLY by
+# SuperScraper.rights_to_exercise(RIGHT_MAP).
 # reCAPTCHA v2 (sitekey: 6Ld5uAArAAAAAKz5Az1SZwbWB3ZtLWtTMBjo-jDV) requires manual solve.
+#
+# Page elements:
+#   #Email / #FirstName / #LastName          Email, First / Last name
+#   #Address / #Address2 / #City / #State / #Zip / #Phone   Address fields (State = 2-letter abbreviation)
+#   #OptOutOfFutureDataCollection   checkbox: opt out of future data collection
+#   #ShareCopyOfMyData              checkbox: access, copy of my data
+#   #ShareRecipientsOfMyData        checkbox: access, list of data recipients
+#   #DeleteMyData                   checkbox: delete my data
+#   reCAPTCHA v2 checkbox + Submit
 import asyncio
 import time
 
 from pydoll.browser.chromium import Chrome
 
+from src.dsar.rights import Right
 from src.dsar.super_scraper import SuperScraper
 
 URL = "https://client.leadpost.com/PrivacyRequest"
 
+# Right -> checkbox ids to tick (Access ticks both the data-copy and the recipients box).
+RIGHT_MAP = {
+    Right.RIGHT_TO_OPT_OUT: ["OptOutOfFutureDataCollection"],
+    Right.RIGHT_TO_ACCESS: ["ShareCopyOfMyData", "ShareRecipientsOfMyData"],
+    Right.RIGHT_TO_DELETE: ["DeleteMyData"],
+}
+RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
+
 
 async def main():
     super_scraper = SuperScraper()
+    rights = SuperScraper.rights_to_exercise(RIGHT_MAP)
+    if not rights:
+        print("No requested privacy rights apply to this form — nothing to do.")
+        return
     options = SuperScraper.build_chromium_options()
 
     async with Chrome(options=options) as browser:
@@ -59,40 +83,27 @@ async def main():
             if phone:
                 await phone.type_text(SuperScraper.PHONE_NUMBER)
 
-        # Opt-Out of future data collection
-        optout = await tab.find(id="OptOutOfFutureDataCollection", raise_exc=False)
-        if optout:
-            await optout.click()
-
-        # Access: copy of data
-        copy = await tab.find(id="ShareCopyOfMyData", raise_exc=False)
-        if copy:
-            await copy.click()
-
-        # Access: list of data recipients
-        recipients = await tab.find(id="ShareRecipientsOfMyData", raise_exc=False)
-        if recipients:
-            await recipients.click()
-
-        if SuperScraper.wants("delete"):
-            delete = await tab.find(id="DeleteMyData", raise_exc=False)
-            if delete:
-                await delete.click()
+        for right in rights:
+            for checkbox_id in RIGHT_MAP[right]:
+                checkbox = await tab.find(id=checkbox_id, raise_exc=False)
+                if checkbox:
+                    await checkbox.click()
+                else:
+                    print(f"{super_scraper.OOPS} checkbox '{checkbox_id}' not found")
 
         time.sleep(0.5)
 
         if SuperScraper.DRY_RUN:
             await SuperScraper.screenshot(tab, "dry_run")
             print(
-                f"DRY RUN: would submit for "
-                f"{SuperScraper.FIRST_NAME} {SuperScraper.LAST_NAME} <{SuperScraper.EMAIL}>"
+                f"DRY RUN: would submit {[r.name for r in rights]} for {SuperScraper.EMAIL}"
             )
             return
 
         print("\nForm filled. Solve the reCAPTCHA v2 checkbox, then click Submit.")
         print("Press Enter after the confirmation page appears...")
         input()
-        print(f"Submitted for {SuperScraper.FIRST_NAME} {SuperScraper.LAST_NAME}")
+        print(f"Submitted {[r.name for r in rights]} for {SuperScraper.EMAIL} — confirm in the browser.")
 
 
 asyncio.run(main())

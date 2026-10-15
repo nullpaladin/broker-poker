@@ -8,9 +8,21 @@
 # Forms arithmetic CAPTCHA (e.g. "14 + 3 ="), regenerated per page load and
 # parsed/solved at runtime rather than hardcoded — no manual CAPTCHA step
 # needed, so DRY_RUN is respected and a real submission goes through when
-# DRY_RUN is False.
+# DRY_RUN is False. Whether it runs is decided ONLY by
+# SuperScraper.rights_to_exercise(RIGHT_MAP).
+#
+# Page elements (Gravity Forms form 5):
+#   #input_5_2_3 / #input_5_2_6   First / Last name
+#   #input_5_3                    Phone
+#   #input_5_4                    Email
+#   #input_5_5_1 / _3 / _4 / _5   Street address / City / State / ZIP
+#   #input_5_11_1                 Consent checkbox ("I am legally certifying that I am the
+#                                 individual whose information is being provided")
+#   label[for=input_5_16]         Arithmetic CAPTCHA question; #input_5_16 is its answer field
+#   #gform_submit_button_5        Submit button
 import asyncio
 
+from src.dsar.rights import Right
 from src.dsar.super_scraper import SuperScraper
 from src.dsar import captcha_solutions_util
 from src.dsar import js_utils
@@ -19,9 +31,15 @@ from pydoll.browser.chromium import Chrome
 
 URL = "https://l2-data.com/optout1-667457/"
 
+RIGHT_MAP = {Right.RIGHT_TO_OPT_OUT: "opt-out"}
+RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
+
 
 async def main():
     super_scraper = SuperScraper()
+    if not SuperScraper.rights_to_exercise(RIGHT_MAP):
+        print("No requested privacy rights apply to this form — nothing to do.")
+        return
     options = SuperScraper.build_chromium_options()
 
     async with Chrome(options=options) as browser:
@@ -76,7 +94,7 @@ async def main():
         if submit_button:
             await submit_button.click()
             await asyncio.sleep(3)
-            print(f"Submitted opt-out request for {SuperScraper.EMAIL}")
+            print(f"Submitted 'RIGHT_TO_OPT_OUT' for {SuperScraper.EMAIL} — confirm in the browser.")
         else:
             print(f"{super_scraper.OOPS} submit button not found")
 

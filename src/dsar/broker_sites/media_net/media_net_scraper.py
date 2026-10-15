@@ -19,19 +19,33 @@
 # wizard is walked first and every radio is picked by clicking the <label>
 # whose visible text matches exactly (unique in this Minnesota flow).
 #
-# Rights exercised (one submission each): "Request to Access Personal Data"
-# and "Request to Opt-Out (Do Not Sell My Personal Data)" unconditionally;
-# "Request to Delete Personal Data" gated on REMOVE_INFORMATION. The other
-# options (targeted-advertising / profiling opt-outs, Rectify, Copy, Appeal)
-# are auxiliary and skipped.
+# Rights the form exposes (one submission each): "Request to Access Personal Data",
+# "Request to Opt-Out (Do Not Sell My Personal Data)", "Request to Delete Personal Data".
+# Which of them run is decided ONLY by SuperScraper.rights_to_exercise(RIGHT_MAP). The
+# other options (targeted-advertising / profiling opt-outs, Rectify, Copy, Appeal) are
+# auxiliary and skipped.
 #
 # An invisible reCAPTCHA (site key 6Lc0__ssAAAAACj7_G92wGzGM-I55b5135O4OsnO)
 # may surface a challenge on submit — the form is filled and left for a
 # manual submit.  **CAPTCHA solution required**
+#
+# Page elements (keep this list current):
+#   #su-origin_country      Country autocomplete (type, click matching <li>) -> "United States"
+#   #su-origin_state        State autocomplete (type, click matching <li>) -> STATE
+#   input[type=button] "Next"   reveals section 2
+#   label.radio-btn "Consumer"  "I am a (an)"
+#   label.radio-btn <request>   "Choose a request type" (matched by exact visible text, never by id)
+#   #firstname / #lastname      First Name / Last Name
+#   #email-address              Email
+#   "website"                   honeypot, left blank
+#   #request-details            Request Details (required free text)
+#   Submit button / invisible reCAPTCHA   manual
 import asyncio
 
 from pydoll.browser.chromium import Chrome
 
+from src.dsar import js_utils
+from src.dsar.rights import Right
 from src.dsar.super_scraper import SuperScraper
 
 URL = (
@@ -39,25 +53,19 @@ URL = (
     "?flavor=098ca9ee3e41231029aac9762ccd6a13"
 )
 
-REQUESTS = [
-    ("Request to Access Personal Data", "access", False),
-    ("Request to Opt-Out (Do Not Sell My Personal Data)", "opt_out", False),
-    ("Request to Delete Personal Data", "delete", True),
-]
+COUNTRY_INPUT = "su-origin_country"  # Country autocomplete
+STATE_INPUT = "su-origin_state"  # State autocomplete
+FIRST_NAME_INPUT = "firstname"  # First Name
+LAST_NAME_INPUT = "lastname"  # Last Name
+EMAIL_INPUT = "email-address"  # Email
+DETAILS_INPUT = "request-details"  # Request Details
 
-DETAILS = (
-    "I am a {state} resident and I am exercising my privacy rights under the {law} "
-    "with respect to the personal information Media.net and its partners hold "
-    "about me: {req}."
-)
-
-
-def _details_for(request_type):
-    return DETAILS.format(
-        state=SuperScraper.STATE,
-        law=SuperScraper.LAW_FULL_NAME or "applicable state and federal privacy law",
-        req=request_type,
-    )
+RIGHT_MAP = {
+    Right.RIGHT_TO_ACCESS: "Request to Access Personal Data",
+    Right.RIGHT_TO_OPT_OUT: "Request to Opt-Out (Do Not Sell My Personal Data)",
+    Right.RIGHT_TO_DELETE: "Request to Delete Personal Data",
+}
+RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
 
 
 async def _click_li(tab, value):
@@ -69,14 +77,13 @@ async def _click_li(tab, value):
 
 
 async def _click_label(tab, text):
-    code = (
+    script = (
         "return (function(){var t=%r;"
         "for(var l of document.querySelectorAll('label,span,div')){"
         "if((l.innerText||'').trim()===t){l.scrollIntoView({block:'center'});l.click();return true;}}"
         "return false;})()" % text
     )
-    r = await tab.execute_script(code)
-    return bool(r["result"]["result"].get("value"))
+    return bool(await js_utils.js_eval(tab, script))
 
 
 async def _type_input(tab, el_id, value):
@@ -87,27 +94,28 @@ async def _type_input(tab, el_id, value):
         await asyncio.sleep(0.3)
 
 
-async def submit_request(tab, request_type, label, super_scraper):
+async def submit_request(tab, right, request_type, super_scraper):
     await tab.go_to(URL)
     await asyncio.sleep(9)
 
-    country = await tab.find(id="su-origin_country", raise_exc=False)
+    country = await tab.find(id=COUNTRY_INPUT, raise_exc=False)
     await country.click()
     await tab.keyboard.type_text("United States")
     await asyncio.sleep(2.5)
     await _click_li(tab, "United States")
     await asyncio.sleep(1.5)
 
-    state = await tab.find(id="su-origin_state", raise_exc=False)
+    state = await tab.find(id=STATE_INPUT, raise_exc=False)
     await state.click()
     await tab.keyboard.type_text(SuperScraper.STATE)
     await asyncio.sleep(2.5)
     await _click_li(tab, SuperScraper.STATE)
     await asyncio.sleep(1.5)
 
-    await tab.execute_script(
+    await js_utils.js_eval(
+        tab,
         "return (function(){for(var e of document.querySelectorAll('input[type=button]'))"
-        "{if((e.value||'').trim().toLowerCase()==='next'){e.click();return;}}})()"
+        "{if((e.value||'').trim().toLowerCase()==='next'){e.click();return;}}})()",
     )
     await asyncio.sleep(3)
 
@@ -118,17 +126,17 @@ async def submit_request(tab, request_type, label, super_scraper):
         print(f"{super_scraper.OOPS} Request type '{request_type}' not found")
     await asyncio.sleep(2)
 
-    await _type_input(tab, "firstname", SuperScraper.FIRST_NAME)
-    await _type_input(tab, "lastname", SuperScraper.LAST_NAME)
-    await _type_input(tab, "email-address", SuperScraper.EMAIL)
+    await _type_input(tab, FIRST_NAME_INPUT, SuperScraper.FIRST_NAME)
+    await _type_input(tab, LAST_NAME_INPUT, SuperScraper.LAST_NAME)
+    await _type_input(tab, EMAIL_INPUT, SuperScraper.EMAIL)
     # "website" is a honeypot — leave blank.
-    await _type_input(tab, "request-details", _details_for(request_type))
+    await _type_input(tab, DETAILS_INPUT, SuperScraper.request_statement([right], broker="Media.net"))
 
     await asyncio.sleep(1)
-    await SuperScraper.screenshot(tab, f"dry_run_{label}")
+    await SuperScraper.screenshot(tab, f"dry_run_{right.value}")
     if SuperScraper.DRY_RUN:
         print(
-            f"DRY RUN: would submit '{request_type}' for "
+            f"DRY RUN: would submit '{right.name}' for "
             f"{SuperScraper.FIRST_NAME} {SuperScraper.LAST_NAME} <{SuperScraper.EMAIL}>"
         )
         return
@@ -137,23 +145,25 @@ async def submit_request(tab, request_type, label, super_scraper):
     print("click SUBMIT, then press Enter once the confirmation appears...")
     input()
 
-    source = await tab.page_source
-    if any(w in source.lower() for w in ("thank", "success", "received", "submitted", "confirmation")):
-        print(f"Submitted '{request_type}' for {SuperScraper.FIRST_NAME} {SuperScraper.LAST_NAME}")
-    else:
-        print(f"{super_scraper.OOPS} Confirmation unclear for '{request_type}' — verify in browser")
+    print(f"Submitted '{right.name}' for {SuperScraper.EMAIL} — confirm in the browser.")
 
 
 async def main():
     super_scraper = SuperScraper()
+    if SuperScraper.bail_if_not_automatable(globals()):
+        return
+
+    rights = SuperScraper.rights_to_exercise(RIGHT_MAP)
+    if not rights:
+        print("No requested privacy rights apply to this form — nothing to do.")
+        return
+
     options = SuperScraper.build_chromium_options()
 
     async with Chrome(options=options) as browser:
         tab = await browser.start()
-        for request_type, label, gated in REQUESTS:
-            if gated and not SuperScraper.wants("delete"):
-                continue
-            await submit_request(tab, request_type, label, super_scraper)
+        for right in rights:
+            await submit_request(tab, right, RIGHT_MAP[right], super_scraper)
 
 
 asyncio.run(main())

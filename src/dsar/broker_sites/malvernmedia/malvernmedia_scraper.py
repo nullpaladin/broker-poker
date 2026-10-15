@@ -6,14 +6,24 @@
 # Visible text input order: [0]=agency_email(skip), [1]=first, [2]=last,
 #   [3]=country(named), [4]=address, [5]=city, [6]=state(named), [7]=zip.
 # CAPTCHA: name="captchacode", 6-character alphanumeric image — manual entry in live mode.
-# Always: Right to Know, Right to Correct, Right to Opt-Out (Sale/Sharing),
-#   Right to Opt-Out (Cross-Behavioral Sale/Sharing), Right to Limit Sensitive PI.
-# Gated on REMOVE_INFORMATION: Right to Delete.
+# Rights offered: Right to Know, Right to Correct (not automatable, not mapped), Right to
+# Opt-Out (Sale/Sharing), Right to Opt-Out (Cross-Behavioral Sale/Sharing), Right to Limit
+# Sensitive PI, Right to Delete. Which run is decided only by rights_to_exercise(RIGHT_MAP).
+#
+# Page elements:
+#   input[name=subjecttype]   Subject type radios (label "Other US State Resident" is clicked)
+#   input[name=requesttype]   Request type radios (labels listed in RIGHT_MAP)
+#   input[type=email]         Email
+#   visible text inputs       [1]=First name, [2]=Last name, [4]=Address, [5]=City, [7]=ZIP
+#                             ([0] agency email skipped; [3]/[6] are the country/state typeaheads)
+#   input[name=country] / input[name=state]   Country / State typeaheads
+#   input[name=captchacode]   6-character image CAPTCHA
+#   button[type=submit]       Submit
 import asyncio
-import time
 
 from pydoll.browser.chromium import Chrome
 
+from src.dsar.rights import Right
 from src.dsar.super_scraper import SuperScraper
 
 URL = (
@@ -24,16 +34,17 @@ URL = (
     "&status=publish"
 )
 
+# Right -> (request-type radio label text, short label for screenshots), or a list of them.
 RIGHT_MAP = {
-    "access": [("Right to Know", "know")],
-    "correct": [("Right to Correct", "correct")],
-    "opt_out_sale_share": [("Right to Opt-Out of the Sale or Sharing of Personal Information", "optout_sale")],
-    "opt_out_targeted_ads": [("Right to Opt-Out of Cross-Behavioral Sale or Sharing", "optout_crossbehavioral")],
-    "limit_sensitive_pi": [("Right to Limit Use and Disclosure of Sensitive Personal Information", "limit_sensitive")],
-    "delete": [("Right to Delete", "delete")],
+    Right.RIGHT_TO_ACCESS: ("Right to Know", "know"),
+    Right.RIGHT_TO_OPT_OUT: [
+        ("Right to Opt-Out of the Sale or Sharing of Personal Information", "optout_sale"),
+        ("Right to Opt-Out of Cross-Behavioral Sale or Sharing", "optout_crossbehavioral"),
+        ("Right to Limit Use and Disclosure of Sensitive Personal Information", "limit_sensitive"),
+    ],
+    Right.RIGHT_TO_DELETE: ("Right to Delete", "delete"),
 }
 RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
-# Tuple: (label_text_for_radio, short_label_for_filenames)
 
 
 async def _typeahead(tab, name_attr, search_text):
@@ -60,7 +71,7 @@ async def _submit_request(tab, right_label_text, label, super_scraper):
     else:
         print(f"{super_scraper.OOPS} Subject type label not found for {label}")
         return
-    time.sleep(0.5)
+    await asyncio.sleep(0.5)
 
     req_lbl = await tab.find(text=right_label_text, raise_exc=False)
     if req_lbl:
@@ -68,12 +79,12 @@ async def _submit_request(tab, right_label_text, label, super_scraper):
     else:
         print(f"{super_scraper.OOPS} Request type label '{right_label_text}' not found for {label}")
         return
-    time.sleep(0.5)
+    await asyncio.sleep(0.5)
 
     email_field = await tab.find(tag_name="input", type="email", raise_exc=False)
     if email_field:
         await email_field.type_text(SuperScraper.EMAIL)
-    time.sleep(0.3)
+    await asyncio.sleep(0.3)
 
     all_text = await tab.find(tag_name="input", type="text", find_all=True, raise_exc=False) or []
     visible = [f for f in all_text if await f.is_visible()]
@@ -87,7 +98,7 @@ async def _submit_request(tab, right_label_text, label, super_scraper):
     for idx, val in fill_plan.items():
         if idx < len(visible):
             await visible[idx].type_text(val)
-    time.sleep(0.3)
+    await asyncio.sleep(0.3)
 
     await _typeahead(tab, "country", "United States")
     await asyncio.sleep(1)
@@ -113,34 +124,34 @@ async def _submit_request(tab, right_label_text, label, super_scraper):
     code = input("CAPTCHA code: ").strip()
     if captcha_field:
         await captcha_field.type_text(code)
-    time.sleep(0.3)
+    await asyncio.sleep(0.3)
 
     submit_btn = await tab.find(tag_name="button", type="submit", raise_exc=False)
     if submit_btn:
         await submit_btn.click()
         await asyncio.sleep(5)
 
-    source = await tab.page_source
-    if any(w in source.lower() for w in ("thank", "success", "received", "submitted", "confirmation")):
-        print(f"Submitted '{label}' for {SuperScraper.FIRST_NAME} {SuperScraper.LAST_NAME}")
-    else:
-        print(f"{super_scraper.OOPS} Confirmation unclear for '{label}' — verify in browser")
+    print(f"Submitted '{label}' for {SuperScraper.EMAIL} — confirm in the browser.")
 
 
 async def main():
     super_scraper = SuperScraper()
+    if SuperScraper.bail_if_not_automatable(globals()):
+        return
+
     options = SuperScraper.build_chromium_options()
 
-    codes = SuperScraper.rights_to_exercise(RIGHT_MAP)
-    if not codes:
+    rights = SuperScraper.rights_to_exercise(RIGHT_MAP)
+    if not rights:
         print("No requested privacy rights apply to this form — nothing to do.")
         return
-    requests = [entry for code in codes for entry in RIGHT_MAP[code]]
 
     async with Chrome(options=options) as browser:
         tab = await browser.start()
-        for right_id, label in requests:
-            await _submit_request(tab, right_id, label, super_scraper)
+        for right in rights:
+            entries = RIGHT_MAP[right]
+            for right_label_text, label in (entries if isinstance(entries, list) else [entries]):
+                await _submit_request(tab, right_label_text, label, super_scraper)
 
 
 asyncio.run(main())

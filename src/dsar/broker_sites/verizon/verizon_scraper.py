@@ -26,7 +26,8 @@
 # more about your inquiry" — a SECOND single-select radio group — answered
 # "I would like to request a download or deletion of personal information
 # (select all that apply)." which in turn reveals a checkbox pair, Download
-# (checked unconditionally) and Deletion (gated on REMOVE_INFORMATION) —
+# (maps to Right.RIGHT_TO_ACCESS) and Deletion (maps to Right.RIGHT_TO_DELETE); which of them
+# are checked is decided ONLY by SuperScraper.rights_to_exercise(RIGHT_MAP) —
 # both checkboxes share the SAME element ids across every "tell us more"
 # variant that offers them (id="edit-select-download"/"edit-select-
 # deletion"), so no per-variant lookup is needed. Selecting this option
@@ -36,13 +37,38 @@
 # Home state select values are formatted "XX - Full Name" (matched by
 # substring). Distorted-text image CAPTCHA — **CAPTCHA solution
 # required**.
+#
+# Page elements:
+#   #edit-name                                 First name
+#   #edit-last-name-                           Last name
+#   #edit-email-address-mail-1 / -mail-2       Email / Confirm email
+#   #edit-checkbox-mobile-phone-number         "Mobile phone number" radio (enables the phone field)
+#   #edit-mobile-phone-number                  Phone number (10 digits, no formatting)
+#   #edit-home-state                           Home state <select> ("XX - Full Name")
+#   #edit-brand                                Brand <select> (-> "Verizon")
+#   #edit-relationship-to-verizon-radios-i-was-never-a-customer   "I was never a customer." radio
+#   #edit-tell-us-more-about-your-inquiry-...-select-all-that-apply   "I would like to request a
+#                                              download or deletion of personal information" radio
+#   #edit-select-download                      "Download" checkbox
+#   #edit-select-deletion                      "Deletion" checkbox
+#   Distorted-text image CAPTCHA (manual entry)
 import asyncio
 
+from src.dsar.rights import Right
 from src.dsar.super_scraper import SuperScraper
 
 from pydoll.browser.chromium import Chrome
 
 URL = "https://www.verizon.com/about/privacy/privacy-inquiries"
+
+DOWNLOAD_CHECKBOX = "edit-select-download"  # "Download"
+DELETION_CHECKBOX = "edit-select-deletion"  # "Deletion"
+
+RIGHT_MAP = {
+    Right.RIGHT_TO_ACCESS: DOWNLOAD_CHECKBOX,
+    Right.RIGHT_TO_DELETE: DELETION_CHECKBOX,
+}
+RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
 
 
 async def _click_via_js(tab, super_scraper, element_id, description):
@@ -60,6 +86,12 @@ async def _click_via_js(tab, super_scraper, element_id, description):
 
 async def main():
     super_scraper = SuperScraper()
+    if SuperScraper.bail_if_not_automatable(globals()):
+        return
+    rights = SuperScraper.rights_to_exercise(RIGHT_MAP)
+    if not rights:
+        print("No requested privacy rights apply to this form — nothing to do.")
+        return
     options = SuperScraper.build_chromium_options()
 
     async with Chrome(options=options) as browser:
@@ -121,9 +153,8 @@ async def main():
             "edit-tell-us-more-about-your-inquiry-i-would-like-to-request-a-download-or-deletion-of-personal-information-select-all-that-apply",
             "Tell us more about your inquiry",
         )
-        await _click_via_js(tab, super_scraper, "edit-select-download", "Download checkbox")
-        if SuperScraper.wants("delete"):
-            await _click_via_js(tab, super_scraper, "edit-select-deletion", "Deletion checkbox")
+        for right in rights:
+            await _click_via_js(tab, super_scraper, RIGHT_MAP[right], f"{right.name} checkbox")
 
         await asyncio.sleep(1)
         await SuperScraper.screenshot(tab, "dry_run")

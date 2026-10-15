@@ -7,20 +7,36 @@
 #   acceptance2 = "Opt-out of the mailing list ..."          (checked)
 # There is no Access/Delete option on this form — the site says those go by
 # email (privacy@lakeb2b.com) — so this exercises Opt-Out only; the free-text
-# "message" field additionally states the request in words.
-# Fields: first-name, last-name, your-email, phone, address, city, state, zip,
-# message. No CAPTCHA seen.
+# "message" field additionally states the request in words. Whether it runs is
+# decided ONLY by SuperScraper.rights_to_exercise(RIGHT_MAP). No CAPTCHA seen.
+#
+# Page elements:
+#   input[name=acceptance1]  "Alter frequency of news notifications ..." (left unchecked)
+#   input[name=acceptance2]  "Opt-out of the mailing list ..."           (checked)
+#   first-name / last-name   First / Last name
+#   your-email / phone       Email / Phone
+#   address / city / state / zip   Address fields
+#   message                  Free-text message
+#   input[type=submit]       Submit (labelled "Get a Quote Now!")
 import asyncio
 
 from pydoll.browser.chromium import Chrome
 
+from src.dsar.rights import Right
 from src.dsar.super_scraper import SuperScraper
 
 URL = "https://www.lakeb2b.com/do-not-sell-my-data"
 
+RIGHT_MAP = {Right.RIGHT_TO_OPT_OUT: "opt-out"}
+RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
+
 
 async def main():
     super_scraper = SuperScraper()
+    rights = SuperScraper.rights_to_exercise(RIGHT_MAP)
+    if not rights:
+        print("No requested privacy rights apply to this form — nothing to do.")
+        return
     options = SuperScraper.build_chromium_options()
 
     async with Chrome(options=options) as browser:
@@ -43,10 +59,7 @@ async def main():
             "city": SuperScraper.CITY,
             "state": SuperScraper.STATE,
             "zip": SuperScraper.ZIP_CODE,
-            "message": (
-                "I am exercising my right to opt out of the sale and sharing of my "
-                "personal information. Please also confirm removal from all marketing lists."
-            ),
+            "message": SuperScraper.request_statement(rights, broker="LakeB2B"),
         }
         for name, val in fields.items():
             if not val:
@@ -68,7 +81,7 @@ async def main():
         if submit:
             await submit.click()
             await asyncio.sleep(4)
-            print(f"Submitted opt-out for {SuperScraper.EMAIL}")
+            print(f"Submitted 'RIGHT_TO_OPT_OUT' for {SuperScraper.EMAIL} — confirm in the browser.")
 
 
 asyncio.run(main())

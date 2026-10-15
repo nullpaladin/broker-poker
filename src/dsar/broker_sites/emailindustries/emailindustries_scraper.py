@@ -1,22 +1,43 @@
 # emailindustries.com (branded "Kickbox") — Custom OneTrust Angular DSAR
 # portal. Single generic submission, no request-type picker — the specific
-# right is expressed via the free-text Request Details textarea. Gated on
-# REMOVE_INFORMATION since a deletion ask is only included in that text when
-# the user has opted into removal. Country/State are optional vt-autocomplete
+# rights are expressed via the free-text Request Details textarea. Country/State are optional vt-autocomplete
 # comboboxes (type then ArrowDown+Enter). captchaCode is a BotDetect image
 # CAPTCHA requiring manual entry in live mode.
+#
+# Page elements:
+#   #firstNameDSARElement / #lastNameDSARElement   First / Last name
+#   #email                                          Email
+#   #countryDSARElement / #stateDSARElement         Country / State comboboxes (optional)
+#   #requestDetailsDSARElement                      Request Details textarea
+#   #captchaCode                                    image CAPTCHA text input
 import asyncio
 
 from pydoll.browser.chromium import Chrome
 from pydoll.constants import Key
 
+from src.dsar.rights import Right
 from src.dsar.super_scraper import SuperScraper
 
 URL = "https://privacyportal.onetrust.com/webform/f73513a8-7a10-4a9d-939a-703f8d994839/262761ab-edc4-440a-8e56-e6348b131382"
 
+# No request-type picker: every right is expressed in the free-text details box.
+RIGHT_MAP = {
+    Right.RIGHT_TO_ACCESS: "Request Details text",
+    Right.RIGHT_TO_DELETE: "Request Details text",
+}
+RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
+
 
 async def main():
     super_scraper = SuperScraper()
+    if SuperScraper.bail_if_not_automatable(globals()):
+        return
+
+    rights = SuperScraper.rights_to_exercise(RIGHT_MAP)
+    if not rights:
+        print("No requested privacy rights apply to this form — nothing to do.")
+        return
+
     options = SuperScraper.build_chromium_options()
 
     async with Chrome(options=options) as browser:
@@ -54,22 +75,14 @@ async def main():
             await tab.keyboard.press(Key.ENTER)
         await asyncio.sleep(0.5)
 
-        _law = SuperScraper.LAW_FULL_NAME or "applicable state and federal privacy law"
-        if SuperScraper.wants("delete"):
-            request_text = (
-                f"I am requesting access to and deletion of my personal information "
-                f"under the {_law}."
-            )
-        else:
-            request_text = f"I am requesting access to my personal information under the {_law}."
+        request_text = SuperScraper.request_statement(rights, broker="Kickbox")
         request_details = await tab.find(id="requestDetailsDSARElement", raise_exc=False)
         if request_details:
             await request_details.type_text(request_text)
 
         if SuperScraper.DRY_RUN:
             print(
-                f"DRY RUN: would submit request for "
-                f"{SuperScraper.FIRST_NAME} {SuperScraper.LAST_NAME} <{SuperScraper.EMAIL}>"
+                f"DRY RUN: would submit {[r.name for r in rights]} for {SuperScraper.EMAIL}"
             )
             captcha_field = await tab.find(id="captchaCode", raise_exc=False)
             if captcha_field:
@@ -82,11 +95,7 @@ async def main():
         print("then press Enter once the confirmation page appears...")
         input()
 
-        source = await tab.page_source
-        if any(w in source.lower() for w in ("thank", "success", "received", "submitted", "confirmation")):
-            print(f"Submitted request for {SuperScraper.FIRST_NAME} {SuperScraper.LAST_NAME}")
-        else:
-            print(f"{super_scraper.OOPS} Confirmation unclear — verify in browser")
+        print(f"Submitted {[r.name for r in rights]} for {SuperScraper.EMAIL} — confirm in the browser.")
 
 
 asyncio.run(main())

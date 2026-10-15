@@ -18,18 +18,39 @@
 # v2 checkbox before "Continue" advances — so the real identity-
 # verification form on step 2 is never reached in an automated session.
 # This scraper selects "my own information" and stops there.
+# Rights the form exposes: Access only; whether it runs is decided ONLY by
+# SuperScraper.rights_to_exercise(RIGHT_MAP).
+#
+# Page elements (keep this list current):
+#   "Request My Information" button (text)   opens the 3-step wizard
+#   #firstRadioOption  "my own information" radio (clicked via its label text, click_using_js)
+#   #secondRadioOption "on another person's behalf" radio (not used)
+#   reCAPTCHA v2 checkbox gating "Continue" — manual solve
 import asyncio
 
+from src.dsar.rights import Right
 from src.dsar.super_scraper import SuperScraper
 
 from pydoll.browser.chromium import Chrome
 
+from src.dsar import js_utils
+
 URL = "https://www.peoplefinders.com/request-my-info"
+
+RIGHT_MAP = {Right.RIGHT_TO_ACCESS: "Request My Information"}
+RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
 
 
 async def main():
     super_scraper = SuperScraper()
+    if SuperScraper.bail_if_not_automatable(globals()):
+        return
     options = SuperScraper.build_chromium_options()
+
+    rights = SuperScraper.rights_to_exercise(RIGHT_MAP)
+    if not rights:
+        print("No requested privacy rights apply to this form — nothing to do.")
+        return
 
     async with Chrome(options=options) as browser:
         tab = await browser.start()
@@ -53,9 +74,9 @@ async def main():
         else:
             print(f"{super_scraper.OOPS} 'my own information' label not found")
 
-        await tab.execute_script("window.scrollTo(0, 0);")
+        await js_utils.js_eval(tab, "window.scrollTo(0, 0); return true;")
         await asyncio.sleep(1)
-        await SuperScraper.screenshot(tab, "dry_run")
+        await SuperScraper.screenshot(tab, "dry_run_access")
         print(
             "\n'My own information' selected but the wizard cannot proceed further — a "
             "reCAPTCHA v2 checkbox gates the 'Continue' button before the actual identity-"

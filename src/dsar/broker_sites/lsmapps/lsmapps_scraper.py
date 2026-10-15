@@ -9,31 +9,33 @@
 # honeypot signal despite the generic-sounding label) — deliberately left
 # BLANK. A custom text/image CAPTCHA ("Security check — enter the code
 # shown below") gates submission — **CAPTCHA solution required**; the form
-# is filled completely and left there regardless. Exercises Access and
-# Opt-Out of Sale unconditionally; Deletion gated on REMOVE_INFORMATION.
+# is filled completely and left there regardless. Which rights run is decided only
+# by rights_to_exercise(RIGHT_MAP).
+#
+# Page elements:
+#   #fullName / #email / #phoneNumber   Full name / Email / Phone (sent as "+1 <number>")
+#   #appUser        "Are you a user of our App?" <select> -> "No"
+#   #territory      Territory <select> -> "US"
+#   #privacyRight   "Which right do you wish to exercise?" <select> -> see RIGHT_MAP
+#   #confirmation   Confirmation checkbox
+#   name=website    honeypot (tabIndex=-1) -> left blank
+#   security check code input (text/image CAPTCHA) -> manual entry
 import asyncio
 
-from src.dsar.super_scraper import SuperScraper
-
 from pydoll.browser.chromium import Chrome
+
+from src.dsar import js_utils
+from src.dsar.rights import Right
+from src.dsar.super_scraper import SuperScraper
 
 URL = "https://lsmapps.com/opt-out"
 
 RIGHT_MAP = {
-    "access": ["Right to Know or Access the Personal Information"],
-    "opt_out_sale_share": ["Right to Opt-Out of Sale of Personal Information"],
-    "delete": ["Right to Deletion of the Personal Information"],
+    Right.RIGHT_TO_ACCESS: "Right to Know or Access the Personal Information",
+    Right.RIGHT_TO_OPT_OUT: "Right to Opt-Out of Sale of Personal Information",
+    Right.RIGHT_TO_DELETE: "Right to Deletion of the Personal Information",
 }
 RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
-
-
-def _select_by_text(text):
-    return (
-        "for (var i=0;i<this.options.length;i++){"
-        f"  if(this.options[i].text==={text!r}){{ this.selectedIndex=i; }}"
-        "}"
-        "this.dispatchEvent(new Event('change', {bubbles:true}));"
-    )
 
 
 async def submit_request(tab, right, super_scraper):
@@ -54,16 +56,16 @@ async def submit_request(tab, right, super_scraper):
 
     app_user_select = await tab.find(id="appUser", raise_exc=False)
     if app_user_select:
-        await app_user_select.execute_script(_select_by_text("No"))
+        await js_utils.select_native_option(app_user_select, text="No")
 
     territory_select = await tab.find(id="territory", raise_exc=False)
     if territory_select:
-        await territory_select.execute_script(_select_by_text("US"))
+        await js_utils.select_native_option(territory_select, text="US")
         await asyncio.sleep(0.5)
 
     right_select = await tab.find(id="privacyRight", raise_exc=False)
     if right_select:
-        await right_select.execute_script(_select_by_text(right))
+        await js_utils.select_native_option(right_select, text=right)
 
     confirmation = await tab.find(id="confirmation", raise_exc=False)
     if confirmation:
@@ -81,18 +83,20 @@ async def submit_request(tab, right, super_scraper):
 
 async def main():
     super_scraper = SuperScraper()
+    if SuperScraper.bail_if_not_automatable(globals()):
+        return
+
     options = SuperScraper.build_chromium_options()
 
-    codes = SuperScraper.rights_to_exercise(RIGHT_MAP)
-    if not codes:
+    rights = SuperScraper.rights_to_exercise(RIGHT_MAP)
+    if not rights:
         print("No requested privacy rights apply to this form — nothing to do.")
         return
-    rights = [entry for code in codes for entry in RIGHT_MAP[code]]
 
     async with Chrome(options=options) as browser:
         tab = await browser.start()
         for right in rights:
-            await submit_request(tab, right, super_scraper)
+            await submit_request(tab, RIGHT_MAP[right], super_scraper)
 
 
 asyncio.run(main())

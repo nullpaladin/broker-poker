@@ -1,24 +1,38 @@
 # belardiwong.com — three separate OneTrust DSAR forms (one URL per right,
 # same portal id as adstradata.com but a distinct, working consumer-facing
-# deployment — no "authorized agent" dead end here). Fields: firstNameDSARElement,
-# lastNameDSARElement, email, countryDSARElement + stateDSARElement (vt-autocomplete
-# comboboxes, type then ArrowDown+Enter), phone country code vt-input-6,
-# addressDSARElement, formField16DSARElement (Address Line 2, optional),
-# cityDSARElement, zipDSARElement. Two-step email verification required after
-# submission. captchaCode is a BotDetect image CAPTCHA requiring manual entry
-# in live mode.
+# deployment — no "authorized agent" dead end here).
+# Rights the form exposes: access, opt-out, delete (one form each). Which of them run is
+# decided ONLY by SuperScraper.rights_to_exercise(RIGHT_MAP).
+# Two-step email verification required after submission. No free-text details box.
+#
+# Page elements:
+#   #firstNameDSARElement      First name
+#   #lastNameDSARElement       Last name
+#   #email                     Email
+#   #countryDSARElement        Country (vt-autocomplete combobox: type, ArrowDown, Enter)
+#   #vt-input-6                Phone country code
+#   #phoneNumberDSARElement    Phone number
+#   #addressDSARElement        Address
+#   #formField16DSARElement    Address Line 2 (optional, not filled)
+#   #cityDSARElement           City
+#   #stateDSARElement          State (vt-autocomplete combobox)
+#   #zipDSARElement            ZIP code
+#   #captchaCode               BotDetect image CAPTCHA (manual entry in live mode)
 import asyncio
 
 from pydoll.browser.chromium import Chrome
 from pydoll.constants import Key
 
+from src.dsar.rights import Right
 from src.dsar.super_scraper import SuperScraper
 
-URLS = {
-    "access": "https://privacyportal.onetrust.com/webform/3d2d5e0c-bd98-46b8-906c-ede68a6f6a80/db862165-db28-4966-885c-8ace2d0c1512",
-    "optout": "https://privacyportal.onetrust.com/webform/3d2d5e0c-bd98-46b8-906c-ede68a6f6a80/400f54ed-fcbb-4749-ab5b-32f491c72390",
+# Right -> the URL of that right's OneTrust webform.
+RIGHT_MAP = {
+    Right.RIGHT_TO_ACCESS: "https://privacyportal.onetrust.com/webform/3d2d5e0c-bd98-46b8-906c-ede68a6f6a80/db862165-db28-4966-885c-8ace2d0c1512",
+    Right.RIGHT_TO_OPT_OUT: "https://privacyportal.onetrust.com/webform/3d2d5e0c-bd98-46b8-906c-ede68a6f6a80/400f54ed-fcbb-4749-ab5b-32f491c72390",
+    Right.RIGHT_TO_DELETE: "https://privacyportal.onetrust.com/webform/3d2d5e0c-bd98-46b8-906c-ede68a6f6a80/dd119353-8970-4dbf-ac1d-b6406173c7bb",
 }
-DELETE_URL = "https://privacyportal.onetrust.com/webform/3d2d5e0c-bd98-46b8-906c-ede68a6f6a80/dd119353-8970-4dbf-ac1d-b6406173c7bb"
+RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
 
 
 async def _fill_autocomplete(tab, field_id, value):
@@ -34,7 +48,7 @@ async def _fill_autocomplete(tab, field_id, value):
     await asyncio.sleep(0.5)
 
 
-async def submit_request(tab, url, label, super_scraper):
+async def submit_request(tab, right, url, super_scraper):
     await tab.go_to(url)
     await asyncio.sleep(6)
 
@@ -76,39 +90,35 @@ async def submit_request(tab, url, label, super_scraper):
 
     if SuperScraper.DRY_RUN:
         print(
-            f"DRY RUN: would submit '{label}' for "
+            f"DRY RUN: would submit '{right.name}' for "
             f"{SuperScraper.FIRST_NAME} {SuperScraper.LAST_NAME} <{SuperScraper.EMAIL}>"
         )
         captcha_field = await tab.find(id="captchaCode", raise_exc=False)
         if captcha_field:
             await captcha_field.scroll_into_view()
         await asyncio.sleep(1)
-        await SuperScraper.screenshot(tab, f"dry_run_{label}")
+        await SuperScraper.screenshot(tab, f"dry_run_{right.value}")
         return
 
-    print(f"\nForm filled for '{label}'. Enter the CAPTCHA code, click Submit,")
+    print(f"\nForm filled for '{right.name}'. Enter the CAPTCHA code, click Submit,")
     print("then complete the two-step email verification. Press Enter when done...")
     input()
 
-    source = await tab.page_source
-    if any(w in source.lower() for w in ("thank", "success", "received", "submitted", "confirmation")):
-        print(f"Submitted '{label}' for {SuperScraper.FIRST_NAME} {SuperScraper.LAST_NAME}")
-    else:
-        print(f"{super_scraper.OOPS} Confirmation unclear for '{label}' — verify in browser")
+    print(f"Submitted '{right.name}' for {SuperScraper.FIRST_NAME} {SuperScraper.LAST_NAME} — confirm in the browser.")
 
 
 async def main():
     super_scraper = SuperScraper()
+    rights = SuperScraper.rights_to_exercise(RIGHT_MAP)
+    if not rights:
+        print("No requested privacy rights apply to this form — nothing to do.")
+        return
+
     options = SuperScraper.build_chromium_options()
-
-    urls = dict(URLS)
-    if SuperScraper.wants("delete"):
-        urls["delete"] = DELETE_URL
-
     async with Chrome(options=options) as browser:
         tab = await browser.start()
-        for label, url in urls.items():
-            await submit_request(tab, url, label, super_scraper)
+        for right in rights:
+            await submit_request(tab, right, RIGHT_MAP[right], super_scraper)
 
 
 asyncio.run(main())

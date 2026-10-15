@@ -14,7 +14,6 @@ import asyncio
 
 from pydoll.browser.chromium import Chrome
 
-from src.dsar import js_utils
 from src.dsar.rights import Right
 from src.dsar.super_scraper import SuperScraper
 
@@ -54,7 +53,7 @@ async def submit_request(tab, right, entry, super_scraper):
         offered = await SuperScraper.read_option_labels(tab, RIGHTS_OPTIONS_CSS)
         SuperScraper.audit_rights(offered, PAGE_RIGHTS)
 
-    # ... fill fields (SuperScraper.input_text_field / js_utils.js_set_value / js_utils.select_native_option) ...
+    # ... fill fields (SuperScraper.input_text_field / js_set_value / select_native_option from src.dsar.js_utils) ...
     # ... select the request type from `entry` ...
 
     message = SuperScraper.request_statement([right], broker="<Broker Name>")

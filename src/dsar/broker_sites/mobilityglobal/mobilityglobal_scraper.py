@@ -10,10 +10,13 @@
 #     the three divisions: automotiveMastermind / Polk Automotive Solutions /
 #     Market Scan (per the maintainer's note "one for each division").
 # Per that note, every right except Do Not Sell works on THIS ("Right to
-# Access") form, so the specific rights are spelled out in requestDetails and
-# this is one submission per division. Do Not Sell has its own separate webform:
+# Access") form, so the selected rights are spelled out in requestDetails and
+# this is one submission per division. Which rights run is decided ONLY by
+# SuperScraper.rights_to_exercise(RIGHT_MAP). Do Not Sell has its own separate webform
+# (NOT automated here):
 #   https://privacyportal.onetrust.com/webform/87c0b060-447b-4c56-a99e-6fc89bd3c7e4/16d2d526-dd07-4f31-b8ec-ce2451c0c373
-# Fields: email, first/last, formField49 address, formField50 city, formField51
+# Right to correct is also stated on this form per the note but is not automatable.
+# Other fields: email, first/last, formField49 address, formField50 city, formField51
 # zip, formField39 title (skipped), formField38 url (skipped), requestDetails.
 # reCAPTCHA v2 requires a manual solve per pass.  **CAPTCHA solution required**
 import asyncio
@@ -22,18 +25,19 @@ import time
 from pydoll.browser.chromium import Chrome
 from pydoll.constants import Key
 
+from src.dsar.rights import Right
 from src.dsar.super_scraper import SuperScraper
 
 URL = "https://privacyportal.onetrust.com/webform/87c0b060-447b-4c56-a99e-6fc89bd3c7e4/c5ce1867-0472-4257-953c-7ed388ede130"
+REQUEST_TYPE_SEARCH = "access"  # requestTypes: picks the access/know option (falls back to first)
+# Every right except Do Not Sell goes through this one "Right to Access" form.
+RIGHT_MAP = {
+    Right.RIGHT_TO_ACCESS: REQUEST_TYPE_SEARCH,
+    Right.RIGHT_TO_OPT_OUT: REQUEST_TYPE_SEARCH,
+    Right.RIGHT_TO_DELETE: REQUEST_TYPE_SEARCH,
+}
+RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
 DIVISIONS = ["automotiveMastermind", "Polk Automotive Solutions", "Market Scan"]
-
-
-async def _field_value(field):
-    res = await field.execute_script("return this.value;")
-    try:
-        return (res["result"]["result"]["value"] or "").strip()
-    except (KeyError, TypeError):
-        return ""
 
 
 async def _combobox(tab, field_id, search_text=None):
@@ -62,7 +66,7 @@ async def _combobox(tab, field_id, search_text=None):
     await asyncio.sleep(0.5)
 
 
-async def submit_request(tab, division, label, super_scraper):
+async def submit_request(tab, rights, division, label, super_scraper):
     await tab.go_to(URL)
     await asyncio.sleep(9)
 
@@ -73,7 +77,7 @@ async def submit_request(tab, division, label, super_scraper):
     await asyncio.sleep(1)
     await _combobox(tab, "subjectTypesDSARElement")          # first available "I am a"
     await asyncio.sleep(1)
-    await _combobox(tab, "requestTypesDSARElement", "access")  # falls back to first
+    await _combobox(tab, "requestTypesDSARElement", REQUEST_TYPE_SEARCH)  # falls back to first
     await asyncio.sleep(1)
     await _combobox(tab, "formField29DSARElement", division)
 
@@ -92,18 +96,8 @@ async def submit_request(tab, division, label, super_scraper):
 
     details = await tab.find(id="requestDetailsDSARElement", raise_exc=False)
     if details:
-        law = SuperScraper.LAW_FULL_NAME or "applicable state and federal privacy law"
-        rights = (
-            f"I am a {SuperScraper.STATE} resident exercising my rights under the {law} "
-            f"with respect to the {division} division. I request: "
-            f"to know/access the personal information you hold about me, its sources and the "
-            f"parties it has been disclosed to; to correct any inaccurate personal information; "
-            f"and to opt out of targeted advertising and profiling"
-        )
-        if SuperScraper.wants("delete"):
-            rights += "; and deletion of all personal information you hold about me"
-        rights += ". (Do Not Sell / opt-out of sale is submitted via the separate webform.)"
-        await details.type_text(rights)
+        statement = SuperScraper.request_statement(rights, broker="Mobility Global")
+        await details.type_text(f"{statement} This request relates to the {division} division.")
 
     time.sleep(0.5)
     submit_btn = await tab.find(id="dsar-webform-submit-button", raise_exc=False)
@@ -112,7 +106,7 @@ async def submit_request(tab, division, label, super_scraper):
     await SuperScraper.screenshot(tab, f"dry_run_{label}")
     if SuperScraper.DRY_RUN:
         print(
-            f"DRY RUN: would submit access/correct request for division '{division}' for "
+            f"DRY RUN: would submit {'/'.join(r.name for r in rights)} for division '{division}' for "
             f"{SuperScraper.FIRST_NAME} {SuperScraper.LAST_NAME} <{SuperScraper.EMAIL}>"
         )
         return
@@ -124,12 +118,20 @@ async def submit_request(tab, division, label, super_scraper):
 
 async def main():
     super_scraper = SuperScraper()
+    if SuperScraper.bail_if_not_automatable(globals()):
+        return
+
+    rights = SuperScraper.rights_to_exercise(RIGHT_MAP)
+    if not rights:
+        print("No requested privacy rights apply to this form — nothing to do.")
+        return
+
     options = SuperScraper.build_chromium_options()
 
     async with Chrome(options=options) as browser:
         tab = await browser.start()
         for i, division in enumerate(DIVISIONS):
-            await submit_request(tab, division, f"div{i}", super_scraper)
+            await submit_request(tab, rights, division, f"div{i}", super_scraper)
 
 
 asyncio.run(main())

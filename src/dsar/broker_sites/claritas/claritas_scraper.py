@@ -1,7 +1,7 @@
 # claritas.com — Custom OneTrust Angular DSAR portal. Two single-select
 # request-type buttons (one submission per right): "Data Request" (Access)
-# and "Request to be Deleted from Database" (Delete, gated on
-# REMOVE_INFORMATION) — no separate Opt-Out option. No subject-type step.
+# and "Request to be Deleted from Database" (Delete) — no separate Opt-Out option.
+# Which rights run is decided ONLY by SuperScraper.rights_to_exercise(RIGHT_MAP). No subject-type step.
 # State is a plain text field requiring the 2-letter uppercase code (not an
 # autocomplete combobox like most other OneTrust forms) — converted from
 # STATE via SuperScraper.state_full_name_to_abbreviated. Correction requests
@@ -10,22 +10,34 @@
 # phone — defaulted to "Text". An optional (no asterisk) file upload asks for
 # a photo ID or utility bill — left unfilled, not a blocker. reCAPTCHA v2
 # requires manual solve in live mode.
+#
+# Page elements:
+#   [aria-label=<entry>]            Request-type buttons (see RIGHT_MAP)
+#   #firstNameDSARElement / #lastNameDSARElement   First / Last name
+#   #addressDSARElement / #cityDSARElement         Address / City
+#   #stateDSARElement               State (text, 2-letter code)
+#   #zipDSARElement                 ZIP
+#   #emailDSARElement               Email
+#   #phoneNumber                    Phone country code
+#   #phoneNumberDSARElement         Phone number
+#   [aria-label="Text"]             "Contact Preference" -> Text
 import asyncio
 
 from pydoll.browser.chromium import Chrome
 
+from src.dsar.rights import Right
 from src.dsar.super_scraper import SuperScraper
 
 URL = "https://privacyportal.onetrust.com/webform/68582716-6ce4-4f6e-bf08-78371b5f3292/6c7dc52d-0e2b-481f-9256-0755179e3783"
 
 RIGHT_MAP = {
-    "access": [("Data Request", "access")],
-    "delete": [("Request to be Deleted from Database", "delete")],
+    Right.RIGHT_TO_ACCESS: "Data Request",
+    Right.RIGHT_TO_DELETE: "Request to be Deleted from Database",
 }
 RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
 
 
-async def submit_request(tab, right_label, screenshot_label, super_scraper):
+async def submit_request(tab, right, right_label, super_scraper):
     await tab.go_to(URL)
     await asyncio.sleep(6)
 
@@ -77,38 +89,31 @@ async def submit_request(tab, right_label, screenshot_label, super_scraper):
 
     if SuperScraper.DRY_RUN:
         print(
-            f"DRY RUN: would submit '{right_label}' for "
-            f"{SuperScraper.FIRST_NAME} {SuperScraper.LAST_NAME} <{SuperScraper.EMAIL}>"
+            f"DRY RUN: would submit '{right.name}' for {SuperScraper.EMAIL}"
         )
         await asyncio.sleep(1)
-        await SuperScraper.screenshot(tab, f"dry_run_{screenshot_label}")
+        await SuperScraper.screenshot(tab, f"dry_run_{right.value}")
         return
 
-    print(f"\nForm filled for '{right_label}'. Solve the reCAPTCHA, click Submit,")
+    print(f"\nForm filled for '{right.name}'. Solve the reCAPTCHA, click Submit,")
     print("then press Enter once the confirmation page appears...")
     input()
 
-    source = await tab.page_source
-    if any(w in source.lower() for w in ("thank", "success", "received", "submitted", "confirmation")):
-        print(f"Submitted '{right_label}' for {SuperScraper.FIRST_NAME} {SuperScraper.LAST_NAME}")
-    else:
-        print(f"{super_scraper.OOPS} Confirmation unclear for '{right_label}' — verify in browser")
+    print(f"Submitted '{right.name}' for {SuperScraper.EMAIL} — confirm in the browser.")
 
 
 async def main():
     super_scraper = SuperScraper()
-    options = SuperScraper.build_chromium_options()
-
-    codes = SuperScraper.rights_to_exercise(RIGHT_MAP)
-    if not codes:
+    rights = SuperScraper.rights_to_exercise(RIGHT_MAP)
+    if not rights:
         print("No requested privacy rights apply to this form — nothing to do.")
         return
-    rights = [entry for code in codes for entry in RIGHT_MAP[code]]
 
+    options = SuperScraper.build_chromium_options()
     async with Chrome(options=options) as browser:
         tab = await browser.start()
-        for right_label, screenshot_label in rights:
-            await submit_request(tab, right_label, screenshot_label, super_scraper)
+        for right in rights:
+            await submit_request(tab, right, RIGHT_MAP[right], super_scraper)
 
 
 asyncio.run(main())

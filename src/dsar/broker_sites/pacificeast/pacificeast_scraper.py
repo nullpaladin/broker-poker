@@ -16,18 +16,41 @@
 # review, check it themselves, solve the Cloudflare Turnstile, and submit.
 # "Identity & Authorization Confirmation" (a normal identity attestation,
 # not an automation claim) is checked normally.
+# Rights the form exposes: opt-out only; whether it runs is decided ONLY by
+# SuperScraper.rights_to_exercise(RIGHT_MAP).
+#
+# Page elements (keep this list current):
+#   item_meta[95] / [96]     First / Last name
+#   item_meta[97]            Phone
+#   item_meta[98]            Email
+#   item_meta[99][line1|line2|city|state|zip]   Address
+#   item_meta[126][]         "Identity & Authorization Confirmation" checkbox (checked)
+#   item_meta[129]           Formidable honeypot (frm_verify) — left BLANK
+#   "Submission Confirmation" required checkbox (anti-automation attestation) — left UNCHECKED
+#   Cloudflare Turnstile     manual solve
 import asyncio
 
+from src.dsar.rights import Right
 from src.dsar.super_scraper import SuperScraper
 
 from pydoll.browser.chromium import Chrome
 
 URL = "https://www.pacificeast.com/contact-us-privacy/"
 
+RIGHT_MAP = {Right.RIGHT_TO_OPT_OUT: "opt-out"}
+RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
+
 
 async def main():
     super_scraper = SuperScraper()
+    if SuperScraper.bail_if_not_automatable(globals()):
+        return
     options = SuperScraper.build_chromium_options()
+
+    rights = SuperScraper.rights_to_exercise(RIGHT_MAP)
+    if not rights:
+        print("No requested privacy rights apply to this form — nothing to do.")
+        return
 
     async with Chrome(options=options) as browser:
         tab = await browser.start()
@@ -61,7 +84,7 @@ async def main():
             print(f"{super_scraper.OOPS} Identity & Authorization Confirmation checkbox not found")
 
         await asyncio.sleep(1)
-        await SuperScraper.screenshot(tab, "dry_run")
+        await SuperScraper.screenshot(tab, "dry_run_opt_out")
         print(
             "\nForm filled but NOT submitted. The 'Submission Confirmation' checkbox "
             "attests the request is NOT from an automated service, which would be false "

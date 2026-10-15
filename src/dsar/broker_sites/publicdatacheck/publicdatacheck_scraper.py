@@ -18,11 +18,23 @@
 # into that range. A Cloudflare Turnstile checkbox gates the "Continue"
 # button — **CAPTCHA solution required**; the form is filled completely
 # regardless and left at the CAPTCHA per this repo's standard policy.
-# Exercises Do Not Sell and Request a Copy unconditionally; Delete gated on
-# REMOVE_INFORMATION.
+# Which request types run is decided ONLY by SuperScraper.rights_to_exercise(RIGHT_MAP).
+#
+# Page elements:
+#   #requestType          "Request Type" <select> (Do Not Sell My Info / Delete My Info / Request a Copy)
+#   #firstName            First name
+#   (//input[@type='text'])[3]   Last name (obfuscated id, found positionally)
+#   #city                 City
+#   #states               State <select>
+#   #zip                  ZIP code
+#   #age                  Age <select> (18-105)
+#   #email                Email (revealed for Delete / Request a Copy)
+#   Cloudflare Turnstile checkbox gating the "Continue" button
 import asyncio
 from datetime import datetime
 
+from src.dsar import js_utils
+from src.dsar.rights import Right
 from src.dsar.super_scraper import SuperScraper
 
 from pydoll.browser.chromium import Chrome
@@ -30,9 +42,9 @@ from pydoll.browser.chromium import Chrome
 URL = "https://www.publicdatacheck.com/help-center/privacy-requests"
 
 RIGHT_MAP = {
-    "access": ["Request a Copy"],
-    "opt_out_sale_share": ["Do Not Sell My Info"],
-    "delete": ["Delete My Info"],
+    Right.RIGHT_TO_ACCESS: ["Request a Copy"],
+    Right.RIGHT_TO_OPT_OUT: ["Do Not Sell My Info"],
+    Right.RIGHT_TO_DELETE: ["Delete My Info"],
 }
 RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
 
@@ -52,12 +64,7 @@ async def submit_request(tab, request_type, super_scraper):
 
     request_select = await tab.find(id="requestType", raise_exc=False)
     if request_select:
-        await request_select.execute_script(
-            "for (var i=0;i<this.options.length;i++){"
-            f"  if(this.options[i].text==={request_type!r}){{ this.selectedIndex=i; }}"
-            "}"
-            "this.dispatchEvent(new Event('change', {bubbles:true}));"
-        )
+        await js_utils.select_native_option(request_select, text=request_type, dispatch=("change",))
         await asyncio.sleep(0.5)
 
     first_field = await tab.find(id="firstName", raise_exc=False)
@@ -78,12 +85,7 @@ async def submit_request(tab, request_type, super_scraper):
 
     state_select = await tab.find(id="states", raise_exc=False)
     if state_select:
-        await state_select.execute_script(
-            "for (var i=0;i<this.options.length;i++){"
-            f"  if(this.options[i].text==={SuperScraper.STATE!r}){{ this.selectedIndex=i; }}"
-            "}"
-            "this.dispatchEvent(new Event('change', {bubbles:true}));"
-        )
+        await js_utils.select_native_option(state_select, text=SuperScraper.STATE, dispatch=("change",))
 
     zip_field = await tab.find(id="zip", raise_exc=False)
     if zip_field:
@@ -92,12 +94,7 @@ async def submit_request(tab, request_type, super_scraper):
     age_select = await tab.find(id="age", raise_exc=False)
     if age_select:
         age_value = _age_from_dob(SuperScraper.DATE_OF_BIRTH)
-        await age_select.execute_script(
-            "for (var i=0;i<this.options.length;i++){"
-            f"  if(this.options[i].text==={age_value!r}){{ this.selectedIndex=i; }}"
-            "}"
-            "this.dispatchEvent(new Event('change', {bubbles:true}));"
-        )
+        await js_utils.select_native_option(age_select, text=age_value, dispatch=("change",))
 
     if request_type == "Request a Copy":
         email_field = await tab.find(id="email", raise_exc=False)
@@ -116,13 +113,15 @@ async def submit_request(tab, request_type, super_scraper):
 
 async def main():
     super_scraper = SuperScraper()
+    if SuperScraper.bail_if_not_automatable(globals()):
+        return
     options = SuperScraper.build_chromium_options()
 
-    codes = SuperScraper.rights_to_exercise(RIGHT_MAP)
-    if not codes:
+    rights = SuperScraper.rights_to_exercise(RIGHT_MAP)
+    if not rights:
         print("No requested privacy rights apply to this form — nothing to do.")
         return
-    request_types = [entry for code in codes for entry in RIGHT_MAP[code]]
+    request_types = [entry for right in rights for entry in RIGHT_MAP[right]]
 
     async with Chrome(options=options) as browser:
         tab = await browser.start()

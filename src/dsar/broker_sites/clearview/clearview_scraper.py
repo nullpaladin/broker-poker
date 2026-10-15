@@ -10,8 +10,7 @@
 # "Select request type(s)" grid that's genuinely multi-select (confirmed via
 # aria-selected staying true on multiple options after sequential clicks,
 # unlike billtrust.com's near-identical-looking but actually single-select
-# grid): Access and Do not Sell/Share are exercised unconditionally;
-# Delete/Opt-Out gated on REMOVE_INFORMATION. Critically, the form ALSO
+# grid), so all selected rights go into a single pass. Critically, the form ALSO
 # requires uploading "a clear image of your face" (a redacted photo of your
 # ID if requesting Access) — Clearview identifies people by image, not by
 # name/email, so there is no legitimate photo this scraper can supply. This
@@ -19,8 +18,17 @@
 # "I acknowledge" listbox option (same role="option"/role="listbox" pattern
 # as billtrust.com), then stops — the photo upload and Submit must be done
 # manually.
+#
+# Page elements:
+#   #formField78DSARElement                      State (vt-autocomplete combobox)
+#   .vt-option (text = STATE)                    State dropdown option
+#   div[role=option][aria-label=...]             "Select request type(s)" grid: "Access",
+#                                                "Do not Sell/Share", "Delete/Opt-Out"
+#   #emailDSARElement                            Email
+#   div[role=option][aria-label="I acknowledge"] Required acknowledgement listbox option
 import asyncio
 
+from src.dsar.rights import Right
 from src.dsar.super_scraper import SuperScraper
 
 from pydoll.browser.chromium import Chrome
@@ -28,15 +36,19 @@ from pydoll.browser.chromium import Chrome
 URL = "https://privacyportal.onetrust.com/webform/1fdd17ee-bd10-4813-a254-de7d5c09360a/7c79cae5-6e86-4d8d-b409-7a932c09b942"
 
 RIGHT_MAP = {
-    "access": ["Access"],
-    "opt_out_sale_share": ["Do not Sell/Share"],
-    "delete": ["Delete/Opt-Out"],
+    Right.RIGHT_TO_ACCESS: "Access",
+    Right.RIGHT_TO_OPT_OUT: "Do not Sell/Share",
+    Right.RIGHT_TO_DELETE: "Delete/Opt-Out",
 }
 RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
 
 
 async def main():
     super_scraper = SuperScraper()
+    rights = SuperScraper.rights_to_exercise(RIGHT_MAP)
+    if not rights:
+        print("No requested privacy rights apply to this form — nothing to do.")
+        return
     options = SuperScraper.build_chromium_options()
 
     async with Chrome(options=options) as browser:
@@ -57,11 +69,7 @@ async def main():
                 await state_opt.click()
                 await asyncio.sleep(1)
 
-        codes = SuperScraper.rights_to_exercise(RIGHT_MAP)
-        if not codes:
-            print("No requested privacy rights apply to this form — nothing to do.")
-            return
-        request_types = [entry for code in codes for entry in RIGHT_MAP[code]]
+        request_types = [RIGHT_MAP[right] for right in rights]
         for request_type in request_types:
             opt = await tab.find(
                 xpath=f"//div[@role='option' and @aria-label='{request_type}']", raise_exc=False
@@ -79,7 +87,7 @@ async def main():
             await acknowledge.click_using_js()
 
         await asyncio.sleep(1)
-        await SuperScraper.screenshot(tab, "dry_run")
+        await SuperScraper.screenshot(tab, "dry_run_" + "_".join(r.value for r in rights))
         print(
             "\nForm filled but NOT submitted — Clearview identifies people by image, not name/"
             "email, and requires uploading a clear photo of your face (a redacted photo of your "

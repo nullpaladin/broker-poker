@@ -5,29 +5,39 @@
 # "Healthcare Professional" / "Consumer" / "Agent for Data Subject", set to
 # "Consumer"), given-name, family-name, email, and a representative-type
 # "on behalf of someone else" checkbox (left UNCHECKED for a self-submission).
-# Cards found by their h4[data-testid="card-title"] text. One card/right per
-# pass: "Access or Request to Know" (Access), "Opt-Out Request", "Transfer my
-# personal information" (portability), "Third parties your data was sold or
-# shared with", "Automated Decision-Making" unconditionally; "Delete my
-# personal information" gated on REMOVE_INFORMATION. "Correct my personal
-# information" and "Employee Request" skipped.
+# Cards found by their h4[data-testid="card-title"] text. One card per pass (see
+# RIGHT_MAP): "Access or Request to Know" + "Transfer my personal information"
+# (Access), "Opt-Out Request" + "Automated Decision-Making" (Opt-Out), "Third
+# parties your data was sold or shared with", "Delete my personal information".
+# "Correct my personal information" and "Employee Request" are not automated.
+# Which run is decided ONLY by SuperScraper.rights_to_exercise(RIGHT_MAP).
+# Page elements: select[name=requestor-type], given-name, family-name, email,
+# phone-number (inputs by name), representative-type checkbox (left unchecked).
 # Cloudflare Turnstile gates the submit — form filled and left for a manual
 # solve.  **CAPTCHA solution required**
 import asyncio
 
 from pydoll.browser.chromium import Chrome
 
+from src.dsar import js_utils
+from src.dsar.rights import Right
 from src.dsar.super_scraper import SuperScraper
 
 URL = "https://my.datasubject.com/16A0AaT1hE8CL2xPu/19933"
 
 RIGHT_MAP = {
-    "access": [("Access or Request to Know", "access")],
-    "opt_out_sale_share": [("Opt-Out Request", "opt_out")],
-    "portability": [("Transfer my personal information", "portability")],
-    "know_third_parties": [("Third parties your data was sold or shared with", "third_parties")],
-    "opt_out_profiling": [("Automated Decision-Making", "adm")],
-    "delete": [("Delete my personal information", "delete")],
+    Right.RIGHT_TO_ACCESS: [
+        ("Access or Request to Know", "access"),
+        ("Transfer my personal information", "transfer"),
+    ],
+    Right.RIGHT_TO_OPT_OUT: [
+        ("Opt-Out Request", "opt_out"),
+        ("Automated Decision-Making", "adm"),
+    ],
+    Right.RIGHT_TO_LIST_OF_THIRD_PARTIES: [
+        ("Third parties your data was sold or shared with", "third_parties"),
+    ],
+    Right.RIGHT_TO_DELETE: [("Delete my personal information", "delete")],
 }
 RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
 
@@ -57,11 +67,7 @@ async def submit_request(tab, card_text, label, super_scraper):
     # subject exercising their own rights.
     rt = await tab.find(name="requestor-type", timeout=4, raise_exc=False)
     if rt:
-        await rt.execute_script(
-            "const o=[...this.options].find(x=>/^consumer$/i.test(x.text.trim()));"
-            "if(o){const s=Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype,'value').set;"
-            "s.call(this,o.value);this.dispatchEvent(new Event('change',{bubbles:true}));}"
-        )
+        await js_utils.select_native_option(rt, text="Consumer", ci=True)
 
     for name, attr in FIELDS.items():
         value = getattr(SuperScraper, attr, None)
@@ -87,15 +93,15 @@ async def main():
     super_scraper = SuperScraper()
     options = SuperScraper.build_chromium_options()
 
-    codes = SuperScraper.rights_to_exercise(RIGHT_MAP)
-    if not codes:
+    rights = SuperScraper.rights_to_exercise(RIGHT_MAP)
+    if not rights:
         print("No requested privacy rights apply to this form — nothing to do.")
         return
-    rights = [entry for code in codes for entry in RIGHT_MAP[code]]
+    requests = [entry for right in rights for entry in RIGHT_MAP[right]]
 
     async with Chrome(options=options) as browser:
         tab = await browser.start()
-        for card_text, label in rights:
+        for card_text, label in requests:
             await submit_request(tab, card_text, label, super_scraper)
 
 

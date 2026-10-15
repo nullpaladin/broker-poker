@@ -2,8 +2,8 @@
 # (Customer/Employee/Prospective Employee, no generic-visitor option) —
 # "Customer" used as the closest fit. "Select request type" is
 # single-select (confirmed: picking a second option deselects the first)
-# — one submission per right: Info Request (Access) unconditionally;
-# Data Deletion gated on REMOVE_INFORMATION. No Opt-Out option exists on
+# — one submission per right: Info Request (Access) and
+# Data Deletion, each only if selected by rights_to_exercise. No Opt-Out option exists on
 # this form. Data Correction skipped (no concrete inaccuracy to describe).
 # Selecting Data Deletion reveals a required cascading confirmation
 # ("...you will lose all account information. Do you wish to proceed?")
@@ -11,8 +11,17 @@
 # present in the DOM until Country is filled in.
 # Country is a vt-autocomplete combobox. Optional free-text "Request
 # Details". BotDetect image CAPTCHA — **CAPTCHA solution required**.
+#
+# Page elements:
+#   role=option "Customer"                 "I am a (an)"
+#   role=option "Info Request" / "Data Deletion"   "Select request type"
+#   role=option "Yes"                      deletion confirmation (only after Data Deletion)
+#   #firstNameDSARElement / #lastNameDSARElement / #emailDSARElement
+#   #countryDSARElement / #stateDSARElement   Country / State autocompletes (State appears after Country)
+#   captchaCode                            BotDetect image CAPTCHA (manual entry)
 import asyncio
 
+from src.dsar.rights import Right
 from src.dsar.super_scraper import SuperScraper
 
 from pydoll.browser.chromium import Chrome
@@ -20,10 +29,11 @@ from pydoll.browser.chromium import Chrome
 URL = "https://privacyportal.onetrust.com/webform/611e70e2-1994-43ff-b07b-646df870db4b/f4165d65-f39c-4ea5-8628-163090b74137"
 
 RIGHT_MAP = {
-    "access": ["Info Request"],
-    "delete": ["Data Deletion"],
+    Right.RIGHT_TO_ACCESS: ["Info Request"],
+    Right.RIGHT_TO_DELETE: ["Data Deletion"],
 }
 RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
+DELETE_ENTRY = RIGHT_MAP[Right.RIGHT_TO_DELETE][0]
 
 
 async def submit_request(tab, right, super_scraper):
@@ -44,7 +54,7 @@ async def submit_request(tab, right, super_scraper):
     else:
         print(f"{super_scraper.OOPS} request type '{right}' not found")
 
-    if right == DELETE_RIGHT:
+    if right == DELETE_ENTRY:
         # Cascading confirmation only revealed after picking Data Deletion.
         proceed_option = await tab.find(xpath="//*[@role='option' and normalize-space()='Yes']", raise_exc=False)
         if proceed_option:
@@ -107,15 +117,15 @@ async def main():
     super_scraper = SuperScraper()
     options = SuperScraper.build_chromium_options()
 
-    codes = SuperScraper.rights_to_exercise(RIGHT_MAP)
-    if not codes:
+    rights = SuperScraper.rights_to_exercise(RIGHT_MAP)
+    if not rights:
         print("No requested privacy rights apply to this form — nothing to do.")
         return
-    rights = [entry for code in codes for entry in RIGHT_MAP[code]]
+    request_types = [entry for right in rights for entry in RIGHT_MAP[right]]
 
     async with Chrome(options=options) as browser:
         tab = await browser.start()
-        for right in rights:
+        for right in request_types:
             await submit_request(tab, right, super_scraper)
 
 

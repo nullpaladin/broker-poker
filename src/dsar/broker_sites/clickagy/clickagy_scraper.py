@@ -17,8 +17,16 @@
 #   (asked for statistics only — the site states it honors opt-outs
 #   "regardless of location") — no identity fields, no CAPTCHA, so DRY_RUN is
 #   respected and a real submission goes through when DRY_RUN is False.
+#
+# Page elements:
+#   "Clickagy has no data associated with your device" banner   Access page, no-data case
+#   #ccpa_form_email                                  Email (Access page)
+#   #ccpa_form_california_resident_yes / _no          "Are you a California resident?" radios
+#   button[type=submit]                               Submit (Opt-Out page)
+#   (Access page also has a reCAPTCHA v2 checkbox — manual solve)
 import asyncio
 
+from src.dsar.rights import Right
 from src.dsar.super_scraper import SuperScraper
 
 from pydoll.browser.chromium import Chrome
@@ -26,13 +34,17 @@ from pydoll.browser.chromium import Chrome
 ACCESS_URL = "https://www.clickagy.com/privacy-center/request/"
 OPT_OUT_URL = "https://www.clickagy.com/privacy-center/no-resell/"
 
+# Right -> the page that exercises it.
+RIGHT_MAP = {
+    Right.RIGHT_TO_ACCESS: ACCESS_URL,
+    Right.RIGHT_TO_OPT_OUT: OPT_OUT_URL,
+}
+RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
+
 
 async def _select_california_resident(tab, super_scraper):
-    # "Are you a California resident?" — answer YES for any state with a privacy
-    # law: every such law provides that a business honoring CCPA rights must honor
-    # the equivalent request from that state's residents, and many broker forms
-    # only ever added CCPA language. NO only for genuine no-privacy-law states.
-    answer_yes = SuperScraper.state_has_privacy_law(SuperScraper.STATE)
+    # "Are you a California resident?" — answered truthfully from STATE.
+    answer_yes = (SuperScraper.STATE or "").strip().lower() == "california"
     radio_id = "ccpa_form_california_resident_yes" if answer_yes else "ccpa_form_california_resident_no"
     radio = await tab.find(id=radio_id, raise_exc=False)
     if radio:
@@ -96,12 +108,18 @@ async def submit_opt_out(tab, super_scraper):
 
 async def main():
     super_scraper = SuperScraper()
+    rights = SuperScraper.rights_to_exercise(RIGHT_MAP)
+    if not rights:
+        print("No requested privacy rights apply to this form — nothing to do.")
+        return
     options = SuperScraper.build_chromium_options()
 
     async with Chrome(options=options) as browser:
         tab = await browser.start()
-        await submit_access(tab, super_scraper)
-        await submit_opt_out(tab, super_scraper)
+        if Right.RIGHT_TO_ACCESS in rights:
+            await submit_access(tab, super_scraper)
+        if Right.RIGHT_TO_OPT_OUT in rights:
+            await submit_opt_out(tab, super_scraper)
 
 
 asyncio.run(main())

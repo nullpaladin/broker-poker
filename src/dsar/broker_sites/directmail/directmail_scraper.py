@@ -1,11 +1,33 @@
+# directmail.com — Mail Preference (Do Not Mail) registration at /mail_preference/.
+# Two steps: (1) a contact form gated by a reCAPTCHA v2 (manual solve, then Enter),
+# (2) a category page where "select all" opts out of every mailing category.
+# The form is a mail opt-out, so it maps to RIGHT_TO_OPT_OUT; which rights run is
+# decided ONLY by SuperScraper.rights_to_exercise(RIGHT_MAP).
+#
+# Page elements (FIRST_NAME_XPATH ... SELECT_ALL_XPATH below):
+#   #wrap_txtFirstName / #wrap_txtLastName   First / Last name
+#   #wrap_txtAdd1 / #wrap_txtAdd2            Address line 1 / 2
+#   #wrap_txtCity                            City
+#   #wrap_ddlState                           State <select> (2-letter abbreviation)
+#   #wrap_txtZip / #wrap_txtPhone / #wrap_txtEmail   Zip / Phone / Email
+#   #wrap_btnCompleteReg                     Complete registration (step 1 submit)
+#   #checkbox                                Step 2 "select all" categories checkbox
+#   "Submit" button                          Step 2 submit
 import asyncio
 import time
 
-from src.dsar.super_scraper import SuperScraper
-
 from pydoll.browser.chromium import Chrome
 
+from src.dsar import js_utils
+from src.dsar.rights import Right
+from src.dsar.super_scraper import SuperScraper
+
 URL = "https://www.directmail.com/mail_preference/"
+
+RIGHT_MAP = {
+    Right.RIGHT_TO_OPT_OUT: "Do Not Mail",
+}
+RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
 
 FIRST_NAME_XPATH = '//input[@id="wrap_txtFirstName"]'
 LAST_NAME_XPATH = '//input[@id="wrap_txtLastName"]'
@@ -21,6 +43,14 @@ SELECT_ALL_XPATH = '//input[@id="checkbox"]'
 
 async def main():
     super_scraper = SuperScraper()
+    if SuperScraper.bail_if_not_automatable(globals()):
+        return
+
+    rights = SuperScraper.rights_to_exercise(RIGHT_MAP)
+    if not rights:
+        print("No requested privacy rights apply to this form — nothing to do.")
+        return
+
     options = SuperScraper.build_chromium_options()
 
     state_abbrev = SuperScraper.STATE_ABBREVIATED
@@ -38,9 +68,9 @@ async def main():
         await super_scraper.input_text_field(tab=tab, xpath=CITY_XPATH, text=SuperScraper.CITY)
 
         # Native <select> — set via JS since CDP click on <option> doesn't trigger change events
-        await tab.execute_script(
-            f'var s = document.getElementById("wrap_ddlState"); s.value = "{state_abbrev}"; s.dispatchEvent(new Event("change"));'
-        )
+        state_select = await tab.find(id="wrap_ddlState", raise_exc=False)
+        if state_select:
+            await js_utils.select_native_option(state_select, value=state_abbrev)
 
         await super_scraper.input_text_field(tab=tab, xpath=ZIP_XPATH, text=SuperScraper.ZIP_CODE)
         if SuperScraper.PHONE_NUMBER:
@@ -48,8 +78,9 @@ async def main():
         await super_scraper.input_text_field(tab=tab, xpath=EMAIL_XPATH, text=SuperScraper.EMAIL)
 
         if SuperScraper.DRY_RUN:
-            print(f"DRY RUN: would submit Do Not Mail opt-out for {SuperScraper.EMAIL}")
             await asyncio.sleep(3)
+            await SuperScraper.screenshot(tab, "dry_run_opt_out")
+            print(f"DRY RUN: would submit '{Right.RIGHT_TO_OPT_OUT.name}' (Do Not Mail) for {SuperScraper.EMAIL}")
             return
 
         # reCAPTCHA v2 — pause for manual solve or 2captcha
@@ -67,7 +98,7 @@ async def main():
             time.sleep(1)
             await super_scraper.click_item_by_text(tab=tab, text="Submit")
             time.sleep(3)
-            print(f"Submitted Do Not Mail opt-out for {SuperScraper.EMAIL}")
+            print(f"Submitted '{Right.RIGHT_TO_OPT_OUT.name}' (Do Not Mail) for {SuperScraper.EMAIL} — confirm in the browser.")
         else:
             print(f"{super_scraper.OOPS} Step 2 category selection not found — verify submission succeeded")
 

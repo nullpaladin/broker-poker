@@ -4,23 +4,43 @@
 # Sharing, and Targeted Advertising" and "Right to Limit the Use of
 # Sensitive Personal Information" simultaneously; no Access or Delete
 # option is offered at all. So this is a single, always-submitted
-# combined request — no REMOVE_INFORMATION gating applies (there's no
-# Delete right to gate). State is a vt-autocomplete combobox (type then
+# combined request, gated only by SuperScraper.rights_to_exercise(RIGHT_MAP)
+# (RIGHT_TO_OPT_OUT; no Access or Delete exists). State is a vt-autocomplete combobox (type then
 # click the matching role="option"); Address/Address Line 2/City/Zip are
 # optional. captchaCode is a BotDetect image CAPTCHA — **CAPTCHA solution
 # required**. Optional file upload for supporting documentation, left
 # unfilled.
+#
+# Page elements:
+#   #stateDSARElement      State (autocomplete; type then click matching role="option")
+#   #firstNameDSARElement / #lastNameDSARElement   First / Last name
+#   #emailDSARElement      Email
+#   #addressDSARElement / #address2DSARElement     Address / Address Line 2 (optional)
+#   #cityDSARElement / #zipDSARElement             City / ZIP (optional)
+#   #captchaCode           BotDetect image CAPTCHA (manual)
 import asyncio
 
+from src.dsar.rights import Right
 from src.dsar.super_scraper import SuperScraper
 
 from pydoll.browser.chromium import Chrome
 
 URL = "https://privacyportal.onetrust.com/webform/9bbdeb31-9ca4-4397-b421-b165438ad177/1ca01042-21a7-4307-8b42-a6c7439c9685"
 
+# One combined form: opt out of sale/sharing/targeted ads + limit use of sensitive PI.
+RIGHT_MAP = {Right.RIGHT_TO_OPT_OUT: "combined opt-out / limit sensitive PI"}
+RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
+
 
 async def main():
     super_scraper = SuperScraper()
+    if SuperScraper.bail_if_not_automatable(globals()):
+        return
+
+    if not SuperScraper.rights_to_exercise(RIGHT_MAP):
+        print("No requested privacy rights apply to this form — nothing to do.")
+        return
+
     options = SuperScraper.build_chromium_options()
 
     async with Chrome(options=options) as browser:

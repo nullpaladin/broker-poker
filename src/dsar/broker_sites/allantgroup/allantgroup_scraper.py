@@ -1,8 +1,8 @@
 # allantgroup.com — OneTrust CDN DSAR webform
 # (privacyportal-cdn.onetrust.com/dsarwebform).
 #   requestTypesDSARElement  role="option" group, single-select (one submission
-#       per right): "Access My Information" + "Do Not Sell My Information"
-#       unconditionally; "Delete My Information" gated on REMOVE_INFORMATION.
+#       per right): "Access My Information", "Do Not Sell My Information",
+#       "Delete My Information"; which run is decided only by rights_to_exercise.
 #   emailDSARElement / firstNameDSARElement / lastNameDSARElement
 #   addressDSARElement / cityDSARElement / formField17DSARElement (state) /
 #       zipDSARElement / phoneNumberDSARElement
@@ -18,6 +18,8 @@ import asyncio
 from pydoll.browser.chromium import Chrome
 from pydoll.constants import Key
 
+from src.dsar import js_utils
+from src.dsar.rights import Right
 from src.dsar.super_scraper import SuperScraper
 
 URL = (
@@ -26,9 +28,9 @@ URL = (
 )
 
 RIGHT_MAP = {
-    "access": [("Access My Information", "access")],
-    "opt_out_sale_share": [("Do Not Sell My Information", "do_not_sell")],
-    "delete": [("Delete My Information", "delete")],
+    Right.RIGHT_TO_ACCESS: [("Access My Information", "access")],
+    Right.RIGHT_TO_OPT_OUT: [("Do Not Sell My Information", "do_not_sell")],
+    Right.RIGHT_TO_DELETE: [("Delete My Information", "delete")],
 }
 RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
 
@@ -68,8 +70,7 @@ async def _combo(tab, super_scraper, field_id, value):
         await asyncio.sleep(0.3)
         await tab.keyboard.press(Key.ENTER)
     await asyncio.sleep(0.5)
-    current = await field.execute_script("return this.value")
-    cur = current.get("result", {}).get("result", {}).get("value") if isinstance(current, dict) else current
+    cur = await js_utils.js_eval(field, "return this.value")
     if cur and value.lower() not in str(cur).lower():
         print(f"{super_scraper.OOPS} combobox '{field_id}' value looks wrong: {cur!r}")
 
@@ -87,7 +88,7 @@ async def _pick(tab, super_scraper, label):
         print(f"{super_scraper.OOPS} option {label!r} not found")
 
 
-async def submit_request(tab, right_label, tag, super_scraper):
+async def submit_request(tab, right, right_label, tag, super_scraper):
     await tab.go_to(URL)
     await asyncio.sleep(7)
 
@@ -130,24 +131,26 @@ async def submit_request(tab, right_label, tag, super_scraper):
         print(f"{super_scraper.OOPS} acknowledgement checkbox not found")
 
     await asyncio.sleep(1)
-    await SuperScraper.screenshot(tab, f"dry_run_{tag}")
-    print(f"'{right_label}' filled but NOT submitted — solve the reCAPTCHA manually, then Submit.")
+    await SuperScraper.screenshot(tab, f"dry_run_{right.value}_{tag}")
+    print(f"'{right.name}' ('{right_label}') filled but NOT submitted — solve the reCAPTCHA manually, then Submit.")
 
 
 async def main():
     super_scraper = SuperScraper()
-    options = SuperScraper.build_chromium_options()
+    if SuperScraper.bail_if_not_automatable(globals()):
+        return
 
-    codes = SuperScraper.rights_to_exercise(RIGHT_MAP)
-    if not codes:
+    rights = SuperScraper.rights_to_exercise(RIGHT_MAP)
+    if not rights:
         print("No requested privacy rights apply to this form — nothing to do.")
         return
-    rights = [entry for code in codes for entry in RIGHT_MAP[code]]
 
+    options = SuperScraper.build_chromium_options()
     async with Chrome(options=options) as browser:
         tab = await browser.start()
-        for right_label, tag in rights:
-            await submit_request(tab, right_label, tag, super_scraper)
+        for right in rights:
+            for right_label, tag in RIGHT_MAP[right]:
+                await submit_request(tab, right, right_label, tag, super_scraper)
 
 
 asyncio.run(main())

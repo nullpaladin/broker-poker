@@ -6,27 +6,43 @@
 #   First Name / Last Name via aria-label, emailDSARElement,
 #   formField82DSARElement (phone, optional), requestDetailsDSARElement (textarea).
 # CAPTCHA: id="captchaCode", BotDetect 6-char alphanumeric, manual entry per submission.
-# Always: Info Request, Update Data, Object to Processing, Data Portability, Restrict Processing.
-# Gated on REMOVE_INFORMATION: Data Deletion.
+# Request types offered: Info Request, Update Data (not automated), Object to Processing,
+# Data Portability, Restrict Processing, Data Deletion. Which run is decided only by
+# SuperScraper.rights_to_exercise.
+#
+# Page elements:
+#   #subjectTypesDSARElement      Subject type -> "Customer"
+#   #countryDSARElement           Country -> "United States"
+#   #stateDSARElement             State (appears after country) -> configured STATE
+#   #formField85DSARElement       Line of Service -> "Data Services"
+#   #requestTypesDSARElement      Request type (single-select)
+#   [aria-label=First Name] / [aria-label=Last Name]   First / Last name
+#   #emailDSARElement             Email
+#   #formField82DSARElement       Phone (optional)
+#   #requestDetailsDSARElement    Request details textarea
+#   #captchaCode                  CAPTCHA code (BotDetect, manual entry)
+#   "Submit" button
 import asyncio
 import time
 
 from pydoll.browser.chromium import Chrome
-from pydoll.constants import Key
 
+from src.dsar.rights import Right
 from src.dsar.super_scraper import SuperScraper
 
 URL = "https://ice-privacy.my.onetrust.com/webform/cca3ac39-00b6-45f4-819b-bec660878b46/124d1692-407b-4384-9036-bef3ece530e3"
 
+# "Update Data" (correct) is not automated. Entries are (request type shown on the form, screenshot label).
 RIGHT_MAP = {
-    "access": [("Info Request", "access", "I am exercising my right to access and obtain a copy of my personal information held by ICE Data Services.")],
-    "correct": [("Update Data", "correct", "I am exercising my right to correct and update my personal information held by ICE Data Services.")],
-    "portability": [("Data Portability", "portability", "I am exercising my right to data portability for my personal information held by ICE Data Services.")],
-    "opt_out_sale_share": [
-        ("Object to Processing", "object", "I am exercising my right to opt-out of and object to the processing of my personal information by ICE Data Services."),
-        ("Restrict Processing", "restrict", "I am exercising my right to restrict the processing of my personal information by ICE Data Services."),
+    Right.RIGHT_TO_ACCESS: [
+        ("Info Request", "access"),
+        ("Data Portability", "portability"),
     ],
-    "delete": [("Data Deletion", "delete", "I am exercising my right to delete my personal information held by ICE Data Services.")],
+    Right.RIGHT_TO_OPT_OUT: [
+        ("Object to Processing", "object"),
+        ("Restrict Processing", "restrict"),
+    ],
+    Right.RIGHT_TO_DELETE: [("Data Deletion", "delete")],
 }
 RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
 
@@ -55,7 +71,7 @@ async def _autocomplete_select(tab, field_id, search, option_text):
     return False
 
 
-async def _submit_request(tab, req_type, label, details, super_scraper):
+async def _submit_request(tab, right, req_type, label, super_scraper):
     await tab.go_to(URL)
     await asyncio.sleep(8)
 
@@ -89,19 +105,18 @@ async def _submit_request(tab, req_type, label, details, super_scraper):
 
     details_field = await tab.find(id="requestDetailsDSARElement", raise_exc=False)
     if details_field:
-        await details_field.type_text(details)
+        await details_field.type_text(SuperScraper.request_statement([right], broker="ICE Data Services"))
     time.sleep(0.3)
 
     if SuperScraper.DRY_RUN:
         print(
-            f"DRY RUN: would submit '{label}' for "
-            f"{SuperScraper.FIRST_NAME} {SuperScraper.LAST_NAME} <{SuperScraper.EMAIL}>"
+            f"DRY RUN: would submit '{right.name}' ({req_type}) for {SuperScraper.EMAIL}"
         )
         captcha_field = await tab.find(id="captchaCode", raise_exc=False)
         if captcha_field:
             await captcha_field.scroll_into_view()
         await asyncio.sleep(1)
-        await SuperScraper.screenshot(tab, f"dry_run_{label}")
+        await SuperScraper.screenshot(tab, f"dry_run_{right.value}_{label}")
         return
 
     captcha_field = await tab.find(id="captchaCode", raise_exc=False)
@@ -118,27 +133,23 @@ async def _submit_request(tab, req_type, label, details, super_scraper):
         await submit_btn.click()
         await asyncio.sleep(5)
 
-    source = await tab.page_source
-    if any(w in source.lower() for w in ("thank", "success", "received", "submitted", "confirmation")):
-        print(f"Submitted '{label}' for {SuperScraper.FIRST_NAME} {SuperScraper.LAST_NAME}")
-    else:
-        print(f"{super_scraper.OOPS} Confirmation unclear for '{label}' — verify in browser")
+    print(f"Submitted '{right.name}' ({req_type}) for {SuperScraper.EMAIL} — confirm in the browser.")
 
 
 async def main():
     super_scraper = SuperScraper()
     opts = SuperScraper.build_chromium_options()
 
-    codes = SuperScraper.rights_to_exercise(RIGHT_MAP)
-    if not codes:
+    rights = SuperScraper.rights_to_exercise(RIGHT_MAP)
+    if not rights:
         print("No requested privacy rights apply to this form — nothing to do.")
         return
-    requests = [entry for code in codes for entry in RIGHT_MAP[code]]
 
     async with Chrome(options=opts) as browser:
         tab = await browser.start()
-        for req_type, label, details in requests:
-            await _submit_request(tab, req_type, label, details, super_scraper)
+        for right in rights:
+            for req_type, label in RIGHT_MAP[right]:
+                await _submit_request(tab, right, req_type, label, super_scraper)
 
 
 asyncio.run(main())

@@ -28,18 +28,43 @@
 # and would submit step 1 (name + email + "I am" + agreement checkbox) but
 # cannot proceed past the emailed verification link, matching this repo's
 # existing precedent (statsocial.com) of stopping at an email-verification
-# wall. Gated on REMOVE_INFORMATION since it initiates a removal request.
+# wall. Mapped to delete only since it initiates a removal request.
+# Which of the two flows run is decided ONLY by SuperScraper.rights_to_exercise(RIGHT_MAP).
+#
+# Page elements (privacy-rights form):
+#   #chooseOption        "Please choose from the following options" <select> -> "ADC"
+#   #adc-request-type    "Request Type" <select> -> "right_to_know"
+#   #adc-company-interactions   company-relationship <select> -> "no-relation"
+#   #adc-firstname / #adc-lastname / #adc-email / #adc-phone   First / Last name, Email, Phone
+#   #adc-streetaddress / #adc-city / #adc-zipcode   Street address, City, Zip
+#   #adc-dob             Date of birth (native date input)
+#   #adc-user-type       "I am" <select> -> "subject"
+#   #adc-state           State <select> (lower-case full state name)
+# Page elements (removal form, step 1):
+#   #user-type "I am" <select> -> "subject"; #subject-firstname / #subject-lastname /
+#   #subject-email   First / Last name, Email; #agreement   agreement checkbox
 #
 # Google reCAPTCHA Enterprise on both forms — **CAPTCHA solution required**.
 import asyncio
 
-from src.dsar.super_scraper import SuperScraper
 from src.dsar import js_utils
+from src.dsar.rights import Right
+from src.dsar.super_scraper import SuperScraper
 
 from pydoll.browser.chromium import Chrome
 
 PRIVACY_RIGHTS_URL = "https://www.usa-people-search.com/privacy-rights"
 REMOVAL_URL = "https://www.usa-people-search.com/removal"
+
+# Right -> this site's flow: the privacy-rights form's "Request Type" value, or the
+# separate removal form (opt-out/deletion, step 1 only).
+REQUEST_TYPE_ACCESS = "right_to_know"
+REMOVAL_FLOW = "removal"
+RIGHT_MAP = {
+    Right.RIGHT_TO_ACCESS: REQUEST_TYPE_ACCESS,
+    Right.RIGHT_TO_DELETE: REMOVAL_FLOW,
+}
+RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
 
 
 async def submit_request(tab, request_type, super_scraper):
@@ -54,11 +79,11 @@ async def submit_request(tab, request_type, super_scraper):
         # intermittently too short and caused ElementNotVisible errors.
         for _ in range(20):
             await asyncio.sleep(0.3)
-            result = await tab.execute_script(
+            is_visible = await js_utils.js_eval(
+                tab,
                 "var el = document.getElementById('adc-firstname');"
-                "return !!(el && el.offsetParent !== null);"
+                "return !!(el && el.offsetParent !== null);",
             )
-            is_visible = result["result"]["result"]["value"]
             if is_visible:
                 await asyncio.sleep(1.5)  # let any fade/slide-in CSS transition finish
                 break
@@ -168,11 +193,18 @@ async def main():
     super_scraper = SuperScraper()
     options = SuperScraper.build_chromium_options()
 
+    rights = SuperScraper.rights_to_exercise(RIGHT_MAP)
+    if not rights:
+        print("No requested privacy rights apply to this form — nothing to do.")
+        return
+
     async with Chrome(options=options) as browser:
         tab = await browser.start()
-        await submit_request(tab, "right_to_know", super_scraper)
-        if SuperScraper.wants("delete"):
-            await submit_removal_step1(tab, super_scraper)
+        for right in rights:
+            if RIGHT_MAP[right] == REMOVAL_FLOW:
+                await submit_removal_step1(tab, super_scraper)
+            else:
+                await submit_request(tab, RIGHT_MAP[right], super_scraper)
 
 
 asyncio.run(main())

@@ -7,27 +7,50 @@
 # Reason options: "Do not sell or share my personal information", "Do not process
 # my information for purposes of targeted advertising", "Request to delete/erase
 # my personal information", "Request to correct/rectify my personal information",
-# "Request to know/access my personal information". One submission per reason:
-# know/access + do-not-sell + do-not-process-for-ads unconditional; delete/erase
-# gated on REMOVE_INFORMATION; correct/rectify skipped.
+# "Request to know/access my personal information". One submission per reason; which
+# run is decided only by SuperScraper.rights_to_exercise. correct/rectify is not
+# automatable (None in PAGE_RIGHTS).
 # Cloudflare Turnstile gates submission — form filled and left for a manual
 # solve.  **CAPTCHA solution required**
+#
+# Page elements:
+#   input[name=email]                     Email
+#   input[name=firstName]                 First name
+#   input[name=lastName]                  Last name
+#   input[name=proxyEmail]                Authorized-agent email (left blank)
+#   <select> with first option "Select country"  Country -> "United States"
+#   <select> with first option "Select state"    "Residence - State" (2-letter abbreviation;
+#                                         only renders after Country is set)
+#   <select> with first option "Select a reason" Reason (see PAGE_RIGHTS)
+#   Cloudflare Turnstile                  Manual solve, then the page's Submit button
 import asyncio
 import time
 
 from pydoll.browser.chromium import Chrome
 
+from src.dsar.rights import Right
 from src.dsar.super_scraper import SuperScraper
 
 URL = "https://privacy.5x5data.com/5x5/opt-out"
 
 RIGHT_MAP = {
-    "access": [("Request to know/access my personal information", "access")],
-    "opt_out_sale_share": [("Do not sell or share my personal information", "opt_out_sale")],
-    "opt_out_targeted_ads": [("Do not process my information for purposes of targeted advertising", "opt_out_ads")],
-    "delete": [("Request to delete/erase my personal information", "delete")],
+    Right.RIGHT_TO_ACCESS: [("Request to know/access my personal information", "access")],
+    Right.RIGHT_TO_OPT_OUT: [
+        ("Do not sell or share my personal information", "opt_out_sale"),
+        ("Do not process my information for purposes of targeted advertising", "opt_out_ads"),
+    ],
+    Right.RIGHT_TO_DELETE: [("Request to delete/erase my personal information", "delete")],
 }
 RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
+
+# Every option in the "Select a reason" <select> -> Right (None = not automated).
+PAGE_RIGHTS = {
+    "Request to know/access my personal information": Right.RIGHT_TO_ACCESS,
+    "Do not sell or share my personal information": Right.RIGHT_TO_OPT_OUT,
+    "Do not process my information for purposes of targeted advertising": Right.RIGHT_TO_OPT_OUT,
+    "Request to delete/erase my personal information": Right.RIGHT_TO_DELETE,
+    "Request to correct/rectify my personal information": None,
+}
 
 
 async def _select_by_text(tab, select_xpath, text):
@@ -44,7 +67,7 @@ async def _select_by_text(tab, select_xpath, text):
     )
 
 
-async def submit_request(tab, reason_text, label, super_scraper):
+async def submit_request(tab, right, reason_text, label, super_scraper):
     await tab.go_to(URL)
     await asyncio.sleep(6)
 
@@ -67,9 +90,9 @@ async def submit_request(tab, reason_text, label, super_scraper):
     await _select_by_text(tab, "//select[option[normalize-space()='Select a reason']]", reason_text)
 
     time.sleep(0.5)
-    await SuperScraper.screenshot(tab, f"dry_run_{label}")
+    await SuperScraper.screenshot(tab, f"dry_run_{right.value}_{label}")
     print(
-        f"'{reason_text}' filled but NOT submitted — a Cloudflare Turnstile must be "
+        f"'{right.name}' ('{reason_text}') filled but NOT submitted — a Cloudflare Turnstile must be "
         f"solved manually before submitting."
     )
 
@@ -80,18 +103,20 @@ async def submit_request(tab, reason_text, label, super_scraper):
 
 async def main():
     super_scraper = SuperScraper()
-    options = SuperScraper.build_chromium_options()
+    if SuperScraper.bail_if_not_automatable(globals()):
+        return
 
-    codes = SuperScraper.rights_to_exercise(RIGHT_MAP)
-    if not codes:
+    rights = SuperScraper.rights_to_exercise(RIGHT_MAP)
+    if not rights:
         print("No requested privacy rights apply to this form — nothing to do.")
         return
-    reasons = [entry for code in codes for entry in RIGHT_MAP[code]]
 
+    options = SuperScraper.build_chromium_options()
     async with Chrome(options=options) as browser:
         tab = await browser.start()
-        for reason_text, label in reasons:
-            await submit_request(tab, reason_text, label, super_scraper)
+        for right in rights:
+            for reason_text, label in RIGHT_MAP[right]:
+                await submit_request(tab, right, reason_text, label, super_scraper)
 
 
 asyncio.run(main())

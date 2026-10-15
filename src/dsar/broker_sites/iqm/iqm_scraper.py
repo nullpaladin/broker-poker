@@ -3,17 +3,18 @@
 #   subjectTypesDSARElement  "I am a (an)": Customer / Other -> "Customer"
 #   stateDSARElement  autocomplete combobox (renders after Country) -> STATE
 #   requestTypesDSARElement  role="option" group, treated as single-select
-#       (one submission per right): "Info Request" (Access) + "Do Not Sell My
-#       Information" unconditionally; "Data Deletion" gated on
-#       REMOVE_INFORMATION.
+#       (one submission per right): "Info Request" (Access), "Do Not Sell My
+#       Information" (Opt-out), "Data Deletion" (Delete).
 #   firstNameDSARElement / lastNameDSARElement / emailDSARElement
 #   requestDetailsDSARElement left blank.
+# Which rights run is decided ONLY by SuperScraper.rights_to_exercise(RIGHT_MAP).
 # reCAPTCHA gates submit — filled to that point.  **CAPTCHA solution required**
 import asyncio
 
 from pydoll.browser.chromium import Chrome
 from pydoll.constants import Key
 
+from src.dsar.rights import Right
 from src.dsar.super_scraper import SuperScraper
 
 URL = (
@@ -22,9 +23,9 @@ URL = (
 )
 
 RIGHT_MAP = {
-    "access": [("Info Request", "access")],
-    "opt_out_sale_share": [("Do Not Sell My Information", "do_not_sell")],
-    "delete": [("Data Deletion", "delete")],
+    Right.RIGHT_TO_ACCESS: [("Info Request", "access")],
+    Right.RIGHT_TO_OPT_OUT: [("Do Not Sell My Information", "do_not_sell")],
+    Right.RIGHT_TO_DELETE: [("Data Deletion", "delete")],
 }
 RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
 
@@ -112,16 +113,16 @@ async def main():
     super_scraper = SuperScraper()
     options = SuperScraper.build_chromium_options()
 
-    codes = SuperScraper.rights_to_exercise(RIGHT_MAP)
-    if not codes:
+    rights = SuperScraper.rights_to_exercise(RIGHT_MAP)
+    if not rights:
         print("No requested privacy rights apply to this form — nothing to do.")
         return
-    rights = [entry for code in codes for entry in RIGHT_MAP[code]]
 
     async with Chrome(options=options) as browser:
         tab = await browser.start()
-        for right_label, tag in rights:
-            await submit_request(tab, right_label, tag, super_scraper)
+        for right in rights:
+            for right_label, tag in RIGHT_MAP[right]:
+                await submit_request(tab, right_label, tag, super_scraper)
 
 
 asyncio.run(main())

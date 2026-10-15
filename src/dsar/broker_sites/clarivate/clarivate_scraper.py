@@ -1,10 +1,23 @@
-# clarivate.com — single general DSAR request form (no per-right-type picker).
-# OneTrust Angular portal. Country of Residence is an autocomplete combobox —
+# clarivate.com — single general DSAR request form (no per-right-type picker, no free-text
+# message box). OneTrust Angular portal. Country of Residence is an autocomplete combobox —
 # must type then click the dropdown option; setting .value alone is insufficient.
 # reCAPTCHA v2 requires manual user solve before submit.
+# The form cannot say WHICH right is being exercised, so RIGHT_MAP lists every right as
+# the same "general request"; rights_to_exercise() only decides whether to run at all, and
+# the one general request is submitted once.
+#
+# Page elements:
+#   [aria-label="Myself"]        "Myself" request-subject choice
+#   #countryDSARElement          Country of Residence autocomplete -> "United States"
+#   #stateDSARElement            State autocomplete (appears after choosing United States)
+#   #subjectTypesDSARElement     "This request is for:" autocomplete -> "Customer"
+#   #firstNameDSARElement        First name
+#   #lastNameDSARElement         Last name
+#   [role=option]                Autocomplete dropdown entries
 import asyncio
 import json
 
+from src.dsar.rights import Right
 from src.dsar.super_scraper import SuperScraper
 from src.dsar import js_utils
 
@@ -12,23 +25,22 @@ from pydoll.browser.chromium import Chrome
 
 URL = "https://privacyportal.onetrust.com/webform/7636e208-dda4-4218-8026-e1bc155873fc/ae937376-9b21-4996-9327-81eaaa1b20f9"
 
-
-def _js_set(selector, value):
-    sel = json.dumps(selector)
-    val = json.dumps(str(value))
-    return (
-        f"(function(){{"
-        f"var el=document.querySelector({sel});"
-        f"if(!el)return;"
-        f"el.value={val};"
-        f"el.dispatchEvent(new Event('input',{{bubbles:true}}));"
-        f"el.dispatchEvent(new Event('change',{{bubbles:true}}));"
-        f"}})();"
-    )
+GENERAL_REQUEST = "general request"
+RIGHT_MAP = {
+    Right.RIGHT_TO_ACCESS: GENERAL_REQUEST,
+    Right.RIGHT_TO_OPT_OUT: GENERAL_REQUEST,
+    Right.RIGHT_TO_DELETE: GENERAL_REQUEST,
+    Right.RIGHT_TO_LIST_OF_THIRD_PARTIES: GENERAL_REQUEST,
+}
+RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
 
 
 async def main():
     super_scraper = SuperScraper()
+    rights = SuperScraper.rights_to_exercise(RIGHT_MAP)
+    if not rights:
+        print("No requested privacy rights apply to this form — nothing to do.")
+        return
     options = SuperScraper.build_chromium_options()
 
     async with Chrome(options=options) as browser:
@@ -110,16 +122,18 @@ async def main():
         await asyncio.sleep(1)
 
         # Name fields
-        await tab.execute_script(_js_set("#firstNameDSARElement", SuperScraper.FIRST_NAME))
-        await tab.execute_script(_js_set("#lastNameDSARElement", SuperScraper.LAST_NAME))
+        for field_id, value in (
+            ("firstNameDSARElement", SuperScraper.FIRST_NAME),
+            ("lastNameDSARElement", SuperScraper.LAST_NAME),
+        ):
+            field = await tab.find(id=field_id, raise_exc=False)
+            if field:
+                await js_utils.js_set_value(field, str(value))
 
         if SuperScraper.DRY_RUN:
-            print(
-                f"DRY RUN: would submit DSAR for "
-                f"{SuperScraper.FIRST_NAME} {SuperScraper.LAST_NAME}"
-            )
             await asyncio.sleep(2)
-            await SuperScraper.screenshot(tab, "dry_run")
+            await SuperScraper.screenshot(tab, "dry_run_general_request")
+            print(f"DRY RUN: would submit a general request for {SuperScraper.FIRST_NAME} {SuperScraper.LAST_NAME}")
             return
 
         print(f"\nForm filled for {SuperScraper.FIRST_NAME} {SuperScraper.LAST_NAME}.")
@@ -127,11 +141,7 @@ async def main():
         print("Press Enter after submission completes...")
         input()
 
-        result = await js_utils.page_text(tab) or ""
-        if any(w in result.lower() for w in ("thank", "success", "received", "submitted", "confirmation")):
-            print(f"Submitted DSAR for {SuperScraper.FIRST_NAME} {SuperScraper.LAST_NAME}")
-        else:
-            print(f"{super_scraper.OOPS} Confirmation unclear — verify in browser")
+        print(f"Submitted general request for {SuperScraper.FIRST_NAME} {SuperScraper.LAST_NAME} — confirm in the browser.")
 
 
 asyncio.run(main())

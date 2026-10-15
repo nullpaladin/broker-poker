@@ -1,24 +1,38 @@
 # propertyradar.com — OneTrust portal. One submission covers all rights.
 # No subject type step — use "Consumer/Individual" submitter type.
-# Rights exercised: Do Not Sell, Access (Limited States), Correct (Limited States).
-# Delete (Limited States) gated on REMOVE_INFORMATION.
+# Rights the form exposes: Do Not Sell, Access (Limited States), Correct (Limited
+# States, not automated), Delete (Limited States). Which of them run is decided ONLY
+# by SuperScraper.rights_to_exercise(RIGHT_MAP).
 # State uses formField16DSARElement (text input, autocomplete: ArrowDown+Enter).
 # Phone country code vt-input-5. Image CAPTCHA (captchaCode).
 # File upload (optional documentation) is skipped.
+#
+# Page elements:
+#   aria-label buttons (multi-select request types): see RIGHT_MAP
+#   aria-label "Consumer/Individual"   Submitter type
+#   #firstNameDSARElement / #lastNameDSARElement   First / Last name
+#   #emailDSARElement                  Email
+#   #vt-input-5                        Phone country code -> "1"
+#   #phoneNumberDSARElement            Phone number
+#   #countryDSARElement                Country (autocomplete) -> "United States"
+#   #addressDSARElement / #cityDSARElement   Street address / City
+#   #formField16DSARElement            State (autocomplete: ArrowDown+Enter)
+#   #zipDSARElement                    ZIP code
+#   #captchaCode                       Image CAPTCHA input (manual)
 import asyncio
 
 from pydoll.browser.chromium import Chrome
 from pydoll.constants import Key
 
+from src.dsar.rights import Right
 from src.dsar.super_scraper import SuperScraper
 
 URL = "https://privacyportal.onetrust.com/webform/c3eb779a-028a-4045-aefc-ac78be730689/6f6c2bef-b565-4753-adc6-95585d7a9486"
 
 RIGHT_MAP = {
-    "access": ["Access My Information (Limited States)"],
-    "correct": ["Correct My Information (Limited States)"],
-    "opt_out_sale_share": ["Do Not Sell My Information"],
-    "delete": ["Delete My Information (Limited States)"],
+    Right.RIGHT_TO_ACCESS: ["Access My Information (Limited States)"],
+    Right.RIGHT_TO_OPT_OUT: ["Do Not Sell My Information"],
+    Right.RIGHT_TO_DELETE: ["Delete My Information (Limited States)"],
 }
 RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
 
@@ -42,6 +56,8 @@ async def _autocomplete(tab, field_id, text):
 
 async def main():
     super_scraper = SuperScraper()
+    if SuperScraper.bail_if_not_automatable(globals()):
+        return
     options = SuperScraper.build_chromium_options()
 
     async with Chrome(options=options) as browser:
@@ -50,11 +66,11 @@ async def main():
         await asyncio.sleep(7)
 
         # Rights (multi-select)
-        codes = SuperScraper.rights_to_exercise(RIGHT_MAP)
-        if not codes:
+        rights = SuperScraper.rights_to_exercise(RIGHT_MAP)
+        if not rights:
             print("No requested privacy rights apply to this form — nothing to do.")
             return
-        requests = [entry for code in codes for entry in RIGHT_MAP[code]]
+        requests = [entry for right in rights for entry in RIGHT_MAP[right]]
 
         for req_label in requests:
             btn = await tab.find(**{"aria-label": req_label}, raise_exc=False)
@@ -143,11 +159,7 @@ async def main():
         )
         input()
 
-        source = await tab.page_source
-        if any(w in source.lower() for w in ("thank", "success", "received", "submitted", "confirmation")):
-            print(f"Submitted for {SuperScraper.FIRST_NAME} {SuperScraper.LAST_NAME}")
-        else:
-            print(f"{super_scraper.OOPS} Confirmation unclear — verify in browser")
+        print(f"Submitted for {SuperScraper.EMAIL} — confirm in the browser.")
 
 
 asyncio.run(main())

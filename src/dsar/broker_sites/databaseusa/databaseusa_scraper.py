@@ -7,17 +7,45 @@
 # an email-verification gate (fill in and a verification link is emailed),
 # so this scraper fills the fields and stops there regardless of DRY_RUN;
 # clicking Send actually triggers that email and must be done manually.
+#
+# Residency: the page is the Minnesota MCDPA request page, so it is only for residents of a
+# state with a privacy law.
+#
+# Page elements:
+#   input[name=email]       Email
+#   input[name=fullname]    Full Name
+#   #state                  State <select> (option values are state abbreviations)
+#   "Send" button           Sends the verification email — never clicked here
 import asyncio
 
+from src.dsar import js_utils
+from src.dsar.rights import Right
 from src.dsar.super_scraper import SuperScraper
 
 from pydoll.browser.chromium import Chrome
 
 URL = "https://privacycompliance.biz/databaseusa-mcdpa/"
 
+SERVES_NO_LAW_STATES = False
+
+# One generic request covers every right the form lists; it cannot be narrowed per right.
+GENERAL_MCDPA_REQUEST = "MCDPA request"
+RIGHT_MAP = {
+    Right.RIGHT_TO_ACCESS: GENERAL_MCDPA_REQUEST,
+    Right.RIGHT_TO_OPT_OUT: GENERAL_MCDPA_REQUEST,
+    Right.RIGHT_TO_DELETE: GENERAL_MCDPA_REQUEST,
+}
+RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
+
 
 async def main():
     super_scraper = SuperScraper()
+    if SuperScraper.bail_if_state_unsupported(globals()):
+        return
+    rights = SuperScraper.rights_to_exercise(RIGHT_MAP)
+    if not rights:
+        print("No requested privacy rights apply to this form — nothing to do.")
+        return
     options = SuperScraper.build_chromium_options()
 
     async with Chrome(options=options) as browser:
@@ -35,15 +63,10 @@ async def main():
             await name_field.type_text(f"{SuperScraper.FIRST_NAME} {SuperScraper.LAST_NAME}")
         if state_select:
             state_abbr = SuperScraper.STATE_ABBREVIATED
-            await state_select.execute_script(
-                "for (var i=0;i<this.options.length;i++){"
-                f"  if(this.options[i].value==={state_abbr!r}){{ this.selectedIndex=i; }}"
-                "}"
-                "this.dispatchEvent(new Event('change', {bubbles:true}));"
-            )
+            await js_utils.select_native_option(state_select, value=state_abbr, dispatch=("change",))
 
         await asyncio.sleep(1)
-        await SuperScraper.screenshot(tab, "dry_run")
+        await SuperScraper.screenshot(tab, "dry_run_general_request")
         print(
             "\nMCDPA request form filled but NOT sent — click 'Send' yourself, check your "
             "inbox for the verification link, and click it to complete the request. This "

@@ -11,18 +11,39 @@
 # to the form that contains <select name="Please"> to avoid it. Ends in a
 # reCAPTCHA v2 — filled to that point and left for a manual solve + Send.
 # **CAPTCHA solution required**
+#
+# Page elements (all scoped to the form containing select[name=Please]):
+#   select[name=Please]        Request type -> "Opt-Out" (only option)
+#   input[name=your-name]      Name (first + last)
+#   input[name=your-email]     Email
+#   input[name=telephone-number]  Phone
+#   input[name=Company] / Address / City / State / Zip   Company / address fields
+#   input[name=yes]            "By typing 'YES' ... you certify you are the individual" -> "YES"
+#   textarea your-message      left blank
 import asyncio
 
 from pydoll.browser.chromium import Chrome
 
-from src.dsar.super_scraper import SuperScraper
 from src.dsar import js_utils
+from src.dsar.rights import Right
+from src.dsar.super_scraper import SuperScraper
 
 URL = "https://listservicedirect.com/opt-out/"
+
+RIGHT_MAP = {Right.RIGHT_TO_OPT_OUT: "Opt-Out"}
+RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
 
 
 async def main():
     super_scraper = SuperScraper()
+    if SuperScraper.bail_if_not_automatable(globals()):
+        return
+
+    rights = SuperScraper.rights_to_exercise(RIGHT_MAP)
+    if not rights:
+        print("No requested privacy rights apply to this form — nothing to do.")
+        return
+
     options = SuperScraper.build_chromium_options()
 
     full_name = " ".join(p for p in (SuperScraper.FIRST_NAME, SuperScraper.LAST_NAME) if p)
@@ -36,7 +57,7 @@ async def main():
 
         please = await tab.find(xpath=f"{form_xp}//select[@name='Please']", raise_exc=False)
         if please:
-            await js_utils.select_native_option(please, text="Opt-Out")
+            await js_utils.select_native_option(please, text=RIGHT_MAP[Right.RIGHT_TO_OPT_OUT])
 
         fields = {
             "your-name": full_name,

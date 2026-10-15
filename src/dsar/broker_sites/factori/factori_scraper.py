@@ -7,11 +7,20 @@
 #   Name, Email, Country, Mobile Advertising ID, Message.
 # Google Form text inputs have no aria-label, so each is reached by an xpath
 # scoped to its question's role="listitem" container. No CAPTCHA.
+#
+# Page elements:
+#   Name / Email / Country / Mobile Advertising ID   short-answer inputs (by question text)
+#   Message                                           paragraph textarea (by question text)
+#   "Submit" button                                   div[role=button] span
 import asyncio
 
 from pydoll.browser.chromium import Chrome
 
+from src.dsar.rights import Right
 from src.dsar.super_scraper import SuperScraper
+
+RIGHT_MAP = {Right.RIGHT_TO_OPT_OUT: "opt-out"}
+RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
 
 FORM_URL = (
     "https://docs.google.com/forms/d/e/"
@@ -37,6 +46,14 @@ async def fill_text(tab, super_scraper, question, value, para=False):
 
 async def main():
     super_scraper = SuperScraper()
+    if SuperScraper.bail_if_not_automatable(globals()):
+        return
+
+    rights = SuperScraper.rights_to_exercise(RIGHT_MAP)
+    if not rights:
+        print("No requested privacy rights apply to this form — nothing to do.")
+        return
+
     options = SuperScraper.build_chromium_options()
 
     full_name = " ".join(p for p in (SuperScraper.FIRST_NAME, SuperScraper.LAST_NAME) if p)
@@ -52,21 +69,20 @@ async def main():
         await fill_text(tab, super_scraper, "Mobile Advertising ID", SuperScraper.ADVERTISING_ID)
         await fill_text(
             tab, super_scraper, "Message",
-            "Opt out of the sale/sharing of my personal information; do not process "
-            "it for targeted advertising.",
+            SuperScraper.request_statement(rights, broker="Factori"),
         )
 
         await asyncio.sleep(1)
         await SuperScraper.screenshot(tab, "dry_run")
         if SuperScraper.DRY_RUN:
-            print(f"DRY RUN: would submit opt-out for {full_name} <{SuperScraper.EMAIL}>")
+            print(f"DRY RUN: would submit opt-out for {SuperScraper.EMAIL}")
             return
 
         submit = await tab.find(xpath="//div[@role='button']//span[normalize-space(.)='Submit']", raise_exc=False)
         if submit:
             await submit.click()
             await asyncio.sleep(4)
-            print(f"Submitted opt-out for {full_name}")
+            print(f"Submitted opt-out for {SuperScraper.EMAIL} — confirm in the browser.")
 
 
 asyncio.run(main())

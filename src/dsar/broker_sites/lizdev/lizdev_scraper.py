@@ -19,14 +19,15 @@ import asyncio
 
 from pydoll.browser.chromium import Chrome
 
-from src.dsar.super_scraper import SuperScraper
 from src.dsar import captcha_solutions_util
 from src.dsar import js_utils
+from src.dsar.rights import Right
+from src.dsar.super_scraper import SuperScraper
 
 URL = "https://lizdev.com/opt-out-form/"
 
-RIGHT_MAP = {"opt_out_sale_share": "opt-out"}
-RIGHTS_SUPPORTED = ("opt_out_sale_share",)
+RIGHT_MAP = {Right.RIGHT_TO_OPT_OUT: "opt-out"}
+RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
 
 FIRST = "//input[@id='wpforms-109-field_1']"
 LAST = "//input[@id='wpforms-109-field_1-last']"
@@ -109,11 +110,6 @@ async def main():
         if submit:
             await submit.click()
             await asyncio.sleep(3)
-        source = await js_utils.page_text(tab)
-        if any(w in source.lower() for w in ("thank you", "success", "received", "submitted", "confirmation")):
-            print(f"Submitted opt-out for {SuperScraper.FIRST_NAME} {SuperScraper.LAST_NAME}")
-        else:
-            print(f"{super_scraper.OOPS} Confirmation unclear — verify in browser")
-
+        print(f"Submitted opt-out for {SuperScraper.EMAIL} — confirm in the browser.")
 
 asyncio.run(main())

@@ -3,29 +3,51 @@
 # — one form fill per right (same approach as nexxen.com).
 # After clicking "Other", formField21DSARElement appears (required: relationship
 # explanation). Requires 2s wait after "Other" click for Angular re-render.
-# Rights exercised: Access, Data Portability, Opt out, Object to Processing,
-# Update Data (Correct), Review Automated Decision.
-# Data Deletion gated on REMOVE_INFORMATION.
+# Rights the form exposes: Access, Data Portability, Opt out, Object to Processing,
+# Review Automated Decision, Data Deletion, Update Data (Correct, not automated).
+# Which run is decided ONLY by SuperScraper.rights_to_exercise(RIGHT_MAP).
 # Country and State are independent autocompletes (countryDSARElement,
 # stateDSARElement). No image CAPTCHA — reCAPTCHA v2 requires manual solve.
 # Email verification required after submission (30-day window).
+#
+# Page elements:
+#   aria-label "Other"                  Subject type
+#   #formField21DSARElement             Relationship explanation (required after "Other")
+#   aria-label request-type buttons     see RIGHT_MAP (single-select)
+#   #firstNameDSARElement / #lastNameDSARElement / #emailDSARElement   First / Last name / Email
+#   #countryDSARElement                 Country (autocomplete) -> "United States"
+#   #stateDSARElement                   State (autocomplete)
+#   aria-label "Click to submit form"   Submit button
 import asyncio
 
 from pydoll.browser.chromium import Chrome
 
+from src.dsar.rights import Right
 from src.dsar.super_scraper import SuperScraper
 
 URL = "https://privacyportal.onetrust.com/webform/b0a5f2cc-0b29-4907-89bf-3f6b380a03c8/7ab89abb-0d42-492a-a324-0570883e2c11"
 
 RIGHT_MAP = {
-    "access": [("Access", "access")],
-    "portability": [("Data Portability", "portability")],
-    "correct": [("Update Data", "correct")],
-    "opt_out_profiling": [("Review Automated Decision", "autodecision")],
-    "opt_out_sale_share": [("Opt out", "optout"), ("Object to Processing", "object")],
-    "delete": [("Data Deletion", "delete")],
+    Right.RIGHT_TO_ACCESS: [("Access", "access"), ("Data Portability", "portability")],
+    Right.RIGHT_TO_OPT_OUT: [
+        ("Review Automated Decision", "autodecision"),
+        ("Opt out", "optout"),
+        ("Object to Processing", "object"),
+    ],
+    Right.RIGHT_TO_DELETE: [("Data Deletion", "delete")],
 }
 RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
+
+# Request-type buttons the page offers -> the Right they map to (None = not automated).
+PAGE_RIGHTS = {
+    "Access": Right.RIGHT_TO_ACCESS,
+    "Data Portability": Right.RIGHT_TO_ACCESS,
+    "Update Data": None,
+    "Review Automated Decision": Right.RIGHT_TO_OPT_OUT,
+    "Opt out": Right.RIGHT_TO_OPT_OUT,
+    "Object to Processing": Right.RIGHT_TO_OPT_OUT,
+    "Data Deletion": Right.RIGHT_TO_DELETE,
+}
 
 
 async def _autocomplete(tab, field_id, text):
@@ -110,22 +132,20 @@ async def _submit_request(tab, req_aria, label, super_scraper):
     )
     input()
 
-    source = await tab.page_source
-    if any(w in source.lower() for w in ("thank", "success", "received", "submitted", "confirmation")):
-        print(f"Submitted '{label}' for {SuperScraper.FIRST_NAME} {SuperScraper.LAST_NAME}")
-    else:
-        print(f"{super_scraper.OOPS} Confirmation unclear for '{label}' — verify in browser")
+    print(f"Submitted '{label}' for {SuperScraper.EMAIL} — confirm in the browser.")
 
 
 async def main():
     super_scraper = SuperScraper()
+    if SuperScraper.bail_if_not_automatable(globals()):
+        return
     options = SuperScraper.build_chromium_options()
 
-    codes = SuperScraper.rights_to_exercise(RIGHT_MAP)
-    if not codes:
+    rights = SuperScraper.rights_to_exercise(RIGHT_MAP)
+    if not rights:
         print("No requested privacy rights apply to this form — nothing to do.")
         return
-    requests = [entry for code in codes for entry in RIGHT_MAP[code]]
+    requests = [entry for right in rights for entry in RIGHT_MAP[right]]
 
     async with Chrome(options=options) as browser:
         tab = await browser.start()

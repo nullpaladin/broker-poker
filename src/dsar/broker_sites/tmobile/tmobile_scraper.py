@@ -9,8 +9,8 @@
 # (requestTypesDSARElement) is a role=listbox toggle group — the page's own
 # copy says "If you want to access and delete your personal data, you'll
 # need to submit two separate requests," confirming single-select — one
-# submission per right: Access personal data unconditionally, Delete
-# personal data gated on REMOVE_INFORMATION. Correct personal data skipped
+# submission per right: Access personal data (access), Delete personal data
+# (delete); which run is decided ONLY by SuperScraper.rights_to_exercise(RIGHT_MAP). Correct personal data skipped
 # (no concrete inaccuracy to describe).
 #
 # Selecting a Type of request reveals fields common to BOTH rights:
@@ -24,19 +24,34 @@
 # online portal"); Delete additionally requires First Name, Last Name,
 # Street address (formField84DSARElement), City, Zip code — none of which
 # Access asks for at all. reCAPTCHA v2 — **CAPTCHA solution required**.
+#
+# Page elements:
+#   formField79DSARElement    "Requestor" -> "I am requesting my own personal data"
+#   requestTypesDSARElement   "Type of request" (see RIGHT_MAP)
+#   subjectTypesDSARElement   "Relationship with T-Mobile" -> "Current customer"
+#   formField112DSARElement   "US States & Territories" -> "Continental US, AK, HI, DC"
+#   stateDSARElement          "State of residence"
+#   phoneNumberDSARElement    Phone Number
+#   emailDSARElement          Email
+#   formField77DSARElement    "Delivery method" (Access only) -> "Secure online portal"
+#   firstNameDSARElement / lastNameDSARElement / formField84DSARElement (Street address) /
+#   cityDSARElement / zipDSARElement   First name, Last name, Street address, City, Zip code (Delete only)
 import asyncio
 
+from src.dsar.rights import Right
 from src.dsar.super_scraper import SuperScraper
 
 from pydoll.browser.chromium import Chrome
 
 URL = "https://privacyportal-t-mobile.my.onetrust.com/webform/d4a925f0-4ebf-40ba-817b-bccc309e602f/7831d667-1ebc-4b1e-a941-e545cb0d0523"
 
+# Right -> "Type of request" option.
 RIGHT_MAP = {
-    "access": ["Access personal data"],
-    "delete": ["Delete personal data"],
+    Right.RIGHT_TO_ACCESS: "Access personal data",
+    Right.RIGHT_TO_DELETE: "Delete personal data",
 }
 RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
+DELETE_REQUEST_TYPE = RIGHT_MAP[Right.RIGHT_TO_DELETE]
 
 
 async def _select_option(tab, option_text, super_scraper, description):
@@ -123,11 +138,11 @@ async def main():
     super_scraper = SuperScraper()
     options = SuperScraper.build_chromium_options()
 
-    codes = SuperScraper.rights_to_exercise(RIGHT_MAP)
-    if not codes:
+    rights = SuperScraper.rights_to_exercise(RIGHT_MAP)
+    if not rights:
         print("No requested privacy rights apply to this form — nothing to do.")
         return
-    request_types = [entry for code in codes for entry in RIGHT_MAP[code]]
+    request_types = [RIGHT_MAP[right] for right in rights]
 
     async with Chrome(options=options) as browser:
         tab = await browser.start()

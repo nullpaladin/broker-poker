@@ -4,7 +4,7 @@
 
 1. Working directory: `broker-poker/`
 2. Activate virtualenv: `source venv/bin/activate`
-3. Verify `.env` exists with: `FIRST_NAME`, `LAST_NAME`, `EMAIL`, `ADDRESS`, `CITY`, `STATE`, `ZIP_CODE`, `DATE_OF_BIRTH`, `PHONE_NUMBER`, plus `REQUESTED_RIGHTS` (comma-separated right codes; empty = all), `REMOVE_INFORMATION`, `DRY_RUN`, `HEADED`, `HEALTH_CHECK`
+3. Verify `.env` exists with: `FIRST_NAME`, `LAST_NAME`, `EMAIL`, `ADDRESS`, `CITY`, `STATE`, `ZIP_CODE`, `DATE_OF_BIRTH`, `PHONE_NUMBER`, plus `RIGHTS_TO_EXERCISE` (comma-separated `RIGHT_TO_ACCESS` / `RIGHT_TO_OPT_OUT` / `RIGHT_TO_DELETE` / `RIGHT_TO_LIST_OF_THIRD_PARTIES`; deletion only runs if listed), `DRY_RUN`, `HEADLESS_BROWSER_MODE`, `HEALTH_CHECK`
 4. After any change touching multiple scrapers: `python -m compileall -q src && python scripts/smoke_import.py` (imports every scraper module without a browser).
 
 ## File Structure
@@ -234,31 +234,44 @@ For everything else: fix it, blacklist it, or document it — then continue.
 
 ## Conventions (post-refactor)
 
-- **Rights**: define a module-level `RIGHT_MAP` = `{canonical_code: <this form's entry>}`
-  and drive selection from `for code in SuperScraper.rights_to_exercise(RIGHT_MAP):`.
-  Delete any old `RIGHTS` / `DELETE_RIGHT` constants and the
-  `if REMOVE_INFORMATION: rights.append(...)` idiom (`rights_to_exercise` handles both
-  the user's `REQUESTED_RIGHTS` choice, per-state availability, and the delete gate).
-  Set `RIGHTS_SUPPORTED = tuple(RIGHT_MAP)`. Canonical codes: `access`, `delete`,
-  `correct`, `portability`, `opt_out_sale_share`, `opt_out_targeted_ads`,
-  `opt_out_profiling`, `know_third_parties`, `limit_sensitive_pi`.
-- **Screenshots**: `await SuperScraper.screenshot(tab, "resources/screenshots/<slug>_dry_run[_<label>].png")`
-  — no-op unless `DRY_RUN`. Never call `tab.take_screenshot()` directly.
+- **Rights**: define a module-level `RIGHT_MAP` = `{Right.RIGHT_TO_...: <this form's entry or LIST of entries>}`
+  (`from src.dsar.rights import Right`) and drive selection from
+  `for right in SuperScraper.rights_to_exercise(RIGHT_MAP):`. That is the ONLY gate — never
+  read env flags or the state yourself (`rights_to_exercise` applies the user's
+  `RIGHTS_TO_EXERCISE` choice and per-state availability; deletion is just `RIGHT_TO_DELETE`).
+  Set `RIGHTS_SUPPORTED = tuple(RIGHT_MAP)`. The four rights: `RIGHT_TO_ACCESS`,
+  `RIGHT_TO_OPT_OUT` (ALL opt-out flavours: sale/sharing, targeted ads, profiling, limit
+  sensitive PI — a split form lists one entry each), `RIGHT_TO_DELETE`,
+  `RIGHT_TO_LIST_OF_THIRD_PARTIES`. Other rights on a form (e.g. correct) are not automated.
+- **Screenshots**: `await SuperScraper.screenshot(tab, "dry_run_<label>")` — a label, never a
+  path; the scraper name comes from the calling file. Only runs under `DRY_RUN`/`HEALTH_CHECK`,
+  and takes one shot per scrolled viewport (`..._p01.png`, `_p02`). Never call
+  `tab.take_screenshot()` directly.
 - **Browser options**: `options = SuperScraper.build_chromium_options()` (no `--window-size`;
-  headless only when `HEADED` is false).
+  headless only when `HEADLESS_BROWSER_MODE` is true).
+- **No speculation**: never guess what a post-submit page says or an option that isn't on the
+  page. Without an observed confirmation text print "Submitted ... confirm in the browser".
+- **Element notes**: list every element a scraper touches, with a human name, in its header
+  comment (see `lizdev_scraper.py`) and use named constants, not bare ids.
 - **State**: `SuperScraper.STATE_ABBREVIATED`; `SuperScraper.state_has_privacy_law()`.
   "California resident?" / "resident of X?" yes-no questions answer **yes for any
   privacy-law state**, not only literal California — see `docs/development_reference/state_privacy_data.md`.
-- **Message text**: `SuperScraper.request_statement(codes, broker="<Name>")` — pulls the
-  per-state law name/citation. Don't hardcode "Minnesota Consumer Data Privacy Act".
+- **Message text**: `SuperScraper.request_statement([right, ...], broker="<Name>")` — pulls the
+  state's `request_basis` / citation from `state_privacy_data.json`; cites a law only for states
+  that have one. Don't hardcode law names, and never say "federal privacy law" (none applies).
 - **Not automatable**: a scraper needing a mid-run SMS/email OTP sets
   `NOT_AUTOMATABLE = True` + `NOT_AUTOMATABLE_REASON` and opens `main()` with
   `if SuperScraper.bail_if_not_automatable(globals()): return`. A manual reCAPTCHA
   `input()` pause is fine and is NOT "not automatable".
 - **Honeypots**: `docs/development_reference/honeypot_audit.md` — never trust a field's
   name; check computed layout.
-- **Health checks**: under `HEALTH_CHECK`, call
-  `await SuperScraper.assert_fields_filled(tab, {label: xpath, ...})` before the submit step.
+- **Health checks**: each scraper has `PAGE_RIGHTS` (every option the page offers -> `Right` or
+  `None` if not automated). Under `HEALTH_CHECK`: `SuperScraper.audit_rights(await
+  SuperScraper.read_option_labels(tab, css), PAGE_RIGHTS)` fails on new/vanished rights, and
+  `assert_fields_filled(tab, {label: xpath})` runs before the submit step. A health check implies
+  `DRY_RUN`. Roll out in batches with the `/scraper-audit` then `/scraper-health-check` skills.
+- **Residency**: a form only for residents of privacy-law states sets `SERVES_NO_LAW_STATES = False`
+  and calls `SuperScraper.bail_if_state_unsupported(globals())`.
 
 ## SuperScraper Method Reference
 
@@ -269,20 +282,18 @@ For everything else: fix it, blacklist it, or document it — then continue.
 | `choose_dropdown_option_by_text(tab, input_xpath, dropdown_option_text, sleep, double_click, timeout)` | Select custom dropdown by visible text |
 | `click_item_by_text(tab, text, sleep, timeout)` | Click button/link by text |
 | `click_item_by_xpath(tab, xpath, sleep, timeout)` | Click element by XPath |
-| `select_native_option(el, *, value/text/index, ci, dispatch)` | Set a **native `<select>`** option + dispatch |
-| `js_set_value(el, value, *, blur)` | Set a React/Angular controlled input via the native value setter |
-| `js_check(el, checked=True, *, dispatch)` | Toggle a hidden / 1×1px checkbox/radio in JS |
-| `js_click(el)` / `js_eval(target, script)` | JS click / run JS and get the unwrapped return value |
-| `fill_autocomplete(tab, field, value, *, option_text, settle)` | OneTrust-style autocomplete combobox |
-| `page_text(tab)` | `document.body.innerText` for confirmation checks |
-| `check_termly_attestations(tab)` | Force Termly `__doNotSubmit__` checkboxes |
-| `solve_math_captcha(question)` | Solve "what is 6 minus 1?" style arithmetic CAPTCHAs |
-| `screenshot(tab, path, *, force, beyond_viewport)` | DRY_RUN-only screenshot |
+| `screenshot(tab, label)` | DRY_RUN / HEALTH_CHECK multi-page screenshot |
+| `read_option_labels(tab, css)` / `audit_rights(offered, PAGE_RIGHTS)` | HEALTH_CHECK rights-drift audit |
 | `build_chromium_options(*, extra_args)` | Standard ChromiumOptions |
-| `rights_to_exercise(RIGHT_MAP)` / `wants(*codes)` | Which rights to exercise this run |
-| `request_statement(codes, *, broker)` | Per-state law-aware request sentence |
+| `rights_to_exercise(RIGHT_MAP)` | Which `Right`s to exercise this run (the only gate) |
+| `request_statement(rights, *, broker)` | Per-state law-aware request sentence |
 | `assert_fields_filled(tab, {label: xpath})` | HEALTH_CHECK required-field assertion |
-| `bail_if_not_automatable(globals())` | Early-return for OTP-gated scrapers |
+| `bail_if_not_automatable(globals())` | Early-return for OTP-gated scrapers (skipped entirely) |
+| `bail_if_state_unsupported(globals())` | Early-return for forms only open to privacy-law-state residents |
+
+In-page JS helpers live in `src/dsar/js_utils.py` (`js_eval`, `js_set_value`, `js_check`, `js_click`,
+`select_native_option`, `fill_autocomplete`, `page_text`, `check_termly_attestations`); math/image
+CAPTCHA solvers in `src/dsar/captcha_solutions_util.py` (`solve_math_captcha`, 0–99).
 
 ---
 

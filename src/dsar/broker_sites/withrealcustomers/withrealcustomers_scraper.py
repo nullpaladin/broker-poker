@@ -15,7 +15,8 @@
 #   enter_advertising_id_  textarea (optional) — filled with the MAID
 #   please_select_the_type_of_request_..._  checkbox group (multi-select, one
 #           combined submission): "Request Information" (Access) + "Opt Out"
-#           unconditionally; "Delete My Record" gated on REMOVE_INFORMATION.
+#           and "Delete My Record"; which are checked is decided ONLY by
+#           SuperScraper.rights_to_exercise(RIGHT_MAP).
 #   Checking a request type reveals an optional identity block — firstname,
 #           middle_name, lastname, 0-2/city, 0-2/state, 0-2/zip, birth_month,
 #           birth_year — all filled from the persona. Two file-upload fields
@@ -30,14 +31,15 @@ import asyncio
 
 from pydoll.browser.chromium import Chrome
 
+from src.dsar.rights import Right
 from src.dsar.super_scraper import SuperScraper
 
 URL = "https://support.withrealcustomers.com/index.php/opt-out/"
 
 RIGHT_MAP = {
-    "access": ["Request Information"],
-    "opt_out_sale_share": ["Opt Out"],
-    "delete": ["Delete My Record"],
+    Right.RIGHT_TO_ACCESS: "Request Information",
+    Right.RIGHT_TO_OPT_OUT: "Opt Out",
+    Right.RIGHT_TO_DELETE: "Delete My Record",
 }
 RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
 
@@ -47,11 +49,13 @@ async def main():
     options = SuperScraper.build_chromium_options()
 
     full_name = " ".join(p for p in (SuperScraper.FIRST_NAME, SuperScraper.LAST_NAME) if p)
-    codes = SuperScraper.rights_to_exercise(RIGHT_MAP)
-    if not codes:
+    if SuperScraper.bail_if_not_automatable(globals()):
+        return
+    rights = SuperScraper.rights_to_exercise(RIGHT_MAP)
+    if not rights:
         print("No requested privacy rights apply to this form — nothing to do.")
         return
-    request_types = [entry for code in codes for entry in RIGHT_MAP[code]]
+    request_types = [RIGHT_MAP[right] for right in rights]
 
     async with Chrome(options=options) as browser:
         tab = await browser.start()
@@ -130,14 +134,14 @@ async def main():
         await asyncio.sleep(1)
         await SuperScraper.screenshot(tab, "dry_run")
         if SuperScraper.DRY_RUN:
-            print(f"DRY RUN: would submit {request_types} for {full_name} <{SuperScraper.EMAIL}>")
+            print(f"DRY RUN: would submit {[r.name for r in rights]} for {SuperScraper.EMAIL}")
             return
 
         submit = await iframe.find(xpath="//input[@type='submit']", raise_exc=False)
         if submit:
             await submit.click()
             await asyncio.sleep(4)
-            print(f"Submitted {request_types} for {full_name}")
+            print(f"Submitted {[r.name for r in rights]} for {SuperScraper.EMAIL} — confirm in the browser.")
 
 
 asyncio.run(main())

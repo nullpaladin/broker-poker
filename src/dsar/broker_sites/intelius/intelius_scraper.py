@@ -23,15 +23,36 @@
 #
 # Right to Delete: single `deletionEmail` field + "Delete My User Data" —
 # this also emails a confirmation link, a real side-effect trigger, so the
-# scraper fills the email and stops there regardless of DRY_RUN. Gated on
-# REMOVE_INFORMATION.
+# scraper fills the email and stops there regardless of DRY_RUN.
+#
+# Which of Know / Opt Out / Delete run is decided only by SuperScraper.rights_to_exercise.
+#
+# Page elements:
+#   "View User Data Tools"                       opens the User Data Tools section
+#   "Right to Know" / "Right to Opt Out" / "Right to Delete"   accordion sections
+#   input[name=retrievalEmail]                   Know: email for the data copy
+#   "Request a Copy of My Data"                  Know submit (never clicked)
+#   "Open Cookie Preferences"                    Opt Out: opens the preferences modal
+#   #ckyCCPAOptOut                               "Do Not Sell or Share My Personal Information" checkbox
+#   "Save My Preferences" / "Cancel"             modal buttons
+#   input[name=deletionEmail]                    Delete: email for the confirmation link
+#   "Delete My User Data"                        Delete submit (never clicked)
 import asyncio
 
+from src.dsar.rights import Right
 from src.dsar.super_scraper import SuperScraper
 
 from pydoll.browser.chromium import Chrome
 
 URL = "https://app.intelius.com/privacy-center/"
+
+# Right -> which accordion section handles it.
+RIGHT_MAP = {
+    Right.RIGHT_TO_ACCESS: "access",
+    Right.RIGHT_TO_OPT_OUT: "opt_out",
+    Right.RIGHT_TO_DELETE: "delete",
+}
+RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
 
 
 async def _open_accordion(tab, label):
@@ -75,7 +96,7 @@ async def do_opt_out(tab, super_scraper):
         return
 
     if SuperScraper.DRY_RUN:
-        print(f"DRY RUN: would save opt-out cookie preference for {SuperScraper.FIRST_NAME} {SuperScraper.LAST_NAME}")
+        print(f"DRY RUN: would save opt-out cookie preference ({Right.RIGHT_TO_OPT_OUT.name})")
         await asyncio.sleep(1)
         await SuperScraper.screenshot(tab, "dry_run_opt_out")
         # dismiss the modal (leaving it open would block the next
@@ -91,7 +112,7 @@ async def do_opt_out(tab, super_scraper):
     if save_btn:
         await save_btn.click()
         await asyncio.sleep(2)
-        print(f"Saved opt-out cookie preference for {SuperScraper.FIRST_NAME} {SuperScraper.LAST_NAME}")
+        print(f"Saved opt-out cookie preference ({Right.RIGHT_TO_OPT_OUT.name}) — confirm in the browser.")
     else:
         print(f"{super_scraper.OOPS} 'Save My Preferences' button not found")
 
@@ -112,9 +133,17 @@ async def do_delete(tab, super_scraper):
     )
 
 
+HANDLERS = {"access": do_access, "opt_out": do_opt_out, "delete": do_delete}
+
+
 async def main():
     super_scraper = SuperScraper()
     options = SuperScraper.build_chromium_options()
+
+    rights = SuperScraper.rights_to_exercise(RIGHT_MAP)
+    if not rights:
+        print("No requested privacy rights apply to this form — nothing to do.")
+        return
 
     async with Chrome(options=options) as browser:
         tab = await browser.start()
@@ -126,10 +155,8 @@ async def main():
             await view_btn.click()
             await asyncio.sleep(2)
 
-        await do_access(tab, super_scraper)
-        await do_opt_out(tab, super_scraper)
-        if SuperScraper.wants("delete"):
-            await do_delete(tab, super_scraper)
+        for right in rights:
+            await HANDLERS[RIGHT_MAP[right]](tab, super_scraper)
 
 
 asyncio.run(main())

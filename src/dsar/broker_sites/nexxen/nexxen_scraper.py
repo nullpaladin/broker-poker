@@ -1,29 +1,40 @@
 # nexxen.com — OneTrust Angular portal (privacyportal.onetrust.com) embedded on nexxen.com.
-# Form requires one separate submission per right (explicitly stated on form).
-# Country → State autocomplete reveals subject type, request types, acknowledgement.
-# Subject type: formField72DSARElement, buttons "Customer"/"Employee"/"Vendor" → "Customer".
-# Acknowledgement: click "Yes" via click_using_js.
-# reCAPTCHA v2 — manual solve in live mode.
-# Exercises Access/Portability, Correct, Do Not Sell/Share, Opt-out Sensitive,
-# Opt-out Profiling/Ads; Delete gated on REMOVE_INFORMATION.
+# The form requires one separate submission per request type (stated on the form), so each
+# RIGHT_MAP entry is submitted separately. Which rights run is decided ONLY by
+# SuperScraper.rights_to_exercise(RIGHT_MAP). "Correct your personal information" is offered
+# but not automated. Country -> State autocomplete reveals the subject type, request types
+# and acknowledgement. reCAPTCHA v2 — manual solve in live mode.
+#
+# Page elements (keep this list current):
+#   #countryDSARElement / #stateDSARElement   Country / State autocompletes (State appears after Country)
+#   #formField72DSARElement (SUBJECT_TYPE)    Subject type buttons "Customer"/"Employee"/"Vendor" -> "Customer"
+#   aria-label buttons (request types, see RIGHT_MAP):
+#       "A copy of your personal information/Right to Data Portability"   -> ACCESS
+#       "Do Not Sell/Share your personal information"                     -> OPT_OUT
+#       "Opt-out of Processing Sensitive Data"                            -> OPT_OUT
+#       "Opt-Out of Automated Decision-Making and Profiling/Opt-out of Targeted Advertising" -> OPT_OUT
+#       "Delete your personal information"                                -> DELETE
+#       "Correct your personal information"                               -> not automated
+#   aria-label "Yes"                    Acknowledgement button (click_using_js)
+#   aria-label "Click to submit form"   Submit button
 import asyncio
 import time
 
 from pydoll.browser.chromium import Chrome
 
+from src.dsar.rights import Right
 from src.dsar.super_scraper import SuperScraper
 
 URL = "https://privacyportal.onetrust.com/webform/76394770-3c6c-4d28-a57b-18817b0a8e3f/2bbd01a5-983c-440b-9fd5-fd341c9326a1"
 
 RIGHT_MAP = {
-    "access": [("A copy of your personal information/Right to Data Portability", "access")],
-    "portability": [("A copy of your personal information/Right to Data Portability", "access")],
-    "correct": [("Correct your personal information", "correct")],
-    "opt_out_sale_share": [("Do Not Sell/Share your personal information", "optout")],
-    "limit_sensitive_pi": [("Opt-out of Processing Sensitive Data", "sensitive")],
-    "opt_out_profiling": [("Opt-Out of Automated Decision-Making and Profiling/Opt-out of Targeted Advertising", "profiling")],
-    "opt_out_targeted_ads": [("Opt-Out of Automated Decision-Making and Profiling/Opt-out of Targeted Advertising", "profiling")],
-    "delete": [("Delete your personal information", "delete")],
+    Right.RIGHT_TO_ACCESS: [("A copy of your personal information/Right to Data Portability", "access")],
+    Right.RIGHT_TO_OPT_OUT: [
+        ("Do Not Sell/Share your personal information", "optout"),
+        ("Opt-out of Processing Sensitive Data", "sensitive"),
+        ("Opt-Out of Automated Decision-Making and Profiling/Opt-out of Targeted Advertising", "profiling"),
+    ],
+    Right.RIGHT_TO_DELETE: [("Delete your personal information", "delete")],
 }
 RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
 
@@ -57,7 +68,7 @@ async def _submit_request(tab, request_aria, label, super_scraper):
     await _autocomplete(tab, "stateDSARElement", SuperScraper.STATE)
     await asyncio.sleep(1)
 
-    # Subject type: Customer (formField72 container)
+    # Subject type: Customer (formField72DSARElement)
     customer = await tab.find(**{"aria-label": "Customer"}, raise_exc=False)
     if customer:
         await customer.click_using_js()
@@ -101,22 +112,20 @@ async def _submit_request(tab, request_aria, label, super_scraper):
     )
     input()
 
-    source = await tab.page_source
-    if any(w in source.lower() for w in ("thank", "success", "received", "submitted", "confirmation")):
-        print(f"Submitted '{label}'")
-    else:
-        print(f"{super_scraper.OOPS} Confirmation unclear for '{label}' — verify in browser")
+    print(f"Submitted '{label}' for {SuperScraper.EMAIL} — confirm in the browser.")
 
 
 async def main():
     super_scraper = SuperScraper()
     options = SuperScraper.build_chromium_options()
 
-    codes = SuperScraper.rights_to_exercise(RIGHT_MAP)
-    if not codes:
+    if SuperScraper.bail_if_not_automatable(globals()):
+        return
+    rights = SuperScraper.rights_to_exercise(RIGHT_MAP)
+    if not rights:
         print("No requested privacy rights apply to this form — nothing to do.")
         return
-    requests = [entry for code in codes for entry in RIGHT_MAP[code]]
+    requests = [entry for right in rights for entry in RIGHT_MAP[right]]
 
     async with Chrome(options=options) as browser:
         tab = await browser.start()

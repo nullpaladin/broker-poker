@@ -1,7 +1,9 @@
 # spectrummailinglists.com — the Right to Opt-Out is an embedded Google Form
 # (navigated to directly). Every other request type is declined with a
-# public-records excuse, so this scraper only exercises Opt-Out.
-# Questions:
+# public-records excuse, so this scraper only exercises Opt-Out (RIGHT_MAP has a
+# single entry; the run is skipped unless an opt-out right is requested via
+# SuperScraper.rights_to_exercise).
+# Page elements (Google Form questions):
 #   [radio]    "I am submitting this request:" -> "For myself, my family member
 #              or similar"
 #   [short]    First Name, Last Name, City, Zip Code
@@ -15,13 +17,18 @@ import asyncio
 
 from pydoll.browser.chromium import Chrome
 
+from src.dsar import captcha_solutions_util, js_utils
+from src.dsar.rights import Right
 from src.dsar.super_scraper import SuperScraper
-from src.dsar import captcha_solutions_util
 
 FORM_URL = (
     "https://docs.google.com/forms/d/e/"
     "1FAIpQLSeOxYNRRsFd1SBrN7LZZgSNrS2YJX00VhvdiUVTcrUgmW_8Xw/viewform"
 )
+
+# The only right the form honours (the Google Form has no per-right choice).
+RIGHT_MAP = {Right.RIGHT_TO_OPT_OUT: "opt-out"}
+RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
 
 
 async def fill_text(tab, super_scraper, question, value, para=False):
@@ -40,6 +47,10 @@ async def fill_text(tab, super_scraper, question, value, para=False):
 
 async def main():
     super_scraper = SuperScraper()
+    rights = SuperScraper.rights_to_exercise(RIGHT_MAP)
+    if not rights:
+        print("No requested privacy rights apply to this form — nothing to do.")
+        return
     options = SuperScraper.build_chromium_options()
 
     async with Chrome(options=options) as browser:
@@ -82,12 +93,12 @@ async def main():
         await asyncio.sleep(0.4)
 
         # Arithmetic anti-bot question — it is the last question on the form.
-        raw = await tab.execute_script(
+        q_text = await js_utils.js_eval(
+            tab,
             "var li=[...document.querySelectorAll('div[role=listitem]')];"
             "li=li[li.length-1];"
-            "return li ? li.innerText : '';"
+            "return li ? li.innerText : '';",
         )
-        q_text = raw.get("result", {}).get("result", {}).get("value") if isinstance(raw, dict) else raw
         answer = captcha_solutions_util.solve_math_captcha(q_text or "")
         if answer is not None:
             # The math answer is the last short-text input on the form. It needs
@@ -110,10 +121,10 @@ async def main():
             print(f"{super_scraper.OOPS} could not parse arithmetic question: {q_text!r}")
 
         await asyncio.sleep(1)
-        await SuperScraper.screenshot(tab, "dry_run")
+        await SuperScraper.screenshot(tab, "dry_run_opt_out")
         if SuperScraper.DRY_RUN:
             print(
-                f"DRY RUN: would submit opt-out for "
+                f"DRY RUN: would submit '{Right.RIGHT_TO_OPT_OUT.name}' for "
                 f"{SuperScraper.FIRST_NAME} {SuperScraper.LAST_NAME}"
             )
             return
@@ -124,7 +135,10 @@ async def main():
         if submit:
             await submit.click()
             await asyncio.sleep(4)
-            print(f"Submitted opt-out for {SuperScraper.FIRST_NAME} {SuperScraper.LAST_NAME}")
+            print(
+                f"Submitted '{Right.RIGHT_TO_OPT_OUT.name}' for {SuperScraper.FIRST_NAME} "
+                f"{SuperScraper.LAST_NAME} — confirm in the browser."
+            )
 
 
 asyncio.run(main())

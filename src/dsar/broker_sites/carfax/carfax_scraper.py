@@ -7,28 +7,39 @@
 #   "I want to know what personal information CARFAX has about me"  -> Access
 #   "I want to correct the personal information ..."                -> Correct (skipped)
 #   "I want to have my personal information deleted ..."            -> Delete
-#       (gated on REMOVE_INFORMATION)
+# Which rights run is decided ONLY by SuperScraper.rights_to_exercise(RIGHT_MAP).
 # Fields (stable `textInput-userInput-<name>-input` ids): firstName, lastName,
 # email, confirmEmail (both = EMAIL), phone. A required "By submitting this
 # request, you are confirming ..." attestation checkbox is checked.
 # reCAPTCHA v2 gates submit — filled to that point.
 # **CAPTCHA solution required**
+#
+# Page elements:
+#   #selectInput-userInput-state-input        "State of Residence" <select> (value = 2-letter abbreviation)
+#   label > input[name=requestTypeInput]      Request-type radios (see RIGHT_MAP)
+#   #textInput-userInput-firstName-input      First name
+#   #textInput-userInput-lastName-input       Last name
+#   #textInput-userInput-email-input          Email
+#   #textInput-userInput-confirmEmail-input   Confirm email
+#   #textInput-userInput-phone-input          Phone
+#   input[name=cfx-checkmark]                 "By submitting this request, you are confirming ..." attestation
 import asyncio
 
 from pydoll.browser.chromium import Chrome
 
+from src.dsar.rights import Right
 from src.dsar.super_scraper import SuperScraper
 
 URL = "https://www.carfax.com/company/consumer-privacy/"
 
 RIGHT_MAP = {
-    "access": [("I want to know what personal information CARFAX has about me", "access")],
-    "delete": [("I want to have my personal information deleted", "delete")],
+    Right.RIGHT_TO_ACCESS: "I want to know what personal information CARFAX has about me",
+    Right.RIGHT_TO_DELETE: "I want to have my personal information deleted",
 }
 RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
 
 
-async def submit_request(tab, radio_label, tag, super_scraper):
+async def submit_request(tab, right, radio_label, super_scraper):
     try:
         await tab.go_to(URL)
     except Exception as exc:
@@ -97,24 +108,22 @@ async def submit_request(tab, radio_label, tag, super_scraper):
         print(f"{super_scraper.OOPS} attestation checkbox not found")
 
     await asyncio.sleep(1)
-    await SuperScraper.screenshot(tab, f"dry_run_{tag}")
-    print(f"'{radio_label}' filled but NOT submitted — solve the reCAPTCHA manually, then Submit.")
+    await SuperScraper.screenshot(tab, f"dry_run_{right.value}")
+    print(f"'{right.name}' filled but NOT submitted — solve the reCAPTCHA manually, then Submit.")
 
 
 async def main():
     super_scraper = SuperScraper()
-    options = SuperScraper.build_chromium_options()
-
-    codes = SuperScraper.rights_to_exercise(RIGHT_MAP)
-    if not codes:
+    rights = SuperScraper.rights_to_exercise(RIGHT_MAP)
+    if not rights:
         print("No requested privacy rights apply to this form — nothing to do.")
         return
-    rights = [entry for code in codes for entry in RIGHT_MAP[code]]
 
+    options = SuperScraper.build_chromium_options()
     async with Chrome(options=options) as browser:
         tab = await browser.start()
-        for radio_label, tag in rights:
-            await submit_request(tab, radio_label, tag, super_scraper)
+        for right in rights:
+            await submit_request(tab, right, RIGHT_MAP[right], super_scraper)
 
 
 asyncio.run(main())

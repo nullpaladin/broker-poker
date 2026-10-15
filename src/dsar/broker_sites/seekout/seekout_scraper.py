@@ -12,23 +12,26 @@
 #   State/Region Code  text -> the 2-letter state abbreviation
 #   0-1/privacy_choice  checkbox group (multi-select, one combined submission):
 #       "Request A Copy of My Personal Information" (Access) + "Do Not Sell or
-#       Share My Information" unconditionally; "Delete My Personal Information"
-#       gated on REMOVE_INFORMATION; Correction / "Limit Use of Sensitive ..."
+#       Share My Information" and "Delete My Personal Information", each only if
+#       selected by SuperScraper.rights_to_exercise(RIGHT_MAP); Correction / "Limit Use of Sensitive ..."
 #       skipped.
 # reCAPTCHA Enterprise gates submit — filled to that point.
 # **CAPTCHA solution required**
+# Other elements: label "I am the individual" (radio), Country / "State/Region Code"
+# comboboxes (located by their label text).
 import asyncio
 
 from pydoll.browser.chromium import Chrome
 
+from src.dsar.rights import Right
 from src.dsar.super_scraper import SuperScraper
 
 URL = "https://40ros1.share-na2.hsforms.com/2vQIxZUeERGOPFcRto1AFgw"
 
 RIGHT_MAP = {
-    "access": ["Request A Copy of My Personal Information"],
-    "opt_out_sale_share": ["Do Not Sell or Share My Information"],
-    "delete": ["Delete My Personal Information"],
+    Right.RIGHT_TO_ACCESS: ["Request A Copy of My Personal Information"],
+    Right.RIGHT_TO_OPT_OUT: ["Do Not Sell or Share My Information"],
+    Right.RIGHT_TO_DELETE: ["Delete My Personal Information"],
 }
 RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
 
@@ -64,11 +67,11 @@ async def main():
     options = SuperScraper.build_chromium_options()
 
     state_abbr = SuperScraper.STATE_ABBREVIATED
-    codes = SuperScraper.rights_to_exercise(RIGHT_MAP)
-    if not codes:
+    rights = SuperScraper.rights_to_exercise(RIGHT_MAP)
+    if not rights:
         print("No requested privacy rights apply to this form — nothing to do.")
         return
-    choices = [entry for code in codes for entry in RIGHT_MAP[code]]
+    choices = [entry for right in rights for entry in RIGHT_MAP[right]]
 
     async with Chrome(options=options) as browser:
         tab = await browser.start()
@@ -138,7 +141,7 @@ async def main():
             await _click_label(tab, super_scraper, choice)
 
         await asyncio.sleep(1)
-        await SuperScraper.screenshot(tab, "dry_run")
+        await SuperScraper.screenshot(tab, "dry_run_" + "_".join(r.value for r in rights))
         print(f"{choices} filled but NOT submitted — solve the reCAPTCHA manually, then Submit.")
 
 

@@ -17,8 +17,8 @@
 # information" — a single bundled right, no separate Access/Correct/Limit
 # choices (those exist on the named-state variants, which offer 3-4 options
 # each depending on the state's specific law). Since it bundles deletion,
-# this scraper only submits it when REMOVE_INFORMATION is set — for a
-# non-enumerated-state resident with REMOVE_INFORMATION off, this form
+# this scraper only submits it when Delete or Opt-out is requested (see
+# SuperScraper.rights_to_exercise(RIGHT_MAP)) — otherwise this form
 # genuinely offers no right to exercise, which is a real limitation of the
 # vendor's form rather than something to work around by misrepresenting the
 # requester's state.
@@ -32,8 +32,23 @@
 # entered email/phone is a genuine side effect, so this scraper fills every
 # other field and stops there regardless of DRY_RUN; completing the OTP step
 # and clicking Submit must be done manually.
+#
+# Page elements:
+#   #input_8_46      "In which state do you reside?" <select> -> "Any other state"
+#   #input_8_105     "I would like to" <select> (only option for "Any other state": delete and opt out)
+#   #choice_8_145_1  "I am making this request on behalf of myself" declaration checkbox
+#   #input_8_62 / #input_8_64   First / Last name
+#   #input_8_118 / #input_8_69  Street number / Street (address split on first space)
+#   #input_8_72      City
+#   #input_8_119     State <select> (2-letter abbreviations)
+#   #input_8_76      ZIP
+#   #input_8_79      Email
+#   #input_8_138     Phone
+#   #input_8_77      Birthdate (mm/dd/yyyy)
+#   input_144.1      Verification code field (manual; not touched)
 import asyncio
 
+from src.dsar.rights import Right
 from src.dsar.super_scraper import SuperScraper
 from src.dsar import js_utils
 
@@ -49,10 +64,10 @@ NOT_AUTOMATABLE_REASON = (
 # This form's only request for a non-enumerated-state resident bundles deletion
 # WITH opt-out — there is no separate access/opt-out-only option.
 RIGHT_MAP = {
-    "delete": ["delete and opt out"],
-    "opt_out_sale_share": ["delete and opt out"],
+    Right.RIGHT_TO_DELETE: ["delete and opt out"],
+    Right.RIGHT_TO_OPT_OUT: ["delete and opt out"],
 }
-RIGHTS_SUPPORTED = ("delete", "opt_out_sale_share")
+RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
 
 
 def _to_mm_dd_yyyy(dd_mm_yyyy):
@@ -60,7 +75,7 @@ def _to_mm_dd_yyyy(dd_mm_yyyy):
     return f"{month}/{day}/{year}"
 
 
-async def submit_request(tab, right, super_scraper):
+async def submit_request(tab, entry, super_scraper):
     await tab.go_to(URL)
     await asyncio.sleep(5)
 
@@ -75,7 +90,7 @@ async def submit_request(tab, right, super_scraper):
     if not request_type_select:
         print(f"{super_scraper.OOPS} 'I would like to' dropdown not found")
         return
-    await js_utils.select_native_option(request_type_select, value=right)
+    await js_utils.select_native_option(request_type_select, value=entry)
     await asyncio.sleep(0.5)
 
     declare_checkbox = await tab.find(id="choice_8_145_1", raise_exc=False)
@@ -110,12 +125,12 @@ async def submit_request(tab, right, super_scraper):
         if birthdate_field:
             await birthdate_field.type_text(_to_mm_dd_yyyy(SuperScraper.DATE_OF_BIRTH))
 
-    label = right.replace(" ", "_")
+    label = entry.replace(" ", "_")
 
     await asyncio.sleep(1)
     await SuperScraper.screenshot(tab, f"dry_run_{label}")
     print(
-        f"\n'{right}' request filled but NOT sent — click 'Send Verification Code' yourself, "
+        f"\n'{entry}' request filled but NOT sent — click 'Send Verification Code' yourself, "
         "enter the code you receive, and click Submit. This sends a real verification code "
         "regardless of DRY_RUN, so it is never done automatically."
     )
@@ -125,19 +140,21 @@ async def main():
     if SuperScraper.bail_if_not_automatable(globals()):
         return
     super_scraper = SuperScraper()
-    options = SuperScraper.build_chromium_options()
-
-    if not SuperScraper.rights_to_exercise(RIGHT_MAP):
+    rights = SuperScraper.rights_to_exercise(RIGHT_MAP)
+    if not rights:
         print(
             "This form's only available request bundles deletion with opt-out. Neither "
-            "'delete' (with REMOVE_INFORMATION) nor 'opt_out_sale_share' is requested, so "
-            "there is nothing to submit."
+            "delete nor opt-out is requested, so there is nothing to submit."
         )
         return
 
+    options = SuperScraper.build_chromium_options()
+    # Delete and opt-out share one bundled form entry: submit each distinct entry once.
+    entries = dict.fromkeys(entry for right in rights for entry in RIGHT_MAP[right])
     async with Chrome(options=options) as browser:
         tab = await browser.start()
-        await submit_request(tab, "delete and opt out", super_scraper)
+        for entry in entries:
+            await submit_request(tab, entry, super_scraper)
 
 
 asyncio.run(main())

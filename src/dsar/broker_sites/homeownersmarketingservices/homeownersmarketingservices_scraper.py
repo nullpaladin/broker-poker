@@ -1,7 +1,8 @@
 # homeownersmarketingservices.com — /list-removal-request-new/ Elementor Pro
 # form ("DNM-NEW"), server-rendered, AJAX POST in place. The site leans on the
 # public-records carve-out to decline CCPA-style Access/Delete, but offers this
-# mailing-list removal (opt-out) request. Single submission, opt-out only.
+# mailing-list removal (opt-out) request. Single submission, opt-out only; run only
+# when SuperScraper.rights_to_exercise(RIGHT_MAP) includes Opt-out.
 # Fields:
 #   form_fields[name]              -> id form-field-name   (full name)
 #   form_fields[email]             -> id form-field-email
@@ -15,14 +16,23 @@ import asyncio
 
 from pydoll.browser.chromium import Chrome
 
+from src.dsar.rights import Right
 from src.dsar.super_scraper import SuperScraper
 
 URL = "https://homeownersmarketingservices.com/list-removal-request-new/"
+
+# The form is a single mailing-list removal request (no choice to make).
+RIGHT_MAP = {Right.RIGHT_TO_OPT_OUT: "list removal"}
+RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
 
 
 async def main():
     super_scraper = SuperScraper()
     options = SuperScraper.build_chromium_options()
+
+    if not SuperScraper.rights_to_exercise(RIGHT_MAP):
+        print("No requested privacy rights apply to this form — nothing to do.")
+        return
 
     full_name = " ".join(p for p in (SuperScraper.FIRST_NAME, SuperScraper.LAST_NAME) if p)
     address_bits = [SuperScraper.ADDRESS, SuperScraper.CITY,

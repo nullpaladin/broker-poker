@@ -3,25 +3,35 @@
 #   "I want to know what personal data you have about me"                -> Access
 #   "I want you to not sell my personal data (California residents)"     -> Opt-Out
 #   "I want you to delete the personal data you have about me"           -> Delete
-#       (gated on REMOVE_INFORMATION)
 #   "change" / "stop using" skipped as non-core.
+# Which run is decided only by SuperScraper.rights_to_exercise.
 # Fields: name, emailAddress, ipAddresses (textarea — the requester's public IP,
 #   fetched at runtime), scope <select> -> "all of my data", behalf <select> ->
 #   "No", file (optional, skipped). No CAPTCHA seen (only a Trustpilot widget).
+#
+# Page elements (all inside form#form-do-not-sell):
+#   input[name=name]                  Name
+#   input[name=emailAddress]          Email
+#   textarea[name=ipAddresses]        IP addresses (requester's public IP)
+#   select[name=requestType]          Request type (options in RIGHT_MAP)
+#   select[name=scope]                Scope -> "This request relates to all of my data"
+#   select[name=behalf]               On behalf of someone else -> "No"
+#   button/input[type=submit]         Submit
 import asyncio
 import urllib.request
 
 from pydoll.browser.chromium import Chrome
 
+from src.dsar.rights import Right
 from src.dsar.super_scraper import SuperScraper
 from src.dsar import js_utils
 
 URL = "https://www.ip2location.com/do-not-sell"
 
 RIGHT_MAP = {
-    "access": [("I want to know what personal data you have about me", "access")],
-    "opt_out_sale_share": [("I want you to not sell my personal data (California residents)", "opt_out")],
-    "delete": [("I want you to delete the personal data you have about me", "delete")],
+    Right.RIGHT_TO_ACCESS: [("I want to know what personal data you have about me", "access")],
+    Right.RIGHT_TO_OPT_OUT: [("I want you to not sell my personal data (California residents)", "opt_out")],
+    Right.RIGHT_TO_DELETE: [("I want you to delete the personal data you have about me", "delete")],
 }
 RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
 
@@ -35,7 +45,7 @@ def _public_ip():
     return ""
 
 
-async def submit_request(tab, right_label, tag, super_scraper, ip):
+async def submit_request(tab, right, right_label, tag, super_scraper, ip):
     await tab.go_to(URL)
     await asyncio.sleep(6)
 
@@ -67,16 +77,16 @@ async def submit_request(tab, right_label, tag, super_scraper, ip):
         await js_utils.select_native_option(behalf, text="No")
 
     await asyncio.sleep(1)
-    await SuperScraper.screenshot(tab, f"dry_run_{tag}")
+    await SuperScraper.screenshot(tab, f"dry_run_{right.value}")
     if SuperScraper.DRY_RUN:
-        print(f"DRY RUN: would submit '{right_label}' for {SuperScraper.EMAIL} (IP {ip or '?'})")
+        print(f"DRY RUN: would submit '{right.name}' for {SuperScraper.EMAIL} (IP {ip or '?'})")
         return
 
     submit = await tab.find(xpath=f"{form_xp}//button[@type='submit'] | {form_xp}//input[@type='submit']", raise_exc=False)
     if submit:
         await submit.click()
         await asyncio.sleep(3)
-        print(f"Submitted '{right_label}' for {SuperScraper.EMAIL}")
+        print(f"Submitted '{right.name}' for {SuperScraper.EMAIL} — confirm in the browser.")
 
 
 async def main():
@@ -84,16 +94,16 @@ async def main():
     options = SuperScraper.build_chromium_options()
 
     ip = _public_ip()
-    codes = SuperScraper.rights_to_exercise(RIGHT_MAP)
-    if not codes:
+    rights = SuperScraper.rights_to_exercise(RIGHT_MAP)
+    if not rights:
         print("No requested privacy rights apply to this form — nothing to do.")
         return
-    rights = [entry for code in codes for entry in RIGHT_MAP[code]]
 
     async with Chrome(options=options) as browser:
         tab = await browser.start()
-        for right_label, tag in rights:
-            await submit_request(tab, right_label, tag, super_scraper, ip)
+        for right in rights:
+            for right_label, tag in RIGHT_MAP[right]:
+                await submit_request(tab, right, right_label, tag, super_scraper, ip)
 
 
 asyncio.run(main())

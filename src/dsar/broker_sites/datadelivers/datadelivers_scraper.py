@@ -1,35 +1,52 @@
 # datadelivers.com — Trust Superset DSR platform
-# Request Type is a single-select dropdown (one submission per
-# right): Right to Rectification (Correct), Right to Restrict Processing,
-# Right to Data Portability, Right to Not be Subject to Automated
-# Decision-Making, Right to Opt-out of Sales, Right to Limit Sensitive
-# Personal Information unconditionally; Right to Erasure (Delete) gated on
-# REMOVE_INFORMATION. No dedicated "Access" option is offered by this form.
-# Cloudflare Turnstile ("Please verify you're human") requires manual solve
-# in live mode. Selecting Rectification reveals an additional required
-# "Information to Rectify" textarea (name="rectification_info") — no other
-# right adds a conditional field.
+# Request Type is a single-select dropdown (one submission per request type).
+# No dedicated "Access" option is offered by this form; "Right to Data Portability" is
+# the closest and is used for Right.RIGHT_TO_ACCESS. "Right to Rectification" is offered
+# but not automated (it reveals an extra required "Information to Rectify" textarea,
+# name="rectification_info"); no other option adds a conditional field.
+# Cloudflare Turnstile ("Please verify you're human") requires manual solve in live mode.
+#
+# Page elements:
+#   "Select request type" dropdown  Request Type (options in PAGE_RIGHTS)
+#   first_name / last_name          First / Last name (by name=)
+#   email / phone                   Email / Phone
+#   country                         Country -> "United States"
+#   address_1 / city / region / zip_code   Address / City / State(region) / ZIP
+#   "Submit Request" button         Submit (manual, after Turnstile)
 import asyncio
 
+from src.dsar.rights import Right
 from src.dsar.super_scraper import SuperScraper
 
 from pydoll.browser.chromium import Chrome
 
 URL = "https://dsr.trustsuperset.com/?orgId=275d6c62-eb0f-4f8a-80c2-b72573902714"
 
-# Trust Superset 7-option dropdown; GDPR "Restrict Processing" rides with opt-out.
 RIGHT_MAP = {
-    "correct": ["Right to Rectification"],
-    "portability": ["Right to Data Portability"],
-    "opt_out_profiling": ["Right to Not be Subject to Automated Decision-Making"],
-    "opt_out_sale_share": ["Right to Opt-out of Sales", "Right to Restrict Processing"],
-    "limit_sensitive_pi": ["Right to Limit Sensitive Personal Information"],
-    "delete": ["Right to Erasure"],
+    Right.RIGHT_TO_ACCESS: "Right to Data Portability",
+    Right.RIGHT_TO_OPT_OUT: [
+        "Right to Opt-out of Sales",
+        "Right to Restrict Processing",
+        "Right to Not be Subject to Automated Decision-Making",
+        "Right to Limit Sensitive Personal Information",
+    ],
+    Right.RIGHT_TO_DELETE: "Right to Erasure",
 }
 RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
 
+# Every request type the dropdown lists -> Right (None = offered but not automated).
+PAGE_RIGHTS = {
+    "Right to Rectification": None,
+    "Right to Restrict Processing": Right.RIGHT_TO_OPT_OUT,
+    "Right to Data Portability": Right.RIGHT_TO_ACCESS,
+    "Right to Not be Subject to Automated Decision-Making": Right.RIGHT_TO_OPT_OUT,
+    "Right to Opt-out of Sales": Right.RIGHT_TO_OPT_OUT,
+    "Right to Limit Sensitive Personal Information": Right.RIGHT_TO_OPT_OUT,
+    "Right to Erasure": Right.RIGHT_TO_DELETE,
+}
 
-async def submit_request(tab, right, super_scraper):
+
+async def submit_request(tab, right, entry, super_scraper):
     await tab.go_to(URL)
     await asyncio.sleep(5)
 
@@ -37,18 +54,10 @@ async def submit_request(tab, right, super_scraper):
     if request_type:
         await request_type.click()
         await asyncio.sleep(1)
-        option = await tab.find(text=right, raise_exc=False)
+        option = await tab.find(text=entry, raise_exc=False)
         if option:
             await option.click()
     await asyncio.sleep(1)
-
-    if right == "Right to Rectification":
-        rectify_field = await tab.find(name="rectification_info", raise_exc=False)
-        if rectify_field:
-            await rectify_field.type_text(
-                "Please correct any inaccurate personal information you hold about me "
-                "to match the details provided in this request."
-            )
 
     for name, value in [
         ("first_name", SuperScraper.FIRST_NAME),
@@ -66,42 +75,34 @@ async def submit_request(tab, right, super_scraper):
             await field.type_text(value)
             await asyncio.sleep(0.2)
 
-    label = right.lower().replace(" ", "_")
-
     if SuperScraper.DRY_RUN:
-        print(
-            f"DRY RUN: would submit '{right}' for "
-            f"{SuperScraper.FIRST_NAME} {SuperScraper.LAST_NAME} <{SuperScraper.EMAIL}>"
-        )
         await asyncio.sleep(1)
-        await SuperScraper.screenshot(tab, f"dry_run_{label}")
+        await SuperScraper.screenshot(tab, f"dry_run_{right.value}")
+        print(f"DRY RUN: would submit '{right.name}' ({entry}) for {SuperScraper.EMAIL}")
         return
 
-    print(f"\nForm filled for '{right}'. Solve the Cloudflare Turnstile challenge,")
+    print(f"\nForm filled for '{right.name}' ({entry}). Solve the Cloudflare Turnstile challenge,")
     print("click Submit Request, then press Enter once the confirmation appears...")
     input()
 
-    source = await tab.page_source
-    if any(w in source.lower() for w in ("thank", "success", "received", "submitted", "confirmation")):
-        print(f"Submitted '{right}' for {SuperScraper.FIRST_NAME} {SuperScraper.LAST_NAME}")
-    else:
-        print(f"{super_scraper.OOPS} Confirmation unclear for '{right}' — verify in browser")
+    print(f"Submitted '{right.name}' ({entry}) for {SuperScraper.EMAIL} — confirm in the browser.")
 
 
 async def main():
     super_scraper = SuperScraper()
     options = SuperScraper.build_chromium_options()
 
-    codes = SuperScraper.rights_to_exercise(RIGHT_MAP)
-    if not codes:
+    rights = SuperScraper.rights_to_exercise(RIGHT_MAP)
+    if not rights:
         print("No requested privacy rights apply to this form — nothing to do.")
         return
-    rights = [entry for code in codes for entry in RIGHT_MAP[code]]
 
     async with Chrome(options=options) as browser:
         tab = await browser.start()
         for right in rights:
-            await submit_request(tab, right, super_scraper)
+            entries = RIGHT_MAP[right]
+            for entry in (entries if isinstance(entries, list) else [entries]):
+                await submit_request(tab, right, entry, super_scraper)
 
 
 asyncio.run(main())

@@ -1,29 +1,36 @@
-# jmr-media.com — exercises Opt-Out of Sale/Share, Limit Sensitive PI, Access,
-# and Right to Delete (gated on REMOVE_INFORMATION). Correct skipped (requires
-# specifying what to correct). React/Next.js form with Cloudflare Turnstile
-# that auto-completes in a real Chromium browser (no manual solve needed).
-# State is a native <select id="state"> with 2-letter abbreviation values.
-# id="website" is a honeypot — not touched. Submits one request per right type.
+# jmr-media.com — React/Next.js form with Cloudflare Turnstile that auto-completes
+# in a real Chromium browser (no manual solve needed). Rights the form exposes:
+# Access, Opt-Out of Sale/Share, Limit Sensitive PI, Delete (and Correct — not
+# automated, needs the user to specify what to correct). Which rights run is
+# decided ONLY by SuperScraper.rights_to_exercise(RIGHT_MAP). One submission per
+# radio choice.
+#
+# Page elements:
+#   #firstName / #lastName / #email   First / Last name, Email
+#   #state                            native <select>, 2-letter abbreviation values
+#   input[name=requestType]           radio group (values in RIGHT_MAP)
+#   "Submit Request" button           (falls back to the first <button>)
+#   #website                          honeypot — not touched
 import asyncio
 import time
 
 from pydoll.browser.chromium import Chrome
 
+from src.dsar.rights import Right
 from src.dsar.super_scraper import SuperScraper
 
 URL = "https://jmr-media.com/do-not-sell"
 
 # (requestType value, screenshot label)
 RIGHT_MAP = {
-    "access": [("access_request", "access")],
-    "opt_out_sale_share": [("opt_out_sale_share", "optout")],
-    "limit_sensitive_pi": [("limit_sensitive_pi", "sensitive")],
-    "delete": [("delete_request", "delete")],
+    Right.RIGHT_TO_ACCESS: [("access_request", "access")],
+    Right.RIGHT_TO_OPT_OUT: [("opt_out_sale_share", "optout"), ("limit_sensitive_pi", "sensitive")],
+    Right.RIGHT_TO_DELETE: [("delete_request", "delete")],
 }
 RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
 
 
-async def submit_request(tab, request_value, label, super_scraper):
+async def submit_request(tab, right, request_value, label, super_scraper):
     await tab.go_to(URL)
     await asyncio.sleep(6)  # allow Turnstile to auto-complete
 
@@ -59,8 +66,7 @@ async def submit_request(tab, request_value, label, super_scraper):
 
     if SuperScraper.DRY_RUN:
         print(
-            f"DRY RUN: would submit '{request_value}' for "
-            f"{SuperScraper.FIRST_NAME} {SuperScraper.LAST_NAME} <{SuperScraper.EMAIL}>"
+            f"DRY RUN: would submit '{right.name}' ({request_value}) for {SuperScraper.EMAIL}"
         )
         await SuperScraper.screenshot(tab, f"dry_run_{label}")
         return
@@ -72,27 +78,23 @@ async def submit_request(tab, request_value, label, super_scraper):
         await submit.click()
     await asyncio.sleep(4)
 
-    source = await tab.page_source
-    if any(w in source.lower() for w in ("thank", "success", "received", "submitted", "confirmation")):
-        print(f"Submitted '{request_value}' for {SuperScraper.FIRST_NAME} {SuperScraper.LAST_NAME}")
-    else:
-        print(f"{super_scraper.OOPS} Confirmation unclear for '{request_value}' — verify in browser")
+    print(f"Submitted '{right.name}' ({request_value}) for {SuperScraper.EMAIL} — confirm in the browser.")
 
 
 async def main():
     super_scraper = SuperScraper()
     options = SuperScraper.build_chromium_options()
 
-    codes = SuperScraper.rights_to_exercise(RIGHT_MAP)
-    if not codes:
+    rights = SuperScraper.rights_to_exercise(RIGHT_MAP)
+    if not rights:
         print("No requested privacy rights apply to this form — nothing to do.")
         return
-    requests = [entry for code in codes for entry in RIGHT_MAP[code]]
 
     async with Chrome(options=options) as browser:
         tab = await browser.start()
-        for request_value, label in requests:
-            await submit_request(tab, request_value, label, super_scraper)
+        for right in rights:
+            for request_value, label in RIGHT_MAP[right]:
+                await submit_request(tab, right, request_value, label, super_scraper)
 
 
 asyncio.run(main())

@@ -12,33 +12,49 @@
 # single-select despite looking like it could be otherwise — one
 # submission per right. "I am a (an)" only offers "Consumer". A perjury-
 # declaration "Yes" button (also role="option") must be clicked to
-# proceed. BotDetect image CAPTCHA (`captchaCode`) — **CAPTCHA solution
-# required**. Exercises Know/Access/Data Portability and Opt Out
-# unconditionally; Delete gated on REMOVE_INFORMATION. Correct/Appeal
-# skipped as auxiliary.
+# proceed. BotDetect image CAPTCHA (`captchaCode`) — **CAPTCHA solution required**; the
+# form is filled and left unsubmitted. Rights the form exposes: "Request to
+# Know/Access/Data Portability" (access), "Request to Opt Out of Selling/Sharing or
+# Targeted Advertising" (opt-out), "Request to Delete"; Correct/Appeal skipped as
+# auxiliary. Which rights run is decided ONLY by SuperScraper.rights_to_exercise(RIGHT_MAP).
+#
+# Page elements (keep this list current):
+#   #stateDSARElement          State autocomplete combobox (click the matching role=option)
+#   role=option aria-label=<request>   "Select request type" (see RIGHT_MAP)
+#   role=option aria-label="Consumer"  "I am a (an)"
+#   #firstNameDSARElement / #lastNameDSARElement   First / Last name (only for some request types)
+#   #emailDSARElement          Email
+#   #phoneNumberDSARElement    Phone (digits only)
+#   role=option aria-label="Yes"       perjury declaration
+#   BotDetect image CAPTCHA    manual (captchaCode)
 import asyncio
 
+from src.dsar.rights import Right
 from src.dsar.super_scraper import SuperScraper
 
 from pydoll.browser.chromium import Chrome
 
 URL = "https://privacyportal.onetrust.com/webform/dad2d808-afe9-4335-9217-e650f906ee17/f3f3d5e6-bc82-4d21-ab04-f733117d11d2"
 
+STATE_FIELD = "stateDSARElement"  # State autocomplete combobox
+FIRST_NAME_FIELD = "firstNameDSARElement"  # First name
+LAST_NAME_FIELD = "lastNameDSARElement"  # Last name
+EMAIL_FIELD = "emailDSARElement"  # Email
+PHONE_FIELD = "phoneNumberDSARElement"  # Phone
+
 RIGHT_MAP = {
-    "access": ["Request to Know/Access/Data Portability"],
-    "portability": ["Request to Know/Access/Data Portability"],
-    "opt_out_sale_share": ["Request to Opt Out of Selling/Sharing or Targeted Advertising"],
-    "opt_out_targeted_ads": ["Request to Opt Out of Selling/Sharing or Targeted Advertising"],
-    "delete": ["Request to Delete"],
+    Right.RIGHT_TO_ACCESS: "Request to Know/Access/Data Portability",
+    Right.RIGHT_TO_OPT_OUT: "Request to Opt Out of Selling/Sharing or Targeted Advertising",
+    Right.RIGHT_TO_DELETE: "Request to Delete",
 }
 RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
 
 
-async def submit_request(tab, right, super_scraper):
+async def submit_request(tab, right, option, super_scraper):
     await tab.go_to(URL)
     await asyncio.sleep(5)
 
-    state_field = await tab.find(id="stateDSARElement", raise_exc=False)
+    state_field = await tab.find(id=STATE_FIELD, raise_exc=False)
     if state_field:
         await state_field.click()
         await asyncio.sleep(0.3)
@@ -55,12 +71,12 @@ async def submit_request(tab, right, super_scraper):
     else:
         print(f"{super_scraper.OOPS} state field not found")
 
-    right_opt = await tab.find(xpath=f"//*[@role='option' and @aria-label='{right}']", raise_exc=False)
+    right_opt = await tab.find(xpath=f"//*[@role='option' and @aria-label='{option}']", raise_exc=False)
     if right_opt:
         await right_opt.click()
         await asyncio.sleep(1.5)
     else:
-        print(f"{super_scraper.OOPS} '{right}' option not found")
+        print(f"{super_scraper.OOPS} '{option}' option not found")
 
     consumer_opt = await tab.find(xpath="//*[@role='option' and @aria-label='Consumer']", raise_exc=False)
     if consumer_opt:
@@ -71,9 +87,9 @@ async def submit_request(tab, right, super_scraper):
     # ask for Phone/Email. Their absence for a given right is expected, not
     # an error, so these are filled silently when present.
     fields = {
-        "firstNameDSARElement": SuperScraper.FIRST_NAME,
-        "lastNameDSARElement": SuperScraper.LAST_NAME,
-        "emailDSARElement": SuperScraper.EMAIL,
+        FIRST_NAME_FIELD: SuperScraper.FIRST_NAME,
+        LAST_NAME_FIELD: SuperScraper.LAST_NAME,
+        EMAIL_FIELD: SuperScraper.EMAIL,
     }
     for field_id, value in fields.items():
         if not value:
@@ -82,7 +98,7 @@ async def submit_request(tab, right, super_scraper):
         if field:
             await field.type_text(value)
 
-    phone_field = await tab.find(id="phoneNumberDSARElement", raise_exc=False)
+    phone_field = await tab.find(id=PHONE_FIELD, raise_exc=False)
     if phone_field and SuperScraper.PHONE_NUMBER:
         digits = "".join(c for c in SuperScraper.PHONE_NUMBER if c.isdigit())
         await phone_field.type_text(digits)
@@ -91,30 +107,30 @@ async def submit_request(tab, right, super_scraper):
     if perjury_opt:
         await perjury_opt.click()
 
-    label = "".join(c if c.isalnum() else "_" for c in right.lower())[:40].strip("_")
-
     await asyncio.sleep(1)
-    await SuperScraper.screenshot(tab, f"dry_run_{label}")
+    await SuperScraper.screenshot(tab, f"dry_run_{right.value}")
     print(
-        f"\n'{right}' request filled but NOT submitted — a BotDetect image CAPTCHA is "
+        f"\n'{right.name}' request filled but NOT submitted — a BotDetect image CAPTCHA is "
         "present and requires manual entry."
     )
 
 
 async def main():
     super_scraper = SuperScraper()
-    options = SuperScraper.build_chromium_options()
+    if SuperScraper.bail_if_not_automatable(globals()):
+        return
 
-    codes = SuperScraper.rights_to_exercise(RIGHT_MAP)
-    if not codes:
+    rights = SuperScraper.rights_to_exercise(RIGHT_MAP)
+    if not rights:
         print("No requested privacy rights apply to this form — nothing to do.")
         return
-    rights = [entry for code in codes for entry in RIGHT_MAP[code]]
+
+    options = SuperScraper.build_chromium_options()
 
     async with Chrome(options=options) as browser:
         tab = await browser.start()
         for right in rights:
-            await submit_request(tab, right, super_scraper)
+            await submit_request(tab, right, RIGHT_MAP[right], super_scraper)
 
 
 asyncio.run(main())

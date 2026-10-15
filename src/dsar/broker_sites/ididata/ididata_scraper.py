@@ -1,22 +1,36 @@
-# ididata.com (IDI Data) — exercises Access, Do Not Sell, Delete (gated).
+# ididata.com (IDI Data) — Access, Do Not Sell (opt-out) and Delete; which run is decided only
+# by SuperScraper.rights_to_exercise.
 # Three separate Salesforce Web-to-Case pages, one per right type. Minnesota is supported.
 # Fields: name, address, state (full name), zip, phone, email, last4ss (LAST_FOUR_SSN required),
 # DOB (month/day/year selects), lived6Months ("Yes"), deliveryChoice ("email").
 # hp-prefixed selects (hplived6Months, hpdobmonth, etc.) are honeypots — left empty.
 # hplegalAgree is a honeypot checkbox — left unchecked.
 # reCAPTCHA v2 requires manual solve before submit.
+#
+# Page elements (ids):
+#   "Accept All Cookies" button     cookie banner
+#   #firstName / #lastName          First / Last name
+#   #addressLine1 / #addressLine2   Address lines
+#   #city / #State / #zip           City / State (full name) / ZIP
+#   #lived6Months                   lived at address 6 months -> "Yes"
+#   #phone / #email                 Phone / Email
+#   #last4ss                        Last 4 of SSN
+#   #month / #day / #year           Date of birth selects
+#   #deliveryChoice                 Delivery preference -> "email"
+#   "Submit Request" button
 import asyncio
 import time
 
 from pydoll.browser.chromium import Chrome
 
+from src.dsar.rights import Right
 from src.dsar.super_scraper import SuperScraper
 
 # (URL, screenshot label)
 RIGHT_MAP = {
-    "access": [("https://www.ididata.com/personal-information-request/", "access")],
-    "opt_out_sale_share": [("https://www.ididata.com/do-not-sell-my-personal-information/", "optout")],
-    "delete": [("https://www.ididata.com/deletion-request/", "delete")],
+    Right.RIGHT_TO_ACCESS: ("https://www.ididata.com/personal-information-request/", "access"),
+    Right.RIGHT_TO_OPT_OUT: ("https://www.ididata.com/do-not-sell-my-personal-information/", "optout"),
+    Right.RIGHT_TO_DELETE: ("https://www.ididata.com/deletion-request/", "delete"),
 }
 RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
 
@@ -43,7 +57,7 @@ async def _select_option(tab, select_id, value):
         print(f"Select #{select_id} not found")
 
 
-async def submit_request(tab, url, label, super_scraper, dob_day, dob_month, dob_year):
+async def submit_request(tab, right, url, label, super_scraper, dob_day, dob_month, dob_year):
     await tab.go_to(url)
     await asyncio.sleep(6)
 
@@ -112,17 +126,16 @@ async def submit_request(tab, url, label, super_scraper, dob_day, dob_month, dob
         submit_btn = await tab.find(tag_name="button", text="Submit Request", raise_exc=False)
         if submit_btn:
             await submit_btn.scroll_into_view()
-        await SuperScraper.screenshot(tab, f"dry_run_{label}")
+        await SuperScraper.screenshot(tab, f"dry_run_{right.value}")
         print(
-            f"DRY RUN: would submit '{label}' for "
-            f"{SuperScraper.FIRST_NAME} {SuperScraper.LAST_NAME} <{SuperScraper.EMAIL}>"
+            f"DRY RUN: would submit '{right.name}' for {SuperScraper.EMAIL}"
         )
         return
 
-    print(f"\nForm filled for '{label}'. Solve the reCAPTCHA v2, then click Submit Request.")
+    print(f"\nForm filled for '{right.name}'. Solve the reCAPTCHA v2, then click Submit Request.")
     print("Press Enter after the confirmation page appears...")
     input()
-    print(f"Submitted '{label}' for {SuperScraper.FIRST_NAME} {SuperScraper.LAST_NAME}")
+    print(f"Submitted '{right.name}' for {SuperScraper.EMAIL} — confirm in the browser.")
 
 
 async def main():
@@ -135,16 +148,17 @@ async def main():
 
     dob_day, dob_month, dob_year = _parse_dob()
 
-    codes = SuperScraper.rights_to_exercise(RIGHT_MAP)
-    if not codes:
+    rights = SuperScraper.rights_to_exercise(RIGHT_MAP)
+    if not rights:
         print("No requested privacy rights apply to this form — nothing to do.")
         return
-    requests = [entry for code in codes for entry in RIGHT_MAP[code]]
 
     async with Chrome(options=options) as browser:
         tab = await browser.start()
-        for url, label in requests:
-            await submit_request(tab, url, label, super_scraper, dob_day, dob_month, dob_year)
+        for right in rights:
+            entries = RIGHT_MAP[right]
+            for url, label in (entries if isinstance(entries, list) else [entries]):
+                await submit_request(tab, right, url, label, super_scraper, dob_day, dob_month, dob_year)
 
 
 asyncio.run(main())

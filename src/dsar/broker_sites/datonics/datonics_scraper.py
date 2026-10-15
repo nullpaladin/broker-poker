@@ -1,25 +1,31 @@
 # datonics.com — a Squarespace-built form (sqs-* classes) at
-# /privacy/privacy-choices. Fields: Email, "Resident of" (state select,
-# reveals an "Other Location" text field only when "Other" is chosen — not
-# needed here since Minnesota is directly listed), "Type of Request"
-# (single-select, one submission per right: "Opt-out of Targeted
-# Advertising / Do Not Sell or Share My Personal Information" and
-# "Access/Obtain Copy of My Information" unconditionally; "Delete My
-# Information" gated on REMOVE_INFORMATION), optional Mobile Advertising ID
-# (IDFA/AAID, filled from ADVERTISING_ID when set), and a required "Resident
-# Certification" radio (attesting residency, as opposed to authorized-agent
-# status) — the resident option is used here. Ends in a reCAPTCHA badge that
-# may require a manual solve in live mode.
+# /privacy/privacy-choices. "Type of Request" is single-select, so one submission
+# per right. Which rights run is decided ONLY by
+# SuperScraper.rights_to_exercise(RIGHT_MAP). The form has no free-text box.
+# Ends in a reCAPTCHA badge that may require a manual solve in live mode.
+#
+# Page elements:
+#   "Reject Non-essential"        Cookie banner button
+#   EMAIL_FIELD                   Email
+#   select[aria-label='Resident of']    State select (an "Other Location" text field
+#                                 appears only when "Other" is chosen — not needed here)
+#   select[aria-label='Type of Request']  Request type -> options in RIGHT_MAP
+#   MAID_FIELD                    Mobile Advertising ID (IDFA/AAID), optional, from ADVERTISING_ID
+#   CERTIFICATION_RADIO_NAME      "Resident Certification" radio -> RESIDENT_CERTIFICATION_VALUE
+#                                 (attests residency, as opposed to authorized-agent status)
+#   button[type=submit]           Submit
 import asyncio
 
-from src.dsar.super_scraper import SuperScraper
-
 from pydoll.browser.chromium import Chrome
+
+from src.dsar import js_utils
+from src.dsar.rights import Right
+from src.dsar.super_scraper import SuperScraper
 
 URL = "https://www.datonics.com/privacy/privacy-choices"
 
 EMAIL_FIELD = "email-yui_3_17_2_1_1734056193020_5730-field"
-MAID_FIELD = "text-yui_3_17_2_1_1734056193020_5731-field"
+MAID_FIELD = "text-yui_3_17_2_1_1734056193020_5731-field"  # "Mobile Advertising ID"
 CERTIFICATION_RADIO_NAME = "radio-68c2cafe-eb6d-45f4-b6f1-21929019c667-field"
 RESIDENT_CERTIFICATION_VALUE = (
     "I certify that I am a resident of selected state / location and that all information "
@@ -28,10 +34,9 @@ RESIDENT_CERTIFICATION_VALUE = (
 
 # The one opt-out option covers both sale/share and targeted ads.
 RIGHT_MAP = {
-    "access": ["Access/Obtain Copy of My Information"],
-    "opt_out_sale_share": ["Opt-out of Targeted Advertising / Do Not Sell or Share My Personal Information"],
-    "opt_out_targeted_ads": ["Opt-out of Targeted Advertising / Do Not Sell or Share My Personal Information"],
-    "delete": ["Delete My Information"],
+    Right.RIGHT_TO_ACCESS: "Access/Obtain Copy of My Information",
+    Right.RIGHT_TO_OPT_OUT: "Opt-out of Targeted Advertising / Do Not Sell or Share My Personal Information",
+    Right.RIGHT_TO_DELETE: "Delete My Information",
 }
 RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
 
@@ -41,15 +46,10 @@ async def _select_by_aria_label(tab, aria_label, value, super_scraper, descripti
     if not field:
         print(f"{super_scraper.OOPS} {description} field not found")
         return
-    await field.execute_script(
-        "for (var i=0;i<this.options.length;i++){"
-        f"  if(this.options[i].value==={value!r}){{ this.selectedIndex=i; }}"
-        "}"
-        "this.dispatchEvent(new Event('change', {bubbles:true}));"
-    )
+    await js_utils.select_native_option(field, value=value)
 
 
-async def submit_request(tab, request_type, super_scraper):
+async def submit_request(tab, right, request_type, super_scraper):
     await tab.go_to(URL)
     await asyncio.sleep(5)
 
@@ -77,37 +77,36 @@ async def submit_request(tab, request_type, super_scraper):
     if certification:
         await certification.click()
 
-    label = "".join(c if c.isalnum() else "_" for c in request_type.lower())[:40].strip("_")
-
     if SuperScraper.DRY_RUN:
-        print(f"DRY RUN: would submit '{request_type}' request for {SuperScraper.FIRST_NAME} {SuperScraper.LAST_NAME}")
         await asyncio.sleep(1)
-        await SuperScraper.screenshot(tab, f"dry_run_{label}")
+        await SuperScraper.screenshot(tab, f"dry_run_{right.value}")
+        print(f"DRY RUN: would submit '{right.name}' for {SuperScraper.EMAIL}")
         return
 
     submit_btn = await tab.find(xpath="//button[@type='submit']", raise_exc=False)
     if submit_btn:
         await submit_btn.click()
         await asyncio.sleep(2)
-        print(f"Submitted '{request_type}' request for {SuperScraper.FIRST_NAME} {SuperScraper.LAST_NAME}")
+        print(f"Submitted '{right.name}' for {SuperScraper.EMAIL} — confirm in the browser.")
     else:
-        print(f"{super_scraper.OOPS} Submit button not found for '{request_type}'")
+        print(f"{super_scraper.OOPS} Submit button not found for '{right.name}'")
 
 
 async def main():
     super_scraper = SuperScraper()
-    options = SuperScraper.build_chromium_options()
+    if SuperScraper.bail_if_not_automatable(globals()):
+        return
 
-    codes = SuperScraper.rights_to_exercise(RIGHT_MAP)
-    if not codes:
+    rights = SuperScraper.rights_to_exercise(RIGHT_MAP)
+    if not rights:
         print("No requested privacy rights apply to this form — nothing to do.")
         return
-    request_types = [entry for code in codes for entry in RIGHT_MAP[code]]
 
+    options = SuperScraper.build_chromium_options()
     async with Chrome(options=options) as browser:
         tab = await browser.start()
-        for request_type in request_types:
-            await submit_request(tab, request_type, super_scraper)
+        for right in rights:
+            await submit_request(tab, right, RIGHT_MAP[right], super_scraper)
 
 
 asyncio.run(main())

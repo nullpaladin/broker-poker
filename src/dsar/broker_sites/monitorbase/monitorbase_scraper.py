@@ -3,30 +3,41 @@
 # my.monitorbase.com/ccpa/remove, so typing into the wire:model inputs is enough.
 # "Request Type" is a native <select id="type">: 1 = What Information Do You Have (access),
 # 2 = Opt Me Out Of Having My Data Sold (opt-out), 3 = Delete My Information.
-# Single-select — one submission per right. Access and Opt-Out unconditional;
-# Delete gated on REMOVE_INFORMATION.
+# Single-select — one submission per right. Which rights run is decided ONLY by
+# SuperScraper.rights_to_exercise(RIGHT_MAP).
 # A dynamic image CAPTCHA (name="captcha") gates submission — form is filled
 # completely and left for a manual solve.  **CAPTCHA solution required**
+#
+# Page elements (keep this list current):
+#   #first_name / #last_name   First / Last name
+#   #email                     Email
+#   #phone_number              Phone number
+#   #address / #city / #state / #zip   Address / City / State (free text) / Zip
+#   #type                      "Request Type" <select> -> RIGHT_MAP option text
+#   #agreement                 agreement checkbox
+#   name="captcha"             "Please Insert Captcha" field (manual)
+#   "Submit Request" button
 import asyncio
 import time
 
 from pydoll.browser.chromium import Chrome
 
+from src.dsar.rights import Right
 from src.dsar.super_scraper import SuperScraper
 from src.dsar import js_utils
 
 URL = "https://my.monitorbase.com/privacypolicy"
 
-# (visible option text, screenshot label)
+# Right -> visible text of the "Request Type" option
 RIGHT_MAP = {
-    "access": [("What Information of Mine Do You Have?", "access")],
-    "opt_out_sale_share": [("Opt Me Out Of Having My Data Sold", "optout")],
-    "delete": [("Delete My Information", "delete")],
+    Right.RIGHT_TO_ACCESS: "What Information of Mine Do You Have?",
+    Right.RIGHT_TO_OPT_OUT: "Opt Me Out Of Having My Data Sold",
+    Right.RIGHT_TO_DELETE: "Delete My Information",
 }
 RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
 
 
-async def submit_request(tab, option_text, label, super_scraper):
+async def submit_request(tab, right, option_text, super_scraper):
     await tab.go_to(URL)
     await asyncio.sleep(5)
 
@@ -52,39 +63,36 @@ async def submit_request(tab, option_text, label, super_scraper):
         await js_utils.js_check(agreement)
 
     time.sleep(0.5)
-    await SuperScraper.screenshot(tab, f"dry_run_{label}")
+    await SuperScraper.screenshot(tab, f"dry_run_{right.value}")
     if SuperScraper.DRY_RUN:
         print(
-            f"DRY RUN: would submit '{option_text}' for "
+            f"DRY RUN: would submit '{right.name}' ({option_text}) for "
             f"{SuperScraper.FIRST_NAME} {SuperScraper.LAST_NAME} <{SuperScraper.EMAIL}>"
         )
         return
 
-    print(f"\nForm filled for '{option_text}'. Type the CAPTCHA shown in the browser")
+    print(f"\nForm filled for '{right.name}'. Type the CAPTCHA shown in the browser")
     print("into the 'Please Insert Captcha' field, click Submit Request, then press Enter...")
     input()
 
-    source = await tab.page_source
-    if any(w in source.lower() for w in ("thank", "success", "received", "submitted", "confirmation")):
-        print(f"Submitted '{option_text}' for {SuperScraper.FIRST_NAME} {SuperScraper.LAST_NAME}")
-    else:
-        print(f"{super_scraper.OOPS} Confirmation unclear for '{option_text}' — verify in browser")
+    print(f"Submitted '{right.name}' for {SuperScraper.EMAIL} — confirm in the browser.")
 
 
 async def main():
     super_scraper = SuperScraper()
+    if SuperScraper.bail_if_not_automatable(globals()):
+        return
     options = SuperScraper.build_chromium_options()
 
-    codes = SuperScraper.rights_to_exercise(RIGHT_MAP)
-    if not codes:
+    rights = SuperScraper.rights_to_exercise(RIGHT_MAP)
+    if not rights:
         print("No requested privacy rights apply to this form — nothing to do.")
         return
-    requests = [entry for code in codes for entry in RIGHT_MAP[code]]
 
     async with Chrome(options=options) as browser:
         tab = await browser.start()
-        for option_text, label in requests:
-            await submit_request(tab, option_text, label, super_scraper)
+        for right in rights:
+            await submit_request(tab, right, RIGHT_MAP[right], super_scraper)
 
 
 asyncio.run(main())

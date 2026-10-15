@@ -9,18 +9,30 @@
 # Fields (frame 0): 0-1/firstname, 0-1/lastname, 0-1/work_email, 0-1/company
 # (current employer name), 0-2/address / 0-2/city / 0-2/state / 0-2/zip
 # (employer address — filled from the persona's address, the best available).
+# Element notes: iframe[src*=ui-forms-embed-components-app] holding the opt-out form;
+#   0-1/firstname First name, 0-1/lastname Last name, 0-1/work_email Work email,
+#   0-1/company Current Employer, 0-2/address Address, 0-2/city City, 0-2/state State, 0-2/zip Zip.
 # Invisible reCAPTCHA Enterprise gates submit.  **CAPTCHA solution required**
+# Not submitted by the scraper (manual reCAPTCHA solve, then Submit).
 import asyncio
 
 from pydoll.browser.chromium import Chrome
 
+from src.dsar.rights import Right
 from src.dsar.super_scraper import SuperScraper
+
+RIGHT_MAP = {Right.RIGHT_TO_OPT_OUT: "opt-out"}
+RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
 
 URL = "https://salutarydata.com/privacy-opt-out-and-disclosure-form/"
 
 
 async def main():
     super_scraper = SuperScraper()
+    rights = SuperScraper.rights_to_exercise(RIGHT_MAP)
+    if not rights:
+        print("No requested privacy rights apply to this form — nothing to do.")
+        return
     options = SuperScraper.build_chromium_options()
 
     async with Chrome(options=options) as browser:
@@ -64,7 +76,7 @@ async def main():
                 print(f"{super_scraper.OOPS} field name={name!r} not found in frame")
 
         await asyncio.sleep(1)
-        await SuperScraper.screenshot(tab, "dry_run")
+        await SuperScraper.screenshot(tab, "dry_run_opt_out")
         print("Opt-out request filled but NOT submitted — solve the reCAPTCHA manually, then Submit.")
 
 

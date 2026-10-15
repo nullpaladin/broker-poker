@@ -1,27 +1,39 @@
 # samba.tv — exercises Do Not Sell, Object to Processing, Access, and Delete
-# (gated on REMOVE_INFORMATION). "File a Complaint or Appeal" and "Other" skipped.
+# (each gated by SuperScraper.rights_to_exercise(RIGHT_MAP)). "File a Complaint or Appeal" and "Other" skipped.
 # OneTrust CDN Angular form. "Do you have a Samba Enabled Smart TV?" answered
 # No (most users don't own a Samba-branded TV). Country is an autocomplete
 # combobox (click → keyboard.type_text → find(text=)). Phone country code
 # (vt-input-7) set to "+1". captchaCode text input requires manual entry in
 # live mode. No state field. Submits once per right type.
+#
+# Page elements:
+#   aria-label "Myself " (or "Myself")    "I am" button
+#   aria-label "Access My Information" / "Do Not Sell My Information" /
+#              "Object to Processing My Information" / "Delete My Information"   request-type buttons
+#   aria-label "No"                       "Do you have a Samba Enabled Smart TV?"
+#   #firstNameDSARElement / #lastNameDSARElement / #emailDSARElement
+#   #countryDSARElement                   Country autocomplete -> "United States"
+#   #vt-input-7                           phone country code (type "1")
+#   #phoneNumberDSARElement               Phone
+#   #captchaCode                          image CAPTCHA (manual entry)
 import asyncio
 import time
 
 from pydoll.browser.chromium import Chrome
 
+from src.dsar.rights import Right
 from src.dsar.super_scraper import SuperScraper
 
 URL = "https://privacyportal-cdn.onetrust.com/dsarwebform/87c5ee85-893d-4972-ba26-2e82b743d041/d84d9664-facb-4de3-85fd-a2e339b73dbf.html"
 
-# (aria-label, screenshot label)
+# Right -> [(aria-label, screenshot label)]
 RIGHT_MAP = {
-    "access": [("Access My Information", "access")],
-    "opt_out_sale_share": [
+    Right.RIGHT_TO_ACCESS: [("Access My Information", "access")],
+    Right.RIGHT_TO_OPT_OUT: [
         ("Do Not Sell My Information", "optout"),
         ("Object to Processing My Information", "object"),
     ],
-    "delete": [("Delete My Information", "delete")],
+    Right.RIGHT_TO_DELETE: [("Delete My Information", "delete")],
 }
 RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
 
@@ -104,22 +116,18 @@ async def submit_request(tab, aria_label, label, super_scraper):
     print("then click Submit. Press Enter after the confirmation page appears...")
     input()
 
-    source = await tab.page_source
-    if any(w in source.lower() for w in ("thank", "success", "received", "submitted", "confirmation")):
-        print(f"Submitted '{aria_label}' for {SuperScraper.FIRST_NAME} {SuperScraper.LAST_NAME}")
-    else:
-        print(f"{super_scraper.OOPS} Confirmation unclear for '{aria_label}' — verify in browser")
+    print(f"Submitted '{aria_label}' for {SuperScraper.EMAIL} — confirm in the browser.")
 
 
 async def main():
     super_scraper = SuperScraper()
     options = SuperScraper.build_chromium_options()
 
-    codes = SuperScraper.rights_to_exercise(RIGHT_MAP)
-    if not codes:
+    rights = SuperScraper.rights_to_exercise(RIGHT_MAP)
+    if not rights:
         print("No requested privacy rights apply to this form — nothing to do.")
         return
-    requests = [entry for code in codes for entry in RIGHT_MAP[code]]
+    requests = [entry for right in rights for entry in RIGHT_MAP[right]]
 
     async with Chrome(options=options) as browser:
         tab = await browser.start()

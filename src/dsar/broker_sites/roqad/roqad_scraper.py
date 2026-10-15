@@ -6,8 +6,8 @@
 # multi-select role="option" toggle group (confirmed: selecting a second
 # option doesn't deselect the first) — all applicable rights checked in
 # ONE combined submission, unlike most sites in this repo. Options: Data
-# deletion (gated on REMOVE_INFORMATION), Opt out and Info request
-# (unconditional), File a complaint (skipped — no complaint to file).
+# deletion, Opt out and Info request (each only if selected by
+# rights_to_exercise), File a complaint (skipped — no complaint to file).
 # "I am a (an)" answered "Consumer/ Data subject". Country is a
 # vt-autocomplete combobox. Four optional device-identifier fields
 # (Cookie ID, iOS IDFA, Android AAID, Hashed Email) appear in that DOM
@@ -18,8 +18,17 @@
 # left blank (no equivalent persona data). Required free-text "Request
 # details" filled generically. reCAPTCHA v2 — **CAPTCHA solution
 # required**.
+#
+# Page elements:
+#   #countryDSARElement                 Country autocomplete -> "United States"
+#   role=option "Info request" / "Opt out" / "Data deletion"   "Select request type(s)" toggles
+#   role=option "Consumer/ Data subject"   "I am a (an)"
+#   #firstNameDSARElement / #lastNameDSARElement / #emailDSARElement
+#   #formField81DSARElement             Android AAID (optional) <- ADVERTISING_ID
+#   #requestDetailsDSARElement          "Request details" textarea
 import asyncio
 
+from src.dsar.rights import Right
 from src.dsar.super_scraper import SuperScraper
 
 from pydoll.browser.chromium import Chrome
@@ -27,9 +36,9 @@ from pydoll.browser.chromium import Chrome
 URL = "https://roqad-privacy.my.onetrust.com/webform/bdcc4a2f-2458-4e17-96c3-cf88f7115dfc/dcc653f1-96d6-4d0f-ba5d-cb7f17fff0aa"
 
 RIGHT_MAP = {
-    "access": ["Info request"],
-    "opt_out_sale_share": ["Opt out"],
-    "delete": ["Data deletion"],
+    Right.RIGHT_TO_ACCESS: ["Info request"],
+    Right.RIGHT_TO_OPT_OUT: ["Opt out"],
+    Right.RIGHT_TO_DELETE: ["Data deletion"],
 }
 RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
 
@@ -47,11 +56,11 @@ async def main():
     super_scraper = SuperScraper()
     options = SuperScraper.build_chromium_options()
 
-    codes = SuperScraper.rights_to_exercise(RIGHT_MAP)
-    if not codes:
+    rights = SuperScraper.rights_to_exercise(RIGHT_MAP)
+    if not rights:
         print("No requested privacy rights apply to this form — nothing to do.")
         return
-    request_types = [entry for code in codes for entry in RIGHT_MAP[code]]
+    request_types = [entry for right in rights for entry in RIGHT_MAP[right]]
 
     async with Chrome(options=options) as browser:
         tab = await browser.start()
@@ -94,13 +103,11 @@ async def main():
 
         details_field = await tab.find(id="requestDetailsDSARElement", raise_exc=False)
         if details_field:
-            request_text = "I am requesting access to my personal information."
-            if SuperScraper.wants("delete"):
-                request_text = "I am requesting access to and deletion of my personal information."
+            request_text = SuperScraper.request_statement(rights, broker="Roqad")
             await details_field.type_text(request_text)
 
         await asyncio.sleep(1)
-        await SuperScraper.screenshot(tab, "dry_run")
+        await SuperScraper.screenshot(tab, "dry_run_" + "_".join(r.value for r in rights))
         print(
             "\nRequest filled but NOT submitted — a reCAPTCHA v2 checkbox requires a manual "
             "solve before submitting."

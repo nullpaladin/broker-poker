@@ -3,7 +3,7 @@
 # This is the FIRST step only: submitting it triggers an email that asks you to
 # fill out the rest of the request yourself (per prior investigation), so the
 # scraper just completes this initial form.
-# Fields (ids carry a per-render GUID suffix, so target by name): firstname,
+# Page elements (ids carry a per-render GUID suffix, so target by name): firstname,
 # lastname, email, and a "certification" attestation checkbox. reCAPTCHA gates
 # submission — form filled and left for a manual solve.
 # **CAPTCHA solution required**

@@ -7,18 +7,30 @@
 # Employee/User — VentiveIQ is a mobile ad SDK company, "User" is the
 # closest generic fit). "Select request type(s)" is, DESPITE the plural
 # wording, actual radio inputs sharing name="requesttype" — single-select,
-# confirmed by markup (not just by testing) — one submission per right:
-# Data Processing, Data Portability, Opt out, Info Request unconditionally;
-# Data Deletion gated on REMOVE_INFORMATION. Update Data skipped (no
-# concrete correction to describe). Country/State DO have stable
+# confirmed by markup (not just by testing) — one submission per request
+# type: Info Request, Data Portability, Opt out, Data Processing, Data Deletion.
+# Which of them run is decided ONLY by SuperScraper.rights_to_exercise(RIGHT_MAP).
+# "Update Data" is not automated (no concrete correction to describe). Country/State DO have stable
 # name="country"/"state" attributes and are ngx-bootstrap typeahead
 # comboboxes — click, type, then click the matching typeahead option.
 # State is disabled until Country is set. MAID/Mobile ID/IP-address fields
 # left blank (optional, no equivalent persona data). Captcha is a 6-digit
 # distorted-text code requiring manual entry — **CAPTCHA solution
 # required**.
+#
+# Page elements:
+#   #User                      "I am a (an)" radio -> "User"
+#   #<request type>            Request-type radios (ids: Info Request, Data Portability, Opt out,
+#                              Data Processing, Data Deletion)
+#   label "Email" / "First Name" / "Last Name"   text inputs (matched by label)
+#   label "Address1" / "Address2" / "City" / "Zipcode"   text inputs (matched by label)
+#   [name=country]             Country typeahead combobox (-> "United States")
+#   [name=state]               State typeahead combobox (disabled until Country is set)
+#   label "Request Details"    Free-text textarea
+#   6-digit distorted-text CAPTCHA (manual entry)
 import asyncio
 
+from src.dsar.rights import Right
 from src.dsar.super_scraper import SuperScraper
 
 from pydoll.browser.chromium import Chrome
@@ -30,10 +42,9 @@ URL = (
 )
 
 RIGHT_MAP = {
-    "access": ["Info Request"],
-    "portability": ["Data Portability"],
-    "opt_out_sale_share": ["Opt out", "Data Processing"],
-    "delete": ["Data Deletion"],
+    Right.RIGHT_TO_ACCESS: ["Info Request", "Data Portability"],
+    Right.RIGHT_TO_OPT_OUT: ["Opt out", "Data Processing"],
+    Right.RIGHT_TO_DELETE: "Data Deletion",
 }
 RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
 
@@ -55,7 +66,7 @@ async def _fill_labeled_field(tab, super_scraper, label_text, value, tag="input"
         print(f"{super_scraper.OOPS} '{label_text}' field not found")
 
 
-async def submit_request(tab, request_type, super_scraper):
+async def submit_request(tab, right, request_type, super_scraper):
     await tab.go_to(URL)
     await asyncio.sleep(5)
 
@@ -115,7 +126,7 @@ async def submit_request(tab, request_type, super_scraper):
         tab,
         super_scraper,
         "Request Details",
-        f"I am submitting a '{request_type}' request under the {SuperScraper.LAW_FULL_NAME or 'applicable state and federal privacy law'}.",
+        SuperScraper.request_statement([right], broker="VentiveIQ"),
         tag="textarea",
     )
 
@@ -132,16 +143,19 @@ async def main():
     super_scraper = SuperScraper()
     options = SuperScraper.build_chromium_options()
 
-    codes = SuperScraper.rights_to_exercise(RIGHT_MAP)
-    if not codes:
+    if SuperScraper.bail_if_not_automatable(globals()):
+        return
+    rights = SuperScraper.rights_to_exercise(RIGHT_MAP)
+    if not rights:
         print("No requested privacy rights apply to this form — nothing to do.")
         return
-    request_types = [entry for code in codes for entry in RIGHT_MAP[code]]
 
     async with Chrome(options=options) as browser:
         tab = await browser.start()
-        for request_type in request_types:
-            await submit_request(tab, request_type, super_scraper)
+        for right in rights:
+            entries = RIGHT_MAP[right]
+            for request_type in (entries if isinstance(entries, list) else [entries]):
+                await submit_request(tab, right, request_type, super_scraper)
 
 
 asyncio.run(main())

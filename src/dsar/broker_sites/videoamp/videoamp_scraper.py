@@ -9,26 +9,37 @@
 # select value is the 2-letter code ("US"). State select only lists the ~19
 # states with applicable privacy laws, keyed by lowercase full name (e.g.
 # "minnesota") — statically present regardless of country selection order.
-# One submission per right: Access, Third Parties We Share With, Opt Out of
-# Sales/Shares/Targeted Advertising unconditionally; Delete gated on
-# REMOVE_INFORMATION. Correct skipped (no concrete inaccuracy to describe).
+# One submission per right (Access, Third Parties We Share With, Opt Out of
+# Sales/Shares/Targeted Advertising, Delete), decided ONLY by
+# SuperScraper.rights_to_exercise(RIGHT_MAP). Correct is not automated.
+# The state select lists only states with a privacy law, so users in other states
+# cannot use this form (SERVES_NO_LAW_STATES = False).
 # reCAPTCHA is invisible (badge only, no challenge widget ever renders) —
 # auto-resolves, no manual solve needed.
+#
+# Page elements:
+#   request cards (clicked by text)   one per request type (see RIGHT_MAP)
+#   #text-field-firstName / #text-field-lastName / #text-field-email   First / Last name, Email
+#   #select-field-country             Country <select> (value "US")
+#   #select-field-state_              State <select> (lowercase full name)
+#   #select-field-typeCode            "I am a (an)" <select> (-> "customer")
 import asyncio
 
-from src.dsar.super_scraper import SuperScraper
 from src.dsar import js_utils
+from src.dsar.rights import Right
+from src.dsar.super_scraper import SuperScraper
 
 from pydoll.browser.chromium import Chrome
 
 URL = "https://videoamp.com/your-privacy-choices"
 
+SERVES_NO_LAW_STATES = False
+
 RIGHT_MAP = {
-    "access": ["Request to Know/Access Your Personal Information"],
-    "know_third_parties": ["Request to Know to Specific Third Parties We Share Your Personal Information With"],
-    "opt_out_sale_share": ["Request to Opt Out of Sales/Shares/Targeted Advertising"],
-    "opt_out_targeted_ads": ["Request to Opt Out of Sales/Shares/Targeted Advertising"],
-    "delete": ["Request to Delete Your Personal Information"],
+    Right.RIGHT_TO_ACCESS: "Request to Know/Access Your Personal Information",
+    Right.RIGHT_TO_LIST_OF_THIRD_PARTIES: "Request to Know to Specific Third Parties We Share Your Personal Information With",
+    Right.RIGHT_TO_OPT_OUT: "Request to Opt Out of Sales/Shares/Targeted Advertising",
+    Right.RIGHT_TO_DELETE: "Request to Delete Your Personal Information",
 }
 RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
 
@@ -84,16 +95,19 @@ async def main():
     super_scraper = SuperScraper()
     options = SuperScraper.build_chromium_options()
 
-    codes = SuperScraper.rights_to_exercise(RIGHT_MAP)
-    if not codes:
+    if SuperScraper.bail_if_not_automatable(globals()):
+        return
+    if SuperScraper.bail_if_state_unsupported(globals()):
+        return
+    rights = SuperScraper.rights_to_exercise(RIGHT_MAP)
+    if not rights:
         print("No requested privacy rights apply to this form — nothing to do.")
         return
-    rights = [entry for code in codes for entry in RIGHT_MAP[code]]
 
     async with Chrome(options=options) as browser:
         tab = await browser.start()
-        for card_text in rights:
-            await submit_request(tab, card_text, super_scraper)
+        for right in rights:
+            await submit_request(tab, RIGHT_MAP[right], super_scraper)
 
 
 asyncio.run(main())

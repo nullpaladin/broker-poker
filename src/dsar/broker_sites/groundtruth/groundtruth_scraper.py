@@ -1,20 +1,42 @@
 # groundtruth.com — HubSpot form (share.hsforms.com). No discrete right
 # picker — a single free-text "Request Details" field states which right(s)
-# to exercise. MAID (Mobile Advertising ID) is required, since GroundTruth is
-# a location/mobile-ad data company. Request text only mentions deletion when
-# REMOVE_INFORMATION is set. No CAPTCHA observed.
+# to exercise (built with SuperScraper.request_statement from the rights chosen by
+# SuperScraper.rights_to_exercise(RIGHT_MAP)). MAID (Mobile Advertising ID) is
+# required, since GroundTruth is a location/mobile-ad data company. No CAPTCHA observed.
+#
+# Page elements (inputs located by name):
+#   email                  Email
+#   maid                   Mobile Advertising ID (MAID)
+#   state                  State
+#   additional_notes__c    "Request Details" free-text field
+#   Button "Submit"
 import asyncio
-
-from src.dsar.super_scraper import SuperScraper
 
 from pydoll.browser.chromium import Chrome
 
+from src.dsar.rights import Right
+from src.dsar.super_scraper import SuperScraper
+
 URL = "https://share.hsforms.com/1BoOyoq-ASaS-3zNW4dh5Agnn8aa"
+
+# No per-right control on the form: every right is just stated in the free-text field.
+NOTES_FIELD = "additional_notes__c"  # "Request Details"
+RIGHT_MAP = {
+    Right.RIGHT_TO_ACCESS: NOTES_FIELD,
+    Right.RIGHT_TO_OPT_OUT: NOTES_FIELD,
+    Right.RIGHT_TO_DELETE: NOTES_FIELD,
+}
+RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
 
 
 async def main():
     super_scraper = SuperScraper()
     options = SuperScraper.build_chromium_options()
+
+    rights = SuperScraper.rights_to_exercise(RIGHT_MAP)
+    if not rights:
+        print("No requested privacy rights apply to this form — nothing to do.")
+        return
 
     async with Chrome(options=options) as browser:
         tab = await browser.start()
@@ -31,23 +53,20 @@ async def main():
                 await field.type_text(value)
                 await asyncio.sleep(0.2)
 
-        if SuperScraper.wants("delete"):
-            request_text = "I am requesting opt-out, correction, access, and deletion of my personal information."
-        else:
-            request_text = "I am requesting opt-out, correction, and access to my personal information."
-        notes_field = await tab.find(name="additional_notes__c", raise_exc=False)
+        request_text = SuperScraper.request_statement(rights, broker="GroundTruth")
+        notes_field = await tab.find(name=NOTES_FIELD, raise_exc=False)
         if notes_field:
             await notes_field.type_text(request_text)
 
         if SuperScraper.DRY_RUN:
-            print(f"DRY RUN: would submit request for MAID {SuperScraper.ADVERTISING_ID}")
+            print(f"DRY RUN: would submit {[r.name for r in rights]} for MAID {SuperScraper.ADVERTISING_ID}")
             await asyncio.sleep(1)
             await SuperScraper.screenshot(tab, "dry_run")
             return
 
         await super_scraper.click_item_by_text(tab=tab, text="Submit", sleep=2)
         await asyncio.sleep(2)
-        print(f"Submitted request for MAID {SuperScraper.ADVERTISING_ID}")
+        print(f"Submitted {[r.name for r in rights]} for MAID {SuperScraper.ADVERTISING_ID} — confirm in the browser.")
 
 
 asyncio.run(main())

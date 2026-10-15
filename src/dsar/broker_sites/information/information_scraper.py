@@ -4,22 +4,42 @@
 # button is clicked, so there's no risk of hitting the wrong form by name).
 #
 # Right To Know ("REQUEST A COPY"): requestDataFirstName/requestDataLastName/
-# requestDataEmail, always submitted.
+# requestDataEmail -> RIGHT_TO_ACCESS.
 # Right To Delete ("DELETE MY USER DATA"): deleteDataFirstName/
-# deleteDataLastName/deleteDataEmail, gated on REMOVE_INFORMATION since it
-# cancels subscriptions and deletes the account.
+# deleteDataLastName/deleteDataEmail -> RIGHT_TO_DELETE (it cancels subscriptions
+# and deletes the account).
 # Opt-Out ("EXERT RIGHT TO OPT-OUT", branded "Suppression Center"): only asks
 # for an email + an "acknowledge" checkbox, then a "Continue" button that
 # sends a verification email with a link to proceed — that send is a real
 # side effect, so this scraper fills the email/checkbox and stops there
-# regardless of DRY_RUN, same handoff pattern as informa.com.
+# regardless of DRY_RUN, same handoff pattern as informa.com. -> RIGHT_TO_OPT_OUT.
+# Which of the three run is decided only by SuperScraper.rights_to_exercise.
+#
+# Page elements:
+#   "REQUEST A COPY" / "DELETE MY USER DATA" / "EXERT RIGHT TO OPT-OUT"   card buttons
+#   input[name=requestDataFirstName|requestDataLastName|requestDataEmail]   Know form
+#   input[name=deleteDataFirstName|deleteDataLastName|deleteDataEmail]      Delete form
+#   "SUBMIT REQUEST" button         submits the Know / Delete form
+#   #requestorEmail                 Opt-out (Suppression Center) email
+#   #acknowledge                    Opt-out "acknowledge" checkbox
+#   "Continue" button               sends the verification email (never clicked)
 import asyncio
 
+from src.dsar import js_utils
+from src.dsar.rights import Right
 from src.dsar.super_scraper import SuperScraper
 
 from pydoll.browser.chromium import Chrome
 
 URL = "https://information.com/privacy-rights/"
+
+# Right -> which card/form on the page handles it.
+RIGHT_MAP = {
+    Right.RIGHT_TO_ACCESS: "know",
+    Right.RIGHT_TO_DELETE: "delete",
+    Right.RIGHT_TO_OPT_OUT: "opt_out",
+}
+RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
 
 
 async def submit_know(tab, super_scraper):
@@ -44,16 +64,16 @@ async def submit_know(tab, super_scraper):
         await email.type_text(SuperScraper.EMAIL)
 
     if SuperScraper.DRY_RUN:
-        print(f"DRY RUN: would submit Right To Know request for {SuperScraper.FIRST_NAME} {SuperScraper.LAST_NAME}")
+        print(f"DRY RUN: would submit '{Right.RIGHT_TO_ACCESS.name}' for {SuperScraper.EMAIL}")
         await asyncio.sleep(1)
-        await SuperScraper.screenshot(tab, "dry_run_know")
+        await SuperScraper.screenshot(tab, "dry_run_access")
         return
 
     submit = await tab.find(text="SUBMIT REQUEST", raise_exc=False)
     if submit:
         await submit.click()
         await asyncio.sleep(2)
-        print(f"Submitted Right To Know request for {SuperScraper.FIRST_NAME} {SuperScraper.LAST_NAME}")
+        print(f"Submitted '{Right.RIGHT_TO_ACCESS.name}' for {SuperScraper.EMAIL} — confirm in the browser.")
     else:
         print(f"{super_scraper.OOPS} 'SUBMIT REQUEST' button not found for Right To Know")
 
@@ -80,7 +100,7 @@ async def submit_delete(tab, super_scraper):
         await email.type_text(SuperScraper.EMAIL)
 
     if SuperScraper.DRY_RUN:
-        print(f"DRY RUN: would submit Right To Delete request for {SuperScraper.FIRST_NAME} {SuperScraper.LAST_NAME}")
+        print(f"DRY RUN: would submit '{Right.RIGHT_TO_DELETE.name}' for {SuperScraper.EMAIL}")
         await asyncio.sleep(1)
         await SuperScraper.screenshot(tab, "dry_run_delete")
         return
@@ -89,7 +109,7 @@ async def submit_delete(tab, super_scraper):
     if submit:
         await submit.click()
         await asyncio.sleep(2)
-        print(f"Submitted Right To Delete request for {SuperScraper.FIRST_NAME} {SuperScraper.LAST_NAME}")
+        print(f"Submitted '{Right.RIGHT_TO_DELETE.name}' for {SuperScraper.EMAIL} — confirm in the browser.")
     else:
         print(f"{super_scraper.OOPS} 'SUBMIT REQUEST' button not found for Right To Delete")
 
@@ -109,14 +129,12 @@ async def submit_opt_out(tab, super_scraper):
     if email:
         await email.type_text(SuperScraper.EMAIL)
 
-    await tab.execute_script(
-        "var cb=document.getElementById('acknowledge'); if(cb){ cb.checked=true; "
-        "cb.dispatchEvent(new Event('change', {bubbles:true})); "
-        "cb.dispatchEvent(new Event('click', {bubbles:true})); }"
-    )
+    acknowledge = await tab.find(id="acknowledge", raise_exc=False)
+    if acknowledge:
+        await js_utils.js_check(acknowledge)
 
     await asyncio.sleep(1)
-    await SuperScraper.screenshot(tab, "dry_run_optout")
+    await SuperScraper.screenshot(tab, "dry_run_opt_out")
     print(
         "\nOpt-Out (Suppression Center) email entered but NOT sent — click 'Continue' "
         "yourself, check your inbox for the verification link, click it, and complete "
@@ -125,18 +143,22 @@ async def submit_opt_out(tab, super_scraper):
     )
 
 
+HANDLERS = {"know": submit_know, "delete": submit_delete, "opt_out": submit_opt_out}
+
+
 async def main():
     super_scraper = SuperScraper()
     options = SuperScraper.build_chromium_options()
 
+    rights = SuperScraper.rights_to_exercise(RIGHT_MAP)
+    if not rights:
+        print("No requested privacy rights apply to this form — nothing to do.")
+        return
+
     async with Chrome(options=options) as browser:
         tab = await browser.start()
-        await submit_know(tab, super_scraper)
-        if SuperScraper.wants("delete"):
-            await submit_delete(tab, super_scraper)
-        else:
-            print("Skipping Right To Delete — REMOVE_INFORMATION is False.")
-        await submit_opt_out(tab, super_scraper)
+        for right in rights:
+            await HANDLERS[RIGHT_MAP[right]](tab, super_scraper)
 
 
 asyncio.run(main())

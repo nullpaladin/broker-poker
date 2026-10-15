@@ -5,21 +5,21 @@
 # Checkbox: name="data_ownership" (sole-user confirmation).
 # reCAPTCHA v2 checkbox — manual solve required in live mode.
 # Submit: id="data_request_submit".
-# One submission per right. The form only exposes GDPR retrieval/deletion (no
-# opt-out), so which rights run is REQUESTED_RIGHTS + per-state gated, with
-# deletion also gated on REMOVE_INFORMATION (via SuperScraper.rights_to_exercise).
+# One submission per right. The form only exposes retrieval/deletion (no opt-out);
+# which of them run is decided ONLY by SuperScraper.rights_to_exercise(RIGHT_MAP).
 # Elements found via tab.find() by name/value attributes (querySelectorAll fails
 # on this domain for unknown reasons; pydoll CDP-level find works fine).
 import asyncio
 
 from pydoll.browser.chromium import Chrome
 
+from src.dsar.rights import Right
 from src.dsar.super_scraper import SuperScraper
 
 URL = "https://data-access.quantserve.com/gdpr/"
 
-# Canonical right code -> this form's request_type radio value.
-RIGHT_MAP = {"access": "retrieval", "delete": "deletion"}
+# Right -> this form's request_type radio value.
+RIGHT_MAP = {Right.RIGHT_TO_ACCESS: "retrieval", Right.RIGHT_TO_DELETE: "deletion"}
 RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
 
 
@@ -62,28 +62,26 @@ async def _submit_right(tab, super_scraper, radio_value, label):
     )
     input()
 
-    src = await tab.page_source
-    if any(w in src.lower() for w in ("thank you", "success", "received", "submitted", "confirmation")):
-        print(f"Submitted '{label}' DSAR (cookie-based)")
-    else:
-        print(f"{super_scraper.OOPS} Confirmation unclear for '{label}' — verify in browser")
+    print(f"Submitted '{label}' DSAR (cookie-based) — confirm in the browser.")
 
 
 async def main():
     super_scraper = SuperScraper()
+    if SuperScraper.bail_if_not_automatable(globals()):
+        return
     options = SuperScraper.build_chromium_options()
 
-    codes = SuperScraper.rights_to_exercise(RIGHT_MAP)
-    if not codes:
+    rights = SuperScraper.rights_to_exercise(RIGHT_MAP)
+    if not rights:
         print("No requested privacy rights apply to this form — nothing to do.")
         return
 
     async with Chrome(options=options) as browser:
         tab = await browser.start()
-        for code in codes:
+        for right in rights:
             await tab.go_to(URL)
             await asyncio.sleep(5)
-            await _submit_right(tab, super_scraper, RIGHT_MAP[code], code.capitalize())
+            await _submit_right(tab, super_scraper, RIGHT_MAP[right], right.name)
 
 
 asyncio.run(main())

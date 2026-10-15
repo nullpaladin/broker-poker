@@ -3,8 +3,17 @@
 # Page 1: name / address / email / phone / privacy-policy consent checkbox, then
 # a "Next" button. Page 2: a single-select "which right" radio group
 # (Know/Access, Delete, Correct) followed by Submit.
-# One submission per right — Know/Access unconditional; Delete gated on
-# REMOVE_INFORMATION; Correct skipped (nothing concrete to correct).
+# One submission per right; which run is decided ONLY by
+# SuperScraper.rights_to_exercise(RIGHT_MAP). The Correct radio is not automated.
+# Page elements:
+#   #input_5_8_3 / #input_5_8_6   First / Last name
+#   #input_5_9_1 / #input_5_9_3 / #input_5_9_5   Address / City / Zip
+#   select#input_5_9_4            State (native <select>)
+#   #input_5_10 / #input_5_11     Email / Phone
+#   #input_5_12_1                 Privacy-policy consent checkbox
+#   #gform_next_button_5_13       "Next" (page 1 -> page 2); #gform_page_5_2 is page 2
+#   RIGHT_MAP radios (page 2)     "which right" radio group
+#   #gform_submit_button_5        Submit
 # reCAPTCHA is invisible (size=invisible) and resolves without interaction.
 #
 # NOTE: under headless automation the page-1 "Next" click is rejected by
@@ -19,6 +28,7 @@ import time
 
 from pydoll.browser.chromium import Chrome
 
+from src.dsar.rights import Right
 from src.dsar.super_scraper import SuperScraper
 from src.dsar import js_utils
 
@@ -26,32 +36,10 @@ URL = "https://statara.com/consumerdeletion/"
 
 # (page-2 radio choice id, screenshot label)
 RIGHT_MAP = {
-    "access": [("choice_5_16_0", "access")],
-    "delete": [("choice_5_16_1", "delete")],
+    Right.RIGHT_TO_ACCESS: [("choice_5_16_0", "access")],  # Know/Access radio
+    Right.RIGHT_TO_DELETE: [("choice_5_16_1", "delete")],  # Delete radio
 }
-RIGHTS_SUPPORTED = tuple(RIGHT_MAP)  # The Right to Delete your personal information
-
-
-async def _select_native_by_text(tab, xpath, match_text):
-    el = await tab.find(xpath=xpath, raise_exc=False)
-    if not el:
-        print(f"select {xpath} not found")
-        return
-    await el.execute_script(
-        """
-        const wanted = %r.trim().toLowerCase();
-        const opt = Array.from(this.options).find(
-            o => o.textContent.trim().toLowerCase() === wanted);
-        if (opt) {
-            const setter = Object.getOwnPropertyDescriptor(
-                window.HTMLSelectElement.prototype, 'value').set;
-            setter.call(this, opt.value);
-            this.dispatchEvent(new Event('input', {bubbles: true}));
-            this.dispatchEvent(new Event('change', {bubbles: true}));
-        }
-        """
-        % match_text
-    )
+RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
 
 
 async def submit_request(tab, choice_id, label, super_scraper):
@@ -70,7 +58,11 @@ async def submit_request(tab, choice_id, label, super_scraper):
     for xpath, value in page1.items():
         await super_scraper.input_text_field(tab=tab, xpath=xpath, text=value, sleep=0.3)
 
-    await _select_native_by_text(tab, "//select[@id='input_5_9_4']", SuperScraper.STATE)
+    state_select = await tab.find(xpath="//select[@id='input_5_9_4']", raise_exc=False)
+    if state_select:
+        await js_utils.select_native_option(state_select, text=SuperScraper.STATE, ci=True)
+    else:
+        print(f"{super_scraper.OOPS} State select not found")
 
     consent = await tab.find(id="input_5_12_1", raise_exc=False)
     if consent:
@@ -84,16 +76,17 @@ async def submit_request(tab, choice_id, label, super_scraper):
     await next_btn.click()
     await asyncio.sleep(4)
 
-    page2_visible = await tab.execute_script(
+    page2_visible = await js_utils.js_eval(
+        tab,
         "const p = document.getElementById('gform_page_5_2');"
-        "return !!p && getComputedStyle(p).display !== 'none';"
+        "return !!p && getComputedStyle(p).display !== 'none';",
     )
-    if not page2_visible['result']['result']['value']:
+    if not page2_visible:
         await SuperScraper.screenshot(tab, f"dry_run_{label}")
         print(
             f"{super_scraper.OOPS} Page 1 filled but 'Next' did not advance (Gravity Forms "
             f"anti-spam under automation). Click Next manually, choose the '{label}' right, "
-            f"and submit. Screenshot: resources/screenshots/statara_dry_run_{label}.png"
+            f"and submit."
         )
         return
 
@@ -116,22 +109,18 @@ async def submit_request(tab, choice_id, label, super_scraper):
     if submit_btn:
         await submit_btn.click()
         await asyncio.sleep(4)
-    source = await tab.page_source
-    if any(w in source.lower() for w in ("thank", "success", "received", "submitted", "confirmation")):
-        print(f"Submitted '{label}' for {SuperScraper.FIRST_NAME} {SuperScraper.LAST_NAME}")
-    else:
-        print(f"{super_scraper.OOPS} Confirmation unclear for '{label}' — verify in browser")
+    print(f"Submitted '{label}' for {SuperScraper.EMAIL} — confirm in the browser.")
 
 
 async def main():
     super_scraper = SuperScraper()
     options = SuperScraper.build_chromium_options()
 
-    codes = SuperScraper.rights_to_exercise(RIGHT_MAP)
-    if not codes:
+    rights = SuperScraper.rights_to_exercise(RIGHT_MAP)
+    if not rights:
         print("No requested privacy rights apply to this form — nothing to do.")
         return
-    requests = [entry for code in codes for entry in RIGHT_MAP[code]]
+    requests = [entry for right in rights for entry in RIGHT_MAP[right]]
 
     async with Chrome(options=options) as browser:
         tab = await browser.start()

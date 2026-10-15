@@ -8,23 +8,32 @@
 # "Select the right(s) you want to exercise" is a multi-select checkbox group
 # (one combined submission): Access My Information, Do Not Sell My Information,
 # "Object or Restrict the Processing of My Data", Move My Data unconditionally;
-# Delete My Information gated on REMOVE_INFORMATION; "Correct My Data" skipped.
+# Delete My Information; "Correct My Data" is not automated.
+# Which of them are checked is decided ONLY by SuperScraper.rights_to_exercise(RIGHT_MAP).
 # No CAPTCHA observed.
+#
+# Page elements:
+#   [name=firstname] / [name=lastname] / [name=email] / [name=phone]   Name, email, phone
+#   [name=address] / [name=city] / [name=state] / [name=zip] / [name=country]   Address
+#   #date_of_birth__do_not_sell_    Date of birth (<input type="date">, YYYY-MM-DD)
+#   [name=i_am_submitting_on_behalf_of][value=Myself]   "I am submitting on behalf of" radio
+#   [name=select_the_right_s__you_want_to_exercise_]    Right checkboxes (see RIGHT_MAP)
+#   form#optout-form button[type=submit]                Submit button
 import asyncio
 import time
 
 from pydoll.browser.chromium import Chrome
 
-from src.dsar.super_scraper import SuperScraper
 from src.dsar import js_utils
+from src.dsar.rights import Right
+from src.dsar.super_scraper import SuperScraper
 
 URL = "https://www.yobi.ai/opt-out"
 
 RIGHT_MAP = {
-    "access": ["Access My Information"],
-    "portability": ["Move My Data"],
-    "opt_out_sale_share": ["Do Not Sell My Information", "Object or Restrict the Processing of My Data"],
-    "delete": ["Delete My Information"],
+    Right.RIGHT_TO_ACCESS: ["Access My Information", "Move My Data"],
+    Right.RIGHT_TO_OPT_OUT: ["Do Not Sell My Information", "Object or Restrict the Processing of My Data"],
+    Right.RIGHT_TO_DELETE: "Delete My Information",
 }
 RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
 
@@ -42,6 +51,12 @@ def _dob_iso():
 
 async def main():
     super_scraper = SuperScraper()
+    if SuperScraper.bail_if_not_automatable(globals()):
+        return
+    rights = SuperScraper.rights_to_exercise(RIGHT_MAP)
+    if not rights:
+        print("No requested privacy rights apply to this form — nothing to do.")
+        return
     options = SuperScraper.build_chromium_options()
 
     async with Chrome(options=options) as browser:
@@ -67,11 +82,7 @@ async def main():
 
         dob = await tab.find(id="date_of_birth__do_not_sell_", raise_exc=False)
         if dob:
-            await dob.execute_script(
-                f"this.value = {_dob_iso()!r}; "
-                "this.dispatchEvent(new Event('input',{bubbles:true})); "
-                "this.dispatchEvent(new Event('change',{bubbles:true}));"
-            )
+            await js_utils.js_set_value(dob, _dob_iso())
 
         myself = await tab.find(
             xpath="//input[@name='i_am_submitting_on_behalf_of' and @value='Myself']", raise_exc=False
@@ -79,12 +90,11 @@ async def main():
         if myself:
             await myself.click()
 
-        codes = SuperScraper.rights_to_exercise(RIGHT_MAP)
-        if not codes:
-            print("No requested privacy rights apply to this form — nothing to do.")
-            return
-        rights = [entry for code in codes for entry in RIGHT_MAP[code]]
-        for value in rights:
+        values = []
+        for right in rights:
+            entries = RIGHT_MAP[right]
+            values += entries if isinstance(entries, list) else [entries]
+        for value in values:
             box = await tab.find(
                 xpath=f"//input[@name='select_the_right_s__you_want_to_exercise_' and @value={value!r}]",
                 raise_exc=False,
@@ -96,21 +106,14 @@ async def main():
         time.sleep(0.5)
         await SuperScraper.screenshot(tab, "dry_run")
         if SuperScraper.DRY_RUN:
-            print(
-                f"DRY RUN: would submit privacy request for "
-                f"{SuperScraper.FIRST_NAME} {SuperScraper.LAST_NAME} <{SuperScraper.EMAIL}>"
-            )
+            print(f"DRY RUN: would submit {[r.name for r in rights]} for {SuperScraper.EMAIL}")
             return
 
         submit = await tab.find(xpath="//form[@id='optout-form']//button[@type='submit']", raise_exc=False)
         if submit:
             await submit.click()
             await asyncio.sleep(3)
-        source = await tab.page_source
-        if any(w in source.lower() for w in ("thank", "success", "received", "submitted", "confirmation")):
-            print(f"Submitted for {SuperScraper.FIRST_NAME} {SuperScraper.LAST_NAME}")
-        else:
-            print(f"{super_scraper.OOPS} Confirmation unclear — verify in browser")
+        print(f"Submitted {[r.name for r in rights]} for {SuperScraper.EMAIL} — confirm in the browser.")
 
 
 asyncio.run(main())

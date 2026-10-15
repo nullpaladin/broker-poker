@@ -7,8 +7,9 @@
 #       a" is set. Treated as single-select — one submission per right:
 #       "Request a copy of my personal information" (Access) + "Request to
 #       opt-out of sale and sharing" + "Request to know about categories of
-#       information maintained by PropStream" unconditionally; "Request to
-#       delete" gated on REMOVE_INFORMATION; "Request to correct" skipped.
+#       information maintained by PropStream" + "Request to delete";
+#       "Request to correct" is not automated. Which run is decided ONLY by
+#       SuperScraper.rights_to_exercise(RIGHT_MAP).
 #   formField78DSARElement  "Have you made a similar request to PropStream in
 #       the past 12 months?" role="listbox" -> "No"
 #   countryDSARElement  combobox -> United States; a "state of residency"
@@ -16,12 +17,14 @@
 #   firstNameDSARElement / lastNameDSARElement / emailDSARElement
 # (Public-servant "Daniel's Law" redaction requests are a separate email flow to
 #  redactionrequest@propstream.com — out of scope here.)
+#   Request-type options (role="option", matched by aria-label / text): see RIGHT_MAP.
 # reCAPTCHA gates submit — filled to that point.  **CAPTCHA solution required**
 import asyncio
 
 from pydoll.browser.chromium import Chrome
 from pydoll.constants import Key
 
+from src.dsar.rights import Right
 from src.dsar.super_scraper import SuperScraper
 
 URL = (
@@ -30,12 +33,12 @@ URL = (
 )
 
 RIGHT_MAP = {
-    "access": [
+    Right.RIGHT_TO_ACCESS: [
         ("Request a copy of my personal information", "access"),
         ("Request to know about categories of information maintained by PropStream", "categories"),
     ],
-    "opt_out_sale_share": [("Request to opt-out of sale and sharing", "opt_out")],
-    "delete": [("Request to delete", "delete")],
+    Right.RIGHT_TO_OPT_OUT: [("Request to opt-out of sale and sharing", "opt_out")],
+    Right.RIGHT_TO_DELETE: [("Request to delete", "delete")],
 }
 RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
 
@@ -164,17 +167,19 @@ async def submit_request(tab, right_label, tag, super_scraper):
 
 async def main():
     super_scraper = SuperScraper()
+    if SuperScraper.bail_if_not_automatable(globals()):
+        return
     options = SuperScraper.build_chromium_options()
 
-    codes = SuperScraper.rights_to_exercise(RIGHT_MAP)
-    if not codes:
+    rights = SuperScraper.rights_to_exercise(RIGHT_MAP)
+    if not rights:
         print("No requested privacy rights apply to this form — nothing to do.")
         return
-    rights = [entry for code in codes for entry in RIGHT_MAP[code]]
+    entries = [entry for right in rights for entry in RIGHT_MAP[right]]
 
     async with Chrome(options=options) as browser:
         tab = await browser.start()
-        for right_label, tag in rights:
+        for right_label, tag in entries:
             await submit_request(tab, right_label, tag, super_scraper)
 
 

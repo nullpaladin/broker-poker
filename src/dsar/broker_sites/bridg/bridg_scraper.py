@@ -7,13 +7,23 @@
 # First/Last/Email, a "Data subject's relationship with Bridg" MUI Select
 # defaulted to "Customer" (a real div[role='button'], not a native <select>),
 # and an optional comments field, then Review Request -> Submit Request.
-# Exercises Access and Opt Out unconditionally; Deletion gated on
-# REMOVE_INFORMATION. Every text field has a React useId()-style colon id
+# Rights: Access, Opt Out, Deletion (Transfer/Correction cards are not automated);
+# which run is decided ONLY by SuperScraper.rights_to_exercise(RIGHT_MAP). Every text field has a React useId()-style colon id
 # (":r4:") — targeted by name attribute via xpath rather than id= (same class
 # of bug as pydoll's colon-id issue documented elsewhere in this repo). No
 # captcha observed.
+#
+# Page elements:
+#   #privacy-request-center-region-picker   State (MUI Autocomplete)
+#   li[role=option][aria-label=<state>]     State option
+#   "Start <entry>" button                  Card for the request (see RIGHT_MAP)
+#   input[name=first_name] / [name=last_name]   First / Last name
+#   input[name=email_address]               Email
+#   #mui-component-select-data_subject_relationship  "Data subject's relationship with Bridg" -> li[data-value=customer]
+#   "Review Request" / "Submit Request"     Buttons
 import asyncio
 
+from src.dsar.rights import Right
 from src.dsar.super_scraper import SuperScraper
 
 from pydoll.browser.chromium import Chrome
@@ -21,14 +31,14 @@ from pydoll.browser.chromium import Chrome
 URL = "https://datagrail.bridg.com/"
 
 RIGHT_MAP = {
-    "access": ["Access Request"],
-    "opt_out_sale_share": ["Opt Out Request"],
-    "delete": ["Deletion Request"],
+    Right.RIGHT_TO_ACCESS: ["Access Request"],
+    Right.RIGHT_TO_OPT_OUT: ["Opt Out Request"],
+    Right.RIGHT_TO_DELETE: ["Deletion Request"],
 }
 RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
 
 
-async def submit_request(tab, right, super_scraper):
+async def submit_request(tab, right, entry, super_scraper):
     await tab.go_to(URL)
     await asyncio.sleep(5)
 
@@ -42,9 +52,9 @@ async def submit_request(tab, right, super_scraper):
             await state_opt.click()
             await asyncio.sleep(0.5)
 
-    start_btn = await tab.find(text=f"Start {right}", raise_exc=False)
+    start_btn = await tab.find(text=f"Start {entry}", raise_exc=False)
     if not start_btn:
-        print(f"{super_scraper.OOPS} 'Start {right}' button not found")
+        print(f"{super_scraper.OOPS} 'Start {entry}' button not found")
         return
     await start_btn.click()
     await asyncio.sleep(2)
@@ -68,12 +78,10 @@ async def submit_request(tab, right, super_scraper):
             await customer_opt.click()
             await asyncio.sleep(0.5)
 
-    label = right.lower().replace(" ", "_")
-
     if SuperScraper.DRY_RUN:
-        print(f"DRY RUN: would submit '{right}' for {SuperScraper.FIRST_NAME} {SuperScraper.LAST_NAME}")
+        print(f"DRY RUN: would submit '{right.name}' for {SuperScraper.EMAIL}")
         await asyncio.sleep(1)
-        await SuperScraper.screenshot(tab, f"dry_run_{label}")
+        await SuperScraper.screenshot(tab, f"dry_run_{right.value}")
         return
 
     review_btn = await tab.find(text="Review Request", raise_exc=False)
@@ -85,25 +93,25 @@ async def submit_request(tab, right, super_scraper):
     if submit_btn:
         await submit_btn.click()
         await asyncio.sleep(2)
-        print(f"Submitted '{right}' for {SuperScraper.FIRST_NAME} {SuperScraper.LAST_NAME}")
+        print(f"Submitted '{right.name}' for {SuperScraper.EMAIL} — confirm in the browser.")
     else:
-        print(f"{super_scraper.OOPS} Submit Request button not found for '{right}'")
+        print(f"{super_scraper.OOPS} Submit Request button not found for '{right.name}'")
 
 
 async def main():
     super_scraper = SuperScraper()
-    options = SuperScraper.build_chromium_options()
-
-    codes = SuperScraper.rights_to_exercise(RIGHT_MAP)
-    if not codes:
+    rights = SuperScraper.rights_to_exercise(RIGHT_MAP)
+    if not rights:
         print("No requested privacy rights apply to this form — nothing to do.")
         return
-    rights = [entry for code in codes for entry in RIGHT_MAP[code]]
 
+    options = SuperScraper.build_chromium_options()
     async with Chrome(options=options) as browser:
         tab = await browser.start()
+
         for right in rights:
-            await submit_request(tab, right, super_scraper)
+            for entry in RIGHT_MAP[right]:
+                await submit_request(tab, right, entry, super_scraper)
 
 
 asyncio.run(main())

@@ -6,21 +6,31 @@
 # `getBoundingClientRect().height === 0` — a honeypot despite the generic
 # label, deliberately left BLANK (same pattern as leadloft.com/lsmapps.com
 # elsewhere in this repo). reCAPTCHA v2 present via standard hidden
-# g-recaptcha-response field. Exercises Access and Opt-Out unconditionally;
-# Delete gated on REMOVE_INFORMATION.
+# g-recaptcha-response field. Which rights run is decided only by
+# rights_to_exercise(RIGHT_MAP).
+#
+# Page elements:
+#   #FName / #LName      First / Last name
+#   #Address / #Apartment / #City / #State / #Zip   Address / Apartment / City / State (free text) / ZIP
+#   #EmailId / #Phone    Email / Phone
+#   #RequestType1        "Request to Know" radio
+#   #RequestType2        "Request to Delete" radio
+#   #RequestType3        "Do Not Sell My Information" radio
+#   "SUBMIT UNSUBSCRIBE" button (found by text)
 import asyncio
 
-from src.dsar.super_scraper import SuperScraper
-
 from pydoll.browser.chromium import Chrome
+
+from src.dsar.rights import Right
+from src.dsar.super_scraper import SuperScraper
 
 URL = "https://m1-data.com/unsubscribe/"
 
 # Opaque RequestTypeN values — verify against the live form.
 RIGHT_MAP = {
-    "access": ["RequestType1"],
-    "opt_out_sale_share": ["RequestType3"],
-    "delete": ["RequestType2"],
+    Right.RIGHT_TO_ACCESS: "RequestType1",
+    Right.RIGHT_TO_OPT_OUT: "RequestType3",
+    Right.RIGHT_TO_DELETE: "RequestType2",
 }
 RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
 
@@ -80,18 +90,20 @@ async def submit_request(tab, request_type_id, super_scraper):
 
 async def main():
     super_scraper = SuperScraper()
+    if SuperScraper.bail_if_not_automatable(globals()):
+        return
+
     options = SuperScraper.build_chromium_options()
 
-    codes = SuperScraper.rights_to_exercise(RIGHT_MAP)
-    if not codes:
+    rights = SuperScraper.rights_to_exercise(RIGHT_MAP)
+    if not rights:
         print("No requested privacy rights apply to this form — nothing to do.")
         return
-    request_types = [entry for code in codes for entry in RIGHT_MAP[code]]
 
     async with Chrome(options=options) as browser:
         tab = await browser.start()
-        for request_type_id in request_types:
-            await submit_request(tab, request_type_id, super_scraper)
+        for right in rights:
+            await submit_request(tab, RIGHT_MAP[right], super_scraper)
 
 
 asyncio.run(main())

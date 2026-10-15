@@ -3,29 +3,35 @@
 # (a "datasubject.com"-hosted portal, navigated to directly rather than
 # through the wrapper). No explicit Opt-Out-of-Sale card exists — cards are
 # Correct/Access/Delete/"Third parties your data was sold or shared with".
-# The last one is used as the closest available analog to Opt-Out (it's
-# the CA "Shine the Light"-style sharing-disclosure right, same idea used
-# on liftbasedata.com elsewhere in this repo where no explicit opt-out
-# toggle existed either). Correct is skipped as auxiliary. Every card
+# The last one is mapped to Right.RIGHT_TO_LIST_OF_THIRD_PARTIES. Correct
+# is not automatable and not mapped. Every card
 # shares the same field set: email/given-name/family-name/phone-number
 # (all stable ids) plus an address block (o-Address/o-City/o-State/
 # o-ZipCode) whose ids are random per-field UUIDs — targeted by `name`
 # instead. State is a plain text field expecting the 2-letter abbreviation
 # (SuperScraper.state_full_name_to_abbreviated). No CAPTCHA observed on
-# this vendor. Exercises Access and the third-party-sharing disclosure
-# unconditionally; Delete gated on REMOVE_INFORMATION.
+# this vendor. Which rights run is decided only by rights_to_exercise(RIGHT_MAP).
+#
+# Page elements:
+#   Request cards (clicked by text)  "Access my personal information",
+#                            "Third parties your data was sold or shared with",
+#                            "Delete my personal information"
+#   #email / #given-name / #family-name / #phone-number   Email / First / Last name / Phone
+#   name=o-Address / o-City / o-State / o-ZipCode   Address / City / State (2-letter) / ZIP
+#   "Submit" button (found by text)
 import asyncio
 
-from src.dsar.super_scraper import SuperScraper
-
 from pydoll.browser.chromium import Chrome
+
+from src.dsar.rights import Right
+from src.dsar.super_scraper import SuperScraper
 
 URL = "https://my.datasubject.com/16BXQXSvkBnuN4W2w/51306"
 
 RIGHT_MAP = {
-    "access": ["Access my personal information"],
-    "know_third_parties": ["Third parties your data was sold or shared with"],
-    "delete": ["Delete my personal information"],
+    Right.RIGHT_TO_ACCESS: "Access my personal information",
+    Right.RIGHT_TO_LIST_OF_THIRD_PARTIES: "Third parties your data was sold or shared with",
+    Right.RIGHT_TO_DELETE: "Delete my personal information",
 }
 RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
 
@@ -95,16 +101,15 @@ async def main():
     super_scraper = SuperScraper()
     options = SuperScraper.build_chromium_options()
 
-    codes = SuperScraper.rights_to_exercise(RIGHT_MAP)
-    if not codes:
+    rights = SuperScraper.rights_to_exercise(RIGHT_MAP)
+    if not rights:
         print("No requested privacy rights apply to this form — nothing to do.")
         return
-    cards = [entry for code in codes for entry in RIGHT_MAP[code]]
 
     async with Chrome(options=options) as browser:
         tab = await browser.start()
-        for card_text in cards:
-            await submit_request(tab, card_text, super_scraper)
+        for right in rights:
+            await submit_request(tab, RIGHT_MAP[right], super_scraper)
 
 
 asyncio.run(main())

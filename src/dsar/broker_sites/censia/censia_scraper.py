@@ -3,13 +3,21 @@
 # the question heading rather than a direct aria-label, so each is targeted
 # by an xpath scoped to its role="listitem" container instead. Rights are
 # a single multi-select checkbox group (checkboxes DO carry aria-label
-# directly): "Access my PI" and "Do not sell my PI" unconditionally; the
-# third option is left labeled "Option 3" by Censia itself (a form-authoring
-# mistake, not something this scraper can fix) but is positioned as the third
-# of a standard Access/Opt-Out/Delete triad, so it is treated as Delete and
-# gated on REMOVE_INFORMATION. No CAPTCHA.
+# directly): "Access my PI" (Access), "Do not sell my PI" (Opt-out) and a third
+# option left labeled "Option 3" by Censia itself (a form-authoring mistake, not
+# something this scraper can fix), positioned as the third of a standard
+# Access/Opt-Out/Delete triad and therefore treated as Delete (unverified).
+# Which rights are ticked is decided ONLY by SuperScraper.rights_to_exercise(RIGHT_MAP).
+# No CAPTCHA.
+#
+# Page elements:
+#   listitem "First Name" / "Last Name" / "Phone Number" / "Email Address" /
+#   "City" / "State" / "Zip Code" / "Country"   Short-answer text inputs
+#   checkbox[aria-label=<entry>]   Rights checkboxes (see RIGHT_MAP)
+#   "Submit" button
 import asyncio
 
+from src.dsar.rights import Right
 from src.dsar.super_scraper import SuperScraper
 
 from pydoll.browser.chromium import Chrome
@@ -17,15 +25,20 @@ from pydoll.browser.chromium import Chrome
 URL = "https://docs.google.com/forms/d/1VhF33VAQG4AmUqBWf7e3m8fw17h9ek64EtQXnuuBQcA/viewform?edit_requested=true"
 
 RIGHT_MAP = {
-    "access": ["Access my PI"],
-    "opt_out_sale_share": ["Do not sell my PI"],
-    "delete": ["Option 3"],
+    Right.RIGHT_TO_ACCESS: ["Access my PI"],
+    Right.RIGHT_TO_OPT_OUT: ["Do not sell my PI"],
+    Right.RIGHT_TO_DELETE: ["Option 3"],
 }
 RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
 
 
 async def main():
     super_scraper = SuperScraper()
+    rights = SuperScraper.rights_to_exercise(RIGHT_MAP)
+    if not rights:
+        print("No requested privacy rights apply to this form — nothing to do.")
+        return
+
     options = SuperScraper.build_chromium_options()
 
     async with Chrome(options=options) as browser:
@@ -52,11 +65,7 @@ async def main():
                 await field.type_text(value)
                 await asyncio.sleep(0.2)
 
-        codes = SuperScraper.rights_to_exercise(RIGHT_MAP)
-        if not codes:
-            print("No requested privacy rights apply to this form — nothing to do.")
-            return
-        checkboxes = [entry for code in codes for entry in RIGHT_MAP[code]]
+        checkboxes = [entry for right in rights for entry in RIGHT_MAP[right]]
         for label in checkboxes:
             box = await tab.find(**{"aria-label": label}, raise_exc=False)
             if box:
@@ -64,14 +73,14 @@ async def main():
                 await asyncio.sleep(0.2)
 
         if SuperScraper.DRY_RUN:
-            print(f"DRY RUN: would submit removal request for {SuperScraper.FIRST_NAME} {SuperScraper.LAST_NAME}")
+            print(f"DRY RUN: would submit {[r.name for r in rights]} for {SuperScraper.EMAIL}")
             await asyncio.sleep(1)
             await SuperScraper.screenshot(tab, "dry_run")
             return
 
         await super_scraper.click_item_by_text(tab=tab, text="Submit", sleep=2)
         await asyncio.sleep(2)
-        print(f"Submitted removal request for {SuperScraper.FIRST_NAME} {SuperScraper.LAST_NAME}")
+        print(f"Submitted {[r.name for r in rights]} for {SuperScraper.EMAIL} — confirm in the browser.")
 
 
 asyncio.run(main())

@@ -10,33 +10,44 @@
 # /"o-addressLine2"/"o-city" — no id, must match by name), State
 # (name="o-requestState", native <select> keyed by 2-letter abbreviation),
 # Zip (name="o-zipCode"), Phone Number (id="phone-number"), Request
-# Description (id="request-description", required free-text — filled
-# generically per right). "I am submitting this request on behalf of
+# Description (id="request-description", required free-text -> request_statement). "I am submitting this request on behalf of
 # someone other than myself" checkbox (id="representative-type") left
 # unchecked. Jurisdiction auto-detected from IP; no location picker.
 # Cloudflare Turnstile — auto-verifies invisibly in testing but may prompt
 # a manual solve in production, so still flagged as CAPTCHA-required.
 #
-# One submission per right (separate page navigation each time). Exercises
-# Summarize/Access, Do Not Sell or Share, Don't use for advertising, Transfer
-# (portability), and Third parties data was sold or shared with
-# unconditionally; Delete gated on REMOVE_INFORMATION. Correct is skipped
-# (no concrete inaccuracy to describe).
+# One submission per request-type card (separate page navigation each time). Cards:
+#   "Summarize my personal information", "Transfer my personal information"   -> access
+#   "Do Not Sell or Share to a Third Party", "Don't use my personal information
+#   for advertising"                                                           -> opt-out
+#   "Third parties your data was sold or shared with"                          -> list of third parties
+#   "Delete my personal information"                                           -> delete
+# Which run is decided ONLY by SuperScraper.rights_to_exercise(RIGHT_MAP). Correct is
+# skipped (no concrete inaccuracy to describe).
+#
+# Page elements: request-type cards (matched by title text), #email, #given-name,
+# #family-name, #phone-number, [name=o-addressLine1] / [name=o-addressLine2] / [name=o-city] /
+# [name=o-zipCode], [name=o-requestState] (State <select>), #request-description,
+# #representative-type (left unchecked).
 import asyncio
 
+from src.dsar import js_utils
+from src.dsar.rights import Right
 from src.dsar.super_scraper import SuperScraper
 
 from pydoll.browser.chromium import Chrome
 
 URL = "https://my.datasubject.com/dvx9xrLka0/68954"
 
+# Right -> request-type card title(s).
 RIGHT_MAP = {
-    "access": ["Summarize my personal information"],
-    "portability": ["Transfer my personal information"],
-    "opt_out_sale_share": ["Do Not Sell or Share to a Third Party"],
-    "opt_out_targeted_ads": ["Don't use my personal information for advertising"],
-    "know_third_parties": ["Third parties your data was sold or shared with"],
-    "delete": ["Delete my personal information"],
+    Right.RIGHT_TO_ACCESS: ["Summarize my personal information", "Transfer my personal information"],
+    Right.RIGHT_TO_OPT_OUT: [
+        "Do Not Sell or Share to a Third Party",
+        "Don't use my personal information for advertising",
+    ],
+    Right.RIGHT_TO_LIST_OF_THIRD_PARTIES: ["Third parties your data was sold or shared with"],
+    Right.RIGHT_TO_DELETE: ["Delete my personal information"],
 }
 RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
 
@@ -80,12 +91,7 @@ async def _fill_step2(tab, super_scraper):
     state_select = await tab.find(name="o-requestState", raise_exc=False)
     if state_select:
         state_abbrev = SuperScraper.STATE_ABBREVIATED
-        await state_select.execute_script(
-            "for (var i=0;i<this.options.length;i++){"
-            f"  if(this.options[i].value==={state_abbrev!r}){{ this.selectedIndex=i; }}"
-            "}"
-            "this.dispatchEvent(new Event('change', {bubbles:true}));"
-        )
+        await js_utils.select_native_option(state_select, value=state_abbrev)
     else:
         print(f"{super_scraper.OOPS} State select not found")
 
@@ -96,22 +102,22 @@ async def main():
     super_scraper = SuperScraper()
     options = SuperScraper.build_chromium_options()
 
-    codes = SuperScraper.rights_to_exercise(RIGHT_MAP)
-    if not codes:
+    rights = SuperScraper.rights_to_exercise(RIGHT_MAP)
+    if not rights:
         print("No requested privacy rights apply to this form — nothing to do.")
         return
-    rights = [entry for code in codes for entry in RIGHT_MAP[code]]
 
     async with Chrome(options=options) as browser:
         tab = await browser.start()
 
-        for right in rights:
+        requests = [(right, entry) for right in rights for entry in RIGHT_MAP[right]]
+        for right, card_title in requests:
             await tab.go_to(URL)
             await asyncio.sleep(6)
 
-            card = await tab.find(text=right, raise_exc=False)
+            card = await tab.find(text=card_title, raise_exc=False)
             if not card:
-                print(f"{super_scraper.OOPS} Card not found: '{right}'")
+                print(f"{super_scraper.OOPS} Card not found: '{card_title}'")
                 continue
             await card.click()
             await asyncio.sleep(2)
@@ -122,16 +128,16 @@ async def main():
             description_field = await tab.find(id="request-description", raise_exc=False)
             if description_field:
                 await description_field.type_text(
-                    f"I am submitting a '{right}' request under the {SuperScraper.LAW_FULL_NAME or 'applicable state and federal privacy law'}."
+                    SuperScraper.request_statement([right], broker="The Data Trust")
                 )
             else:
                 print(f"{super_scraper.OOPS} Request Description field not found")
 
-            safe_name = "".join(c if c.isalnum() else "_" for c in right.lower())[:40].strip("_")
+            safe_name = "".join(c if c.isalnum() else "_" for c in card_title.lower())[:40].strip("_")
             await asyncio.sleep(1)
             await SuperScraper.screenshot(tab, f"dry_run_{safe_name}")
             print(
-                f"\n'{right}' request filled but NOT submitted — a Cloudflare Turnstile "
+                f"\n'{card_title}' request filled but NOT submitted — a Cloudflare Turnstile "
                 "checkbox may require a manual solve before submitting."
             )
 

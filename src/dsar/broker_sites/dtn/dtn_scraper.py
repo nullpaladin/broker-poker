@@ -1,8 +1,8 @@
 # dtn.com — Gravity Forms privacy request form, no name/address section
 # beyond zip. All rights are one multi-select checkbox group in a single
 # submission: Do Not Sell/Share, Limit Sensitive PI, Access/Correct, Object
-# to Processing, Data Portability, Withdraw Consent unconditionally; Delete
-# gated on REMOVE_INFORMATION. "Other" is left unchecked (its textarea is
+# to Processing, Data Portability, Withdraw Consent unconditionally; Delete.
+# "Other" is left unchecked (its textarea is
 # only actually required by Gravity Forms' conditional logic when "Other"
 # itself is selected). In place of a CAPTCHA, the form asks a randomized
 # arithmetic question ("What is X+Y?") via a <select> of multiple-choice
@@ -13,8 +13,17 @@
 # on load and intercepts clicks until dismissed via its aria-label="Close" (×)
 # button — its "Accept All Cookies"/"Confirm My Choices" buttons are red
 # herrings (hidden/inert on this page).
+#
+# Page elements:
+#   input_47_1 / _2 / _3 / _4 / _17   First name / Last name / Email / Phone / Zip
+#   input_36.1 .. input_36.7          rights checkbox group (named below)
+#   #input_47_42                      arithmetic-question <select> (anti-bot)
+#   #choice_47_31_1                   "Please verify: ... true and accurate ..." attestation
+#   "Submit" button                   clicked by its text
+#   aria-label="Close"                x button of the OneTrust cookie-consent modal
 import asyncio
 
+from src.dsar.rights import Right
 from src.dsar.super_scraper import SuperScraper
 from src.dsar import captcha_solutions_util
 from src.dsar import js_utils
@@ -23,18 +32,35 @@ from pydoll.browser.chromium import Chrome
 
 URL = "https://www.dtn.com/do-not-sell-my-information-form/"
 
+# Checkbox names in the rights group (input_36.N). Only the labels the file records are named.
+DELETE_BOX = "input_36.1"            # Delete
+LIMIT_SENSITIVE_BOX = "input_36.3"   # Limit Sensitive PI
+ACCESS_BOX = "input_36.4"            # Access
+PORTABILITY_BOX = "input_36.6"       # Data Portability
+# input_36.2 / .5 / .7 are the remaining opt-out style choices (Do Not Sell/Share, Object to
+# Processing, Withdraw Consent); the per-box order was not recorded.
+OPT_OUT_BOX_A = "input_36.2"
+OPT_OUT_BOX_B = "input_36.5"
+OPT_OUT_BOX_C = "input_36.7"
+
 RIGHT_MAP = {
-    "access": ["input_36.4"],
-    "limit_sensitive_pi": ["input_36.3"],
-    "portability": ["input_36.6"],
-    "opt_out_sale_share": ["input_36.2", "input_36.5", "input_36.7"],
-    "delete": ["input_36.1"],
+    Right.RIGHT_TO_ACCESS: [ACCESS_BOX, PORTABILITY_BOX],
+    Right.RIGHT_TO_OPT_OUT: [LIMIT_SENSITIVE_BOX, OPT_OUT_BOX_A, OPT_OUT_BOX_B, OPT_OUT_BOX_C],
+    Right.RIGHT_TO_DELETE: [DELETE_BOX],
 }
 RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
 
 
 async def main():
     super_scraper = SuperScraper()
+    if SuperScraper.bail_if_not_automatable(globals()):
+        return
+
+    rights = SuperScraper.rights_to_exercise(RIGHT_MAP)
+    if not rights:
+        print("No requested privacy rights apply to this form — nothing to do.")
+        return
+
     options = SuperScraper.build_chromium_options()
 
     async with Chrome(options=options) as browser:
@@ -53,11 +79,7 @@ async def main():
         await super_scraper.input_text_field(tab=tab, xpath="//input[@id='input_47_4']", text=SuperScraper.PHONE_NUMBER, sleep=0.2)
         await super_scraper.input_text_field(tab=tab, xpath="//input[@id='input_47_17']", text=SuperScraper.ZIP_CODE, sleep=0.2)
 
-        codes = SuperScraper.rights_to_exercise(RIGHT_MAP)
-        if not codes:
-            print("No requested privacy rights apply to this form — nothing to do.")
-            return
-        checkboxes = [entry for code in codes for entry in RIGHT_MAP[code]]
+        checkboxes = [entry for right in rights for entry in RIGHT_MAP[right]]
         for name in checkboxes:
             box = await tab.find(name=name, raise_exc=False)
             if box:
@@ -81,14 +103,14 @@ async def main():
             await verify_box.click()
 
         if SuperScraper.DRY_RUN:
-            print(f"DRY RUN: would submit removal request for {SuperScraper.FIRST_NAME} {SuperScraper.LAST_NAME}")
+            print(f"DRY RUN: would submit {[r.name for r in rights]} for {SuperScraper.EMAIL}")
             await asyncio.sleep(1)
             await SuperScraper.screenshot(tab, "dry_run")
             return
 
         await super_scraper.click_item_by_text(tab=tab, text="Submit", sleep=2)
         await asyncio.sleep(2)
-        print(f"Submitted removal request for {SuperScraper.FIRST_NAME} {SuperScraper.LAST_NAME}")
+        print(f"Submitted {[r.name for r in rights]} for {SuperScraper.EMAIL} — confirm in the browser.")
 
 
 asyncio.run(main())

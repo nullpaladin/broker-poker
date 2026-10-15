@@ -6,7 +6,10 @@
 # form (statsocial.com/optout/), which is a standard Formidable Forms
 # WordPress form with no email-verification step.
 #
-# Fields are stable HTML ids: field_optout_name_first/_last,
+# Which of Opt-Out / Delete run is decided ONLY by
+# SuperScraper.rights_to_exercise(RIGHT_MAP) (each ticks its "Preferences" checkbox).
+#
+# Page elements (stable HTML ids): field_optout_name_first/_last,
 # field_optout_email, field_optout_country (native <select>, value="United
 # States"), field_optout_state (native <select>, but starts EMPTY — its
 # option list is populated by a JS listener only after Country changes, so
@@ -16,6 +19,7 @@
 # Turnstile — **CAPTCHA solution required**.
 import asyncio
 
+from src.dsar.rights import Right
 from src.dsar.super_scraper import SuperScraper
 from src.dsar import js_utils
 
@@ -23,12 +27,20 @@ from pydoll.browser.chromium import Chrome
 
 URL = "https://www.statsocial.com/optout/"
 
-RIGHT_MAP = {"opt_out_sale_share": ["optout_personal_data"], "delete": ["delete_personal_data"]}
+# Right -> "Preferences" checkbox value(s)
+RIGHT_MAP = {
+    Right.RIGHT_TO_OPT_OUT: ["optout_personal_data"],
+    Right.RIGHT_TO_DELETE: ["delete_personal_data"],
+}
 RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
 
 
 async def main():
     super_scraper = SuperScraper()
+    rights = SuperScraper.rights_to_exercise(RIGHT_MAP)
+    if not rights:
+        print("No requested privacy rights apply to this form — nothing to do.")
+        return
     options = SuperScraper.build_chromium_options()
 
     async with Chrome(options=options) as browser:
@@ -65,11 +77,7 @@ async def main():
         else:
             print(f"{super_scraper.OOPS} State select not found")
 
-        codes = SuperScraper.rights_to_exercise(RIGHT_MAP)
-        if not codes:
-            print("No requested privacy rights apply to this form — nothing to do.")
-            return
-        preference_values = [cb for code in codes for cb in RIGHT_MAP[code]]
+        preference_values = [cb for right in rights for cb in RIGHT_MAP[right]]
         for value in preference_values:
             checkbox = await tab.find(xpath=f"//input[@value='{value}']", raise_exc=False)
             if checkbox:
@@ -78,7 +86,7 @@ async def main():
                 print(f"{super_scraper.OOPS} preference checkbox '{value}' not found")
 
         await asyncio.sleep(1)
-        await SuperScraper.screenshot(tab, "dry_run")
+        await SuperScraper.screenshot(tab, "dry_run_" + "_".join(r.value for r in rights))
         print(
             "\nOptout Form filled but NOT submitted — a Cloudflare Turnstile checkbox "
             "requires a manual solve before submitting. Note: statsocial.com's separate "

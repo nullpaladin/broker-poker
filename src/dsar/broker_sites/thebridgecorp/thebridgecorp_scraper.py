@@ -9,8 +9,8 @@
 #   bcf_*_enter_advertising_id_  textarea (optional) -> MAID
 #   please_select_the_type_of_request_or_requests_you_wish_to_submit_  checkbox
 #       group (multi-select, one combined submission): "Request Information"
-#       (Access) + "Opt Out" unconditionally; "Delete My Record" gated on
-#       REMOVE_INFORMATION.
+#       (Access), "Opt Out", "Delete My Record" — only the ones chosen
+#       by SuperScraper.rights_to_exercise(RIGHT_MAP) are ticked.
 #   bcf_*_by_checking_off_the_box_...  declaration checkbox -> checked
 #   bcf_*_write_your_name_below  (required) -> full name
 # reCAPTCHA gates submit — filled to that point.  **CAPTCHA solution required**
@@ -18,14 +18,16 @@ import asyncio
 
 from pydoll.browser.chromium import Chrome
 
+from src.dsar.rights import Right
 from src.dsar.super_scraper import SuperScraper
 
 URL = "https://www.thebridgecorp.com/opt-out/"
 
+# Right -> checkbox value of the "type of request" group (one combined submission).
 RIGHT_MAP = {
-    "access": ["Request Information"],
-    "opt_out_sale_share": ["Opt Out"],
-    "delete": ["Delete My Record"],
+    Right.RIGHT_TO_ACCESS: "Request Information",
+    Right.RIGHT_TO_OPT_OUT: "Opt Out",
+    Right.RIGHT_TO_DELETE: "Delete My Record",
 }
 RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
 
@@ -35,11 +37,11 @@ async def main():
     options = SuperScraper.build_chromium_options()
 
     full_name = " ".join(p for p in (SuperScraper.FIRST_NAME, SuperScraper.LAST_NAME) if p)
-    codes = SuperScraper.rights_to_exercise(RIGHT_MAP)
-    if not codes:
+    rights = SuperScraper.rights_to_exercise(RIGHT_MAP)
+    if not rights:
         print("No requested privacy rights apply to this form — nothing to do.")
         return
-    request_types = [entry for code in codes for entry in RIGHT_MAP[code]]
+    request_types = [RIGHT_MAP[right] for right in rights]
 
     async with Chrome(options=options) as browser:
         tab = await browser.start()

@@ -1,12 +1,17 @@
 # `state_privacy_data.json` — the state → privacy-law map
 
+> **This is the one place to update when a state's privacy law changes** (law name, rights granted,
+> `request_basis` wording). Scrapers never hard-code law names.
+
 `src/state_privacy_request_factory/state_privacy_data.json` is the single source
 of truth for:
 
 - 2-letter USPS abbreviations (both directions),
 - whether a state has an active comprehensive consumer-privacy law,
 - the law's short/full name and citation root,
-- which canonical DSAR **right codes** that law grants (per-right statute cites
+- `request_basis`: the phrase scrapers put in free-text request messages
+  (`"under the Minnesota Consumer Data Privacy Act"`; `null` for no-law states, in which case no law is cited),
+- which of the four DSAR **right codes** that law grants (per-right statute cites
   where known).
 
 It replaces the old `StateAbbreviation` and `StateHasPrivacyLaws` enums. Read it
@@ -17,9 +22,9 @@ the JSON directly elsewhere.
 
 ```jsonc
 {
-  "right_codes": ["access", "delete", "correct", "portability",
-                  "opt_out_sale_share", "opt_out_targeted_ads",
-                  "opt_out_profiling", "know_third_parties", "limit_sensitive_pi"],
+  "right_codes": ["access", "opt_out", "delete", "list_of_third_parties"],
+  // access = access + portability; opt_out = sale/sharing, targeted ads, profiling, limit sensitive PI.
+  // Right to correct is not tracked (not automatable).
   "states": [
     {
       "state": "MINNESOTA",          // canonical UPPER name (spaces, not underscores)
@@ -29,6 +34,7 @@ the JSON directly elsewhere.
       "law_name": "Minnesota Consumer Data Privacy Act",  // null for no-law states
       "law_short_name": "MCDPA",                          // null for no-law states
       "statute_cite": "Minn. Stat. 325M",                 // citation root; null for no-law
+      "request_basis": "under the Minnesota Consumer Data Privacy Act",  // null for no-law states
       "rights": ["access", "delete", ...],   // codes the law grants; [] for no-law states
       "right_citations": {                   // OPTIONAL, per-right cites (only MN is curated)
         "access": "Minn. Stat. 325M.14(e)", ...
@@ -47,6 +53,7 @@ the JSON directly elsewhere.
 | `state_has_privacy_law(name)` | `bool` (unknown ⇒ `False`) |
 | `law_name(name, *, short=False)` | `"Minnesota Consumer Data Privacy Act"` / `"MCDPA"` / `None` |
 | `rights_available(name)` | `frozenset` of right codes (empty for no-law) |
+| `request_basis(name)` | `"under the <law>"` or `None` |
 | `statute_cite(name, right_code=None)` | per-right cite, or the law's citation root |
 | `state_camel_key(name, *, suffix="Usa")` | `"rhodeIslandUsa"` (for SixFifty-style forms) |
 | `RIGHT_CODES` | the canonical tuple |
@@ -54,7 +61,7 @@ the JSON directly elsewhere.
 
 `SuperScraper` re-exposes the common ones: `STATE_ABBREVIATED`, `LAW_FULL_NAME`,
 `LAW_SHORT_NAME`, `state_has_privacy_law()`, `state_camel_key()`,
-`state_law_citation()`, plus the rights logic (`wants()`, `rights_to_exercise()`,
+`REQUEST_BASIS`, `state_law_citation()`, plus the rights logic (`rights_to_exercise()`,
 `request_statement()`).
 
 ## Maintenance
@@ -67,7 +74,7 @@ the JSON directly elsewhere.
   cites. **`law_name` / `statute_cite` / `rights` outside Minnesota have not been
   legally reviewed.** Correct them here as laws change — same living-reference
   cadence as the README's per-site notes.
-- `know_third_parties` (Right to List of *specific* Third Parties) is currently
+- `list_of_third_parties` (Right to List of *specific* Third Parties) is currently
   granted only to `MN` and `OR`.
 - The frontend selects state from a dropdown, so the loader does not tolerate
   unknown names — it raises `UnknownStateError`.

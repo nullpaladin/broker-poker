@@ -15,18 +15,40 @@
 # must be dismissed first. No CAPTCHA observed on this form specifically
 # (the g-recaptcha field on the page belongs to the separate Contact Us
 # form).
+# Rights the form exposes: opt-out only; whether it runs is decided ONLY by
+# SuperScraper.rights_to_exercise(RIGHT_MAP).
+#
+# Page elements (keep this list current):
+#   #CybotCookiebotDialogBodyButtonDecline   Cookiebot banner "Decline" button
+#   #input_2_1 (DEVICE_ID_FIELD)   Device ID (Advertising or Installation ID)
+#   #input_2_2 (EMAIL_FIELD)       Email
+#   #input_2_3                     "Name" — honeypot, left BLANK
+#   #gform_submit_button_2         Submit button
 import asyncio
 
+from src.dsar.rights import Right
 from src.dsar.super_scraper import SuperScraper
 
 from pydoll.browser.chromium import Chrome
 
 URL = "https://outlogic.io/opt-out-form/"
 
+RIGHT_MAP = {Right.RIGHT_TO_OPT_OUT: "opt-out"}
+RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
+DEVICE_ID_FIELD = "input_2_1"
+EMAIL_FIELD = "input_2_2"
+
 
 async def main():
     super_scraper = SuperScraper()
+    if SuperScraper.bail_if_not_automatable(globals()):
+        return
     options = SuperScraper.build_chromium_options()
+
+    rights = SuperScraper.rights_to_exercise(RIGHT_MAP)
+    if not rights:
+        print("No requested privacy rights apply to this form — nothing to do.")
+        return
 
     async with Chrome(options=options) as browser:
         tab = await browser.start()
@@ -38,13 +60,13 @@ async def main():
             await deny_btn.click()
             await asyncio.sleep(1)
 
-        device_id_field = await tab.find(id="input_2_1", raise_exc=False)
+        device_id_field = await tab.find(id=DEVICE_ID_FIELD, raise_exc=False)
         if device_id_field and SuperScraper.ADVERTISING_ID:
             await device_id_field.type_text(SuperScraper.ADVERTISING_ID)
         else:
             print(f"{super_scraper.OOPS} device ID field not found or ADVERTISING_ID not set")
 
-        email_field = await tab.find(id="input_2_2", raise_exc=False)
+        email_field = await tab.find(id=EMAIL_FIELD, raise_exc=False)
         if email_field:
             await email_field.type_text(SuperScraper.EMAIL)
 
@@ -54,7 +76,7 @@ async def main():
         # m1data.com elsewhere in this repo.
 
         await asyncio.sleep(1)
-        await SuperScraper.screenshot(tab, "dry_run")
+        await SuperScraper.screenshot(tab, "dry_run_opt_out")
         if SuperScraper.DRY_RUN:
             print(f"DRY RUN: would submit opt-out request for {SuperScraper.EMAIL} (device ID: {SuperScraper.ADVERTISING_ID})")
             return
@@ -63,7 +85,7 @@ async def main():
         if submit_btn:
             await submit_btn.click()
             await asyncio.sleep(2)
-            print(f"Submitted opt-out request for {SuperScraper.EMAIL}")
+            print(f"Submitted 'RIGHT_TO_OPT_OUT' for {SuperScraper.EMAIL} — confirm in the browser.")
         else:
             print(f"{super_scraper.OOPS} Submit button not found")
 

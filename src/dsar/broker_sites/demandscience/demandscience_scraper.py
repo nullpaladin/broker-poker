@@ -7,20 +7,29 @@
 # text ("22984") rather than value). "Business Email Address" and "company
 # you work for" are both required despite this being a consumer DSAR form —
 # COMPANY_NAME is used for the latter. "Privacy Request Type" (name=10657)
-# is a single-select radio (one submission per right): "I would like to
-# know what data you hold about me." (Access) and "I object to you
-# processing my data and request opt-out." (Opt-Out) unconditionally; "I
-# would like my data to be deleted." gated on REMOVE_INFORMATION. Every
+# is a single-select radio (one submission per right). Which rights run is decided
+# ONLY by SuperScraper.rights_to_exercise(RIGHT_MAP). Every
 # radio's real <input> is positioned off-canvas (opacity:0) inside a jQuery
 # Custom Forms (jcf) wrapper whose `for`/`id` label linkage is broken (the
 # label's `for` doesn't match the actual radio id) — set via JS
 # (checked=true + click/change dispatch) rather than relying on a label
 # click. No captcha observed.
+#
+# Page elements:
+#   input[name=10652]            First Name
+#   input[name=10661]            Last Name
+#   #Email_10653                 Business Email Address
+#   input[name=10662]            Company (the company you work for)
+#   COUNTRY_SELECT_ID            Country of Residence <select> -> "United States"
+#   input[name=10657]            "Privacy Request Type" radio (see RIGHT_MAP)
+#   "Submit" button              Submit
 import asyncio
 
-from src.dsar.super_scraper import SuperScraper
-
 from pydoll.browser.chromium import Chrome
+
+from src.dsar import js_utils
+from src.dsar.rights import Right
+from src.dsar.super_scraper import SuperScraper
 
 URL = "https://portal.privacyengine.io/app/0CEB4BAE-BBE7-4DD9-BD70-4E2DBB01D64D/4F5BED3F-8BFB-4BF4-A1F8-8A2261BDE0CE"
 
@@ -30,9 +39,9 @@ UNITED_STATES_VALUE = "22984"
 REQUEST_TYPE_RADIO_NAME = "10657"
 # Opaque tagger ids — verify against the live form.
 RIGHT_MAP = {
-    "access": ["22792"],            # know what data you hold
-    "opt_out_sale_share": ["22795"],
-    "delete": ["22794"],
+    Right.RIGHT_TO_ACCESS: "22792",   # "I would like to know what data you hold about me."
+    Right.RIGHT_TO_OPT_OUT: "22795",  # "I object to you processing my data and request opt-out."
+    Right.RIGHT_TO_DELETE: "22794",   # "I would like my data to be deleted."
 }
 RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
 
@@ -49,7 +58,7 @@ async def _check_radio(tab, name, value, super_scraper, description):
     )
 
 
-async def submit_request(tab, request_type, super_scraper):
+async def submit_request(tab, right, request_type, super_scraper):
     await tab.go_to(URL)
     await asyncio.sleep(6)
 
@@ -69,50 +78,40 @@ async def submit_request(tab, request_type, super_scraper):
 
     country_select = await tab.find(id=COUNTRY_SELECT_ID, raise_exc=False)
     if country_select:
-        await country_select.execute_script(
-            "for (var i=0;i<this.options.length;i++){"
-            f"  if(this.options[i].value==={UNITED_STATES_VALUE!r}){{ this.selectedIndex=i; }}"
-            "}"
-            "this.dispatchEvent(new Event('change', {bubbles:true}));"
-        )
+        await js_utils.select_native_option(country_select, value=UNITED_STATES_VALUE)
 
     await _check_radio(tab, REQUEST_TYPE_RADIO_NAME, request_type, super_scraper, "request type")
 
-    label = {
-        "22792": "know",
-        "22795": "opt_out",
-        "22794": "delete",
-    }.get(request_type, request_type)
-
     if SuperScraper.DRY_RUN:
-        print(f"DRY RUN: would submit '{label}' request for {SuperScraper.FIRST_NAME} {SuperScraper.LAST_NAME}")
         await asyncio.sleep(1)
-        await SuperScraper.screenshot(tab, f"dry_run_{label}")
+        await SuperScraper.screenshot(tab, f"dry_run_{right.value}")
+        print(f"DRY RUN: would submit '{right.name}' for {SuperScraper.EMAIL}")
         return
 
     submit_btn = await tab.find(text="Submit", raise_exc=False)
     if submit_btn:
         await submit_btn.click()
         await asyncio.sleep(2)
-        print(f"Submitted '{label}' request for {SuperScraper.FIRST_NAME} {SuperScraper.LAST_NAME}")
+        print(f"Submitted '{right.name}' for {SuperScraper.EMAIL} — confirm in the browser.")
     else:
-        print(f"{super_scraper.OOPS} Submit button not found for '{label}'")
+        print(f"{super_scraper.OOPS} Submit button not found for '{right.name}'")
 
 
 async def main():
     super_scraper = SuperScraper()
-    options = SuperScraper.build_chromium_options()
+    if SuperScraper.bail_if_not_automatable(globals()):
+        return
 
-    codes = SuperScraper.rights_to_exercise(RIGHT_MAP)
-    if not codes:
+    rights = SuperScraper.rights_to_exercise(RIGHT_MAP)
+    if not rights:
         print("No requested privacy rights apply to this form — nothing to do.")
         return
-    request_types = [entry for code in codes for entry in RIGHT_MAP[code]]
 
+    options = SuperScraper.build_chromium_options()
     async with Chrome(options=options) as browser:
         tab = await browser.start()
-        for request_type in request_types:
-            await submit_request(tab, request_type, super_scraper)
+        for right in rights:
+            await submit_request(tab, right, RIGHT_MAP[right], super_scraper)
 
 
 asyncio.run(main())

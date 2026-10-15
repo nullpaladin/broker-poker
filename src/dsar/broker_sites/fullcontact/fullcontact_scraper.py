@@ -12,7 +12,6 @@ import asyncio
 from src.dsar.super_scraper import SuperScraper
 
 from pydoll.browser.chromium import Chrome
-from pydoll.browser.options import ChromiumOptions
 
 URL = "https://platform.fullcontact.com/your-privacy-choices"
 
@@ -61,7 +60,7 @@ async def submit_request(tab, card_text, super_scraper):
     label = "".join(c if c.isalnum() else "_" for c in card_text.lower())[:40].strip("_")
 
     await asyncio.sleep(1)
-    await SuperScraper.screenshot(tab, f"resources/screenshots/fullcontact_dry_run_{label}.png")
+    await SuperScraper.screenshot(tab, f"dry_run_{label}")
     print(
         f"\n'{card_text}' email entered but NOT sent — click 'Send Me A Code' yourself, "
         "enter the code you receive, and continue. This sends a real verification code "
@@ -72,10 +71,8 @@ async def submit_request(tab, card_text, super_scraper):
 async def main():
     if SuperScraper.bail_if_not_automatable(globals()):
         return
-    options = ChromiumOptions()
     super_scraper = SuperScraper()
-    options.binary_location = super_scraper.CHROMIUM_LOCATION
-    options.add_argument("--no-sandbox")
+    options = SuperScraper.build_chromium_options()
 
     codes = SuperScraper.rights_to_exercise(RIGHT_MAP)
     if not codes:

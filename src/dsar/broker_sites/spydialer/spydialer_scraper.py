@@ -6,7 +6,6 @@
 import asyncio
 
 from pydoll.browser.chromium import Chrome
-from pydoll.browser.options import ChromiumOptions
 
 from src.dsar.super_scraper import SuperScraper
 
@@ -37,10 +36,8 @@ RIGHTS_SUPPORTED = ("delete",)
 
 
 async def main():
-    options = ChromiumOptions()
     super_scraper = SuperScraper()
-    options.binary_location = super_scraper.CHROMIUM_LOCATION
-    options.add_argument("--no-sandbox")
+    options = SuperScraper.build_chromium_options()
 
     # Removal tool — Delete only. Skip unless the user actually asked for deletion.
     if not SuperScraper.rights_to_exercise(RIGHT_MAP):
@@ -70,7 +67,7 @@ async def main():
             )
             if submit_btn:
                 await submit_btn.scroll_into_view()
-            await SuperScraper.screenshot(tab, "resources/screenshots/spydialer_dry_run.png")
+            await SuperScraper.screenshot(tab, "dry_run")
             print(
                 f"DRY RUN: would submit state filter for "
                 f"{SuperScraper.FIRST_NAME} {SuperScraper.LAST_NAME} <{SuperScraper.EMAIL}>"

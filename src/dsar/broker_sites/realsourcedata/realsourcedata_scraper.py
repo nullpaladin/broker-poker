@@ -14,7 +14,6 @@ import asyncio
 from src.dsar.super_scraper import SuperScraper
 
 from pydoll.browser.chromium import Chrome
-from pydoll.browser.options import ChromiumOptions
 
 URL = "https://www.realsourcedata.com/do-not-sell-my-personal-information"
 
@@ -31,10 +30,8 @@ FIELD_VALUES = [
 
 
 async def main():
-    options = ChromiumOptions()
     super_scraper = SuperScraper()
-    options.binary_location = super_scraper.CHROMIUM_LOCATION
-    options.add_argument("--no-sandbox")
+    options = SuperScraper.build_chromium_options()
 
     async with Chrome(options=options) as browser:
         tab = await browser.start()
@@ -57,7 +54,7 @@ async def main():
             await asyncio.sleep(0.2)
 
         await asyncio.sleep(1)
-        await SuperScraper.screenshot(tab, "resources/screenshots/realsourcedata_dry_run.png")
+        await SuperScraper.screenshot(tab, "dry_run")
         print(
             "\nOpt-out request filled but NOT submitted — a reCAPTCHA v2 checkbox requires a "
             "manual solve before submitting."

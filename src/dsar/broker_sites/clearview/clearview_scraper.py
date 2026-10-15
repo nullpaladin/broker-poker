@@ -24,7 +24,6 @@ import asyncio
 from src.dsar.super_scraper import SuperScraper
 
 from pydoll.browser.chromium import Chrome
-from pydoll.browser.options import ChromiumOptions
 
 URL = "https://privacyportal.onetrust.com/webform/1fdd17ee-bd10-4813-a254-de7d5c09360a/7c79cae5-6e86-4d8d-b409-7a932c09b942"
 
@@ -37,10 +36,8 @@ RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
 
 
 async def main():
-    options = ChromiumOptions()
     super_scraper = SuperScraper()
-    options.binary_location = super_scraper.CHROMIUM_LOCATION
-    options.add_argument("--no-sandbox")
+    options = SuperScraper.build_chromium_options()
 
     async with Chrome(options=options) as browser:
         tab = await browser.start()
@@ -82,7 +79,7 @@ async def main():
             await acknowledge.click_using_js()
 
         await asyncio.sleep(1)
-        await SuperScraper.screenshot(tab, "resources/screenshots/clearview_dry_run.png")
+        await SuperScraper.screenshot(tab, "dry_run")
         print(
             "\nForm filled but NOT submitted — Clearview identifies people by image, not name/"
             "email, and requires uploading a clear photo of your face (a redacted photo of your "

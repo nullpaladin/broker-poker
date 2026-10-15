@@ -16,16 +16,13 @@ import asyncio
 from src.dsar.super_scraper import SuperScraper
 
 from pydoll.browser.chromium import Chrome
-from pydoll.browser.options import ChromiumOptions
 
 URL = "https://www.vrtcal.com/opt-out/"
 
 
 async def main():
-    options = ChromiumOptions()
     super_scraper = SuperScraper()
-    options.binary_location = super_scraper.CHROMIUM_LOCATION
-    options.add_argument("--no-sandbox")
+    options = SuperScraper.build_chromium_options()
 
     if not SuperScraper.wants("delete"):
         print(
@@ -42,11 +39,11 @@ async def main():
         status_before = await tab.find(text="Not Opted Out", raise_exc=False)
         if not status_before:
             print("Status is already 'Opted Out' — nothing to change.")
-            await SuperScraper.screenshot(tab, "resources/screenshots/vrtcal_dry_run.png")
+            await SuperScraper.screenshot(tab, "dry_run")
             return
 
         if SuperScraper.DRY_RUN:
-            await SuperScraper.screenshot(tab, "resources/screenshots/vrtcal_dry_run.png")
+            await SuperScraper.screenshot(tab, "dry_run")
             print("DRY RUN: would click 'CHANGE OPT-OUT STATUS' to flip cookie state to Opted Out")
             return
 
@@ -58,7 +55,7 @@ async def main():
             print(f"{super_scraper.OOPS} 'CHANGE OPT-OUT STATUS' link not found")
             return
 
-        await SuperScraper.screenshot(tab, "resources/screenshots/vrtcal_dry_run.png")
+        await SuperScraper.screenshot(tab, "dry_run")
         status_after = await tab.find(text="Opted Out", raise_exc=False)
         if status_after:
             print("Successfully opted out of vrtcal.com tracking.")

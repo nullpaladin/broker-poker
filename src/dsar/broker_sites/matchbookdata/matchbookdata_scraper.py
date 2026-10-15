@@ -13,16 +13,13 @@ import asyncio
 from src.dsar.super_scraper import SuperScraper
 
 from pydoll.browser.chromium import Chrome
-from pydoll.browser.options import ChromiumOptions
 
 URL = "https://www.matchbookdata.com/your-privacy-choices/"
 
 
 async def main():
-    options = ChromiumOptions()
     super_scraper = SuperScraper()
-    options.binary_location = super_scraper.CHROMIUM_LOCATION
-    options.add_argument("--no-sandbox")
+    options = SuperScraper.build_chromium_options()
 
     async with Chrome(options=options) as browser:
         tab = await browser.start()
@@ -45,7 +42,7 @@ async def main():
             await email_field.type_text(SuperScraper.EMAIL)
 
         await asyncio.sleep(1)
-        await SuperScraper.screenshot(tab, "resources/screenshots/matchbookdata_dry_run.png")
+        await SuperScraper.screenshot(tab, "dry_run")
         if SuperScraper.DRY_RUN:
             print(f"DRY RUN: would submit opt-out/deletion request for {SuperScraper.EMAIL} (device ID: {SuperScraper.ADVERTISING_ID})")
             return

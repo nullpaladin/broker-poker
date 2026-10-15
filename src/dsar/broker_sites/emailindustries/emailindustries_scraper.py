@@ -8,7 +8,6 @@
 import asyncio
 
 from pydoll.browser.chromium import Chrome
-from pydoll.browser.options import ChromiumOptions
 from pydoll.constants import Key
 
 from src.dsar.super_scraper import SuperScraper
@@ -17,10 +16,8 @@ URL = "https://privacyportal.onetrust.com/webform/f73513a8-7a10-4a9d-939a-703f8d
 
 
 async def main():
-    options = ChromiumOptions()
     super_scraper = SuperScraper()
-    options.binary_location = super_scraper.CHROMIUM_LOCATION
-    options.add_argument("--no-sandbox")
+    options = SuperScraper.build_chromium_options()
 
     async with Chrome(options=options) as browser:
         tab = await browser.start()
@@ -78,7 +75,7 @@ async def main():
             if captcha_field:
                 await captcha_field.scroll_into_view()
             await asyncio.sleep(1)
-            await SuperScraper.screenshot(tab, "resources/screenshots/emailindustries_dry_run.png")
+            await SuperScraper.screenshot(tab, "dry_run")
             return
 
         print("\nForm filled. Enter the CAPTCHA code, click Submit,")

@@ -8,7 +8,6 @@ import asyncio
 import time
 
 from pydoll.browser.chromium import Chrome
-from pydoll.browser.options import ChromiumOptions
 
 from src.dsar.super_scraper import SuperScraper
 
@@ -16,10 +15,8 @@ URL = "https://www.vector.co/opt-out"
 
 
 async def main():
-    options = ChromiumOptions()
     super_scraper = SuperScraper()
-    options.binary_location = super_scraper.CHROMIUM_LOCATION
-    options.add_argument("--no-sandbox")
+    options = SuperScraper.build_chromium_options()
 
     purpose = (
         "I am a resident exercising my privacy rights: please opt me out of the "
@@ -50,7 +47,7 @@ async def main():
         submit = await tab.find(xpath="//form[@id='opt-out-form']//button[@type='submit']", raise_exc=False)
         if submit:
             await submit.scroll_into_view()
-        await SuperScraper.screenshot(tab, "resources/screenshots/vector_dry_run.png")
+        await SuperScraper.screenshot(tab, "dry_run")
         if SuperScraper.DRY_RUN:
             print(
                 f"DRY RUN: would submit opt-out for "

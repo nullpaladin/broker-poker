@@ -27,7 +27,6 @@ import asyncio
 from src.dsar.super_scraper import SuperScraper
 
 from pydoll.browser.chromium import Chrome
-from pydoll.browser.options import ChromiumOptions
 
 URL = "https://forms.gle/5Cab6bJcRtqVzAJS8"
 
@@ -46,10 +45,8 @@ async def click_by_role_and_label(tab, super_scraper, role, aria_label, descript
 
 
 async def main():
-    options = ChromiumOptions()
     super_scraper = SuperScraper()
-    options.binary_location = super_scraper.CHROMIUM_LOCATION
-    options.add_argument("--no-sandbox")
+    options = SuperScraper.build_chromium_options()
 
     if not SuperScraper.wants("delete"):
         print(
@@ -118,7 +115,7 @@ async def main():
         )
 
         await asyncio.sleep(1)
-        await SuperScraper.screenshot(tab, "resources/screenshots/revenuebase_dry_run.png")
+        await SuperScraper.screenshot(tab, "dry_run")
         if SuperScraper.DRY_RUN:
             print("DRY RUN: would submit data removal request")
             return

@@ -25,7 +25,6 @@ import asyncio
 from src.dsar.super_scraper import SuperScraper
 
 from pydoll.browser.chromium import Chrome
-from pydoll.browser.options import ChromiumOptions
 
 OPT_OUT_URL = "https://www.rayinsights.com/ray-cdp-opt-out-and-delete-request/"
 DATA_REQUEST_URL = "https://www.rayinsights.com/raycdp-data-request/"
@@ -99,7 +98,7 @@ async def submit_opt_out_delete_correct(super_scraper, tab):
     await _fill_common_fields(tab, super_scraper)
 
     await asyncio.sleep(1)
-    await SuperScraper.screenshot(tab, "resources/screenshots/rayinsights_dry_run_opt_out_delete_correct.png")
+    await SuperScraper.screenshot(tab, "dry_run_opt_out_delete_correct")
 async def submit_data_request(super_scraper, tab):
     await tab.go_to(DATA_REQUEST_URL)
     await asyncio.sleep(5)
@@ -107,12 +106,10 @@ async def submit_data_request(super_scraper, tab):
     await _fill_common_fields(tab, super_scraper)
 
     await asyncio.sleep(1)
-    await SuperScraper.screenshot(tab, "resources/screenshots/rayinsights_dry_run_data_request.png")
+    await SuperScraper.screenshot(tab, "dry_run_data_request")
 async def main():
-    options = ChromiumOptions()
     super_scraper = SuperScraper()
-    options.binary_location = super_scraper.CHROMIUM_LOCATION
-    options.add_argument("--no-sandbox")
+    options = SuperScraper.build_chromium_options()
 
     async with Chrome(options=options) as browser:
         tab = await browser.start()

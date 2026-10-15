@@ -16,9 +16,10 @@
 import asyncio
 
 from src.dsar.super_scraper import SuperScraper
+from src.dsar import captcha_solutions_util
+from src.dsar import js_utils
 
 from pydoll.browser.chromium import Chrome
-from pydoll.browser.options import ChromiumOptions
 
 URL = "https://www.dtn.com/do-not-sell-my-information-form/"
 
@@ -33,10 +34,8 @@ RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
 
 
 async def main():
-    options = ChromiumOptions()
     super_scraper = SuperScraper()
-    options.binary_location = super_scraper.CHROMIUM_LOCATION
-    options.add_argument("--no-sandbox")
+    options = SuperScraper.build_chromium_options()
 
     async with Chrome(options=options) as browser:
         tab = await browser.start()
@@ -65,15 +64,15 @@ async def main():
                 await box.click()
                 await asyncio.sleep(0.2)
 
-        placeholder_text = await SuperScraper.js_eval(
+        placeholder_text = await js_utils.js_eval(
             tab,
             "var o = document.querySelector('#input_47_42 option[selected]'); return o ? o.textContent : '';",
         )
-        answer = SuperScraper.solve_math_captcha(placeholder_text or "")
+        answer = captcha_solutions_util.solve_math_captcha(placeholder_text or "")
         if answer is not None:
             math_select = await tab.find(id="input_47_42", raise_exc=False)
             if math_select:
-                await SuperScraper.select_native_option(math_select, value=answer)
+                await js_utils.select_native_option(math_select, value=answer)
         else:
             print(f"{super_scraper.OOPS} Could not parse the arithmetic question '{placeholder_text}'")
 
@@ -84,7 +83,7 @@ async def main():
         if SuperScraper.DRY_RUN:
             print(f"DRY RUN: would submit removal request for {SuperScraper.FIRST_NAME} {SuperScraper.LAST_NAME}")
             await asyncio.sleep(1)
-            await SuperScraper.screenshot(tab, "resources/screenshots/dtn_dry_run.png")
+            await SuperScraper.screenshot(tab, "dry_run")
             return
 
         await super_scraper.click_item_by_text(tab=tab, text="Submit", sleep=2)

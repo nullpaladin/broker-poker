@@ -30,7 +30,6 @@ import asyncio
 from src.dsar.super_scraper import SuperScraper
 
 from pydoll.browser.chromium import Chrome
-from pydoll.browser.options import ChromiumOptions
 
 URL = "https://app.intelius.com/privacy-center/"
 
@@ -51,7 +50,7 @@ async def do_access(tab, super_scraper):
         return
     await email_field.type_text(SuperScraper.EMAIL)
     await asyncio.sleep(1)
-    await SuperScraper.screenshot(tab, "resources/screenshots/intelius_dry_run_access.png")
+    await SuperScraper.screenshot(tab, "dry_run_access")
     print(
         "\nAccess request email entered but NOT sent — click 'Request a Copy of My Data' "
         "yourself. This emails a real download link regardless of DRY_RUN, so it is never "
@@ -78,7 +77,7 @@ async def do_opt_out(tab, super_scraper):
     if SuperScraper.DRY_RUN:
         print(f"DRY RUN: would save opt-out cookie preference for {SuperScraper.FIRST_NAME} {SuperScraper.LAST_NAME}")
         await asyncio.sleep(1)
-        await SuperScraper.screenshot(tab, "resources/screenshots/intelius_dry_run_opt_out.png")
+        await SuperScraper.screenshot(tab, "dry_run_opt_out")
         # dismiss the modal (leaving it open would block the next
         # accordion section's screenshot) — the checkbox state was already
         # captured above, nothing is lost by cancelling instead of saving
@@ -105,7 +104,7 @@ async def do_delete(tab, super_scraper):
         return
     await email_field.type_text(SuperScraper.EMAIL)
     await asyncio.sleep(1)
-    await SuperScraper.screenshot(tab, "resources/screenshots/intelius_dry_run_delete.png")
+    await SuperScraper.screenshot(tab, "dry_run_delete")
     print(
         "\nDeletion request email entered but NOT sent — click 'Delete My User Data' "
         "yourself and confirm via the email you receive. This sends a real confirmation "
@@ -114,10 +113,8 @@ async def do_delete(tab, super_scraper):
 
 
 async def main():
-    options = ChromiumOptions()
     super_scraper = SuperScraper()
-    options.binary_location = super_scraper.CHROMIUM_LOCATION
-    options.add_argument("--no-sandbox")
+    options = SuperScraper.build_chromium_options()
 
     async with Chrome(options=options) as browser:
         tab = await browser.start()

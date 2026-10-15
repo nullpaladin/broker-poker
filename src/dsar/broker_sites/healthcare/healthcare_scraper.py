@@ -11,7 +11,6 @@ import asyncio
 from src.dsar.super_scraper import SuperScraper
 
 from pydoll.browser.chromium import Chrome
-from pydoll.browser.options import ChromiumOptions
 
 URL = "https://www.healthcare.com/data-request/request-form/"
 
@@ -51,7 +50,7 @@ async def submit_request(tab, case_type, label, super_scraper):
     if SuperScraper.DRY_RUN:
         print(f"DRY RUN: would submit '{case_type}' for {SuperScraper.FIRST_NAME} {SuperScraper.LAST_NAME}")
         await asyncio.sleep(1)
-        await SuperScraper.screenshot(tab, f"resources/screenshots/healthcare_dry_run_{label}.png")
+        await SuperScraper.screenshot(tab, f"dry_run_{label}")
         return
 
     await super_scraper.click_item_by_text(tab=tab, text="Submit", sleep=2)
@@ -60,10 +59,8 @@ async def submit_request(tab, case_type, label, super_scraper):
 
 
 async def main():
-    options = ChromiumOptions()
     super_scraper = SuperScraper()
-    options.binary_location = super_scraper.CHROMIUM_LOCATION
-    options.add_argument("--no-sandbox")
+    options = SuperScraper.build_chromium_options()
 
     codes = SuperScraper.rights_to_exercise(RIGHT_MAP)
     if not codes:

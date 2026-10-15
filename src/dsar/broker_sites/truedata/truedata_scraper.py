@@ -15,9 +15,9 @@ import asyncio
 import time
 
 from pydoll.browser.chromium import Chrome
-from pydoll.browser.options import ChromiumOptions
 
 from src.dsar.super_scraper import SuperScraper
+from src.dsar import js_utils
 
 URL = "https://info-prod.truedata.co/access-delete-request"
 
@@ -58,10 +58,8 @@ async def _select_native(tab, element_id, match_text):
 
 
 async def main():
-    options = ChromiumOptions()
     super_scraper = SuperScraper()
-    options.binary_location = super_scraper.CHROMIUM_LOCATION
-    options.add_argument("--no-sandbox")
+    options = SuperScraper.build_chromium_options()
 
     async with Chrome(options=options) as browser:
         tab = await browser.start()
@@ -76,7 +74,7 @@ async def main():
         # "Access" reveals the category sub-checkboxes — ask for all categories.
         cats = await tab.find(id="categoriesInfo", raise_exc=False)
         if cats:
-            await SuperScraper.js_check(cats)
+            await js_utils.js_check(cats)
 
         await _select_native(tab, "country", "United States")
         await asyncio.sleep(1)
@@ -97,7 +95,7 @@ async def main():
             await super_scraper.input_text_field(tab=tab, xpath=xpath, text=value, sleep=0.3)
 
         time.sleep(0.5)
-        await SuperScraper.screenshot(tab, "resources/screenshots/truedata_dry_run.png")
+        await SuperScraper.screenshot(tab, "dry_run")
         if SuperScraper.DRY_RUN:
             print(
                 f"DRY RUN: would submit access+opt-out"

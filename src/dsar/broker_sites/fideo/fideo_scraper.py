@@ -18,7 +18,6 @@ import asyncio
 from src.dsar.super_scraper import SuperScraper
 
 from pydoll.browser.chromium import Chrome
-from pydoll.browser.options import ChromiumOptions
 
 URL = "https://app.fideo.ai/your-privacy-choices"
 
@@ -76,7 +75,7 @@ async def submit_request(tab, radio_id, label, super_scraper):
         await email_field.type_text(SuperScraper.EMAIL)
 
     await asyncio.sleep(1)
-    await SuperScraper.screenshot(tab, f"resources/screenshots/fideo_dry_run_{label}.png")
+    await SuperScraper.screenshot(tab, f"dry_run_{label}")
     print(
         f"\n'{label}' request ready but NOT sent — click 'Send Me A Code' yourself, "
         "check your email for the verification code, enter it, and complete whatever "
@@ -88,10 +87,8 @@ async def submit_request(tab, radio_id, label, super_scraper):
 async def main():
     if SuperScraper.bail_if_not_automatable(globals()):
         return
-    options = ChromiumOptions()
     super_scraper = SuperScraper()
-    options.binary_location = super_scraper.CHROMIUM_LOCATION
-    options.add_argument("--no-sandbox")
+    options = SuperScraper.build_chromium_options()
 
     codes = SuperScraper.rights_to_exercise(RIGHT_MAP)
     if not codes:

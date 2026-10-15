@@ -10,7 +10,6 @@ import asyncio
 import time
 
 from pydoll.browser.chromium import Chrome
-from pydoll.browser.options import ChromiumOptions
 
 from src.dsar.super_scraper import SuperScraper
 
@@ -63,7 +62,7 @@ async def _submit_request(tab, card_text, label, phone_field_id, super_scraper):
         if continue_btn and await continue_btn.is_visible():
             await continue_btn.scroll_into_view()
         await asyncio.sleep(2)
-        await SuperScraper.screenshot(tab, f"resources/screenshots/deeprootanalytics_dry_run_{label}.png")
+        await SuperScraper.screenshot(tab, f"dry_run_{label}")
         return
 
     continue_btn = await tab.find(text="Continue", raise_exc=False)
@@ -95,10 +94,8 @@ async def _submit_request(tab, card_text, label, phone_field_id, super_scraper):
 async def main():
     if SuperScraper.bail_if_not_automatable(globals()):
         return
-    options = ChromiumOptions()
     super_scraper = SuperScraper()
-    options.binary_location = super_scraper.CHROMIUM_LOCATION
-    options.add_argument("--no-sandbox")
+    options = SuperScraper.build_chromium_options()
 
     async with Chrome(options=options) as browser:
         tab = await browser.start()

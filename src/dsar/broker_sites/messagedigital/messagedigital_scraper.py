@@ -21,7 +21,6 @@ import asyncio
 from src.dsar.super_scraper import SuperScraper
 
 from pydoll.browser.chromium import Chrome
-from pydoll.browser.options import ChromiumOptions
 
 URL = "https://privacyportal.onetrust.com/webform/dad2d808-afe9-4335-9217-e650f906ee17/f3f3d5e6-bc82-4d21-ab04-f733117d11d2"
 
@@ -95,7 +94,7 @@ async def submit_request(tab, right, super_scraper):
     label = "".join(c if c.isalnum() else "_" for c in right.lower())[:40].strip("_")
 
     await asyncio.sleep(1)
-    await SuperScraper.screenshot(tab, f"resources/screenshots/messagedigital_dry_run_{label}.png")
+    await SuperScraper.screenshot(tab, f"dry_run_{label}")
     print(
         f"\n'{right}' request filled but NOT submitted — a BotDetect image CAPTCHA is "
         "present and requires manual entry."
@@ -103,10 +102,8 @@ async def submit_request(tab, right, super_scraper):
 
 
 async def main():
-    options = ChromiumOptions()
     super_scraper = SuperScraper()
-    options.binary_location = super_scraper.CHROMIUM_LOCATION
-    options.add_argument("--no-sandbox")
+    options = SuperScraper.build_chromium_options()
 
     codes = SuperScraper.rights_to_exercise(RIGHT_MAP)
     if not codes:

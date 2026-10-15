@@ -16,7 +16,6 @@
 import asyncio
 
 from pydoll.browser.chromium import Chrome
-from pydoll.browser.options import ChromiumOptions
 
 from src.dsar.super_scraper import SuperScraper
 
@@ -24,10 +23,8 @@ URL = "https://www.dice.com/about/ccpa#ccpa-form-anchor"
 
 
 async def main():
-    options = ChromiumOptions()
     super_scraper = SuperScraper()
-    options.binary_location = super_scraper.CHROMIUM_LOCATION
-    options.add_argument("--no-sandbox")
+    options = SuperScraper.build_chromium_options()
 
     if SuperScraper.wants("delete"):
         radio_id, tag = "radio-description-delete", "delete"
@@ -57,7 +54,7 @@ async def main():
             await email.type_text(SuperScraper.EMAIL)
 
         await asyncio.sleep(1)
-        await SuperScraper.screenshot(tab, f"resources/screenshots/dice_dry_run_{tag}.png", beyond_viewport=True)
+        await SuperScraper.screenshot(tab, f"dry_run_{tag}")
         print(
             f"'{tag}' request filled but NOT submitted — solve the reCAPTCHA manually, then "
             "Submit. Re-run with a different 'description' radio for the other rights."

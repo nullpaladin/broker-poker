@@ -21,7 +21,6 @@ import asyncio
 import time
 
 from pydoll.browser.chromium import Chrome
-from pydoll.browser.options import ChromiumOptions
 
 from src.dsar.super_scraper import SuperScraper
 
@@ -44,10 +43,8 @@ async def _select_native(tab, element_id, match_text):
 
 
 async def main():
-    options = ChromiumOptions()
     super_scraper = SuperScraper()
-    options.binary_location = super_scraper.CHROMIUM_LOCATION
-    options.add_argument("--no-sandbox")
+    options = SuperScraper.build_chromium_options()
 
     request_type = (
         "Remove me from your database"
@@ -86,7 +83,7 @@ async def main():
             "return !!p && getComputedStyle(p).display!=='none';"
         )
         advanced = bool(page2_visible["result"]["result"]["value"])
-        await SuperScraper.screenshot(tab, "resources/screenshots/onpointdatastrategy_dry_run.png")
+        await SuperScraper.screenshot(tab, "dry_run")
         if not advanced:
             print(
                 f"{super_scraper.OOPS} Page 1 filled (request type: '{request_type}') but 'Next' "

@@ -12,18 +12,16 @@
 import asyncio
 
 from pydoll.browser.chromium import Chrome
-from pydoll.browser.options import ChromiumOptions
 
 from src.dsar.super_scraper import SuperScraper
+from src.dsar import js_utils
 
 URL = "https://lsdirect.com/my-personal-information/"
 
 
 async def main():
-    options = ChromiumOptions()
     super_scraper = SuperScraper()
-    options.binary_location = super_scraper.CHROMIUM_LOCATION
-    options.add_argument("--no-sandbox")
+    options = SuperScraper.build_chromium_options()
 
     async with Chrome(options=options) as browser:
         tab = await browser.start()
@@ -59,10 +57,10 @@ async def main():
 
         state = await tab.find(id="form-field-f184b1", raise_exc=False)
         if state:
-            await SuperScraper.select_native_option(state, text=SuperScraper.STATE)
+            await js_utils.select_native_option(state, text=SuperScraper.STATE)
 
         await asyncio.sleep(1)
-        await SuperScraper.screenshot(tab, "resources/screenshots/lsdirect_dry_run.png", beyond_viewport=True)
+        await SuperScraper.screenshot(tab, "dry_run")
         if SuperScraper.DRY_RUN:
             print(f"DRY RUN: would submit opt-out + access for {SuperScraper.EMAIL}")
             return

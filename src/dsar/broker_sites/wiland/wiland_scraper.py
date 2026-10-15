@@ -9,7 +9,6 @@
 import asyncio
 
 from pydoll.browser.chromium import Chrome
-from pydoll.browser.options import ChromiumOptions
 
 from src.dsar.super_scraper import SuperScraper
 
@@ -83,7 +82,7 @@ async def submit_access(tab, state_abbr, super_scraper):
         if captcha_field:
             await captcha_field.scroll_into_view()
         await asyncio.sleep(1)
-        await SuperScraper.screenshot(tab, "resources/screenshots/wiland_dry_run_access.png")
+        await SuperScraper.screenshot(tab, "dry_run_access")
         return
 
     print(
@@ -120,7 +119,7 @@ async def submit_delete(tab, state_abbr, super_scraper):
         if captcha_field:
             await captcha_field.scroll_into_view()
         await asyncio.sleep(1)
-        await SuperScraper.screenshot(tab, "resources/screenshots/wiland_dry_run_delete.png")
+        await SuperScraper.screenshot(tab, "dry_run_delete")
         return
 
     print(
@@ -138,10 +137,8 @@ async def submit_delete(tab, state_abbr, super_scraper):
 
 
 async def main():
-    options = ChromiumOptions()
     super_scraper = SuperScraper()
-    options.binary_location = super_scraper.CHROMIUM_LOCATION
-    options.add_argument("--no-sandbox")
+    options = SuperScraper.build_chromium_options()
 
     state_abbr = SuperScraper.STATE_ABBREVIATED
 

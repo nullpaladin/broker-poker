@@ -23,7 +23,6 @@ import asyncio
 from src.dsar.super_scraper import SuperScraper
 
 from pydoll.browser.chromium import Chrome
-from pydoll.browser.options import ChromiumOptions
 
 URL = "https://roqad-privacy.my.onetrust.com/webform/bdcc4a2f-2458-4e17-96c3-cf88f7115dfc/dcc653f1-96d6-4d0f-ba5d-cb7f17fff0aa"
 
@@ -45,10 +44,8 @@ async def _select_option(tab, option_text, super_scraper, description):
 
 
 async def main():
-    options = ChromiumOptions()
     super_scraper = SuperScraper()
-    options.binary_location = super_scraper.CHROMIUM_LOCATION
-    options.add_argument("--no-sandbox")
+    options = SuperScraper.build_chromium_options()
 
     codes = SuperScraper.rights_to_exercise(RIGHT_MAP)
     if not codes:
@@ -103,7 +100,7 @@ async def main():
             await details_field.type_text(request_text)
 
         await asyncio.sleep(1)
-        await SuperScraper.screenshot(tab, "resources/screenshots/roqad_dry_run.png")
+        await SuperScraper.screenshot(tab, "dry_run")
         print(
             "\nRequest filled but NOT submitted — a reCAPTCHA v2 checkbox requires a manual "
             "solve before submitting."

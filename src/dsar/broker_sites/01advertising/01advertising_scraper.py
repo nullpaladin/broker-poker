@@ -19,9 +19,9 @@
 import asyncio
 
 from src.dsar.super_scraper import SuperScraper
+from src.dsar import js_utils
 
 from pydoll.browser.chromium import Chrome
-from pydoll.browser.options import ChromiumOptions
 
 URL = "https://app.termly.io/dsar/d1321341-0e82-4d8c-afaf-c4940d46c171"
 
@@ -57,14 +57,14 @@ async def submit_request(tab, action, super_scraper):
     if radio:
         await radio.click()
 
-    await SuperScraper.check_termly_attestations(tab)
+    await js_utils.check_termly_attestations(tab)
 
     label = action.replace("request_to_", "")
 
     if SuperScraper.DRY_RUN:
         print(f"DRY RUN: would submit {label} request for {SuperScraper.FIRST_NAME} {SuperScraper.LAST_NAME}")
         await asyncio.sleep(1)
-        await SuperScraper.screenshot(tab, f"resources/screenshots/01advertising_dry_run_{label}.png")
+        await SuperScraper.screenshot(tab, f"dry_run_{label}")
         return
 
     submit = await tab.find(text="SUBMIT", raise_exc=False)
@@ -77,10 +77,8 @@ async def submit_request(tab, action, super_scraper):
 
 
 async def main():
-    options = ChromiumOptions()
     super_scraper = SuperScraper()
-    options.binary_location = super_scraper.CHROMIUM_LOCATION
-    options.add_argument("--no-sandbox")
+    options = SuperScraper.build_chromium_options()
 
     codes = SuperScraper.rights_to_exercise(RIGHT_MAP)
     if not codes:

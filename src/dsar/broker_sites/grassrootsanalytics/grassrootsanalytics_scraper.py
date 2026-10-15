@@ -12,7 +12,6 @@ import asyncio
 from src.dsar.super_scraper import SuperScraper
 
 from pydoll.browser.chromium import Chrome
-from pydoll.browser.options import ChromiumOptions
 
 URL = "https://www.grassrootsanalytics.com/california-consumer-privacy-act-ccpa"
 
@@ -25,10 +24,8 @@ RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
 
 
 async def main():
-    options = ChromiumOptions()
     super_scraper = SuperScraper()
-    options.binary_location = super_scraper.CHROMIUM_LOCATION
-    options.add_argument("--no-sandbox")
+    options = SuperScraper.build_chromium_options()
 
     async with Chrome(options=options) as browser:
         tab = await browser.start()
@@ -63,7 +60,7 @@ async def main():
         if SuperScraper.DRY_RUN:
             print(f"DRY RUN: would submit removal request for {SuperScraper.FIRST_NAME} {SuperScraper.LAST_NAME}")
             await asyncio.sleep(1)
-            await SuperScraper.screenshot(tab, "resources/screenshots/grassrootsanalytics_dry_run.png")
+            await SuperScraper.screenshot(tab, "dry_run")
             return
 
         print("\nForm filled. Solve the CAPTCHA, click Submit,")

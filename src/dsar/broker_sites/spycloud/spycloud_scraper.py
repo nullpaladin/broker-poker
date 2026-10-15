@@ -12,7 +12,6 @@ import asyncio
 import time
 
 from pydoll.browser.chromium import Chrome
-from pydoll.browser.options import ChromiumOptions
 
 from src.dsar.super_scraper import SuperScraper
 
@@ -61,10 +60,8 @@ async def _fill_step2(tab, super_scraper):
 
 
 async def main():
-    options = ChromiumOptions()
     super_scraper = SuperScraper()
-    options.binary_location = super_scraper.CHROMIUM_LOCATION
-    options.add_argument("--no-sandbox")
+    options = SuperScraper.build_chromium_options()
 
     codes = SuperScraper.rights_to_exercise(RIGHT_MAP)
     if not codes:
@@ -94,7 +91,7 @@ async def main():
             if SuperScraper.DRY_RUN:
                 await asyncio.sleep(1)
                 safe_name = right.replace(" ", "_").replace("/", "_")[:30]
-                await SuperScraper.screenshot(tab, f"resources/screenshots/spycloud_dry_run_{safe_name}.png")
+                await SuperScraper.screenshot(tab, f"dry_run_{safe_name}")
                 print(
                     f"DRY RUN: would submit spycloud '{right}' for "
                     f"{SuperScraper.FIRST_NAME} {SuperScraper.LAST_NAME} <{SuperScraper.EMAIL}>"

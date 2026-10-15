@@ -14,7 +14,6 @@ import asyncio
 from src.dsar.super_scraper import SuperScraper
 
 from pydoll.browser.chromium import Chrome
-from pydoll.browser.options import ChromiumOptions
 
 KNOW_DELETE_URL = "https://locatesmarter.com/request-to-know-or-delete-my-personal-information/"
 OPT_OUT_URL = "https://locatesmarter.com/request-to-opt-out-do-not-sell-my-personal-information/"
@@ -58,7 +57,7 @@ async def _check(tab, checkbox_id, super_scraper):
 
 async def _submit_or_dry_run(tab, submit_button_id, label, super_scraper):
     await asyncio.sleep(1)
-    await SuperScraper.screenshot(tab, f"resources/screenshots/locatesmarter_dry_run_{label}.png")
+    await SuperScraper.screenshot(tab, f"dry_run_{label}")
     if SuperScraper.DRY_RUN:
         print(f"DRY RUN: would submit '{label}' request for {SuperScraper.EMAIL}")
         return
@@ -101,10 +100,8 @@ async def submit_opt_out(tab, super_scraper):
 
 
 async def main():
-    options = ChromiumOptions()
     super_scraper = SuperScraper()
-    options.binary_location = super_scraper.CHROMIUM_LOCATION
-    options.add_argument("--no-sandbox")
+    options = SuperScraper.build_chromium_options()
 
     async with Chrome(options=options) as browser:
         tab = await browser.start()

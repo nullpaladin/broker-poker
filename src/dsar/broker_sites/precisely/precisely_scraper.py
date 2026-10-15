@@ -40,7 +40,6 @@ import asyncio
 from src.dsar.super_scraper import SuperScraper
 
 from pydoll.browser.chromium import Chrome
-from pydoll.browser.options import ChromiumOptions
 
 PRECISELY_URL = "https://privacyportal-eu.onetrust.com/webform/d88b298e-1f7e-420f-949c-fedc475c1e77/draft/9c253316-9abf-49fb-a3e1-a4e214c4cf41"
 PLACEIQ_URL = "https://privacyportal-eu.onetrust.com/webform/d88b298e-1f7e-420f-949c-fedc475c1e77/83126462-6c9f-4d90-9077-f029b129a2a6"
@@ -110,7 +109,7 @@ async def submit_precisely(tab, right, super_scraper):
 
     label = "".join(c if c.isalnum() else "_" for c in right.lower())[:40].strip("_")
     await asyncio.sleep(1)
-    await SuperScraper.screenshot(tab, f"resources/screenshots/precisely_dry_run_{label}.png")
+    await SuperScraper.screenshot(tab, f"dry_run_{label}")
     print(f"\n[Precisely] '{right}' request filled but NOT submitted — reCAPTCHA v2 requires a manual solve.")
 
 
@@ -140,15 +139,13 @@ async def submit_placeiq(tab, right, super_scraper):
 
     label = "".join(c if c.isalnum() else "_" for c in right.lower())[:40].strip("_")
     await asyncio.sleep(1)
-    await SuperScraper.screenshot(tab, f"resources/screenshots/placeiq_dry_run_{label}.png")
+    await SuperScraper.screenshot(tab, f"dry_run_{label}")
     print(f"\n[PlaceIQ] '{right}' request filled but NOT submitted — reCAPTCHA v2 requires a manual solve.")
 
 
 async def main():
-    options = ChromiumOptions()
     super_scraper = SuperScraper()
-    options.binary_location = super_scraper.CHROMIUM_LOCATION
-    options.add_argument("--no-sandbox")
+    options = SuperScraper.build_chromium_options()
 
     precisely_codes = SuperScraper.rights_to_exercise(PRECISELY_RIGHT_MAP)
     placeiq_codes = SuperScraper.rights_to_exercise(PLACEIQ_RIGHT_MAP)

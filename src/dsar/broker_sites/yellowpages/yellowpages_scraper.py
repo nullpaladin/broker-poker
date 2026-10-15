@@ -7,7 +7,6 @@
 import asyncio
 
 from pydoll.browser.chromium import Chrome
-from pydoll.browser.options import ChromiumOptions
 from pydoll.constants import Key
 
 from src.dsar.super_scraper import SuperScraper
@@ -128,7 +127,7 @@ async def fill_and_submit(tab, request_type_label, screenshot_label, super_scrap
         if captcha_field:
             await captcha_field.scroll_into_view()
         await asyncio.sleep(1)
-        await SuperScraper.screenshot(tab, f"resources/screenshots/yellowpages_dry_run_{screenshot_label}.png")
+        await SuperScraper.screenshot(tab, f"dry_run_{screenshot_label}")
         return
 
     print(f"\nForm filled for '{request_type_label}'.")
@@ -144,10 +143,8 @@ async def fill_and_submit(tab, request_type_label, screenshot_label, super_scrap
 
 
 async def main():
-    options = ChromiumOptions()
     super_scraper = SuperScraper()
-    options.binary_location = super_scraper.CHROMIUM_LOCATION
-    options.add_argument("--no-sandbox")
+    options = SuperScraper.build_chromium_options()
 
     # (aria-label, screenshot label)
     codes = SuperScraper.rights_to_exercise(RIGHT_MAP)

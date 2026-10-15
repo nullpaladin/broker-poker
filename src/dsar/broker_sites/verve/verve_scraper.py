@@ -20,7 +20,6 @@ import asyncio
 from src.dsar.super_scraper import SuperScraper
 
 from pydoll.browser.chromium import Chrome
-from pydoll.browser.options import ChromiumOptions
 
 URL = "https://verve.com/data-subject-request-form/"
 
@@ -34,10 +33,8 @@ RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
 
 
 async def main():
-    options = ChromiumOptions()
     super_scraper = SuperScraper()
-    options.binary_location = super_scraper.CHROMIUM_LOCATION
-    options.add_argument("--no-sandbox")
+    options = SuperScraper.build_chromium_options()
 
     codes = SuperScraper.rights_to_exercise(RIGHT_MAP)
     if not codes:
@@ -97,7 +94,7 @@ async def main():
             print(f"{super_scraper.OOPS} Request Details field not found")
 
         await asyncio.sleep(1)
-        await SuperScraper.screenshot(tab, "resources/screenshots/verve_dry_run.png")
+        await SuperScraper.screenshot(tab, "dry_run")
         print("\nRequest filled but NOT submitted (invisible reCAPTCHA v2, no manual solve needed).")
 
 

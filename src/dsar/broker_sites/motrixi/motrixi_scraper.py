@@ -12,7 +12,6 @@
 import asyncio
 
 from pydoll.browser.chromium import Chrome
-from pydoll.browser.options import ChromiumOptions
 
 from src.dsar.super_scraper import SuperScraper
 
@@ -20,10 +19,8 @@ URL = "https://www.motrixi.com/index.php/opt-out/"
 
 
 async def main():
-    options = ChromiumOptions()
     super_scraper = SuperScraper()
-    options.binary_location = super_scraper.CHROMIUM_LOCATION
-    options.add_argument("--no-sandbox")
+    options = SuperScraper.build_chromium_options()
 
     async with Chrome(options=options) as browser:
         tab = await browser.start()
@@ -44,7 +41,7 @@ async def main():
             print(f"{super_scraper.OOPS} 'Enter Advertising ID' field not found in iframe")
 
         await asyncio.sleep(1)
-        await SuperScraper.screenshot(tab, "resources/screenshots/motrixi_dry_run.png", beyond_viewport=True)
+        await SuperScraper.screenshot(tab, "dry_run")
         if SuperScraper.DRY_RUN:
             print(f"DRY RUN: would submit opt-out for advertising ID {SuperScraper.ADVERTISING_ID}")
             return

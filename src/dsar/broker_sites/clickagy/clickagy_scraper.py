@@ -22,7 +22,6 @@ import asyncio
 from src.dsar.super_scraper import SuperScraper
 
 from pydoll.browser.chromium import Chrome
-from pydoll.browser.options import ChromiumOptions
 
 ACCESS_URL = "https://www.clickagy.com/privacy-center/request/"
 OPT_OUT_URL = "https://www.clickagy.com/privacy-center/no-resell/"
@@ -48,7 +47,7 @@ async def submit_access(tab, super_scraper):
 
     no_data_banner = await tab.find(text="Clickagy has no data associated with your device", raise_exc=False)
     if no_data_banner:
-        await SuperScraper.screenshot(tab, "resources/screenshots/clickagy_dry_run_access.png")
+        await SuperScraper.screenshot(tab, "dry_run_access")
         print(
             "\nClickagy's own device check reports no data associated with this browser/device — "
             "the email+CAPTCHA request form never rendered, so there is nothing to request."
@@ -67,7 +66,7 @@ async def submit_access(tab, super_scraper):
         await SuperScraper.assert_fields_filled(tab, {"Email": "//input[@id='ccpa_form_email']"})
 
     await asyncio.sleep(1)
-    await SuperScraper.screenshot(tab, "resources/screenshots/clickagy_dry_run_access.png")
+    await SuperScraper.screenshot(tab, "dry_run_access")
     print(
         "\nAccess request filled but NOT submitted — a reCAPTCHA v2 checkbox requires a manual "
         "solve before submitting."
@@ -81,7 +80,7 @@ async def submit_opt_out(tab, super_scraper):
     await _select_california_resident(tab, super_scraper)
 
     await asyncio.sleep(1)
-    await SuperScraper.screenshot(tab, "resources/screenshots/clickagy_dry_run_opt_out.png")
+    await SuperScraper.screenshot(tab, "dry_run_opt_out")
     if SuperScraper.DRY_RUN:
         print("DRY RUN: would submit opt-out-of-sale request for this device/browser")
         return
@@ -96,10 +95,8 @@ async def submit_opt_out(tab, super_scraper):
 
 
 async def main():
-    options = ChromiumOptions()
     super_scraper = SuperScraper()
-    options.binary_location = super_scraper.CHROMIUM_LOCATION
-    options.add_argument("--no-sandbox")
+    options = SuperScraper.build_chromium_options()
 
     async with Chrome(options=options) as browser:
         tab = await browser.start()

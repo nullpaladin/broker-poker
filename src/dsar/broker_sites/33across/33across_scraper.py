@@ -3,9 +3,9 @@ import json
 import time
 
 from src.dsar.super_scraper import SuperScraper
+from src.dsar import js_utils
 
 from pydoll.browser.chromium import Chrome
-from pydoll.browser.options import ChromiumOptions
 
 # Rights exercised: Right to Access, Do Not Sell/Share, Right to Delete (gated on REMOVE_INFORMATION).
 # Server-rendered POST form. No captcha. Only requires email.
@@ -42,23 +42,21 @@ async def submit_request(tab, request_type, label, super_scraper):
         await SuperScraper.assert_fields_filled(tab, {"Email": EMAIL_XPATH})
 
     if SuperScraper.DRY_RUN:
-        await SuperScraper.screenshot(tab, f"resources/screenshots/33across_{request_type}_dry_run.png")
+        await SuperScraper.screenshot(tab, f"dry_run")
         print(f"DRY RUN: would submit '{label}' for {SuperScraper.EMAIL}")
         await asyncio.sleep(2)
         return
 
     await tab.execute_script("document.getElementById('submit').click()")
     await asyncio.sleep(4)
-    result = await SuperScraper.page_text(tab)
+    result = await js_utils.page_text(tab)
     print(result[:500])
     print(f"Submitted '{label}' for {SuperScraper.EMAIL}")
 
 
 async def main():
-    options = ChromiumOptions()
     super_scraper = SuperScraper()
-    options.binary_location = super_scraper.CHROMIUM_LOCATION
-    options.add_argument("--no-sandbox")
+    options = SuperScraper.build_chromium_options()
 
     codes = SuperScraper.rights_to_exercise(RIGHT_MAP)
     if not codes:

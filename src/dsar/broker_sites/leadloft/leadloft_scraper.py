@@ -25,7 +25,6 @@ import asyncio
 from src.dsar.super_scraper import SuperScraper
 
 from pydoll.browser.chromium import Chrome
-from pydoll.browser.options import ChromiumOptions
 
 URL = "https://www.leadloft.com/user-agreements/personal-data"
 
@@ -78,7 +77,7 @@ async def submit_request(tab, request_type, super_scraper):
     if SuperScraper.DRY_RUN:
         print(f"DRY RUN: would submit '{request_type}' request for {SuperScraper.FIRST_NAME} {SuperScraper.LAST_NAME}")
         await asyncio.sleep(1)
-        await SuperScraper.screenshot(tab, f"resources/screenshots/leadloft_dry_run_{label}.png")
+        await SuperScraper.screenshot(tab, f"dry_run_{label}")
         return
 
     # NOT id="submit" — that belongs to an unrelated newsletter-signup form
@@ -97,10 +96,8 @@ async def submit_request(tab, request_type, super_scraper):
 
 
 async def main():
-    options = ChromiumOptions()
     super_scraper = SuperScraper()
-    options.binary_location = super_scraper.CHROMIUM_LOCATION
-    options.add_argument("--no-sandbox")
+    options = SuperScraper.build_chromium_options()
 
     codes = SuperScraper.rights_to_exercise(RIGHT_MAP)
     if not codes:

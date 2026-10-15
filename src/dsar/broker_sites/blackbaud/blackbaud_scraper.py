@@ -12,7 +12,6 @@ import asyncio
 import time
 
 from pydoll.browser.chromium import Chrome
-from pydoll.browser.options import ChromiumOptions
 
 from src.dsar.super_scraper import SuperScraper
 
@@ -44,10 +43,8 @@ async def _select_autocomplete(tab, field_id, search_text):
 
 
 async def main():
-    options = ChromiumOptions()
     super_scraper = SuperScraper()
-    options.binary_location = super_scraper.CHROMIUM_LOCATION
-    options.add_argument("--no-sandbox")
+    options = SuperScraper.build_chromium_options()
 
     codes = SuperScraper.rights_to_exercise(RIGHT_MAP)
     if not codes:
@@ -136,7 +133,7 @@ async def main():
                 await submit_btn.scroll_into_view()
             await asyncio.sleep(2)
             suffix = "_delete" if SuperScraper.wants("delete") else ""
-            await SuperScraper.screenshot(tab, f"resources/screenshots/blackbaud_dry_run{suffix}.png")
+            await SuperScraper.screenshot(tab, f"dry_run{suffix}")
             return
 
         print(f"\nForm filled for {SuperScraper.FIRST_NAME} {SuperScraper.LAST_NAME}.")

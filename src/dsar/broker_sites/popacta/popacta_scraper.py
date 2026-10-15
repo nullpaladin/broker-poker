@@ -7,7 +7,6 @@ import asyncio
 import time
 
 from pydoll.browser.chromium import Chrome
-from pydoll.browser.options import ChromiumOptions
 
 from src.dsar.super_scraper import SuperScraper
 
@@ -24,10 +23,8 @@ _MSG_DELETE = (
 
 
 async def main():
-    options = ChromiumOptions()
     super_scraper = SuperScraper()
-    options.binary_location = super_scraper.CHROMIUM_LOCATION
-    options.add_argument("--no-sandbox")
+    options = SuperScraper.build_chromium_options()
 
     message = _MSG_DELETE if SuperScraper.wants("delete") else _MSG_BASE
 
@@ -59,7 +56,7 @@ async def main():
                 f"DRY RUN: would submit for "
                 f"{SuperScraper.FIRST_NAME} {SuperScraper.LAST_NAME} <{SuperScraper.EMAIL}>"
             )
-            await SuperScraper.screenshot(tab, "resources/screenshots/popacta_dry_run.png")
+            await SuperScraper.screenshot(tab, "dry_run")
             return
 
         submit_btn = await tab.find(id="submit-btn", raise_exc=False)

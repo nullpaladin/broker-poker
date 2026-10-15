@@ -16,18 +16,16 @@ import asyncio
 import time
 
 from src.dsar.super_scraper import SuperScraper
+from src.dsar import js_utils
 
 from pydoll.browser.chromium import Chrome
-from pydoll.browser.options import ChromiumOptions
 
 URL = "https://app.termly.io/dsar/c4e44408-4a15-4dc3-9604-8cd01dd64998"
 
 
 async def main():
-    options = ChromiumOptions()
     super_scraper = SuperScraper()
-    options.binary_location = super_scraper.CHROMIUM_LOCATION
-    options.add_argument("--no-sandbox")
+    options = SuperScraper.build_chromium_options()
 
     _law = SuperScraper.LAW_FULL_NAME or "applicable state and federal privacy law"
     rights = (
@@ -55,7 +53,7 @@ async def main():
 
         personal = await tab.find(xpath="//input[@name='identity_type' and @value='personal']", raise_exc=False)
         if personal:
-            await SuperScraper.js_check(personal)
+            await js_utils.js_check(personal)
 
         # "Applicable law" react-select lists GDPR/CCPA/CPA/CTDPA/UCPA/VCDPA only —
         # no home-state option for most users, so "OTHER" is chosen regardless of
@@ -87,7 +85,7 @@ async def main():
                 await asyncio.sleep(0.15)
 
         time.sleep(0.5)
-        await SuperScraper.screenshot(tab, "resources/screenshots/listkit_dry_run.png")
+        await SuperScraper.screenshot(tab, "dry_run")
         if SuperScraper.DRY_RUN:
             print(
                 f"DRY RUN: would submit combined privacy request for "

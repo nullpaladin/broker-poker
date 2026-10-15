@@ -20,7 +20,6 @@ import asyncio
 from src.dsar.super_scraper import SuperScraper
 
 from pydoll.browser.chromium import Chrome
-from pydoll.browser.options import ChromiumOptions
 
 URL = "https://optout-form.reson8.com/"
 
@@ -33,10 +32,8 @@ RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
 
 
 async def main():
-    options = ChromiumOptions()
     super_scraper = SuperScraper()
-    options.binary_location = super_scraper.CHROMIUM_LOCATION
-    options.add_argument("--no-sandbox")
+    options = SuperScraper.build_chromium_options()
 
     async with Chrome(options=options) as browser:
         tab = await browser.start()
@@ -80,7 +77,7 @@ async def main():
                 print(f"{super_scraper.OOPS} checkbox '{value}' not found")
 
         await asyncio.sleep(1)
-        await SuperScraper.screenshot(tab, "resources/screenshots/resonate_dry_run.png")
+        await SuperScraper.screenshot(tab, "dry_run")
         if SuperScraper.DRY_RUN:
             print("DRY RUN: would submit consumer privacy request")
             return

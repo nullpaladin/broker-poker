@@ -22,9 +22,9 @@ import asyncio
 import time
 
 from pydoll.browser.chromium import Chrome
-from pydoll.browser.options import ChromiumOptions
 
 from src.dsar.super_scraper import SuperScraper
+from src.dsar import js_utils
 
 URL = "https://id5-sync.com/privacy/"
 
@@ -71,16 +71,16 @@ async def opt_out(tab):
             "this.dispatchEvent(new Event('change',{bubbles:true}));"
         )
     time.sleep(0.5)
-    await SuperScraper.screenshot(tab, "resources/screenshots/id5_dry_run_optout.png")
+    await SuperScraper.screenshot(tab, "dry_run_optout")
 async def know(tab):
     await tab.go_to(URL)
     await asyncio.sleep(7)
     await _fill_email(tab, "know-request-section", SuperScraper.EMAIL)
     confirm = await tab.find(id="know-request-confirm", raise_exc=False)
     if confirm:
-        await SuperScraper.js_check(confirm)
+        await js_utils.js_check(confirm)
     time.sleep(0.5)
-    await SuperScraper.screenshot(tab, "resources/screenshots/id5_dry_run_access.png")
+    await SuperScraper.screenshot(tab, "dry_run_access")
     print(
         "Know section filled — click 'Know Specific Pieces of My Personal Data' (Access) "
         "and/or 'Do Not Sell My Personal Information' to submit."
@@ -92,15 +92,13 @@ async def delete(tab):
     await asyncio.sleep(7)
     await _fill_email(tab, "delete-request-section", SuperScraper.EMAIL)
     time.sleep(0.5)
-    await SuperScraper.screenshot(tab, "resources/screenshots/id5_dry_run_delete.png")
+    await SuperScraper.screenshot(tab, "dry_run_delete")
     print("Delete section filled — click 'DELETE MY PERSONAL DATA' to submit.")
 
 
 async def main():
-    options = ChromiumOptions()
     super_scraper = SuperScraper()
-    options.binary_location = super_scraper.CHROMIUM_LOCATION
-    options.add_argument("--no-sandbox")
+    options = SuperScraper.build_chromium_options()
 
     async with Chrome(options=options) as browser:
         tab = await browser.start()

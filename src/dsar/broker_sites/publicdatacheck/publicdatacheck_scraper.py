@@ -26,7 +26,6 @@ from datetime import datetime
 from src.dsar.super_scraper import SuperScraper
 
 from pydoll.browser.chromium import Chrome
-from pydoll.browser.options import ChromiumOptions
 
 URL = "https://www.publicdatacheck.com/help-center/privacy-requests"
 
@@ -108,7 +107,7 @@ async def submit_request(tab, request_type, super_scraper):
     label = request_type.lower().replace(" ", "_")
 
     await asyncio.sleep(1)
-    await SuperScraper.screenshot(tab, f"resources/screenshots/publicdatacheck_dry_run_{label}.png")
+    await SuperScraper.screenshot(tab, f"dry_run_{label}")
     print(
         f"\n'{request_type}' request filled but NOT submitted — a Cloudflare Turnstile "
         "checkbox gates the 'Continue' button and requires a manual solve."
@@ -116,10 +115,8 @@ async def submit_request(tab, request_type, super_scraper):
 
 
 async def main():
-    options = ChromiumOptions()
     super_scraper = SuperScraper()
-    options.binary_location = super_scraper.CHROMIUM_LOCATION
-    options.add_argument("--no-sandbox")
+    options = SuperScraper.build_chromium_options()
 
     codes = SuperScraper.rights_to_exercise(RIGHT_MAP)
     if not codes:

@@ -34,6 +34,7 @@ class StateInfo:
     law_name: str | None            # full name, e.g. "Minnesota Consumer Data Privacy Act"
     law_short_name: str | None      # e.g. "MCDPA"
     statute_cite: str | None        # citation root, e.g. "Minn. Stat. 325M"
+    request_basis: str | None       # message phrase, e.g. "under the Minnesota Consumer Data Privacy Act"; None => no law to cite
     rights: frozenset[str]          # canonical right codes the law grants
     right_citations: dict[str, str] # right code -> specific statute cite (may be empty)
 
@@ -56,6 +57,7 @@ def _by_key() -> dict[str, StateInfo]:
             law_name=row.get("law_name"),
             law_short_name=row.get("law_short_name"),
             statute_cite=row.get("statute_cite"),
+            request_basis=row.get("request_basis"),
             rights=frozenset(row.get("rights", ())),
             right_citations=dict(row.get("right_citations", {})),
         )
@@ -108,6 +110,11 @@ def state_has_privacy_law(state_name: str) -> bool:
 def law_name(state_name: str, *, short: bool = False) -> str | None:
     info = get_state_info(state_name)
     return info.law_short_name if short else info.law_name
+
+
+def request_basis(state_name: str) -> str | None:
+    """Phrase for free-text request messages (``"under the <law>"``), or None for no-law states."""
+    return get_state_info(state_name).request_basis
 
 
 def rights_available(state_name: str) -> frozenset[str]:

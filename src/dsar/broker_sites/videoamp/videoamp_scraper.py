@@ -17,9 +17,9 @@
 import asyncio
 
 from src.dsar.super_scraper import SuperScraper
+from src.dsar import js_utils
 
 from pydoll.browser.chromium import Chrome
-from pydoll.browser.options import ChromiumOptions
 
 URL = "https://videoamp.com/your-privacy-choices"
 
@@ -58,33 +58,31 @@ async def submit_request(tab, card_text, super_scraper):
 
     country_select = await tab.find(id="select-field-country", raise_exc=False)
     if country_select:
-        await SuperScraper.select_native_option(country_select, value="US")
+        await js_utils.select_native_option(country_select, value="US")
     else:
         print(f"{super_scraper.OOPS} Country select not found")
 
     state_select = await tab.find(id="select-field-state_", raise_exc=False)
     if state_select:
-        await SuperScraper.select_native_option(state_select, value=SuperScraper.STATE.lower())
+        await js_utils.select_native_option(state_select, value=SuperScraper.STATE.lower())
     else:
         print(f"{super_scraper.OOPS} State select not found")
 
     type_select = await tab.find(id="select-field-typeCode", raise_exc=False)
     if type_select:
-        await SuperScraper.select_native_option(type_select, value="customer")
+        await js_utils.select_native_option(type_select, value="customer")
     else:
         print(f"{super_scraper.OOPS} 'I am a (an)' select not found")
 
     label = "".join(c if c.isalnum() else "_" for c in card_text.lower())[:40].strip("_")
     await asyncio.sleep(1)
-    await SuperScraper.screenshot(tab, f"resources/screenshots/videoamp_dry_run_{label}.png")
+    await SuperScraper.screenshot(tab, f"dry_run_{label}")
     print(f"\n'{card_text}' request filled but NOT submitted (invisible reCAPTCHA, no manual solve needed).")
 
 
 async def main():
-    options = ChromiumOptions()
     super_scraper = SuperScraper()
-    options.binary_location = super_scraper.CHROMIUM_LOCATION
-    options.add_argument("--no-sandbox")
+    options = SuperScraper.build_chromium_options()
 
     codes = SuperScraper.rights_to_exercise(RIGHT_MAP)
     if not codes:

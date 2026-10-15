@@ -17,7 +17,6 @@
 import asyncio
 
 from pydoll.browser.chromium import Chrome
-from pydoll.browser.options import ChromiumOptions
 
 from src.dsar.super_scraper import SuperScraper
 
@@ -32,10 +31,8 @@ RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
 
 
 async def main():
-    options = ChromiumOptions()
     super_scraper = SuperScraper()
-    options.binary_location = super_scraper.CHROMIUM_LOCATION
-    options.add_argument("--no-sandbox")
+    options = SuperScraper.build_chromium_options()
 
     full_name = " ".join(p for p in (SuperScraper.FIRST_NAME, SuperScraper.LAST_NAME) if p)
     codes = SuperScraper.rights_to_exercise(RIGHT_MAP)
@@ -93,7 +90,7 @@ async def main():
             await name_field.type_text(full_name)
 
         await asyncio.sleep(1)
-        await SuperScraper.screenshot(tab, "resources/screenshots/thebridgecorp_dry_run.png", beyond_viewport=True)
+        await SuperScraper.screenshot(tab, "dry_run")
         print(f"{request_types} filled but NOT submitted — solve the reCAPTCHA manually, then Submit.")
 
 

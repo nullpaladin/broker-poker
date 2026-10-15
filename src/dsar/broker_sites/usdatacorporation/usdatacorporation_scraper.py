@@ -20,9 +20,9 @@
 import asyncio
 
 from src.dsar.super_scraper import SuperScraper
+from src.dsar import js_utils
 
 from pydoll.browser.chromium import Chrome
-from pydoll.browser.options import ChromiumOptions
 
 URL = "https://www.forgetmenaut.com/rtbf/unjVFFNnmFvsZ17Fnk3Tap6U"
 
@@ -55,7 +55,7 @@ async def submit_request(tab, category, super_scraper):
             continue
         field = await tab.find(id=field_id, raise_exc=False)
         if field:
-            await SuperScraper.js_set_value(field, value)
+            await js_utils.js_set_value(field, value)
         else:
             print(f"{super_scraper.OOPS} field '{field_id}' not found")
 
@@ -63,7 +63,7 @@ async def submit_request(tab, category, super_scraper):
         day, month, year = SuperScraper.DATE_OF_BIRTH.split("/")
         dob_field = await tab.find(id="webform_birthday", raise_exc=False)
         if dob_field:
-            await SuperScraper.js_set_value(dob_field, f"{year}-{month}-{day}")
+            await js_utils.js_set_value(dob_field, f"{year}-{month}-{day}")
         else:
             print(f"{super_scraper.OOPS} Date of Birth field not found")
 
@@ -71,13 +71,13 @@ async def submit_request(tab, category, super_scraper):
     if jurisdiction_select:
         # Jurisdiction list is CCPA-era only; "OTHER" is used for every state
         # (a request framed under CCPA applies equally under each state's law).
-        await SuperScraper.select_native_option(jurisdiction_select, value="OTHER")
+        await js_utils.select_native_option(jurisdiction_select, value="OTHER")
     else:
         print(f"{super_scraper.OOPS} Jurisdiction select not found")
 
     category_select = await tab.find(id="webform_category", raise_exc=False)
     if category_select:
-        await SuperScraper.select_native_option(category_select, value=category)
+        await js_utils.select_native_option(category_select, value=category)
     else:
         print(f"{super_scraper.OOPS} Request Category select not found")
 
@@ -88,7 +88,7 @@ async def submit_request(tab, category, super_scraper):
         print(f"{super_scraper.OOPS} 'first-party request' checkbox not found")
 
     await asyncio.sleep(1)
-    await SuperScraper.screenshot(tab, f"resources/screenshots/usdatacorporation_dry_run_{category}.png")
+    await SuperScraper.screenshot(tab, f"dry_run_{category}")
     print(
         f"\n'{category}' request filled but NOT submitted — a reCAPTCHA v2 checkbox requires "
         "a manual solve before submitting."
@@ -96,10 +96,8 @@ async def submit_request(tab, category, super_scraper):
 
 
 async def main():
-    options = ChromiumOptions()
     super_scraper = SuperScraper()
-    options.binary_location = super_scraper.CHROMIUM_LOCATION
-    options.add_argument("--no-sandbox")
+    options = SuperScraper.build_chromium_options()
 
     codes = SuperScraper.rights_to_exercise(RIGHT_MAP)
     if not codes:

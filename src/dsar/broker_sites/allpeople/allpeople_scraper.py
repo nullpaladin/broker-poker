@@ -7,16 +7,13 @@ import asyncio
 from src.dsar.super_scraper import SuperScraper
 
 from pydoll.browser.chromium import Chrome
-from pydoll.browser.options import ChromiumOptions
 
 URL = "https://allpeople.com/removal"
 
 
 async def main():
-    options = ChromiumOptions()
     super_scraper = SuperScraper()
-    options.binary_location = super_scraper.CHROMIUM_LOCATION
-    options.add_argument("--no-sandbox")
+    options = SuperScraper.build_chromium_options()
 
     async with Chrome(options=options) as browser:
         tab = await browser.start()
@@ -40,7 +37,7 @@ async def main():
             )
             print("Pausing 5s for screenshot...")
             await asyncio.sleep(5)
-            await SuperScraper.screenshot(tab, "resources/screenshots/allpeople_dry_run.png")
+            await SuperScraper.screenshot(tab, "dry_run")
             return
 
         print(f"\nEmail and agreement filled for {SuperScraper.EMAIL}.")

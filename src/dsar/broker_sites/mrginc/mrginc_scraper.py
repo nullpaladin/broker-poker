@@ -11,9 +11,10 @@
 import asyncio
 
 from src.dsar.super_scraper import SuperScraper
+from src.dsar import captcha_solutions_util
+from src.dsar import js_utils
 
 from pydoll.browser.chromium import Chrome
-from pydoll.browser.options import ChromiumOptions
 
 URL = "https://www.mrginc.com/do-not-sell-my-personal-information"
 
@@ -26,10 +27,8 @@ RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
 
 
 async def main():
-    options = ChromiumOptions()
     super_scraper = SuperScraper()
-    options.binary_location = super_scraper.CHROMIUM_LOCATION
-    options.add_argument("--no-sandbox")
+    options = SuperScraper.build_chromium_options()
 
     async with Chrome(options=options) as browser:
         tab = await browser.start()
@@ -65,8 +64,8 @@ async def main():
             else:
                 print(f"{super_scraper.OOPS} checkbox '{checkbox_id}' not found")
 
-        page_text = await SuperScraper.page_text(tab)
-        answer = SuperScraper.solve_math_captcha(page_text or "")
+        page_text = await js_utils.page_text(tab)
+        answer = captcha_solutions_util.solve_math_captcha(page_text or "")
         if answer is not None:
             answer_field = await tab.find(xpath="//input[@placeholder='Your answer']", raise_exc=False)
             if answer_field:
@@ -77,7 +76,7 @@ async def main():
             print(f"{super_scraper.OOPS} math-captcha question not found/parseable")
 
         await asyncio.sleep(1)
-        await SuperScraper.screenshot(tab, "resources/screenshots/mrginc_dry_run.png")
+        await SuperScraper.screenshot(tab, "dry_run")
         if SuperScraper.DRY_RUN:
             print(f"DRY RUN: would submit request for {SuperScraper.FIRST_NAME} {SuperScraper.LAST_NAME}")
             return

@@ -13,13 +13,15 @@
 #   field_23                 "Custom Captcha" math — equation rendered by JS into
 #                            #wpforms-109-field_23-question ("6 x 3 =" etc.),
 #                            covers add / subtract / multiply / divide
-# Both custom captchas are solved with SuperScraper.solve_math_captcha. There is
+# Both custom captchas are solved with captcha_solutions_util.solve_math_captcha. There is
 # ALSO a Google reCAPTCHA v2 checkbox -> manual solve required in live mode.
 import asyncio
 
 from pydoll.browser.chromium import Chrome
 
 from src.dsar.super_scraper import SuperScraper
+from src.dsar import captcha_solutions_util
+from src.dsar import js_utils
 
 URL = "https://lizdev.com/opt-out-form/"
 
@@ -44,8 +46,8 @@ async def _solve_captcha(tab, super_scraper, question_xpath, answer_xpath, name)
     if not q:
         print(f"{super_scraper.OOPS} {name} captcha question not found")
         return
-    question_text = (await SuperScraper.js_eval(q, "return this.textContent")) or ""
-    answer = SuperScraper.solve_math_captcha(question_text)
+    question_text = (await js_utils.js_eval(q, "return this.textContent")) or ""
+    answer = captcha_solutions_util.solve_math_captcha(question_text)
     if answer is None:
         print(f"{super_scraper.OOPS} could not parse {name} captcha: {question_text!r}")
         return
@@ -78,7 +80,7 @@ async def main():
 
         type_select = await tab.find(xpath=TYPE_SELECT, raise_exc=False)
         if type_select:
-            await SuperScraper.select_native_option(type_select, value="Personal")
+            await js_utils.select_native_option(type_select, value="Personal")
 
         await _solve_captcha(tab, super_scraper, QA_QUESTION, QA_ANSWER, "Q&A")
         await _solve_captcha(tab, super_scraper, MATH_QUESTION, MATH_ANSWER, "math")
@@ -92,7 +94,7 @@ async def main():
             })
 
         await asyncio.sleep(1)
-        await SuperScraper.screenshot(tab, "resources/screenshots/lizdev_dry_run.png")
+        await SuperScraper.screenshot(tab, "dry_run")
 
         if SuperScraper.DRY_RUN:
             print(
@@ -107,7 +109,7 @@ async def main():
         if submit:
             await submit.click()
             await asyncio.sleep(3)
-        source = await SuperScraper.page_text(tab)
+        source = await js_utils.page_text(tab)
         if any(w in source.lower() for w in ("thank you", "success", "received", "submitted", "confirmation")):
             print(f"Submitted opt-out for {SuperScraper.FIRST_NAME} {SuperScraper.LAST_NAME}")
         else:

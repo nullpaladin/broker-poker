@@ -18,7 +18,6 @@ import asyncio
 import time
 
 from pydoll.browser.chromium import Chrome
-from pydoll.browser.options import ChromiumOptions
 from pydoll.constants import Key
 
 from src.dsar.super_scraper import SuperScraper
@@ -86,10 +85,8 @@ async def _click_listbox_option(tab, aria_label):
 
 
 async def main():
-    options = ChromiumOptions()
     super_scraper = SuperScraper()
-    options.binary_location = super_scraper.CHROMIUM_LOCATION
-    options.add_argument("--no-sandbox")
+    options = SuperScraper.build_chromium_options()
 
     async with Chrome(options=options) as browser:
         tab = await browser.start()
@@ -143,7 +140,7 @@ async def main():
         submit_btn = await tab.find(id="dsar-webform-submit-button", raise_exc=False)
         if submit_btn:
             await submit_btn.scroll_into_view()
-        await SuperScraper.screenshot(tab, "resources/screenshots/rhetorik_dry_run.png")
+        await SuperScraper.screenshot(tab, "dry_run")
         if SuperScraper.DRY_RUN:
             print(
                 f"DRY RUN: would submit combined privacy request for "

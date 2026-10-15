@@ -3,9 +3,9 @@ import json
 import time
 
 from src.dsar.super_scraper import SuperScraper
+from src.dsar import js_utils
 
 from pydoll.browser.chromium import Chrome
-from pydoll.browser.options import ChromiumOptions
 
 # Rights exercised: Don't Sell/Share, View My Data, Edit My Data, Delete My Data (if REMOVE_INFORMATION).
 # Form is an embedded Google Form — navigated to directly.
@@ -25,10 +25,8 @@ async def check_checkbox(tab, aria_label):
 
 
 async def main():
-    options = ChromiumOptions()
     super_scraper = SuperScraper()
-    options.binary_location = super_scraper.CHROMIUM_LOCATION
-    options.add_argument("--no-sandbox")
+    options = SuperScraper.build_chromium_options()
 
     async with Chrome(options=options) as browser:
         tab = await browser.start()
@@ -56,7 +54,7 @@ async def main():
         await super_scraper.click_item_by_text(tab=tab, text="Submit", sleep=2)
         await asyncio.sleep(4)
 
-        result = await SuperScraper.page_text(tab)
+        result = await js_utils.page_text(tab)
         print(result[:500])
         print(f"Submitted privacy request for {SuperScraper.EMAIL}")
 

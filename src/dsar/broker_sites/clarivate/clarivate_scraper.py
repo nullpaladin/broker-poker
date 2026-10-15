@@ -6,9 +6,9 @@ import asyncio
 import json
 
 from src.dsar.super_scraper import SuperScraper
+from src.dsar import js_utils
 
 from pydoll.browser.chromium import Chrome
-from pydoll.browser.options import ChromiumOptions
 
 URL = "https://privacyportal.onetrust.com/webform/7636e208-dda4-4218-8026-e1bc155873fc/ae937376-9b21-4996-9327-81eaaa1b20f9"
 
@@ -28,10 +28,8 @@ def _js_set(selector, value):
 
 
 async def main():
-    options = ChromiumOptions()
     super_scraper = SuperScraper()
-    options.binary_location = super_scraper.CHROMIUM_LOCATION
-    options.add_argument("--no-sandbox")
+    options = SuperScraper.build_chromium_options()
 
     async with Chrome(options=options) as browser:
         tab = await browser.start()
@@ -121,7 +119,7 @@ async def main():
                 f"{SuperScraper.FIRST_NAME} {SuperScraper.LAST_NAME}"
             )
             await asyncio.sleep(2)
-            await SuperScraper.screenshot(tab, "resources/screenshots/clarivate_dry_run.png")
+            await SuperScraper.screenshot(tab, "dry_run")
             return
 
         print(f"\nForm filled for {SuperScraper.FIRST_NAME} {SuperScraper.LAST_NAME}.")
@@ -129,7 +127,7 @@ async def main():
         print("Press Enter after submission completes...")
         input()
 
-        result = await SuperScraper.page_text(tab) or ""
+        result = await js_utils.page_text(tab) or ""
         if any(w in result.lower() for w in ("thank", "success", "received", "submitted", "confirmation")):
             print(f"Submitted DSAR for {SuperScraper.FIRST_NAME} {SuperScraper.LAST_NAME}")
         else:

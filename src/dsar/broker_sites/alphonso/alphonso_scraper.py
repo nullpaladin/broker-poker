@@ -10,7 +10,6 @@
 import asyncio
 
 from pydoll.browser.chromium import Chrome
-from pydoll.browser.options import ChromiumOptions
 
 from src.dsar.super_scraper import SuperScraper
 
@@ -37,7 +36,7 @@ async def _fill_and_shot(tab, super_scraper, url, tag, message=None):
         print(f"{super_scraper.OOPS} [{tag}] email field not found")
 
     await asyncio.sleep(1)
-    await SuperScraper.screenshot(tab, f"resources/screenshots/alphonso_dry_run_{tag}.png", beyond_viewport=True)
+    await SuperScraper.screenshot(tab, f"dry_run_{tag}")
     if SuperScraper.DRY_RUN:
         print(f"DRY RUN [{tag}]: would submit for {SuperScraper.EMAIL}")
         return
@@ -50,10 +49,8 @@ async def _fill_and_shot(tab, super_scraper, url, tag, message=None):
 
 
 async def main():
-    options = ChromiumOptions()
     super_scraper = SuperScraper()
-    options.binary_location = super_scraper.CHROMIUM_LOCATION
-    options.add_argument("--no-sandbox")
+    options = SuperScraper.build_chromium_options()
 
     other_msg = (
         "I request access to the personal information Alphonso holds about me "

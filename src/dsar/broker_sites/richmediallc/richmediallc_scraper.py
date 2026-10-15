@@ -13,7 +13,6 @@ import asyncio
 from src.dsar.super_scraper import SuperScraper
 
 from pydoll.browser.chromium import Chrome
-from pydoll.browser.options import ChromiumOptions
 
 URL = "https://privacy.richmediallc.com/"
 
@@ -71,7 +70,7 @@ async def submit_request(tab, right, super_scraper):
         print(f"{super_scraper.OOPS} request type '{right}' not found")
 
     await asyncio.sleep(1)
-    await SuperScraper.screenshot(tab, f"resources/screenshots/richmediallc_dry_run_{right}.png")
+    await SuperScraper.screenshot(tab, f"dry_run_{right}")
     print(
         f"\n'{RIGHT_LABELS[right]}' request filled but NOT submitted — a Cloudflare "
         "Turnstile checkbox requires a manual solve."
@@ -79,10 +78,8 @@ async def submit_request(tab, right, super_scraper):
 
 
 async def main():
-    options = ChromiumOptions()
     super_scraper = SuperScraper()
-    options.binary_location = super_scraper.CHROMIUM_LOCATION
-    options.add_argument("--no-sandbox")
+    options = SuperScraper.build_chromium_options()
 
     codes = SuperScraper.rights_to_exercise(RIGHT_MAP)
     if not codes:

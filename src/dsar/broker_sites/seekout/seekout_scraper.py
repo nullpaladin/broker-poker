@@ -20,7 +20,6 @@
 import asyncio
 
 from pydoll.browser.chromium import Chrome
-from pydoll.browser.options import ChromiumOptions
 
 from src.dsar.super_scraper import SuperScraper
 
@@ -61,10 +60,8 @@ async def _click_label(tab, super_scraper, text):
 
 
 async def main():
-    options = ChromiumOptions()
     super_scraper = SuperScraper()
-    options.binary_location = super_scraper.CHROMIUM_LOCATION
-    options.add_argument("--no-sandbox")
+    options = SuperScraper.build_chromium_options()
 
     state_abbr = SuperScraper.STATE_ABBREVIATED
     codes = SuperScraper.rights_to_exercise(RIGHT_MAP)
@@ -141,7 +138,7 @@ async def main():
             await _click_label(tab, super_scraper, choice)
 
         await asyncio.sleep(1)
-        await SuperScraper.screenshot(tab, "resources/screenshots/seekout_dry_run.png", beyond_viewport=True)
+        await SuperScraper.screenshot(tab, "dry_run")
         print(f"{choices} filled but NOT submitted — solve the reCAPTCHA manually, then Submit.")
 
 

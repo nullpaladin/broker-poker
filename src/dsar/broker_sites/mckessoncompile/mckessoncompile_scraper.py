@@ -20,7 +20,6 @@
 import asyncio
 
 from pydoll.browser.chromium import Chrome
-from pydoll.browser.options import ChromiumOptions
 from pydoll.constants import Key
 
 from src.dsar.super_scraper import SuperScraper
@@ -82,10 +81,8 @@ async def _combo(tab, super_scraper, field_id, value):
 
 
 async def main():
-    options = ChromiumOptions()
     super_scraper = SuperScraper()
-    options.binary_location = super_scraper.CHROMIUM_LOCATION
-    options.add_argument("--no-sandbox")
+    options = SuperScraper.build_chromium_options()
 
     details = RIGHTS_TEXT_BASE + (RIGHTS_TEXT_DELETE if SuperScraper.wants("delete") else "")
 
@@ -189,7 +186,7 @@ async def main():
             print(f"{super_scraper.OOPS} perjury-certification checkbox not found")
 
         await asyncio.sleep(1)
-        await SuperScraper.screenshot(tab, "resources/screenshots/mckessoncompile_dry_run.png", beyond_viewport=True)
+        await SuperScraper.screenshot(tab, "dry_run")
         print(
             "Request filled but NOT submitted — enter the BotDetect image CAPTCHA "
             "(captchaCode) manually, then Submit."

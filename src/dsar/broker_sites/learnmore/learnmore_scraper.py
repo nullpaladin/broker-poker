@@ -13,7 +13,6 @@ import asyncio
 import time
 
 from pydoll.browser.chromium import Chrome
-from pydoll.browser.options import ChromiumOptions
 
 from src.dsar.super_scraper import SuperScraper
 
@@ -39,10 +38,8 @@ async def _fill_visible(tab, name, value):
 
 
 async def main():
-    options = ChromiumOptions()
     super_scraper = SuperScraper()
-    options.binary_location = super_scraper.CHROMIUM_LOCATION
-    options.add_argument("--no-sandbox")
+    options = SuperScraper.build_chromium_options()
 
     async with Chrome(options=options) as browser:
         tab = await browser.start()
@@ -55,7 +52,7 @@ async def main():
         await _fill_visible(tab, "requestDataLastName", SuperScraper.LAST_NAME)
         await _fill_visible(tab, "requestDataEmail", SuperScraper.EMAIL)
         time.sleep(0.5)
-        await SuperScraper.screenshot(tab, "resources/screenshots/learnmore_dry_run_access.png")
+        await SuperScraper.screenshot(tab, "dry_run_access")
         if not SuperScraper.DRY_RUN:
             btn = await tab.find(text="Submit Request", raise_exc=False)
             if btn:
@@ -69,7 +66,7 @@ async def main():
             await _click(tab, "Delete My User Data")
             await _fill_visible(tab, "requestorEmail", SuperScraper.EMAIL)
             time.sleep(0.5)
-            await SuperScraper.screenshot(tab, "resources/screenshots/learnmore_dry_run_delete.png")
+            await SuperScraper.screenshot(tab, "dry_run_delete")
         if SuperScraper.DRY_RUN:
             print(
                 f"DRY RUN: Access{' + Delete' if SuperScraper.wants("delete") else ''} "

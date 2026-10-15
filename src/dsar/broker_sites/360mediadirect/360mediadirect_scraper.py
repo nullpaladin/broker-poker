@@ -14,7 +14,6 @@ import asyncio
 from src.dsar.super_scraper import SuperScraper
 
 from pydoll.browser.chromium import Chrome
-from pydoll.browser.options import ChromiumOptions
 
 URL = "https://360-media-direct.privacy.saymine.io/360_Media_Direct"
 
@@ -66,7 +65,7 @@ async def submit_request(tab, right_id, label, super_scraper):
     if SuperScraper.DRY_RUN:
         print(f"DRY RUN: would submit '{right_id}' for {SuperScraper.FIRST_NAME} {SuperScraper.LAST_NAME}")
         await asyncio.sleep(2)
-        await SuperScraper.screenshot(tab, f"resources/screenshots/360mediadirect_dry_run_{label}.png")
+        await SuperScraper.screenshot(tab, f"dry_run_{label}")
         return
 
     await super_scraper.click_item_by_xpath(tab=tab, xpath=SUBMIT_XPATH, sleep=2)
@@ -75,10 +74,8 @@ async def submit_request(tab, right_id, label, super_scraper):
 
 
 async def main():
-    options = ChromiumOptions()
     super_scraper = SuperScraper()
-    options.binary_location = super_scraper.CHROMIUM_LOCATION
-    options.add_argument("--no-sandbox")
+    options = SuperScraper.build_chromium_options()
 
     codes = SuperScraper.rights_to_exercise(RIGHT_MAP)
     if not codes:

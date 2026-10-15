@@ -6,7 +6,6 @@ import asyncio
 import time
 
 from pydoll.browser.chromium import Chrome
-from pydoll.browser.options import ChromiumOptions
 
 from src.dsar.super_scraper import SuperScraper
 
@@ -43,7 +42,7 @@ async def submit_request(tab, radio_id, label, super_scraper):
     time.sleep(0.5)
 
     if SuperScraper.DRY_RUN:
-        await SuperScraper.screenshot(tab, f"resources/screenshots/reklaimyours_dry_run_{label}.png")
+        await SuperScraper.screenshot(tab, f"dry_run_{label}")
         print(
             f"DRY RUN: would submit '{label}' for "
             f"{SuperScraper.FIRST_NAME} {SuperScraper.LAST_NAME} <{SuperScraper.EMAIL}>"
@@ -63,10 +62,8 @@ async def submit_request(tab, radio_id, label, super_scraper):
 
 
 async def main():
-    options = ChromiumOptions()
     super_scraper = SuperScraper()
-    options.binary_location = super_scraper.CHROMIUM_LOCATION
-    options.add_argument("--no-sandbox")
+    options = SuperScraper.build_chromium_options()
 
     codes = SuperScraper.rights_to_exercise(RIGHT_MAP)
     if not codes:

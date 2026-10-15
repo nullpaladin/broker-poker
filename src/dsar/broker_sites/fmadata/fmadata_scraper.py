@@ -11,9 +11,9 @@
 import asyncio
 
 from pydoll.browser.chromium import Chrome
-from pydoll.browser.options import ChromiumOptions
 
 from src.dsar.super_scraper import SuperScraper
+from src.dsar import js_utils
 
 URL = "https://www.fmadata.com/opt-out-requests/new"
 
@@ -33,7 +33,7 @@ async def submit_request(tab, request_type, label, super_scraper):
     if not rt:
         print(f"{super_scraper.OOPS} request_type select not found")
         return
-    await SuperScraper.select_native_option(rt, value=request_type)
+    await js_utils.select_native_option(rt, value=request_type)
     await asyncio.sleep(0.3)
 
     full_name = " ".join(p for p in (SuperScraper.FIRST_NAME, SuperScraper.LAST_NAME) if p)
@@ -62,7 +62,7 @@ async def submit_request(tab, request_type, label, super_scraper):
         print(f"{super_scraper.OOPS} authorized-agent 'No' radio not found")
 
     await asyncio.sleep(1)
-    await SuperScraper.screenshot(tab, f"resources/screenshots/fmadata_dry_run_{label}.png")
+    await SuperScraper.screenshot(tab, f"dry_run_{label}")
     print(
         f"'{request_type}' request filled but NOT submitted — solve the hCaptcha "
         f"manually, then click Submit."
@@ -70,10 +70,8 @@ async def submit_request(tab, request_type, label, super_scraper):
 
 
 async def main():
-    options = ChromiumOptions()
     super_scraper = SuperScraper()
-    options.binary_location = super_scraper.CHROMIUM_LOCATION
-    options.add_argument("--no-sandbox")
+    options = SuperScraper.build_chromium_options()
 
     codes = SuperScraper.rights_to_exercise(RIGHT_MAP)
     if not codes:

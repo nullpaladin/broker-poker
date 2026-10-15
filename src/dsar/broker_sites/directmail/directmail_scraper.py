@@ -4,7 +4,6 @@ import time
 from src.dsar.super_scraper import SuperScraper
 
 from pydoll.browser.chromium import Chrome
-from pydoll.browser.options import ChromiumOptions
 
 URL = "https://www.directmail.com/mail_preference/"
 
@@ -21,10 +20,8 @@ SELECT_ALL_XPATH = '//input[@id="checkbox"]'
 
 
 async def main():
-    options = ChromiumOptions()
     super_scraper = SuperScraper()
-    options.binary_location = super_scraper.CHROMIUM_LOCATION
-    options.add_argument("--no-sandbox")
+    options = SuperScraper.build_chromium_options()
 
     state_abbrev = SuperScraper.STATE_ABBREVIATED
 

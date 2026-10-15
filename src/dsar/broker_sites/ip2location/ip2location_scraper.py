@@ -12,9 +12,9 @@ import asyncio
 import urllib.request
 
 from pydoll.browser.chromium import Chrome
-from pydoll.browser.options import ChromiumOptions
 
 from src.dsar.super_scraper import SuperScraper
+from src.dsar import js_utils
 
 URL = "https://www.ip2location.com/do-not-sell"
 
@@ -55,19 +55,19 @@ async def submit_request(tab, right_label, tag, super_scraper, ip):
 
     rt = await tab.find(xpath=f"{form_xp}//select[@name='requestType']", raise_exc=False)
     if rt:
-        await SuperScraper.select_native_option(rt, text=right_label)
+        await js_utils.select_native_option(rt, text=right_label)
     else:
         print(f"{super_scraper.OOPS} requestType select not found")
 
     scope = await tab.find(xpath=f"{form_xp}//select[@name='scope']", raise_exc=False)
     if scope:
-        await SuperScraper.select_native_option(scope, text="This request relates to all of my data")
+        await js_utils.select_native_option(scope, text="This request relates to all of my data")
     behalf = await tab.find(xpath=f"{form_xp}//select[@name='behalf']", raise_exc=False)
     if behalf:
-        await SuperScraper.select_native_option(behalf, text="No")
+        await js_utils.select_native_option(behalf, text="No")
 
     await asyncio.sleep(1)
-    await SuperScraper.screenshot(tab, f"resources/screenshots/ip2location_dry_run_{tag}.png", beyond_viewport=True)
+    await SuperScraper.screenshot(tab, f"dry_run_{tag}")
     if SuperScraper.DRY_RUN:
         print(f"DRY RUN: would submit '{right_label}' for {SuperScraper.EMAIL} (IP {ip or '?'})")
         return
@@ -80,10 +80,8 @@ async def submit_request(tab, right_label, tag, super_scraper, ip):
 
 
 async def main():
-    options = ChromiumOptions()
     super_scraper = SuperScraper()
-    options.binary_location = super_scraper.CHROMIUM_LOCATION
-    options.add_argument("--no-sandbox")
+    options = SuperScraper.build_chromium_options()
 
     ip = _public_ip()
     codes = SuperScraper.rights_to_exercise(RIGHT_MAP)

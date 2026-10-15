@@ -1,19 +1,21 @@
 import asyncio
+import inspect
 import os
 import random
-import re
 import time
 
 import dotenv
 
 from pydoll.browser.options import ChromiumOptions
 
-from src.dsar.exceptions import RequiredFieldError
+from src.dsar import js_utils
+from src.dsar.exceptions import RequiredFieldError, RightsChangedError
+from src.dsar.rights import RIGHT_DISPLAY, Right
 from src.state_privacy_request_factory import state_privacy_data
 from src.state_privacy_request_factory.state_privacy_data import (
-    RIGHT_CODES,
     UnknownStateError,
     law_name,
+    request_basis,
     rights_available,
     state_abbreviation,
     state_has_privacy_law,
@@ -21,37 +23,23 @@ from src.state_privacy_request_factory.state_privacy_data import (
 )
 
 
-# Human-readable phrasing for each canonical right code — used by request_statement().
-RIGHT_DISPLAY = {
-    "access": "access to and a copy of my personal data",
-    "delete": "deletion of my personal data",
-    "correct": "correction of inaccuracies in my personal data",
-    "portability": "a portable copy of my personal data",
-    "opt_out_sale_share": "opt-out of the sale or sharing of my personal data",
-    "opt_out_targeted_ads": "opt-out of targeted advertising",
-    "opt_out_profiling": "opt-out of profiling in furtherance of decisions that produce "
-    "legal or similarly significant effects",
-    "know_third_parties": "a list of the specific third parties to which my personal data "
-    "has been disclosed",
-    "limit_sensitive_pi": "limiting the use and disclosure of my sensitive personal information",
-}
-
-
 class SuperScraper:
+    Right = Right  # SuperScraper.Right.RIGHT_TO_ACCESS etc.
+
     dotenv.load_dotenv()
     # System-related information
-    # NOTE: compared against a stripped/upper-cased string rather than truthiness —
-    # os.getenv("REMOVE_INFORMATION") returns the literal string "False" when the .env
-    # value is False, and non-empty strings are truthy in Python, so `if REMOVE_INFORMATION`
-    # would always be True regardless of the .env setting.
-    REMOVE_INFORMATION = (os.getenv("REMOVE_INFORMATION") or "").strip().upper() in ("TRUE", "1", "YES")
-    DRY_RUN = (os.getenv("DRY_RUN") or "True").strip().upper() in ("TRUE", "1", "YES")
-    # Like DRY_RUN (never submits) but additionally asserts every required field could be
-    # filled and never writes screenshots — for a future automated health-check runner.
+    # NOTE: flags are compared against a stripped/upper-cased string rather than truthiness —
+    # os.getenv("DRY_RUN") returns the literal string "False" when the .env value is False,
+    # and non-empty strings are truthy in Python.
     HEALTH_CHECK = (os.getenv("HEALTH_CHECK") or "").strip().upper() in ("TRUE", "1", "YES")
-    # Show the automated browser window. Default True — several forms need a visible
+    # A health check never submits, so it implies a dry run.
+    DRY_RUN = HEALTH_CHECK or (os.getenv("DRY_RUN") or "True").strip().upper() in ("TRUE", "1", "YES")
+    # Like DRY_RUN (never submits) but additionally asserts every required field could be
+    # filled and that the page's offered rights still match the scraper's PAGE_RIGHTS
+    # inventory. Screenshots are taken (for the LLM-review stage of the health pipeline).
+    # Run Chromium with no visible window. Default False — several forms need a visible
     # window for a manual CAPTCHA solve during a live (non-DRY_RUN) run.
-    HEADED = (os.getenv("HEADED") or "True").strip().upper() in ("TRUE", "1", "YES")
+    HEADLESS_BROWSER_MODE = (os.getenv("HEADLESS_BROWSER_MODE") or "False").strip().upper() in ("TRUE", "1", "YES")
     TWO_CAPTCHA_API_KEY = os.getenv("TWO_CAPTCHA_API_KEY")
     # Cast to int — pydoll compares this against a float clock, so a raw
     # os.getenv() string ("10") raises "'>' not supported between float and str"
@@ -88,28 +76,35 @@ class SuperScraper:
         STATE_ABBREVIATED = state_abbreviation(STATE) if STATE else None
         LAW_FULL_NAME = law_name(STATE) if STATE else None
         LAW_SHORT_NAME = law_name(STATE, short=True) if STATE else None
+        # e.g. "under the Minnesota Consumer Data Privacy Act"; None for no-law states.
+        REQUEST_BASIS = request_basis(STATE) if STATE else None
     except UnknownStateError:
         print(f"{__name__}: WARNING — STATE={STATE!r} is not a recognised US state; "
               "STATE_ABBREVIATED / LAW_* left unset.")
         STATE_ABBREVIATED = None
         LAW_FULL_NAME = None
         LAW_SHORT_NAME = None
+        REQUEST_BASIS = None
 
-    # --- Which privacy rights the user wants to exercise (PR comment: user choice) ---
-    # .env REQUESTED_RIGHTS is a comma-separated list of canonical right codes. Unset/empty
-    # => all codes. `delete` is additionally gated on REMOVE_INFORMATION (see rights_to_exercise).
-    _requested = [c.strip().lower() for c in (os.getenv("REQUESTED_RIGHTS") or "").split(",") if c.strip()]
-    _unknown_rights = [c for c in _requested if c not in RIGHT_CODES]
-    if _unknown_rights:
-        print(f"{__name__}: WARNING — ignoring unknown REQUESTED_RIGHTS codes: {_unknown_rights}")
-    REQUESTED_RIGHTS = frozenset(c for c in _requested if c in RIGHT_CODES) or frozenset(RIGHT_CODES)
+    # --- Which privacy rights the user wants to exercise (set from the UI's user input) ---
+    # .env RIGHTS_TO_EXERCISE is a comma-separated list of Right names. Unset => access,
+    # opt-out and list-of-third-parties; deletion is destructive so it must be asked for
+    # explicitly (RIGHT_TO_DELETE).
+    _requested_raw = [c for c in (os.getenv("RIGHTS_TO_EXERCISE") or "").split(",") if c.strip()]
+    _parsed = [Right.parse(c) for c in _requested_raw]
+    if any(r is None for r in _parsed):
+        print(f"{__name__}: WARNING — ignoring unknown RIGHTS_TO_EXERCISE values: "
+              f"{[c for c, r in zip(_requested_raw, _parsed) if r is None]}")
+    RIGHTS_TO_EXERCISE = frozenset(r for r in _parsed if r is not None) if _requested_raw else frozenset(
+        {Right.RIGHT_TO_ACCESS, Right.RIGHT_TO_OPT_OUT, Right.RIGHT_TO_LIST_OF_THIRD_PARTIES}
+    )
 
     # --- Declarative per-scraper metadata (frontend_implementation_plan.md §7). Safe
     # defaults; individual scrapers override at module or class level as they are touched. ---
     CAPTCHA_TYPE = "none"          # "none" | "image" | "widget"
     REQUIRED_FIELDS = ()
     OPTIONAL_FIELDS = ()
-    RIGHTS_SUPPORTED = ()          # canonical right codes this scraper's form can exercise
+    RIGHTS_SUPPORTED = ()          # Right members this scraper's form can exercise
     STATE_RESTRICTIONS = None
     NOT_AUTOMATABLE = False        # True => cannot run unattended (mid-run OTP, etc.)
     NOT_AUTOMATABLE_REASON = ""
@@ -130,50 +125,36 @@ class SuperScraper:
     #  Rights selection                                                   #
     # ------------------------------------------------------------------ #
     @classmethod
-    def wants(cls, *right_codes) -> bool:
-        """True if the user asked for ANY of ``right_codes`` for their state.
+    def rights_to_exercise(cls, right_map) -> list:
+        """Ordered ``Right`` members to actually exercise for this run — THE gate every
+        scraper uses (never read RIGHTS_TO_EXERCISE directly).
 
-        A right is wanted when it is in ``REQUESTED_RIGHTS`` AND (the user's state
-        grants it, OR the state has no comprehensive privacy law at all — in which
-        case the generic set is still attempted, since a site written for CCPA
-        applies the same way). ``delete`` additionally requires REMOVE_INFORMATION.
+        ``right_map`` is the scraper's ``RIGHT_MAP`` (``Right`` -> that scraper's own
+        entry or list of entries). A right is kept when it is in ``RIGHTS_TO_EXERCISE``
+        AND (the user's state grants it, OR the state has no comprehensive privacy law —
+        a site written for CCPA applies the same way). Returned in ``right_map`` order.
         """
         granted = rights_available(cls.STATE) if cls.STATE else frozenset()
         no_law = not (state_has_privacy_law(cls.STATE) if cls.STATE else False)
-        for code in right_codes:
-            if code not in cls.REQUESTED_RIGHTS:
-                continue
-            if code == "delete" and not cls.REMOVE_INFORMATION:
-                continue
-            if no_law or code in granted:
-                return True
-        return False
-
-    @classmethod
-    def rights_to_exercise(cls, right_map) -> list:
-        """Ordered canonical right codes to actually exercise for this run.
-
-        ``right_map`` is the scraper's ``RIGHT_MAP`` (canonical code -> that
-        scraper's own entry). Returns the keys the user wants, in ``right_map``
-        order.
-        """
-        return [code for code in right_map if cls.wants(code)]
+        return [
+            right for right in right_map
+            if right in cls.RIGHTS_TO_EXERCISE and (no_law or right.value in granted)
+        ]
 
     @classmethod
     def request_statement(cls, rights, *, broker: str | None = None) -> str:
-        """Freeform "I am a <state> resident exercising ..." sentence for a
-        message / details textarea, with the correct per-state law name."""
+        """Freeform "I am a <state> resident ..." sentence for a message / details
+        textarea. Cites the state's law (from state_privacy_data.json ``request_basis``)
+        only when the state has one."""
         state_title = cls.STATE or "US"
-        law = cls.LAW_FULL_NAME or "applicable state and federal privacy law"
-        short = f" ({cls.LAW_SHORT_NAME})" if cls.LAW_SHORT_NAME else ""
-        human = ", ".join(RIGHT_DISPLAY.get(r, r) for r in rights) or "my applicable privacy rights"
-        held = f" that {broker} and its affiliates hold about me" if broker else " held about me"
-        cites = [c for c in (statute_cite(cls.STATE, r) for r in rights) if c] if cls.STATE else []
+        basis = f" {cls.REQUEST_BASIS}" if cls.REQUEST_BASIS else ""
+        cites = [c for c in (statute_cite(cls.STATE, r.value) for r in rights) if c] if cls.REQUEST_BASIS else []
         cite_clause = f" (see {'; '.join(dict.fromkeys(cites))})" if cites else ""
+        human = ", ".join(RIGHT_DISPLAY[r] for r in rights) or "my applicable privacy rights"
+        held = f" that {broker} and its affiliates hold about me" if broker else " held about me"
         return (
-            f"I am a {state_title} resident and I am exercising my privacy rights under the "
-            f"{law}{short}{cite_clause}. I request the following with respect to the personal "
-            f"information{held}: {human}."
+            f"I am a {state_title} resident and I am exercising my privacy rights{basis}{cite_clause}. "
+            f"I request the following with respect to the personal information{held}: {human}."
         )
 
     # ------------------------------------------------------------------ #
@@ -194,38 +175,76 @@ class SuperScraper:
             return True
         return False
 
+    @staticmethod
+    def bail_if_state_unsupported(namespace) -> bool:
+        """Call right after ``bail_if_not_automatable`` in ``main()``. Returns True (and
+        prints why) when the user's state has no comprehensive privacy law but the
+        scraper declares ``SERVES_NO_LAW_STATES = False`` (its form only takes residents
+        of states with a privacy law). Scrapers that don't declare it serve everyone."""
+        if namespace.get("SERVES_NO_LAW_STATES", True):
+            return False
+        if SuperScraper.state_has_privacy_law(SuperScraper.STATE):
+            return False
+        slug = namespace.get("SITE_SLUG") or namespace.get("__name__", "scraper")
+        print(f"SKIP {slug}: form is only for residents of states with a privacy law "
+              f"(STATE={SuperScraper.STATE!r} has none).")
+        return True
+
     # ------------------------------------------------------------------ #
     #  Browser options / screenshots                                      #
     # ------------------------------------------------------------------ #
     @classmethod
     def build_chromium_options(cls, *, extra_args=()) -> ChromiumOptions:
-        """Standard ChromiumOptions: binary location + --no-sandbox, headless unless
-        HEADED, and never a --window-size (those were a screenshot-testing artifact)."""
+        """Standard ChromiumOptions: binary location + --no-sandbox, headless only if
+        not HEADLESS_BROWSER_MODE, and never a --window-size (those were a screenshot-testing artifact)."""
         options = ChromiumOptions()
         if cls.CHROMIUM_LOCATION:
             options.binary_location = cls.CHROMIUM_LOCATION
         options.add_argument("--no-sandbox")
-        if not cls.HEADED:
+        if cls.HEADLESS_BROWSER_MODE:
             options.add_argument("--headless=new")
         for arg in extra_args:
             options.add_argument(arg)
         return options
 
     @staticmethod
-    async def screenshot(tab, path, *, force=False, beyond_viewport=False):
-        """Take a screenshot ONLY in DRY_RUN (or force=True); no-op otherwise.
+    def _calling_scraper_name(default="scraper") -> str:
+        """Name of the scraper that called us: the directory of the nearest
+        ``*_scraper.py`` frame on the stack (``broker_sites/<name>/<name>_scraper.py``)."""
+        for frame in inspect.stack()[2:]:
+            if frame.filename.endswith("_scraper.py"):
+                return os.path.basename(os.path.dirname(frame.filename)) or default
+        return default
 
-        Screenshots are a dry-run verification artifact — a live run has nothing to
-        screenshot, and a health-check run must not litter the disk.
+    @staticmethod
+    async def screenshot(tab, label, *, max_pages=20):
+        """Screenshot the whole page as a series of viewport shots — ONLY in DRY_RUN or
+        HEALTH_CHECK (no-op on a live run). Saved to
+        ``resources/screenshots/<scraper>/<label>_p01.png`` ``_p02`` ...; the scraper
+        name is taken from the calling scraper file, never hard-coded.
+
+        Scrolls to the top, then repeats: shoot, page down, stop when scroll position
+        no longer changes (so each viewport is audited, not one stretched capture).
         """
-        if not force and (not SuperScraper.DRY_RUN or SuperScraper.HEALTH_CHECK):
-            return None
-        directory = os.path.dirname(path)
-        if directory:
-            os.makedirs(directory, exist_ok=True)
-        await tab.take_screenshot(path=path, beyond_viewport=beyond_viewport)
-        print(f"Screenshot saved to {path}")
-        return path
+        if not (SuperScraper.DRY_RUN or SuperScraper.HEALTH_CHECK):
+            return []
+        directory = os.path.join("resources", "screenshots", SuperScraper._calling_scraper_name())
+        os.makedirs(directory, exist_ok=True)
+        await js_utils.js_eval(tab, "window.scrollTo(0, 0); return window.scrollY;")
+        saved = []
+        for page in range(1, max_pages + 1):
+            await asyncio.sleep(0.3)
+            before = await js_utils.js_eval(tab, "return window.scrollY;")
+            path = os.path.join(directory, f"{label}_p{page:02d}.png")
+            await tab.take_screenshot(path=path)
+            saved.append(path)
+            await js_utils.js_eval(tab, "window.scrollBy(0, window.innerHeight - 40); return window.scrollY;")
+            await asyncio.sleep(0.3)
+            after = await js_utils.js_eval(tab, "return window.scrollY;")
+            if after == before:
+                break
+        print(f"Screenshots saved: {saved[0]}" + (f" … {saved[-1]} ({len(saved)} pages)" if len(saved) > 1 else ""))
+        return saved
 
     # ------------------------------------------------------------------ #
     #  Health-check field validation                                      #
@@ -242,7 +261,7 @@ class SuperScraper:
             if not el:
                 missing.append(label)
                 continue
-            value = await SuperScraper.js_eval(
+            value = await js_utils.js_eval(
                 el,
                 "return ((this.value != null ? this.value : (this.textContent || '')).trim())"
                 " || (this.checked ? 'x' : '');",
@@ -253,190 +272,39 @@ class SuperScraper:
             raise RequiredFieldError(missing)
         return {label: (label not in missing) for label in fields}
 
-    # ------------------------------------------------------------------ #
-    #  Shared embedded-JS helpers (see docs/development_reference/embedded_js_audit.md)
-    # ------------------------------------------------------------------ #
     @staticmethod
-    def _unwrap_js(raw):
-        """pydoll's execute_script returns {'result': {'result': {'value': X}}}; some
-        call paths already hand back X. Return X either way."""
-        node = raw
-        for _ in range(3):
-            if isinstance(node, dict) and "result" in node:
-                node = node["result"]
-            else:
-                break
-        if isinstance(node, dict) and "value" in node:
-            return node["value"]
-        return raw if not isinstance(raw, dict) else node
+    async def read_option_labels(tab, css):
+        """Visible text of every element matching ``css`` (e.g. ``"#rights option"``,
+        ``"[role=option]"``, ``"fieldset label"``), whitespace-collapsed, blanks dropped.
+        Open any dropdown/accordion first. Feed the result to ``audit_rights``."""
+        raw = await js_utils.js_eval(
+            tab,
+            f"return Array.from(document.querySelectorAll({css!r})).map(function(e)"
+            "{return (e.innerText||e.textContent||'').replace(/\\s+/g,' ').trim();});",
+        )
+        return [t for t in (raw or []) if t]
 
     @staticmethod
-    async def js_eval(target, script):
-        """Run ``script`` on a tab or element and return the unwrapped value.
-        The script needs a top-level ``return`` (not a wrapping IIFE)."""
-        return SuperScraper._unwrap_js(await target.execute_script(script))
+    def audit_rights(offered, page_rights, *, raise_on_fail=True):
+        """Compare the right options the page offers now with the scraper's committed
+        ``PAGE_RIGHTS`` inventory ({exact option label: Right or None}; ``None`` marks an
+        option we deliberately don't automate, e.g. right to correct).
 
-    @staticmethod
-    async def js_click(element):
-        """`element.click()` in JS — bypasses overlay interception / ElementNotVisible."""
-        await element.execute_script("this.click();")
-
-    @staticmethod
-    async def js_check(element, checked=True, *, dispatch=("click", "change")):
-        """Toggle a checkbox/radio to ``checked`` in JS.
-
-        Tries a real ``.click()`` first (the faithful path — fires the browser's
-        own trusted click/input/change and is what React onChange listens for),
-        then falls back to setting ``.checked`` + dispatching ``dispatch`` events
-        for custom-styled / 1x1px / visually-hidden inputs that ignore ``.click()``.
+        Prints the full list, then raises ``RightsChangedError`` if a mapped label has
+        vanished OR the page offers a label not in the inventory. HEALTH_CHECK only.
         """
-        want = "true" if checked else "false"
-        events = ";".join(
-            f"this.dispatchEvent(new Event('{e}',{{bubbles:true}}))" for e in dispatch
-        )
-        await element.execute_script(
-            f"if(this.checked!=={want}){{this.click();}}"
-            f"if(this.checked!=={want}){{this.checked={want};{events};}}"
-        )
-
-    @staticmethod
-    async def js_set_value(element, value, *, blur=False):
-        """Set an <input>/<textarea> value via the native prototype setter + dispatch
-        input/change[/blur]. For React/Angular controlled fields where click()+type
-        silently fails. ``element`` may be the input itself or a wrapper around it."""
-        events = (
-            "el.dispatchEvent(new Event('input',{bubbles:true}));"
-            "el.dispatchEvent(new Event('change',{bubbles:true}));"
-        )
-        if blur:
-            events += "el.dispatchEvent(new Event('blur',{bubbles:true}));"
-        await element.execute_script(
-            "var el=(this.tagName==='INPUT'||this.tagName==='TEXTAREA')?this:"
-            "this.querySelector('input,textarea')||this;"
-            "var d=Object.getOwnPropertyDescriptor(Object.getPrototypeOf(el),'value');"
-            f"if(d&&d.set){{d.set.call(el,{value!r});}}else{{el.value={value!r};}}"
-            + events
-        )
-
-    @staticmethod
-    async def select_native_option(
-        select_element, *, value=None, text=None, index=None, ci=False,
-        dispatch=("input", "change"),
-    ):
-        """Select an <option> in a native <select> by value / visible text / index,
-        then dispatch input+change. Replaces the ~80 hand-copied ``_select_native_option``
-        helpers across the scrapers."""
-        events = ";".join(
-            f"this.dispatchEvent(new Event('{e}',{{bubbles:true}}))" for e in dispatch
-        )
-        if value is not None:
-            match = "o.value.toLowerCase()===V.toLowerCase()" if ci else "o.value===V"
-            body = f"var V={value!r};"
-        elif text is not None:
-            match = "T.toLowerCase()===V.toLowerCase()" if ci else "T===V"
-            body = f"var V={text!r};"
-        elif index is not None:
-            await select_element.execute_script(f"this.selectedIndex={int(index)};{events};")
-            return
-        else:
-            raise ValueError("select_native_option needs value=, text= or index=")
-        await select_element.execute_script(
-            body
-            + "for(var i=0;i<this.options.length;i++){var o=this.options[i];"
-            "var T=(o.text||o.textContent||'').trim();"
-            f"if({match}){{this.selectedIndex=i;break;}}}}"
-            + events + ";"
-        )
-
-    @staticmethod
-    async def check_termly_attestations(tab):
-        """Force every Termly ``__doNotSubmit__``-prefixed attestation checkbox
-        checked + dispatch. These gate submission regardless of request type."""
-        await tab.execute_script(
-            "document.querySelectorAll('input[name^=\"__doNotSubmit__\"]').forEach(function(cb){"
-            "cb.checked=true;"
-            "cb.dispatchEvent(new Event('click',{bubbles:true}));"
-            "cb.dispatchEvent(new Event('change',{bubbles:true}));"
-            "});"
-        )
-
-    @staticmethod
-    async def page_text(tab):
-        """`document.body.innerText` — for post-submit confirmation checks."""
-        return await SuperScraper.js_eval(tab, "return document.body.innerText;")
-
-    @staticmethod
-    async def fill_autocomplete(tab, field, value, *, option_text=None, settle=1.3):
-        """OneTrust-style autocomplete combobox: clear via JS, type, then click the
-        matching role=option (falling back to trusting the typed value). Returns
-        True on apparent success."""
-        await field.execute_script(
-            "this.value='';this.dispatchEvent(new Event('input',{bubbles:true}));"
-        )
-        await field.click()
-        await tab.keyboard.type_text(text=value)
-        await asyncio.sleep(settle)
-        target = option_text or value
-        opt = await tab.find(
-            xpath=f"//*[@role='option' and normalize-space()={target!r}]", raise_exc=False
-        )
-        if opt:
-            await opt.click()
-            return True
-        current = await SuperScraper.js_eval(field, "return this.value;")
-        return bool(current)
-
-    # ------------------------------------------------------------------ #
-    #  Math ("what is 6 minus 1?") CAPTCHA solver                         #
-    # ------------------------------------------------------------------ #
-    _WORD_NUMBERS = {
-        "zero": 0, "one": 1, "two": 2, "three": 3, "four": 4, "five": 5, "six": 6,
-        "seven": 7, "eight": 8, "nine": 9, "ten": 10, "eleven": 11, "twelve": 12,
-        "thirteen": 13, "fourteen": 14, "fifteen": 15, "sixteen": 16, "seventeen": 17,
-        "eighteen": 18, "nineteen": 19, "twenty": 20,
-    }
-    _OPS = {
-        "+": "add", "plus": "add", "add": "add", "sum": "add",
-        "-": "sub", "minus": "sub", "subtract": "sub", "less": "sub",
-        "*": "mul", "x": "mul", "×": "mul", "times": "mul",
-        "multiplied by": "mul", "multiply": "mul",
-        "/": "div", "÷": "div", "divided by": "div", "divide": "div", "over": "div",
-    }
-
-    @staticmethod
-    def _num(token: str):
-        token = token.strip().lower()
-        if token.lstrip("-").isdigit():
-            return int(token)
-        return SuperScraper._WORD_NUMBERS.get(token)
-
-    @staticmethod
-    def solve_math_captcha(question: str):
-        """Parse "<a> <op> <b>" (digits or words zero..twenty; op = add/sub/mul/div,
-        symbol or word) and return the integer answer as a string, or None."""
-        if not question:
-            return None
-        text = question.strip().lower().rstrip("=?").strip()
-        op_alt = "|".join(re.escape(k) for k in sorted(SuperScraper._OPS, key=len, reverse=True))
-        num_alt = r"-?\d+|" + "|".join(SuperScraper._WORD_NUMBERS)
-        m = re.search(rf"({num_alt})\s*({op_alt})\s*({num_alt})", text)
-        if not m:
-            return None
-        a, b = SuperScraper._num(m.group(1)), SuperScraper._num(m.group(3))
-        if a is None or b is None:
-            return None
-        op = SuperScraper._OPS[m.group(2)]
-        if op == "add":
-            return str(a + b)
-        if op == "sub":
-            return str(a - b)
-        if op == "mul":
-            return str(a * b)
-        if op == "div":
-            if b == 0:
-                return None
-            return str(a // b if a % b == 0 else round(a / b))
-        return None
+        norm = lambda t: " ".join(t.split()).casefold()
+        offered_n = {norm(o): o for o in offered}
+        known_n = {norm(k): k for k in page_rights}
+        print("Rights offered on page:")
+        for o in offered:
+            mapped = page_rights.get(known_n.get(norm(o)))
+            print(f"  - {o}  ->  {mapped.name if mapped else ('(not automated)' if norm(o) in known_n else 'NEW')}")
+        missing = [known_n[k] for k in known_n if k not in offered_n]
+        new = [offered_n[k] for k in offered_n if k not in known_n]
+        if (missing or new) and raise_on_fail:
+            raise RightsChangedError(missing, new)
+        return missing, new
 
     # ------------------------------------------------------------------ #
     #  Misc                                                               #
@@ -476,9 +344,9 @@ class SuperScraper:
         return state_privacy_data.state_camel_key(state_name or SuperScraper.STATE, suffix=suffix)
 
     @staticmethod
-    def state_law_citation(right_code: str | None = None, state_name: str | None = None):
+    def state_law_citation(right: "Right | None" = None, state_name: str | None = None):
         """Statute citation for a right in the given state (default: configured STATE)."""
-        return state_privacy_data.statute_cite(state_name or SuperScraper.STATE, right_code)
+        return state_privacy_data.statute_cite(state_name or SuperScraper.STATE, right.value if right else None)
 
     @staticmethod
     async def choose_dropdown_option_by_xpath(tab, input_xpath, dropdown_item_xpath, sleep=0, double_click=False, timeout=BASE_TIMEOUT_IN_SECONDS):
@@ -579,31 +447,3 @@ class SuperScraper:
 
         await input_field.click()
         await tab.keyboard.type_text(text=text)
-
-    @staticmethod
-    async def solve_captcha(tab, image_xpath, input_field_xpath, sleep=0, timeout=BASE_TIMEOUT_IN_SECONDS):
-        captcha_image = await tab.find(
-            xpath=image_xpath,
-            timeout=timeout,
-            raise_exc=False
-        )
-        if not captcha_image:
-            print(f"{SuperScraper.OOPS} The captcha image with xpath {image_xpath} was not found.")
-            return
-
-        # TODO: need to integrate 2captcha
-        if sleep:
-            time.sleep(sleep)
-
-        captcha_input_field = await tab.find(
-            xpath=input_field_xpath,
-            timeout=timeout,
-            raise_exc=False
-        )
-        if not captcha_input_field:
-            print(f"{SuperScraper.OOPS} The captcha image field with xpath {input_field_xpath} was not found.")
-
-        await captcha_input_field.click()
-        await tab.keyboard.type_text("Here's the solved captcha!")
-
-        print(f"Here's where I do the captcha stuff: {captcha_image}")

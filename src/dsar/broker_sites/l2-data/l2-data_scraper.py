@@ -12,18 +12,17 @@
 import asyncio
 
 from src.dsar.super_scraper import SuperScraper
+from src.dsar import captcha_solutions_util
+from src.dsar import js_utils
 
 from pydoll.browser.chromium import Chrome
-from pydoll.browser.options import ChromiumOptions
 
 URL = "https://l2-data.com/optout1-667457/"
 
 
 async def main():
-    options = ChromiumOptions()
     super_scraper = SuperScraper()
-    options.binary_location = super_scraper.CHROMIUM_LOCATION
-    options.add_argument("--no-sandbox")
+    options = SuperScraper.build_chromium_options()
 
     async with Chrome(options=options) as browser:
         tab = await browser.start()
@@ -53,11 +52,11 @@ async def main():
         else:
             print(f"{super_scraper.OOPS} Consent checkbox not found")
 
-        math_text = await SuperScraper.js_eval(
+        math_text = await js_utils.js_eval(
             tab,
             "var l=document.querySelector('label[for=input_5_16]'); return l ? l.textContent.trim() : ''",
         )
-        answer = SuperScraper.solve_math_captcha(math_text or "")
+        answer = captcha_solutions_util.solve_math_captcha(math_text or "")
         if answer is not None:
             math_field = await tab.find(id="input_5_16", raise_exc=False)
             if math_field:
@@ -68,7 +67,7 @@ async def main():
             print(f"{super_scraper.OOPS} could not parse math CAPTCHA text: '{math_text}'")
 
         await asyncio.sleep(1)
-        await SuperScraper.screenshot(tab, "resources/screenshots/l2-data_dry_run.png")
+        await SuperScraper.screenshot(tab, "dry_run")
         if SuperScraper.DRY_RUN:
             print(f"DRY RUN: would submit opt-out request for {SuperScraper.EMAIL}")
             return

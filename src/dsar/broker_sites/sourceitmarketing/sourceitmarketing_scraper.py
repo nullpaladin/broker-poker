@@ -14,9 +14,9 @@
 import asyncio
 
 from pydoll.browser.chromium import Chrome
-from pydoll.browser.options import ChromiumOptions
 
 from src.dsar.super_scraper import SuperScraper
+from src.dsar import js_utils
 
 URL = "https://sourceitmarketing.com/privacy/"
 
@@ -37,7 +37,7 @@ async def submit_request(tab, right_label, tag, super_scraper):
     if not subject:
         print(f"{super_scraper.OOPS} 'Subject' select not found")
         return
-    await SuperScraper.select_native_option(subject, text=right_label)
+    await js_utils.select_native_option(subject, text=right_label)
     await asyncio.sleep(0.4)
 
     form_xp = "//form[.//select[@name='subject']]"
@@ -60,15 +60,13 @@ async def submit_request(tab, right_label, tag, super_scraper):
         )
 
     await asyncio.sleep(1)
-    await SuperScraper.screenshot(tab, f"resources/screenshots/sourceitmarketing_dry_run_{tag}.png", beyond_viewport=True)
+    await SuperScraper.screenshot(tab, f"dry_run_{tag}")
     print(f"'{right_label}' filled but NOT submitted — solve the hCaptcha manually, then Submit.")
 
 
 async def main():
-    options = ChromiumOptions()
     super_scraper = SuperScraper()
-    options.binary_location = super_scraper.CHROMIUM_LOCATION
-    options.add_argument("--no-sandbox")
+    options = SuperScraper.build_chromium_options()
 
     codes = SuperScraper.rights_to_exercise(RIGHT_MAP)
     if not codes:

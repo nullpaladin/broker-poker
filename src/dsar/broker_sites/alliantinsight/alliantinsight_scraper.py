@@ -11,7 +11,6 @@
 import asyncio
 
 from pydoll.browser.chromium import Chrome
-from pydoll.browser.options import ChromiumOptions
 from pydoll.constants import Key
 
 from src.dsar.super_scraper import SuperScraper
@@ -79,7 +78,7 @@ async def submit_request(tab, url, label, super_scraper):
             f"{SuperScraper.FIRST_NAME} {SuperScraper.LAST_NAME} <{SuperScraper.EMAIL}>"
         )
         await asyncio.sleep(1)
-        await SuperScraper.screenshot(tab, f"resources/screenshots/alliantinsight_dry_run_{label}.png")
+        await SuperScraper.screenshot(tab, f"dry_run_{label}")
         return
 
     print(f"\nForm filled for '{label}'. Solve the reCAPTCHA checkbox, click Submit,")
@@ -94,10 +93,8 @@ async def submit_request(tab, url, label, super_scraper):
 
 
 async def main():
-    options = ChromiumOptions()
     super_scraper = SuperScraper()
-    options.binary_location = super_scraper.CHROMIUM_LOCATION
-    options.add_argument("--no-sandbox")
+    options = SuperScraper.build_chromium_options()
 
     urls = dict(URLS)
     if SuperScraper.wants("delete"):

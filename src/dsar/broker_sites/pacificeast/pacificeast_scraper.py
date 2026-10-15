@@ -21,16 +21,13 @@ import asyncio
 from src.dsar.super_scraper import SuperScraper
 
 from pydoll.browser.chromium import Chrome
-from pydoll.browser.options import ChromiumOptions
 
 URL = "https://www.pacificeast.com/contact-us-privacy/"
 
 
 async def main():
-    options = ChromiumOptions()
     super_scraper = SuperScraper()
-    options.binary_location = super_scraper.CHROMIUM_LOCATION
-    options.add_argument("--no-sandbox")
+    options = SuperScraper.build_chromium_options()
 
     async with Chrome(options=options) as browser:
         tab = await browser.start()
@@ -64,7 +61,7 @@ async def main():
             print(f"{super_scraper.OOPS} Identity & Authorization Confirmation checkbox not found")
 
         await asyncio.sleep(1)
-        await SuperScraper.screenshot(tab, "resources/screenshots/pacificeast_dry_run.png")
+        await SuperScraper.screenshot(tab, "dry_run")
         print(
             "\nForm filled but NOT submitted. The 'Submission Confirmation' checkbox "
             "attests the request is NOT from an automated service, which would be false "

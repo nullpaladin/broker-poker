@@ -23,16 +23,13 @@ import asyncio
 from src.dsar.super_scraper import SuperScraper
 
 from pydoll.browser.chromium import Chrome
-from pydoll.browser.options import ChromiumOptions
 
 URL = "https://www.peoplefinders.com/request-my-info"
 
 
 async def main():
-    options = ChromiumOptions()
     super_scraper = SuperScraper()
-    options.binary_location = super_scraper.CHROMIUM_LOCATION
-    options.add_argument("--no-sandbox")
+    options = SuperScraper.build_chromium_options()
 
     async with Chrome(options=options) as browser:
         tab = await browser.start()
@@ -58,7 +55,7 @@ async def main():
 
         await tab.execute_script("window.scrollTo(0, 0);")
         await asyncio.sleep(1)
-        await SuperScraper.screenshot(tab, "resources/screenshots/peoplefinders_dry_run.png")
+        await SuperScraper.screenshot(tab, "dry_run")
         print(
             "\n'My own information' selected but the wizard cannot proceed further — a "
             "reCAPTCHA v2 checkbox gates the 'Continue' button before the actual identity-"

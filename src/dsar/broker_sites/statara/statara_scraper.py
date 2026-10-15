@@ -18,9 +18,9 @@ import asyncio
 import time
 
 from pydoll.browser.chromium import Chrome
-from pydoll.browser.options import ChromiumOptions
 
 from src.dsar.super_scraper import SuperScraper
+from src.dsar import js_utils
 
 URL = "https://statara.com/consumerdeletion/"
 
@@ -74,7 +74,7 @@ async def submit_request(tab, choice_id, label, super_scraper):
 
     consent = await tab.find(id="input_5_12_1", raise_exc=False)
     if consent:
-        await SuperScraper.js_check(consent)
+        await js_utils.js_check(consent)
 
     await asyncio.sleep(0.5)
     next_btn = await tab.find(id="gform_next_button_5_13", raise_exc=False)
@@ -89,7 +89,7 @@ async def submit_request(tab, choice_id, label, super_scraper):
         "return !!p && getComputedStyle(p).display !== 'none';"
     )
     if not page2_visible['result']['result']['value']:
-        await SuperScraper.screenshot(tab, f"resources/screenshots/statara_dry_run_{label}.png")
+        await SuperScraper.screenshot(tab, f"dry_run_{label}")
         print(
             f"{super_scraper.OOPS} Page 1 filled but 'Next' did not advance (Gravity Forms "
             f"anti-spam under automation). Click Next manually, choose the '{label}' right, "
@@ -104,7 +104,7 @@ async def submit_request(tab, choice_id, label, super_scraper):
     await radio.execute_script("this.checked = true; this.dispatchEvent(new Event('change',{bubbles:true}));")
 
     time.sleep(0.5)
-    await SuperScraper.screenshot(tab, f"resources/screenshots/statara_dry_run_{label}.png")
+    await SuperScraper.screenshot(tab, f"dry_run_{label}")
     if SuperScraper.DRY_RUN:
         print(
             f"DRY RUN: would submit '{label}' for "
@@ -124,10 +124,8 @@ async def submit_request(tab, choice_id, label, super_scraper):
 
 
 async def main():
-    options = ChromiumOptions()
     super_scraper = SuperScraper()
-    options.binary_location = super_scraper.CHROMIUM_LOCATION
-    options.add_argument("--no-sandbox")
+    options = SuperScraper.build_chromium_options()
 
     codes = SuperScraper.rights_to_exercise(RIGHT_MAP)
     if not codes:

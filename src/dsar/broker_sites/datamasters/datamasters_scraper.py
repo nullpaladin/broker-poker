@@ -18,9 +18,9 @@ import asyncio
 import time
 
 from pydoll.browser.chromium import Chrome
-from pydoll.browser.options import ChromiumOptions
 
 from src.dsar.super_scraper import SuperScraper
+from src.dsar import js_utils
 
 URL = "https://api.leadconnectorhq.com/widget/form/41dpCVPDaPkQi42RkPKk"
 
@@ -43,10 +43,8 @@ def _dob_iso():
 
 
 async def main():
-    options = ChromiumOptions()
     super_scraper = SuperScraper()
-    options.binary_location = super_scraper.CHROMIUM_LOCATION
-    options.add_argument("--no-sandbox")
+    options = SuperScraper.build_chromium_options()
 
     async with Chrome(options=options) as browser:
         tab = await browser.start()
@@ -86,11 +84,11 @@ async def main():
                 xpath=f"//input[@type='checkbox' and starts-with(@value, {value[:35]!r})]", raise_exc=False
             )
             if box:
-                await SuperScraper.js_check(box)
+                await js_utils.js_check(box)
                 await asyncio.sleep(0.1)
 
         time.sleep(0.5)
-        await SuperScraper.screenshot(tab, "resources/screenshots/datamasters_dry_run.png")
+        await SuperScraper.screenshot(tab, "dry_run")
         print(
             "Request filled but NOT submitted — a reCAPTCHA / Cloudflare Turnstile must be "
             "solved manually before submitting."

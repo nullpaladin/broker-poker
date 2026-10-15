@@ -19,7 +19,6 @@ import asyncio
 from src.dsar.super_scraper import SuperScraper
 
 from pydoll.browser.chromium import Chrome
-from pydoll.browser.options import ChromiumOptions
 
 URL = "https://www.audiense.com/legal/consumer-personal-information-requests/"
 
@@ -32,10 +31,8 @@ RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
 
 
 async def main():
-    options = ChromiumOptions()
     super_scraper = SuperScraper()
-    options.binary_location = super_scraper.CHROMIUM_LOCATION
-    options.add_argument("--no-sandbox")
+    options = SuperScraper.build_chromium_options()
 
     async with Chrome(options=options) as browser:
         tab = await browser.start()
@@ -93,7 +90,7 @@ async def main():
                 await maid.type_text(SuperScraper.ADVERTISING_ID)
 
         await asyncio.sleep(1)
-        await SuperScraper.screenshot(tab, "resources/screenshots/audisense_prefilled.png")
+        await SuperScraper.screenshot(tab, "prefilled")
         print(
             "\nForm pre-filled but NOT submitted. audisense.com's DSAR form (hosted by "
             "Buxton) requires uploading photo ID to verify identity, which this tool "

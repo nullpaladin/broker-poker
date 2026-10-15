@@ -14,9 +14,9 @@
 import asyncio
 
 from pydoll.browser.chromium import Chrome
-from pydoll.browser.options import ChromiumOptions
 
 from src.dsar.super_scraper import SuperScraper
+from src.dsar import captcha_solutions_util
 
 FORM_URL = (
     "https://docs.google.com/forms/d/e/"
@@ -39,10 +39,8 @@ async def fill_text(tab, super_scraper, question, value, para=False):
 
 
 async def main():
-    options = ChromiumOptions()
     super_scraper = SuperScraper()
-    options.binary_location = super_scraper.CHROMIUM_LOCATION
-    options.add_argument("--no-sandbox")
+    options = SuperScraper.build_chromium_options()
 
     async with Chrome(options=options) as browser:
         tab = await browser.start()
@@ -90,7 +88,7 @@ async def main():
             "return li ? li.innerText : '';"
         )
         q_text = raw.get("result", {}).get("result", {}).get("value") if isinstance(raw, dict) else raw
-        answer = SuperScraper.solve_math_captcha(q_text or "")
+        answer = captcha_solutions_util.solve_math_captcha(q_text or "")
         if answer is not None:
             # The math answer is the last short-text input on the form. It needs
             # a scroll_into_view + settle before typing — Google Forms otherwise
@@ -112,7 +110,7 @@ async def main():
             print(f"{super_scraper.OOPS} could not parse arithmetic question: {q_text!r}")
 
         await asyncio.sleep(1)
-        await SuperScraper.screenshot(tab, "resources/screenshots/spectrummailinglists_dry_run.png", beyond_viewport=True)
+        await SuperScraper.screenshot(tab, "dry_run")
         if SuperScraper.DRY_RUN:
             print(
                 f"DRY RUN: would submit opt-out for "

@@ -8,7 +8,6 @@ import asyncio
 import time
 
 from pydoll.browser.chromium import Chrome
-from pydoll.browser.options import ChromiumOptions
 
 from src.dsar.super_scraper import SuperScraper
 
@@ -16,10 +15,8 @@ URL = "https://www.fastpeoplesearch.com/removal"
 
 
 async def main():
-    opts = ChromiumOptions()
     super_scraper = SuperScraper()
-    opts.binary_location = super_scraper.CHROMIUM_LOCATION
-    opts.add_argument("--no-sandbox")
+    opts = SuperScraper.build_chromium_options()
 
     async with Chrome(options=opts) as browser:
         tab = await browser.start()
@@ -68,7 +65,7 @@ async def main():
             if captcha_area:
                 await captcha_area.scroll_into_view()
             await asyncio.sleep(1)
-            await SuperScraper.screenshot(tab, "fastpeoplesearch_dry_run_optout.png")
+            await SuperScraper.screenshot(tab, "dry_run_optout")
             return
 
         captcha_area = await tab.find(**{"class": "g-recaptcha"}, raise_exc=False)

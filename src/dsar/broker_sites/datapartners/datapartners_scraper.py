@@ -14,7 +14,6 @@ import asyncio
 from src.dsar.super_scraper import SuperScraper
 
 from pydoll.browser.chromium import Chrome
-from pydoll.browser.options import ChromiumOptions
 
 ACCESS_URL = "https://www.datapartners.com/information-access-request/"
 OPT_OUT_URL = "https://www.datapartners.com/opt-out-request/"
@@ -56,12 +55,10 @@ async def submit_request(tab, url, subject, super_scraper):
 
     await asyncio.sleep(1)
     label = "".join(c if c.isalnum() else "_" for c in subject.lower())[:40].strip("_")
-    await SuperScraper.screenshot(tab, f"resources/screenshots/datapartners_dry_run_{label}.png")
+    await SuperScraper.screenshot(tab, f"dry_run_{label}")
 async def main():
-    options = ChromiumOptions()
     super_scraper = SuperScraper()
-    options.binary_location = super_scraper.CHROMIUM_LOCATION
-    options.add_argument("--no-sandbox")
+    options = SuperScraper.build_chromium_options()
 
     async with Chrome(options=options) as browser:
         tab = await browser.start()

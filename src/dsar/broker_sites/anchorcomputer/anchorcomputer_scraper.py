@@ -10,7 +10,6 @@ import asyncio
 from src.dsar.super_scraper import SuperScraper
 
 from pydoll.browser.chromium import Chrome
-from pydoll.browser.options import ChromiumOptions
 
 URL = "https://ecom2.anchorcomputer.com/privacyrequest"
 
@@ -26,10 +25,8 @@ SUBMIT_XPATH = "//input[@type='submit']"
 
 
 async def main():
-    options = ChromiumOptions()
     super_scraper = SuperScraper()
-    options.binary_location = super_scraper.CHROMIUM_LOCATION
-    options.add_argument("--no-sandbox")
+    options = SuperScraper.build_chromium_options()
 
     state_abbrev = SuperScraper.STATE_ABBREVIATED
 
@@ -75,7 +72,7 @@ async def main():
         if SuperScraper.DRY_RUN:
             print(f"DRY RUN: would submit removal request for {SuperScraper.FIRST_NAME} {SuperScraper.LAST_NAME}")
             await asyncio.sleep(2)
-            await SuperScraper.screenshot(tab, "resources/screenshots/anchorcomputer_dry_run.png")
+            await SuperScraper.screenshot(tab, "dry_run")
             return
 
         await super_scraper.click_item_by_xpath(tab=tab, xpath=SUBMIT_XPATH)

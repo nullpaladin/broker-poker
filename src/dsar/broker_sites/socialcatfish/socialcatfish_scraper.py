@@ -21,9 +21,9 @@ import asyncio
 import time
 
 from pydoll.browser.chromium import Chrome
-from pydoll.browser.options import ChromiumOptions
 
 from src.dsar.super_scraper import SuperScraper
+from src.dsar import js_utils
 
 BASE = "https://socialcatfish.com/opt-out/?id="
 RIGHT_MAP = {
@@ -65,16 +65,16 @@ async def submit_request(tab, mode, label, super_scraper):
             continue  # "I am an authorized agent" — leave unchecked
         val = (box.get_attribute("value") or "").lower()
         if name == "consent" or box.id == "consent-checkbox" or val in ("on", "1") or "information" in val or "categor" in val:
-            await SuperScraper.js_check(box)
+            await js_utils.js_check(box)
             await asyncio.sleep(0.1)
 
     # required residency attestation, in case it wasn't caught above
     consent = await tab.find(id="consent-checkbox", raise_exc=False)
     if consent:
-        await SuperScraper.js_check(consent)
+        await js_utils.js_check(consent)
 
     time.sleep(0.5)
-    await SuperScraper.screenshot(tab, f"resources/screenshots/socialcatfish_dry_run_{label}.png")
+    await SuperScraper.screenshot(tab, f"dry_run_{label}")
     print(
         f"'{mode}' filled but NOT submitted — paste links to your own Social Catfish "
         f"result pages in the profile-URL field, solve the CAPTCHA, then submit."
@@ -86,10 +86,8 @@ async def submit_request(tab, mode, label, super_scraper):
 
 
 async def main():
-    options = ChromiumOptions()
     super_scraper = SuperScraper()
-    options.binary_location = super_scraper.CHROMIUM_LOCATION
-    options.add_argument("--no-sandbox")
+    options = SuperScraper.build_chromium_options()
 
     codes = SuperScraper.rights_to_exercise(RIGHT_MAP)
     if not codes:

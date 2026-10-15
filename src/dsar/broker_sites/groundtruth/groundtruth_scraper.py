@@ -8,16 +8,13 @@ import asyncio
 from src.dsar.super_scraper import SuperScraper
 
 from pydoll.browser.chromium import Chrome
-from pydoll.browser.options import ChromiumOptions
 
 URL = "https://share.hsforms.com/1BoOyoq-ASaS-3zNW4dh5Agnn8aa"
 
 
 async def main():
-    options = ChromiumOptions()
     super_scraper = SuperScraper()
-    options.binary_location = super_scraper.CHROMIUM_LOCATION
-    options.add_argument("--no-sandbox")
+    options = SuperScraper.build_chromium_options()
 
     async with Chrome(options=options) as browser:
         tab = await browser.start()
@@ -45,7 +42,7 @@ async def main():
         if SuperScraper.DRY_RUN:
             print(f"DRY RUN: would submit request for MAID {SuperScraper.ADVERTISING_ID}")
             await asyncio.sleep(1)
-            await SuperScraper.screenshot(tab, "resources/screenshots/groundtruth_dry_run.png")
+            await SuperScraper.screenshot(tab, "dry_run")
             return
 
         await super_scraper.click_item_by_text(tab=tab, text="Submit", sleep=2)

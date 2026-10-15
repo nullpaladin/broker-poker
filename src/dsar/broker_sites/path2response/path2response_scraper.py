@@ -8,7 +8,6 @@
 import asyncio
 
 from pydoll.browser.chromium import Chrome
-from pydoll.browser.options import ChromiumOptions
 from pydoll.constants import Key
 
 from src.dsar.super_scraper import SuperScraper
@@ -17,10 +16,8 @@ URL = "https://privacyportal-cdn.onetrust.com/dsarwebform/2de26f06-de6f-45a7-8e1
 
 
 async def main():
-    options = ChromiumOptions()
     super_scraper = SuperScraper()
-    options.binary_location = super_scraper.CHROMIUM_LOCATION
-    options.add_argument("--no-sandbox")
+    options = SuperScraper.build_chromium_options()
 
     async with Chrome(options=options) as browser:
         tab = await browser.start()
@@ -127,7 +124,7 @@ async def main():
             if submit_btn:
                 await submit_btn.scroll_into_view()
             await asyncio.sleep(1)
-            await SuperScraper.screenshot(tab, "resources/screenshots/path2response_dry_run.png")
+            await SuperScraper.screenshot(tab, "dry_run")
             return
 
         print("\nForm filled. Solve the reCAPTCHA in the browser, then click Submit.")

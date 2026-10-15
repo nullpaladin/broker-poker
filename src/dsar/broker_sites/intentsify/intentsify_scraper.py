@@ -16,7 +16,6 @@ import asyncio
 import time
 
 from pydoll.browser.chromium import Chrome
-from pydoll.browser.options import ChromiumOptions
 
 from src.dsar.super_scraper import SuperScraper
 
@@ -68,7 +67,7 @@ async def submit_request(tab, reason_text, label, super_scraper):
     await _select_by_text(tab, "//select[option[normalize-space()='Select a reason']]", reason_text)
 
     time.sleep(0.5)
-    await SuperScraper.screenshot(tab, f"resources/screenshots/intentsify_dry_run_{label}.png")
+    await SuperScraper.screenshot(tab, f"dry_run_{label}")
     print(
         f"'{reason_text}' filled but NOT submitted — a Cloudflare Turnstile must be "
         f"solved manually before submitting."
@@ -80,10 +79,8 @@ async def submit_request(tab, reason_text, label, super_scraper):
 
 
 async def main():
-    options = ChromiumOptions()
     super_scraper = SuperScraper()
-    options.binary_location = super_scraper.CHROMIUM_LOCATION
-    options.add_argument("--no-sandbox")
+    options = SuperScraper.build_chromium_options()
 
     codes = SuperScraper.rights_to_exercise(RIGHT_MAP)
     if not codes:

@@ -8,9 +8,9 @@ import asyncio
 import json
 
 from src.dsar.super_scraper import SuperScraper
+from src.dsar import js_utils
 
 from pydoll.browser.chromium import Chrome
-from pydoll.browser.options import ChromiumOptions
 
 URL = "https://www.civicelement.com/privacy-policy-request"
 
@@ -58,13 +58,13 @@ async def submit_request(tab, request_type, label, super_scraper):
             f"{SuperScraper.FIRST_NAME} {SuperScraper.LAST_NAME} <{SuperScraper.EMAIL}>"
         )
         await asyncio.sleep(2)
-        await SuperScraper.screenshot(tab, f"resources/screenshots/civicelement_dry_run_{label}.png")
+        await SuperScraper.screenshot(tab, f"dry_run_{label}")
         return
 
     await tab.execute_script("document.querySelector('.light-button-cta').click();")
     await asyncio.sleep(4)
 
-    result = await SuperScraper.page_text(tab) or ""
+    result = await js_utils.page_text(tab) or ""
     if any(word in result.lower() for word in ("thank", "success", "received", "submitted")):
         print(f"Submitted '{request_type}' for {SuperScraper.FIRST_NAME} {SuperScraper.LAST_NAME}")
     else:
@@ -72,10 +72,8 @@ async def submit_request(tab, request_type, label, super_scraper):
 
 
 async def main():
-    options = ChromiumOptions()
     super_scraper = SuperScraper()
-    options.binary_location = super_scraper.CHROMIUM_LOCATION
-    options.add_argument("--no-sandbox")
+    options = SuperScraper.build_chromium_options()
 
     codes = SuperScraper.rights_to_exercise(RIGHT_MAP)
     if not codes:

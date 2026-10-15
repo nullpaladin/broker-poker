@@ -9,7 +9,6 @@ import asyncio
 import time
 
 from pydoll.browser.chromium import Chrome
-from pydoll.browser.options import ChromiumOptions
 
 from src.dsar.super_scraper import SuperScraper
 
@@ -113,7 +112,7 @@ async def submit_request(tab, url, label, super_scraper, dob_day, dob_month, dob
         submit_btn = await tab.find(tag_name="button", text="Submit Request", raise_exc=False)
         if submit_btn:
             await submit_btn.scroll_into_view()
-        await SuperScraper.screenshot(tab, f"resources/screenshots/ididata_dry_run_{label}.png")
+        await SuperScraper.screenshot(tab, f"dry_run_{label}")
         print(
             f"DRY RUN: would submit '{label}' for "
             f"{SuperScraper.FIRST_NAME} {SuperScraper.LAST_NAME} <{SuperScraper.EMAIL}>"
@@ -127,10 +126,8 @@ async def submit_request(tab, url, label, super_scraper, dob_day, dob_month, dob
 
 
 async def main():
-    options = ChromiumOptions()
     super_scraper = SuperScraper()
-    options.binary_location = super_scraper.CHROMIUM_LOCATION
-    options.add_argument("--no-sandbox")
+    options = SuperScraper.build_chromium_options()
 
     if not SuperScraper.LAST_FOUR_SSN:
         print("LAST_FOUR_SSN is required for ididata.com — set it in .env and retry.")

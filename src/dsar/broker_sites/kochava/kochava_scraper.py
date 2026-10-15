@@ -8,7 +8,6 @@ import asyncio
 import time
 
 from pydoll.browser.chromium import Chrome
-from pydoll.browser.options import ChromiumOptions
 
 from src.dsar.super_scraper import SuperScraper
 
@@ -16,10 +15,8 @@ URL = "https://www.kochava.com/opt-out-do-not-sell-request-process/"
 
 
 async def main():
-    options = ChromiumOptions()
     super_scraper = SuperScraper()
-    options.binary_location = super_scraper.CHROMIUM_LOCATION
-    options.add_argument("--no-sandbox")
+    options = SuperScraper.build_chromium_options()
 
     if not SuperScraper.ADVERTISING_ID:
         print(f"{super_scraper.OOPS} ADVERTISING_ID not set — kochava requires a Mobile Ad ID (IDFA/GAID)")
@@ -42,7 +39,7 @@ async def main():
             print(
                 f"DRY RUN: would submit opt-out for MAID={SuperScraper.ADVERTISING_ID}"
             )
-            await SuperScraper.screenshot(tab, "resources/screenshots/kochava_dry_run.png")
+            await SuperScraper.screenshot(tab, "dry_run")
             return
 
         print(f"\nMAID field filled: {SuperScraper.ADVERTISING_ID}")

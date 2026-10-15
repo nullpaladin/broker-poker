@@ -2,9 +2,9 @@ import asyncio
 import time
 
 from src.dsar.super_scraper import SuperScraper
+from src.dsar import js_utils
 
 from pydoll.browser.chromium import Chrome
-from pydoll.browser.options import ChromiumOptions
 
 # Rights exercised: Do Not Sell My Information (opt-out only).
 # Server-rendered POST form. No captcha.
@@ -20,10 +20,8 @@ DO_NOT_SELL_CHECKBOX_XPATH = '//input[@name="gender"]'
 
 
 async def main():
-    options = ChromiumOptions()
     super_scraper = SuperScraper()
-    options.binary_location = super_scraper.CHROMIUM_LOCATION
-    options.add_argument("--no-sandbox")
+    options = SuperScraper.build_chromium_options()
 
     async with Chrome(options=options) as browser:
         tab = await browser.start()
@@ -44,7 +42,7 @@ async def main():
         time.sleep(0.5)
 
         if SuperScraper.DRY_RUN:
-            await SuperScraper.screenshot(tab, "resources/screenshots/parasolleads_dry_run.png")
+            await SuperScraper.screenshot(tab, "dry_run")
             print(f"DRY RUN: would submit opt-out for {SuperScraper.EMAIL}")
             await asyncio.sleep(3)
             return
@@ -52,7 +50,7 @@ async def main():
         await super_scraper.click_item_by_text(tab=tab, text="Send", sleep=3)
         await asyncio.sleep(4)
 
-        result = await SuperScraper.page_text(tab)
+        result = await js_utils.page_text(tab)
         print(result[:500])
         print(f"Submitted opt-out for {SuperScraper.EMAIL}")
 

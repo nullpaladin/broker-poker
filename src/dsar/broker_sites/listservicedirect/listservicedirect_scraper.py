@@ -14,18 +14,16 @@
 import asyncio
 
 from pydoll.browser.chromium import Chrome
-from pydoll.browser.options import ChromiumOptions
 
 from src.dsar.super_scraper import SuperScraper
+from src.dsar import js_utils
 
 URL = "https://listservicedirect.com/opt-out/"
 
 
 async def main():
-    options = ChromiumOptions()
     super_scraper = SuperScraper()
-    options.binary_location = super_scraper.CHROMIUM_LOCATION
-    options.add_argument("--no-sandbox")
+    options = SuperScraper.build_chromium_options()
 
     full_name = " ".join(p for p in (SuperScraper.FIRST_NAME, SuperScraper.LAST_NAME) if p)
 
@@ -38,7 +36,7 @@ async def main():
 
         please = await tab.find(xpath=f"{form_xp}//select[@name='Please']", raise_exc=False)
         if please:
-            await SuperScraper.select_native_option(please, text="Opt-Out")
+            await js_utils.select_native_option(please, text="Opt-Out")
 
         fields = {
             "your-name": full_name,
@@ -62,7 +60,7 @@ async def main():
                 print(f"{super_scraper.OOPS} field '{name}' not found")
 
         await asyncio.sleep(1)
-        await SuperScraper.screenshot(tab, "resources/screenshots/listservicedirect_dry_run.png")
+        await SuperScraper.screenshot(tab, "dry_run")
         print(
             "Opt-Out request filled but NOT submitted — solve the reCAPTCHA "
             "manually, then click Send."

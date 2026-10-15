@@ -19,9 +19,9 @@ import asyncio
 import time
 
 from pydoll.browser.chromium import Chrome
-from pydoll.browser.options import ChromiumOptions
 
 from src.dsar.super_scraper import SuperScraper
+from src.dsar import js_utils
 
 URL = "https://submit-irm.trustarc.eu/services/validation/ba81b98f-997d-4216-b4cc-d64cf261b082"
 
@@ -73,7 +73,7 @@ async def submit_request(tab, right, super_scraper):
     for cat in DATA_CATEGORIES:
         box = await tab.find(**{"aria-label": cat}, raise_exc=False)
         if box:
-            await SuperScraper.js_check(box)
+            await js_utils.js_check(box)
             await asyncio.sleep(0.1)
 
     for xpath, value in [
@@ -103,7 +103,7 @@ async def submit_request(tab, right, super_scraper):
 
     label = right.lower().replace(" ", "_").replace("/", "_")
     time.sleep(0.5)
-    await SuperScraper.screenshot(tab, f"resources/screenshots/dnb_dry_run_{label}.png")
+    await SuperScraper.screenshot(tab, f"dry_run_{label}")
     if SuperScraper.DRY_RUN:
         print(
             f"DRY RUN: would submit '{right}' for "
@@ -117,10 +117,8 @@ async def submit_request(tab, right, super_scraper):
 
 
 async def main():
-    options = ChromiumOptions()
     super_scraper = SuperScraper()
-    options.binary_location = super_scraper.CHROMIUM_LOCATION
-    options.add_argument("--no-sandbox")
+    options = SuperScraper.build_chromium_options()
 
     codes = SuperScraper.rights_to_exercise(RIGHT_MAP)
     if not codes:

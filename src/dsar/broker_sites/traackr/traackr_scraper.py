@@ -13,9 +13,9 @@
 import asyncio
 
 from src.dsar.super_scraper import SuperScraper
+from src.dsar import js_utils
 
 from pydoll.browser.chromium import Chrome
-from pydoll.browser.options import ChromiumOptions
 
 URL = "https://www.traackr.com/data-opt-out"
 
@@ -44,7 +44,7 @@ async def submit_request(tab, request_type_value, label, super_scraper):
 
     request_type_select = await frame.find(id="RESULT_RadioButton-0", raise_exc=False)
     if request_type_select:
-        await SuperScraper.select_native_option(request_type_select, value=request_type_value)
+        await js_utils.select_native_option(request_type_select, value=request_type_value)
     else:
         print(f"{super_scraper.OOPS} Request type select not found")
 
@@ -76,7 +76,7 @@ async def submit_request(tab, request_type_value, label, super_scraper):
         )
 
     await asyncio.sleep(1)
-    await SuperScraper.screenshot(tab, f"resources/screenshots/traackr_dry_run_{label}.png")
+    await SuperScraper.screenshot(tab, f"dry_run_{label}")
 
     if SuperScraper.DRY_RUN:
         print(f"DRY RUN: would attempt to submit '{label}' request for {SuperScraper.EMAIL}")
@@ -92,10 +92,8 @@ async def submit_request(tab, request_type_value, label, super_scraper):
 
 
 async def main():
-    options = ChromiumOptions()
     super_scraper = SuperScraper()
-    options.binary_location = super_scraper.CHROMIUM_LOCATION
-    options.add_argument("--no-sandbox")
+    options = SuperScraper.build_chromium_options()
 
     codes = SuperScraper.rights_to_exercise(RIGHT_MAP)
     if not codes:

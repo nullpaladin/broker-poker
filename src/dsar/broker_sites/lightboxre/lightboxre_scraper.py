@@ -19,7 +19,6 @@ import asyncio
 from src.dsar.super_scraper import SuperScraper
 
 from pydoll.browser.chromium import Chrome
-from pydoll.browser.options import ChromiumOptions
 
 URL = "https://my.datasubject.com/16BXQXSvkBnuN4W2w/51306"
 
@@ -78,7 +77,7 @@ async def submit_request(tab, card_text, super_scraper):
     label = "".join(c if c.isalnum() else "_" for c in card_text.lower())[:40].strip("_")
 
     await asyncio.sleep(1)
-    await SuperScraper.screenshot(tab, f"resources/screenshots/lightboxre_dry_run_{label}.png")
+    await SuperScraper.screenshot(tab, f"dry_run_{label}")
     if SuperScraper.DRY_RUN:
         print(f"DRY RUN: would submit '{card_text}' for {SuperScraper.FIRST_NAME} {SuperScraper.LAST_NAME}")
         return
@@ -93,10 +92,8 @@ async def submit_request(tab, card_text, super_scraper):
 
 
 async def main():
-    options = ChromiumOptions()
     super_scraper = SuperScraper()
-    options.binary_location = super_scraper.CHROMIUM_LOCATION
-    options.add_argument("--no-sandbox")
+    options = SuperScraper.build_chromium_options()
 
     codes = SuperScraper.rights_to_exercise(RIGHT_MAP)
     if not codes:

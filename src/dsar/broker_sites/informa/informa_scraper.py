@@ -20,7 +20,6 @@ import asyncio
 from src.dsar.super_scraper import SuperScraper
 
 from pydoll.browser.chromium import Chrome
-from pydoll.browser.options import ChromiumOptions
 
 URL = "https://privacy.informa.com/policies/en/"
 
@@ -65,7 +64,7 @@ async def submit_request(tab, card_text, super_scraper):
         await email_field.type_text(SuperScraper.EMAIL)
 
     await asyncio.sleep(1)
-    await SuperScraper.screenshot(tab, f"resources/screenshots/informa_dry_run_{label}.png")
+    await SuperScraper.screenshot(tab, f"dry_run_{label}")
     print(
         f"\n'{card_text}' ready but NOT sent — click 'Send Email' yourself, check your "
         "inbox for the verification link, click it, and complete whatever form follows "
@@ -75,10 +74,8 @@ async def submit_request(tab, card_text, super_scraper):
 
 
 async def main():
-    options = ChromiumOptions()
     super_scraper = SuperScraper()
-    options.binary_location = super_scraper.CHROMIUM_LOCATION
-    options.add_argument("--no-sandbox")
+    options = SuperScraper.build_chromium_options()
 
     codes = SuperScraper.rights_to_exercise(RIGHT_MAP)
     if not codes:

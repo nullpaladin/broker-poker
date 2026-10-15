@@ -13,18 +13,16 @@
 import asyncio
 
 from pydoll.browser.chromium import Chrome
-from pydoll.browser.options import ChromiumOptions
 
 from src.dsar.super_scraper import SuperScraper
+from src.dsar import js_utils
 
 URL = "https://www.americanspiritcorp.com/ca-right-to-deletion.html"
 
 
 async def main():
-    options = ChromiumOptions()
     super_scraper = SuperScraper()
-    options.binary_location = super_scraper.CHROMIUM_LOCATION
-    options.add_argument("--no-sandbox")
+    options = SuperScraper.build_chromium_options()
 
     async with Chrome(options=options) as browser:
         tab = await browser.start()
@@ -52,7 +50,7 @@ async def main():
 
         state = await tab.find(id="field103068930-state", raise_exc=False)
         if state:
-            await SuperScraper.select_native_option(state, text=SuperScraper.STATE)
+            await js_utils.select_native_option(state, text=SuperScraper.STATE)
 
         checkbox = await tab.find(id="field103068931_1", raise_exc=False)
         if checkbox:
@@ -61,7 +59,7 @@ async def main():
             print(f"{super_scraper.OOPS} declaration checkbox not found")
 
         await asyncio.sleep(1)
-        await SuperScraper.screenshot(tab, "resources/screenshots/aspirenorth_dry_run.png", beyond_viewport=True)
+        await SuperScraper.screenshot(tab, "dry_run")
         if SuperScraper.DRY_RUN:
             print(f"DRY RUN: would submit deletion/opt-out for {SuperScraper.EMAIL}")
             return

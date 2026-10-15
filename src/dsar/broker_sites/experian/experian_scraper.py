@@ -13,18 +13,16 @@ import asyncio
 import time
 
 from pydoll.browser.chromium import Chrome
-from pydoll.browser.options import ChromiumOptions
 
 from src.dsar.super_scraper import SuperScraper
+from src.dsar import js_utils
 
 URL = "https://consumerprivacy.experian.com/request"
 
 
 async def main():
-    options = ChromiumOptions()
     super_scraper = SuperScraper()
-    options.binary_location = super_scraper.CHROMIUM_LOCATION
-    options.add_argument("--no-sandbox")
+    options = SuperScraper.build_chromium_options()
 
     async with Chrome(options=options) as browser:
         tab = await browser.start()
@@ -58,11 +56,11 @@ async def main():
             text = (nearby.get("result", {}).get("result", {}).get("value") or "") if isinstance(nearby, dict) else ""
             if "delete personal information" in text and not SuperScraper.wants("delete"):
                 continue
-            await SuperScraper.js_check(box)
+            await js_utils.js_check(box)
             await asyncio.sleep(0.1)
 
         time.sleep(0.5)
-        await SuperScraper.screenshot(tab, "resources/screenshots/experian_dry_run_step2.png")
+        await SuperScraper.screenshot(tab, "dry_run_step2")
         cont = await tab.find(text="Continue", raise_exc=False)
         if cont:
             await cont.click()
@@ -100,7 +98,7 @@ async def main():
                 await asyncio.sleep(0.2)
 
         time.sleep(0.5)
-        await SuperScraper.screenshot(tab, "resources/screenshots/experian_dry_run_step3.png")
+        await SuperScraper.screenshot(tab, "dry_run_step3")
         print(
             "Steps 1-3 filled (state, request types, identity details). The SSN field is "
             "left blank (optional; only a last-4 is on file) and the identity-VERIFICATION "

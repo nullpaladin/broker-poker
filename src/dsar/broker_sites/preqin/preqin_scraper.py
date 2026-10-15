@@ -41,7 +41,6 @@ import asyncio
 from src.dsar.super_scraper import SuperScraper
 
 from pydoll.browser.chromium import Chrome
-from pydoll.browser.options import ChromiumOptions
 
 URL = "https://portals.dporganizer.com/cbf39a0c-c047-4a7b-814d-c9d45754b4af"
 
@@ -76,10 +75,8 @@ async def _select_react_select_option(tab, input_index, option_text, super_scrap
 
 
 async def main():
-    options = ChromiumOptions()
     super_scraper = SuperScraper()
-    options.binary_location = super_scraper.CHROMIUM_LOCATION
-    options.add_argument("--no-sandbox")
+    options = SuperScraper.build_chromium_options()
 
     codes = SuperScraper.rights_to_exercise(RIGHT_MAP)
     if not codes:
@@ -132,7 +129,7 @@ async def main():
             print(f"{super_scraper.OOPS} Additional comments field not found")
 
         await asyncio.sleep(1)
-        await SuperScraper.screenshot(tab, "resources/screenshots/preqin_dry_run.png")
+        await SuperScraper.screenshot(tab, "dry_run")
         print(
             "\nRequest filled but NOT submitted — a distorted-text image CAPTCHA "
             "requires a manual solve before clicking Submit Request."

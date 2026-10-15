@@ -19,3 +19,17 @@ class RequiredFieldError(HealthCheckError):
         super().__init__(
             "required field(s) not filled: " + ", ".join(self.fields)
         )
+
+
+class RightsChangedError(HealthCheckError):
+    """The rights a form offers no longer match the scraper's ``PAGE_RIGHTS`` inventory."""
+
+    def __init__(self, missing, new):
+        self.missing = list(missing)
+        self.new = list(new)
+        parts = []
+        if self.missing:
+            parts.append("no longer offered: " + "; ".join(self.missing))
+        if self.new:
+            parts.append("NEW on the page (add to PAGE_RIGHTS): " + "; ".join(self.new))
+        super().__init__("rights changed — " + " | ".join(parts))

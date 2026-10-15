@@ -18,7 +18,6 @@ import asyncio
 from src.dsar.super_scraper import SuperScraper
 
 from pydoll.browser.chromium import Chrome
-from pydoll.browser.options import ChromiumOptions
 
 URL = "https://information.com/privacy-rights/"
 
@@ -47,7 +46,7 @@ async def submit_know(tab, super_scraper):
     if SuperScraper.DRY_RUN:
         print(f"DRY RUN: would submit Right To Know request for {SuperScraper.FIRST_NAME} {SuperScraper.LAST_NAME}")
         await asyncio.sleep(1)
-        await SuperScraper.screenshot(tab, "resources/screenshots/information_dry_run_know.png")
+        await SuperScraper.screenshot(tab, "dry_run_know")
         return
 
     submit = await tab.find(text="SUBMIT REQUEST", raise_exc=False)
@@ -83,7 +82,7 @@ async def submit_delete(tab, super_scraper):
     if SuperScraper.DRY_RUN:
         print(f"DRY RUN: would submit Right To Delete request for {SuperScraper.FIRST_NAME} {SuperScraper.LAST_NAME}")
         await asyncio.sleep(1)
-        await SuperScraper.screenshot(tab, "resources/screenshots/information_dry_run_delete.png")
+        await SuperScraper.screenshot(tab, "dry_run_delete")
         return
 
     submit = await tab.find(text="SUBMIT REQUEST", raise_exc=False)
@@ -117,7 +116,7 @@ async def submit_opt_out(tab, super_scraper):
     )
 
     await asyncio.sleep(1)
-    await SuperScraper.screenshot(tab, "resources/screenshots/information_dry_run_optout.png")
+    await SuperScraper.screenshot(tab, "dry_run_optout")
     print(
         "\nOpt-Out (Suppression Center) email entered but NOT sent — click 'Continue' "
         "yourself, check your inbox for the verification link, click it, and complete "
@@ -127,10 +126,8 @@ async def submit_opt_out(tab, super_scraper):
 
 
 async def main():
-    options = ChromiumOptions()
     super_scraper = SuperScraper()
-    options.binary_location = super_scraper.CHROMIUM_LOCATION
-    options.add_argument("--no-sandbox")
+    options = SuperScraper.build_chromium_options()
 
     async with Chrome(options=options) as browser:
         tab = await browser.start()

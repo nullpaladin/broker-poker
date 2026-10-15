@@ -16,9 +16,9 @@
 import asyncio
 
 from pydoll.browser.chromium import Chrome
-from pydoll.browser.options import ChromiumOptions
 
 from src.dsar.super_scraper import SuperScraper
+from src.dsar import js_utils
 
 URL = "https://www.penlink.com/your-privacy-choices/"
 
@@ -41,7 +41,7 @@ async def submit_request(tab, right_label, tag, super_scraper):
 
     rt = await tab.find(id="input_9_33", raise_exc=False)
     if rt:
-        await SuperScraper.select_native_option(rt, text=right_label)
+        await js_utils.select_native_option(rt, text=right_label)
         await asyncio.sleep(0.5)
     else:
         print(f"{super_scraper.OOPS} request-type select not found")
@@ -69,22 +69,20 @@ async def submit_request(tab, right_label, tag, super_scraper):
 
     country = await tab.find(id="input_9_24_6", raise_exc=False)
     if country:
-        await SuperScraper.select_native_option(country, text="United States")
+        await js_utils.select_native_option(country, text="United States")
 
     consumer_radio = await tab.find(id="choice_9_25_0", raise_exc=False)
     if consumer_radio:
         await consumer_radio.click()
 
     await asyncio.sleep(1)
-    await SuperScraper.screenshot(tab, f"resources/screenshots/penlink_dry_run_{tag}.png", beyond_viewport=True)
+    await SuperScraper.screenshot(tab, f"dry_run_{tag}")
     print(f"'{right_label}' filled but NOT submitted — solve the reCAPTCHA manually, then Submit.")
 
 
 async def main():
-    options = ChromiumOptions()
     super_scraper = SuperScraper()
-    options.binary_location = super_scraper.CHROMIUM_LOCATION
-    options.add_argument("--no-sandbox")
+    options = SuperScraper.build_chromium_options()
 
     codes = SuperScraper.rights_to_exercise(RIGHT_MAP)
     if not codes:

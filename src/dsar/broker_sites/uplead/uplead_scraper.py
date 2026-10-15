@@ -14,9 +14,9 @@
 import asyncio
 
 from src.dsar.super_scraper import SuperScraper
+from src.dsar import js_utils
 
 from pydoll.browser.chromium import Chrome
-from pydoll.browser.options import ChromiumOptions
 
 URL = "https://www.uplead.com/opt-out/"
 
@@ -48,19 +48,19 @@ async def submit_request(tab, request_type, super_scraper):
 
     jurisdiction_select = await tab.find(id="form-field-jurisdiction", raise_exc=False)
     if jurisdiction_select:
-        await SuperScraper.select_native_option(jurisdiction_select, value="Other")
+        await js_utils.select_native_option(jurisdiction_select, value="Other")
     else:
         print(f"{super_scraper.OOPS} Jurisdiction select not found")
 
     type_select = await tab.find(id="form-field-type", raise_exc=False)
     if type_select:
-        await SuperScraper.select_native_option(type_select, value=request_type)
+        await js_utils.select_native_option(type_select, value=request_type)
     else:
         print(f"{super_scraper.OOPS} Request Type select not found")
 
     label = "".join(c if c.isalnum() else "_" for c in request_type.lower())[:40].strip("_")
     await asyncio.sleep(1)
-    await SuperScraper.screenshot(tab, f"resources/screenshots/uplead_dry_run_{label}.png")
+    await SuperScraper.screenshot(tab, f"dry_run_{label}")
     print(
         f"\n'{request_type}' request filled but NOT submitted — a reCAPTCHA v2 checkbox "
         "requires a manual solve before submitting."
@@ -68,10 +68,8 @@ async def submit_request(tab, request_type, super_scraper):
 
 
 async def main():
-    options = ChromiumOptions()
     super_scraper = SuperScraper()
-    options.binary_location = super_scraper.CHROMIUM_LOCATION
-    options.add_argument("--no-sandbox")
+    options = SuperScraper.build_chromium_options()
 
     codes = SuperScraper.rights_to_exercise(RIGHT_MAP)
     if not codes:

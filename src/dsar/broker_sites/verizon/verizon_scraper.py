@@ -41,7 +41,6 @@ import asyncio
 from src.dsar.super_scraper import SuperScraper
 
 from pydoll.browser.chromium import Chrome
-from pydoll.browser.options import ChromiumOptions
 
 URL = "https://www.verizon.com/about/privacy/privacy-inquiries"
 
@@ -60,10 +59,8 @@ async def _click_via_js(tab, super_scraper, element_id, description):
 
 
 async def main():
-    options = ChromiumOptions()
     super_scraper = SuperScraper()
-    options.binary_location = super_scraper.CHROMIUM_LOCATION
-    options.add_argument("--no-sandbox")
+    options = SuperScraper.build_chromium_options()
 
     async with Chrome(options=options) as browser:
         tab = await browser.start()
@@ -129,7 +126,7 @@ async def main():
             await _click_via_js(tab, super_scraper, "edit-select-deletion", "Deletion checkbox")
 
         await asyncio.sleep(1)
-        await SuperScraper.screenshot(tab, "resources/screenshots/verizon_dry_run.png")
+        await SuperScraper.screenshot(tab, "dry_run")
         print(
             "\nRequest filled but NOT submitted — a distorted-text image CAPTCHA requires "
             "manual entry before submitting."

@@ -35,9 +35,9 @@
 import asyncio
 
 from src.dsar.super_scraper import SuperScraper
+from src.dsar import js_utils
 
 from pydoll.browser.chromium import Chrome
-from pydoll.browser.options import ChromiumOptions
 
 URL = "https://catalist.us/your-privacy-choices/"
 
@@ -68,14 +68,14 @@ async def submit_request(tab, right, super_scraper):
     if not residency_select:
         print(f"{super_scraper.OOPS} residency-state dropdown not found")
         return
-    await SuperScraper.select_native_option(residency_select, value="Any other state")
+    await js_utils.select_native_option(residency_select, value="Any other state")
     await asyncio.sleep(1.5)
 
     request_type_select = await tab.find(id="input_8_105", raise_exc=False)
     if not request_type_select:
         print(f"{super_scraper.OOPS} 'I would like to' dropdown not found")
         return
-    await SuperScraper.select_native_option(request_type_select, value=right)
+    await js_utils.select_native_option(request_type_select, value=right)
     await asyncio.sleep(0.5)
 
     declare_checkbox = await tab.find(id="choice_8_145_1", raise_exc=False)
@@ -103,7 +103,7 @@ async def submit_request(tab, right, super_scraper):
     state_select = await tab.find(id="input_8_119", raise_exc=False)
     if state_select:
         state_abbr = SuperScraper.STATE_ABBREVIATED
-        await SuperScraper.select_native_option(state_select, value=state_abbr)
+        await js_utils.select_native_option(state_select, value=state_abbr)
 
     if SuperScraper.DATE_OF_BIRTH:
         birthdate_field = await tab.find(id="input_8_77", raise_exc=False)
@@ -113,7 +113,7 @@ async def submit_request(tab, right, super_scraper):
     label = right.replace(" ", "_")
 
     await asyncio.sleep(1)
-    await SuperScraper.screenshot(tab, f"resources/screenshots/catalist_dry_run_{label}.png")
+    await SuperScraper.screenshot(tab, f"dry_run_{label}")
     print(
         f"\n'{right}' request filled but NOT sent — click 'Send Verification Code' yourself, "
         "enter the code you receive, and click Submit. This sends a real verification code "
@@ -124,10 +124,8 @@ async def submit_request(tab, right, super_scraper):
 async def main():
     if SuperScraper.bail_if_not_automatable(globals()):
         return
-    options = ChromiumOptions()
     super_scraper = SuperScraper()
-    options.binary_location = super_scraper.CHROMIUM_LOCATION
-    options.add_argument("--no-sandbox")
+    options = SuperScraper.build_chromium_options()
 
     if not SuperScraper.rights_to_exercise(RIGHT_MAP):
         print(

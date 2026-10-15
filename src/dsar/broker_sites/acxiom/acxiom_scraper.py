@@ -29,16 +29,16 @@
 import asyncio
 
 from src.dsar.super_scraper import SuperScraper
+from src.dsar import js_utils
 
 from pydoll.browser.chromium import Chrome
-from pydoll.browser.options import ChromiumOptions
 
 URL = "https://www.acxiom.com/optout/"
 
 
 async def _add_name(iframe):
     who = await iframe.find(id="Identity")
-    await SuperScraper.select_native_option(who, value="Submitter")
+    await js_utils.select_native_option(who, value="Submitter")
     await asyncio.sleep(0.5)
 
     first = await iframe.find(id="FirstName")
@@ -63,7 +63,7 @@ async def _fill_mail(iframe):
     await city.type_text(SuperScraper.CITY)
     state = await iframe.find(id="State")
     state_abbr = SuperScraper.STATE_ABBREVIATED
-    await SuperScraper.select_native_option(state, value=state_abbr)
+    await js_utils.select_native_option(state, value=state_abbr)
     zip_field = await iframe.find(id="Zip")
     await zip_field.click()
     await zip_field.type_text(SuperScraper.ZIP_CODE)
@@ -149,7 +149,7 @@ async def submit_segment(tab, segment_key, super_scraper):
     if SuperScraper.DRY_RUN:
         print(f"DRY RUN: would submit {segment_key} opt-out for {SuperScraper.FIRST_NAME} {SuperScraper.LAST_NAME}")
         await asyncio.sleep(1)
-        await SuperScraper.screenshot(tab, f"resources/screenshots/acxiom_dry_run_{segment_key}.png")
+        await SuperScraper.screenshot(tab, f"dry_run_{segment_key}")
         return
 
     print(f"\n{segment_key} opt-out filled. Solve the reCAPTCHA, then press Enter to submit...")
@@ -162,10 +162,8 @@ async def submit_segment(tab, segment_key, super_scraper):
 
 
 async def main():
-    options = ChromiumOptions()
     super_scraper = SuperScraper()
-    options.binary_location = super_scraper.CHROMIUM_LOCATION
-    options.add_argument("--no-sandbox")
+    options = SuperScraper.build_chromium_options()
 
     async with Chrome(options=options) as browser:
         tab = await browser.start()

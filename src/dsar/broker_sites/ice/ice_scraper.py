@@ -12,7 +12,6 @@ import asyncio
 import time
 
 from pydoll.browser.chromium import Chrome
-from pydoll.browser.options import ChromiumOptions
 from pydoll.constants import Key
 
 from src.dsar.super_scraper import SuperScraper
@@ -102,7 +101,7 @@ async def _submit_request(tab, req_type, label, details, super_scraper):
         if captcha_field:
             await captcha_field.scroll_into_view()
         await asyncio.sleep(1)
-        await SuperScraper.screenshot(tab, f"ice_dry_run_{label}.png")
+        await SuperScraper.screenshot(tab, f"dry_run_{label}")
         return
 
     captcha_field = await tab.find(id="captchaCode", raise_exc=False)
@@ -127,10 +126,8 @@ async def _submit_request(tab, req_type, label, details, super_scraper):
 
 
 async def main():
-    opts = ChromiumOptions()
     super_scraper = SuperScraper()
-    opts.binary_location = super_scraper.CHROMIUM_LOCATION
-    opts.add_argument("--no-sandbox")
+    opts = SuperScraper.build_chromium_options()
 
     codes = SuperScraper.rights_to_exercise(RIGHT_MAP)
     if not codes:

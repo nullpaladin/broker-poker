@@ -21,7 +21,6 @@ import asyncio
 from src.dsar.super_scraper import SuperScraper
 
 from pydoll.browser.chromium import Chrome
-from pydoll.browser.options import ChromiumOptions
 
 ACCESS_URL = "https://app.instantly.ai/privacy/data-request"
 OPT_OUT_DELETE_URL = "https://app.instantly.ai/privacy/opt-out"
@@ -66,7 +65,7 @@ async def submit_access(tab, super_scraper):
     if SuperScraper.DRY_RUN:
         print(f"DRY RUN: would submit Access request for {SuperScraper.FIRST_NAME} {SuperScraper.LAST_NAME}")
         await asyncio.sleep(1)
-        await SuperScraper.screenshot(tab, "resources/screenshots/instantly_dry_run_access.png")
+        await SuperScraper.screenshot(tab, "dry_run_access")
         return
 
     print("\nAccess form filled. Solve the Cloudflare Turnstile challenge, click Affirm & Submit,")
@@ -103,7 +102,7 @@ async def submit_opt_out_delete(tab, super_scraper):
     if SuperScraper.DRY_RUN:
         print(f"DRY RUN: would submit Opt-Out/Delete request for {SuperScraper.FIRST_NAME} {SuperScraper.LAST_NAME}")
         await asyncio.sleep(1)
-        await SuperScraper.screenshot(tab, "resources/screenshots/instantly_dry_run_opt_out_delete.png")
+        await SuperScraper.screenshot(tab, "dry_run_opt_out_delete")
         return
 
     print("\nOpt-Out/Delete form filled. Solve the Cloudflare Turnstile challenge, click Affirm & Submit,")
@@ -118,10 +117,8 @@ async def submit_opt_out_delete(tab, super_scraper):
 
 
 async def main():
-    options = ChromiumOptions()
     super_scraper = SuperScraper()
-    options.binary_location = super_scraper.CHROMIUM_LOCATION
-    options.add_argument("--no-sandbox")
+    options = SuperScraper.build_chromium_options()
 
     async with Chrome(options=options) as browser:
         tab = await browser.start()

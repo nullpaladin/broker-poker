@@ -13,9 +13,9 @@
 import asyncio
 
 from pydoll.browser.chromium import Chrome
-from pydoll.browser.options import ChromiumOptions
 
 from src.dsar.super_scraper import SuperScraper
+from src.dsar import js_utils
 
 URL = "https://specialtycontactdatabases.com/do-not-sell/"
 
@@ -63,10 +63,10 @@ async def submit_request(tab, value_prefix, label, super_scraper):
 
     country = await tab.find(id="input_2_6_6", raise_exc=False)
     if country:
-        await SuperScraper.select_native_option(country, text="United States")
+        await js_utils.select_native_option(country, text="United States")
 
     await asyncio.sleep(1)
-    await SuperScraper.screenshot(tab, f"resources/screenshots/specialtycontactdatabases_dry_run_{label}.png")
+    await SuperScraper.screenshot(tab, f"dry_run_{label}")
     print(
         f"'{value_prefix}' request filled but NOT submitted — a reCAPTCHA v2 "
         f"checkbox must be solved manually before Submit."
@@ -74,10 +74,8 @@ async def submit_request(tab, value_prefix, label, super_scraper):
 
 
 async def main():
-    options = ChromiumOptions()
     super_scraper = SuperScraper()
-    options.binary_location = super_scraper.CHROMIUM_LOCATION
-    options.add_argument("--no-sandbox")
+    options = SuperScraper.build_chromium_options()
 
     codes = SuperScraper.rights_to_exercise(RIGHT_MAP)
     if not codes:

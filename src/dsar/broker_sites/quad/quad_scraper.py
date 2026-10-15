@@ -15,16 +15,13 @@ import asyncio
 from src.dsar.super_scraper import SuperScraper
 
 from pydoll.browser.chromium import Chrome
-from pydoll.browser.options import ChromiumOptions
 
 URL = "https://privacyportal.onetrust.com/webform/9bbdeb31-9ca4-4397-b421-b165438ad177/1ca01042-21a7-4307-8b42-a6c7439c9685"
 
 
 async def main():
-    options = ChromiumOptions()
     super_scraper = SuperScraper()
-    options.binary_location = super_scraper.CHROMIUM_LOCATION
-    options.add_argument("--no-sandbox")
+    options = SuperScraper.build_chromium_options()
 
     async with Chrome(options=options) as browser:
         tab = await browser.start()
@@ -67,7 +64,7 @@ async def main():
                 print(f"{super_scraper.OOPS} field '{field_id}' not found")
 
         await asyncio.sleep(1)
-        await SuperScraper.screenshot(tab, "resources/screenshots/quad_dry_run.png")
+        await SuperScraper.screenshot(tab, "dry_run")
         print(
             "\nCombined Opt-Out of Sale/Sharing/Targeted Advertising + Limit Use of "
             "Sensitive PI request filled but NOT submitted — a BotDetect image CAPTCHA "

@@ -17,9 +17,9 @@ import asyncio
 import json
 
 from src.dsar.super_scraper import SuperScraper
+from src.dsar import js_utils
 
 from pydoll.browser.chromium import Chrome
-from pydoll.browser.options import ChromiumOptions
 
 FORM_URL = "https://forms.gle/y8LzfvuoJWRAgqNL9"
 
@@ -49,10 +49,8 @@ async def click_radio(tab, aria_label):
 
 
 async def main():
-    options = ChromiumOptions()
     super_scraper = SuperScraper()
-    options.binary_location = super_scraper.CHROMIUM_LOCATION
-    options.add_argument("--no-sandbox")
+    options = SuperScraper.build_chromium_options()
 
     async with Chrome(options=options) as browser:
         tab = await browser.start()
@@ -74,12 +72,12 @@ async def main():
         if SuperScraper.DRY_RUN:
             print(f"DRY RUN: would submit privacy request for {SuperScraper.FIRST_NAME} {SuperScraper.LAST_NAME} <{SuperScraper.EMAIL}>")
             await asyncio.sleep(1)
-            await SuperScraper.screenshot(tab, "resources/screenshots/jobot_dry_run.png")
+            await SuperScraper.screenshot(tab, "dry_run")
             return
 
         await super_scraper.click_item_by_text(tab=tab, text="Submit", sleep=2)
         await asyncio.sleep(4)
-        result = await SuperScraper.page_text(tab)
+        result = await js_utils.page_text(tab)
         print(result[:500])
 
 

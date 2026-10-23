@@ -323,6 +323,12 @@ class SuperScraper:
             if url
         }
 
+    @classmethod
+    def first_social_url(cls, order=("twitter", "instagram", "facebook")) -> str | None:
+        """First configured social profile URL in `order` (default Twitter, Instagram, Facebook)."""
+        socials = cls.social_urls()
+        return next((socials[k] for k in order if k in socials), None)
+
     @staticmethod
     def state_full_name_to_abbreviated(state_name: str | None = None) -> str:
         """Full state name -> 2-letter code. Now sync (was async, never awaited).

@@ -1,0 +1,4147 @@
+{
+  "01advertising": {
+    "URLS": [
+      {
+        "GENERAL": "https://app.termly.io/dsar/d1321341-0e82-4d8c-afaf-c4940d46c171"
+      }
+    ],
+    "RIGHTS": [
+      "RIGHT_TO_ACCESS",
+      "RIGHT_TO_OPT_OUT",
+      "RIGHT_TO_DELETE"
+    ],
+    "OPTIONS": {},
+    "HEALTH_CHECK_STATUS": "NEEDS_LIVE_CAPTURE",
+    "AUTOMATABLE": true
+  },
+  "33across": {
+    "URLS": [],
+    "RIGHTS": [
+      "RIGHT_TO_ACCESS",
+      "RIGHT_TO_OPT_OUT",
+      "RIGHT_TO_DELETE"
+    ],
+    "OPTIONS": {
+      "Right to Access": "RIGHT_TO_ACCESS",
+      "Do Not Sell / Share": "RIGHT_TO_OPT_OUT",
+      "Right to Delete": "RIGHT_TO_DELETE"
+    },
+    "HEALTH_CHECK_STATUS": "AUDITED",
+    "AUTOMATABLE": true
+  },
+  "360mediadirect": {
+    "URLS": [
+      {
+        "GENERAL": "https://360-media-direct.privacy.saymine.io/360_Media_Direct"
+      }
+    ],
+    "RIGHTS": [
+      "RIGHT_TO_ACCESS",
+      "RIGHT_TO_OPT_OUT",
+      "RIGHT_TO_DELETE"
+    ],
+    "OPTIONS": {
+      "Get a copy of my data": "RIGHT_TO_ACCESS",
+      "Right to edit": null,
+      "Do not sell": "RIGHT_TO_OPT_OUT",
+      "Do not mail": "RIGHT_TO_OPT_OUT",
+      "Delete my data": "RIGHT_TO_DELETE"
+    },
+    "HEALTH_CHECK_STATUS": "AUDITED",
+    "AUTOMATABLE": true
+  },
+  "5x5coop": {
+    "URLS": [
+      {
+        "GENERAL": "https://privacy.5x5data.com/5x5/opt-out"
+      }
+    ],
+    "RIGHTS": [
+      "RIGHT_TO_ACCESS",
+      "RIGHT_TO_OPT_OUT",
+      "RIGHT_TO_DELETE"
+    ],
+    "OPTIONS": {
+      "Request to know/access my personal information": "RIGHT_TO_ACCESS",
+      "Do not sell or share my personal information": "RIGHT_TO_OPT_OUT",
+      "Do not process my information for purposes of targeted advertising": "RIGHT_TO_OPT_OUT",
+      "Request to delete/erase my personal information": "RIGHT_TO_DELETE",
+      "Request to correct/rectify my personal information": null
+    },
+    "HEALTH_CHECK_STATUS": "AUDITED",
+    "AUTOMATABLE": true
+  },
+  "acxiom": {
+    "URLS": [
+      {
+        "GENERAL": "https://www.acxiom.com/optout/"
+      }
+    ],
+    "RIGHTS": [
+      "RIGHT_TO_OPT_OUT"
+    ],
+    "OPTIONS": {},
+    "HEALTH_CHECK_STATUS": "NEEDS_LIVE_CAPTURE",
+    "AUTOMATABLE": true
+  },
+  "adara": {
+    "URLS": [
+      {
+        "GENERAL": "https://privacy.sojern.com/"
+      }
+    ],
+    "RIGHTS": [
+      "RIGHT_TO_ACCESS",
+      "RIGHT_TO_OPT_OUT",
+      "RIGHT_TO_DELETE"
+    ],
+    "OPTIONS": {},
+    "HEALTH_CHECK_STATUS": "NEEDS_LIVE_CAPTURE",
+    "AUTOMATABLE": true
+  },
+  "addresssearch": {
+    "URLS": [
+      {
+        "GENERAL": "https://www.addresssearch.com/remove-info.php"
+      }
+    ],
+    "RIGHTS": [
+      "RIGHT_TO_DELETE"
+    ],
+    "OPTIONS": {},
+    "HEALTH_CHECK_STATUS": "NEEDS_LIVE_CAPTURE",
+    "AUTOMATABLE": true
+  },
+  "adstradata": {
+    "URLS": [
+      {
+        "GENERAL": "https://privacyportal.onetrust.com/webform/3d2d5e0c-bd98-46b8-906c-ede68a6f6a80/f54a1b10-bb5d-4c99-9521-3e08dc527583"
+      }
+    ],
+    "RIGHTS": [
+      "RIGHT_TO_ACCESS",
+      "RIGHT_TO_OPT_OUT"
+    ],
+    "OPTIONS": {},
+    "HEALTH_CHECK_STATUS": "NEEDS_LIVE_CAPTURE",
+    "AUTOMATABLE": true
+  },
+  "affinity_solutions": {
+    "URLS": [
+      {
+        "GENERAL": "https://affinitysolutions-privacy.my.onetrust.com/webform/a564cfa1-53bf-4c10-bf95-cd907432d7e8/7e4e6bf3-6562-454e-8c73-6a7bd1f4b336"
+      }
+    ],
+    "RIGHTS": [
+      "RIGHT_TO_DELETE"
+    ],
+    "OPTIONS": {},
+    "HEALTH_CHECK_STATUS": "NEEDS_LIVE_CAPTURE",
+    "AUTOMATABLE": true
+  },
+  "affinityanswers": {
+    "URLS": [
+      {
+        "GENERAL": "https://www.affinityanswers.com/your-privacy-choices/"
+      }
+    ],
+    "RIGHTS": [
+      "RIGHT_TO_ACCESS",
+      "RIGHT_TO_OPT_OUT",
+      "RIGHT_TO_DELETE"
+    ],
+    "OPTIONS": {},
+    "HEALTH_CHECK_STATUS": "NEEDS_LIVE_CAPTURE",
+    "AUTOMATABLE": true
+  },
+  "allantgroup": {
+    "URLS": [
+      {
+        "GENERAL": "https://privacyportal-cdn.onetrust.com/dsarwebform/cbbe21b6-d675-445f-9c24-f625c01dafb3/b0160307-96f2-4e7b-9cd8-c70b09b0a76b.html"
+      }
+    ],
+    "RIGHTS": [
+      "RIGHT_TO_ACCESS",
+      "RIGHT_TO_OPT_OUT",
+      "RIGHT_TO_DELETE"
+    ],
+    "OPTIONS": {
+      "Access My Information": "RIGHT_TO_ACCESS",
+      "Do Not Sell My Information": "RIGHT_TO_OPT_OUT",
+      "Delete My Information": "RIGHT_TO_DELETE"
+    },
+    "HEALTH_CHECK_STATUS": "AUDITED",
+    "AUTOMATABLE": true
+  },
+  "alliantinsight": {
+    "URLS": [],
+    "RIGHTS": [
+      "RIGHT_TO_ACCESS",
+      "RIGHT_TO_OPT_OUT",
+      "RIGHT_TO_DELETE"
+    ],
+    "OPTIONS": {},
+    "HEALTH_CHECK_STATUS": "NEEDS_LIVE_CAPTURE",
+    "AUTOMATABLE": true
+  },
+  "allpeople": {
+    "URLS": [
+      {
+        "GENERAL": "https://allpeople.com/removal"
+      }
+    ],
+    "RIGHTS": [
+      "RIGHT_TO_OPT_OUT"
+    ],
+    "OPTIONS": {},
+    "HEALTH_CHECK_STATUS": "NEEDS_LIVE_CAPTURE",
+    "AUTOMATABLE": true
+  },
+  "alphonso": {
+    "URLS": [],
+    "RIGHTS": [
+      "RIGHT_TO_OPT_OUT",
+      "RIGHT_TO_ACCESS",
+      "RIGHT_TO_DELETE"
+    ],
+    "OPTIONS": {},
+    "HEALTH_CHECK_STATUS": "NEEDS_LIVE_CAPTURE",
+    "AUTOMATABLE": true
+  },
+  "altairdata": {
+    "URLS": [
+      {
+        "GENERAL": "https://datacloudhome.atlassian.net/servicedesk/customer/portal/12/group/35/create/158"
+      }
+    ],
+    "RIGHTS": [
+      "RIGHT_TO_OPT_OUT",
+      "RIGHT_TO_DELETE"
+    ],
+    "OPTIONS": {},
+    "HEALTH_CHECK_STATUS": "NEEDS_LIVE_CAPTURE",
+    "AUTOMATABLE": true
+  },
+  "altisource": {
+    "URLS": [
+      {
+        "GENERAL": "https://www.altisource.com/contact-us/"
+      }
+    ],
+    "RIGHTS": [
+      "RIGHT_TO_ACCESS",
+      "RIGHT_TO_OPT_OUT",
+      "RIGHT_TO_DELETE"
+    ],
+    "OPTIONS": {},
+    "HEALTH_CHECK_STATUS": "NEEDS_LIVE_CAPTURE",
+    "AUTOMATABLE": true
+  },
+  "analytics_iq": {
+    "URLS": [
+      {
+        "GENERAL": "https://privacyportal.onetrust.com/webform/f6a59500-f900-4652-b030-0cd51afe15a5/87ca07e4-e06c-4ad8-9aa6-ccbbaa8750c1"
+      }
+    ],
+    "RIGHTS": [
+      "RIGHT_TO_ACCESS",
+      "RIGHT_TO_OPT_OUT",
+      "RIGHT_TO_DELETE"
+    ],
+    "OPTIONS": {},
+    "HEALTH_CHECK_STATUS": "NEEDS_LIVE_CAPTURE",
+    "AUTOMATABLE": true
+  },
+  "anchorcomputer": {
+    "URLS": [
+      {
+        "GENERAL": "https://ecom2.anchorcomputer.com/privacyrequest"
+      }
+    ],
+    "RIGHTS": [
+      "RIGHT_TO_ACCESS",
+      "RIGHT_TO_OPT_OUT",
+      "RIGHT_TO_DELETE"
+    ],
+    "OPTIONS": {},
+    "HEALTH_CHECK_STATUS": "NEEDS_LIVE_CAPTURE",
+    "AUTOMATABLE": true
+  },
+  "applecart": {
+    "URLS": [
+      {
+        "GENERAL": "https://www.applecart.co/privacyrights2"
+      }
+    ],
+    "RIGHTS": [
+      "RIGHT_TO_ACCESS",
+      "RIGHT_TO_OPT_OUT",
+      "RIGHT_TO_DELETE"
+    ],
+    "OPTIONS": {},
+    "HEALTH_CHECK_STATUS": "NEEDS_LIVE_CAPTURE",
+    "AUTOMATABLE": true
+  },
+  "arccorp": {
+    "URLS": [
+      {
+        "GENERAL": "https://my.datasubject.com/Uw03R7mCGS/60313"
+      }
+    ],
+    "RIGHTS": [
+      "RIGHT_TO_ACCESS",
+      "RIGHT_TO_OPT_OUT",
+      "RIGHT_TO_LIST_OF_THIRD_PARTIES",
+      "RIGHT_TO_DELETE"
+    ],
+    "OPTIONS": {
+      "Summarize my personal information": "RIGHT_TO_ACCESS",
+      "Transfer my personal information": "RIGHT_TO_ACCESS",
+      "Do Not Sell or Share to a Third Party": "RIGHT_TO_OPT_OUT",
+      "Don't use my personal information for advertising": "RIGHT_TO_OPT_OUT",
+      "Opt Out of Profiling / Automated Decision-Making": "RIGHT_TO_OPT_OUT",
+      "Third parties your data was sold or shared with": "RIGHT_TO_LIST_OF_THIRD_PARTIES",
+      "Delete my personal information": "RIGHT_TO_DELETE",
+      "Correct my personal information": null
+    },
+    "HEALTH_CHECK_STATUS": "AUDITED",
+    "AUTOMATABLE": true
+  },
+  "ariza": {
+    "URLS": [
+      {
+        "GENERAL": "https://submit-irm.trustarc.com/services/validation/0a80503b-1d56-4d50-a898-4377a0227dab"
+      }
+    ],
+    "RIGHTS": [
+      "RIGHT_TO_ACCESS",
+      "RIGHT_TO_OPT_OUT",
+      "RIGHT_TO_DELETE"
+    ],
+    "OPTIONS": {
+      "Access My Information": "RIGHT_TO_ACCESS",
+      "Correct or Update My Information": null,
+      "Limit the Use of My Sensitive Personal Information": "RIGHT_TO_OPT_OUT",
+      "Do not Sell or Share My Personal Information": "RIGHT_TO_OPT_OUT",
+      "Opt-out or Unsubscribe": "RIGHT_TO_OPT_OUT",
+      "Withdraw My Consent": "RIGHT_TO_OPT_OUT",
+      "Delete My Information": "RIGHT_TO_DELETE"
+    },
+    "HEALTH_CHECK_STATUS": "AUDITED",
+    "AUTOMATABLE": true
+  },
+  "aspirenorth": {
+    "URLS": [
+      {
+        "GENERAL": "https://www.americanspiritcorp.com/ca-right-to-deletion.html"
+      }
+    ],
+    "RIGHTS": [
+      "RIGHT_TO_DELETE",
+      "RIGHT_TO_OPT_OUT"
+    ],
+    "OPTIONS": {},
+    "HEALTH_CHECK_STATUS": "NEEDS_LIVE_CAPTURE",
+    "AUTOMATABLE": true
+  },
+  "atdata": {
+    "URLS": [
+      {
+        "GENERAL": "https://privacyportal-cdn.onetrust.com/dsarwebform/b38ccfa3-c14a-451e-bf1d-974d1e278b7c/6214ac53-9059-474d-a847-800250556e9d.html"
+      }
+    ],
+    "RIGHTS": [
+      "RIGHT_TO_ACCESS",
+      "RIGHT_TO_OPT_OUT",
+      "RIGHT_TO_DELETE"
+    ],
+    "OPTIONS": {},
+    "HEALTH_CHECK_STATUS": "NEEDS_LIVE_CAPTURE",
+    "AUTOMATABLE": true
+  },
+  "atom": {
+    "URLS": [
+      {
+        "GENERAL": "https://app.termly.io/dsar/62c9d984-30c8-4068-ad84-749ed5ecb452"
+      }
+    ],
+    "RIGHTS": [
+      "RIGHT_TO_ACCESS",
+      "RIGHT_TO_OPT_OUT",
+      "RIGHT_TO_DELETE"
+    ],
+    "OPTIONS": {},
+    "HEALTH_CHECK_STATUS": "NEEDS_LIVE_CAPTURE",
+    "AUTOMATABLE": true
+  },
+  "audigent": {
+    "URLS": [
+      {
+        "GENERAL": "https://app.sixfifty.com/request-easy/653b-4813/questions/5359740"
+      }
+    ],
+    "RIGHTS": [
+      "RIGHT_TO_ACCESS",
+      "RIGHT_TO_OPT_OUT",
+      "RIGHT_TO_DELETE"
+    ],
+    "OPTIONS": {},
+    "HEALTH_CHECK_STATUS": "NEEDS_LIVE_CAPTURE",
+    "AUTOMATABLE": true
+  },
+  "audisense": {
+    "URLS": [
+      {
+        "GENERAL": "https://www.audiense.com/legal/consumer-personal-information-requests/"
+      }
+    ],
+    "RIGHTS": [
+      "RIGHT_TO_ACCESS",
+      "RIGHT_TO_OPT_OUT",
+      "RIGHT_TO_DELETE"
+    ],
+    "OPTIONS": {},
+    "HEALTH_CHECK_STATUS": "NEEDS_LIVE_CAPTURE",
+    "AUTOMATABLE": true
+  },
+  "automotivemastermind": {
+    "URLS": [
+      {
+        "GENERAL": "https://privacyportal.onetrust.com/webform/5cb57702-8ef7-437e-a62b-408fe78cd310/93391c3d-d6c8-45b1-a169-39a0b7f9fb74"
+      }
+    ],
+    "RIGHTS": [
+      "RIGHT_TO_ACCESS",
+      "RIGHT_TO_OPT_OUT",
+      "RIGHT_TO_DELETE"
+    ],
+    "OPTIONS": {},
+    "HEALTH_CHECK_STATUS": "NEEDS_LIVE_CAPTURE",
+    "AUTOMATABLE": true
+  },
+  "awl": {
+    "URLS": [
+      {
+        "GENERAL": "https://privacyportal-eu.onetrust.com/webform/031dc37f-2093-4055-9d04-22f83329fe9f/a4fb8ed6-8389-4a17-a3be-ca808c6b300e"
+      }
+    ],
+    "RIGHTS": [
+      "RIGHT_TO_ACCESS",
+      "RIGHT_TO_DELETE"
+    ],
+    "OPTIONS": {},
+    "HEALTH_CHECK_STATUS": "NEEDS_LIVE_CAPTURE",
+    "AUTOMATABLE": true
+  },
+  "babelstreet": {
+    "URLS": [
+      {
+        "GENERAL": "https://privacyportal.onetrust.com/webform/43f52ed9-df36-44dc-94b6-ce2f8458ca29/2ddc0d62-7d6a-4de2-b5c4-9f9f68116970"
+      }
+    ],
+    "RIGHTS": [
+      "RIGHT_TO_ACCESS",
+      "RIGHT_TO_OPT_OUT",
+      "RIGHT_TO_DELETE"
+    ],
+    "OPTIONS": {},
+    "HEALTH_CHECK_STATUS": "NEEDS_LIVE_CAPTURE",
+    "AUTOMATABLE": true
+  },
+  "bbdirect": {
+    "URLS": [
+      {
+        "GENERAL": "https://www.bbdirect.com/resources/privacy-compliance.html"
+      }
+    ],
+    "RIGHTS": [
+      "RIGHT_TO_OPT_OUT"
+    ],
+    "OPTIONS": {},
+    "HEALTH_CHECK_STATUS": "NEEDS_LIVE_CAPTURE",
+    "AUTOMATABLE": true
+  },
+  "belardiwong": {
+    "URLS": [],
+    "RIGHTS": [
+      "RIGHT_TO_ACCESS",
+      "RIGHT_TO_OPT_OUT",
+      "RIGHT_TO_DELETE"
+    ],
+    "OPTIONS": {},
+    "HEALTH_CHECK_STATUS": "NEEDS_LIVE_CAPTURE",
+    "AUTOMATABLE": true
+  },
+  "bi2technologies": {
+    "URLS": [
+      {
+        "GENERAL": "https://bi2technologies.com/contact-us/"
+      }
+    ],
+    "RIGHTS": [
+      "RIGHT_TO_ACCESS",
+      "RIGHT_TO_OPT_OUT",
+      "RIGHT_TO_DELETE"
+    ],
+    "OPTIONS": {},
+    "HEALTH_CHECK_STATUS": "NEEDS_LIVE_CAPTURE",
+    "AUTOMATABLE": true
+  },
+  "billtrust": {
+    "URLS": [
+      {
+        "GENERAL": "https://privacyportal.onetrust.com/webform/82a6a736-b3a7-4e87-a2fd-04a39b7d2b19/2f5dc7b8-7698-4623-82d2-b2b969ef901e"
+      }
+    ],
+    "RIGHTS": [
+      "RIGHT_TO_ACCESS",
+      "RIGHT_TO_OPT_OUT",
+      "RIGHT_TO_DELETE"
+    ],
+    "OPTIONS": {},
+    "HEALTH_CHECK_STATUS": "NEEDS_LIVE_CAPTURE",
+    "AUTOMATABLE": true
+  },
+  "blackbaud": {
+    "URLS": [
+      {
+        "GENERAL": "https://blackbaud-privacy.my.onetrust.com/webform/170c909c-5ed2-49f1-a59c-2a44be2f6f27/de22df57-d96c-480a-afb0-ac090b928192"
+      }
+    ],
+    "RIGHTS": [
+      "RIGHT_TO_ACCESS",
+      "RIGHT_TO_OPT_OUT",
+      "RIGHT_TO_DELETE"
+    ],
+    "OPTIONS": {},
+    "HEALTH_CHECK_STATUS": "NEEDS_LIVE_CAPTURE",
+    "AUTOMATABLE": true
+  },
+  "brandwatch": {
+    "URLS": [
+      {
+        "GENERAL": "https://www.brandwatch.com/legal/data-subject-access-request/"
+      }
+    ],
+    "RIGHTS": [
+      "RIGHT_TO_ACCESS",
+      "RIGHT_TO_OPT_OUT",
+      "RIGHT_TO_DELETE"
+    ],
+    "OPTIONS": {
+      "Access": "RIGHT_TO_ACCESS",
+      "Portability": "RIGHT_TO_ACCESS",
+      "Do not Sell/Share Data": "RIGHT_TO_OPT_OUT",
+      "Erasure": "RIGHT_TO_DELETE",
+      "Rectification": null,
+      "Restriction": null,
+      "No auto decisions": null,
+      "Object processing": null,
+      "Opt out from commercial communications": null,
+      "Limit Use of Personal Data": null
+    },
+    "HEALTH_CHECK_STATUS": "AUDITED",
+    "AUTOMATABLE": true
+  },
+  "bridg": {
+    "URLS": [
+      {
+        "GENERAL": "https://datagrail.bridg.com/"
+      }
+    ],
+    "RIGHTS": [
+      "RIGHT_TO_ACCESS",
+      "RIGHT_TO_OPT_OUT",
+      "RIGHT_TO_DELETE"
+    ],
+    "OPTIONS": {},
+    "HEALTH_CHECK_STATUS": "NEEDS_LIVE_CAPTURE",
+    "AUTOMATABLE": true
+  },
+  "brooksim": {
+    "URLS": [
+      {
+        "GENERAL": "https://dsr.trustsuperset.com/?orgId=2dc76d0a-78d2-4492-9fc1-39da892fc0d5"
+      }
+    ],
+    "RIGHTS": [
+      "RIGHT_TO_ACCESS",
+      "RIGHT_TO_OPT_OUT",
+      "RIGHT_TO_DELETE"
+    ],
+    "OPTIONS": {},
+    "HEALTH_CHECK_STATUS": "NEEDS_LIVE_CAPTURE",
+    "AUTOMATABLE": true
+  },
+  "careerbuilder": {
+    "URLS": [
+      {
+        "GENERAL": "https://www.careerbuilder.com/privacy/"
+      }
+    ],
+    "RIGHTS": [
+      "RIGHT_TO_ACCESS",
+      "RIGHT_TO_OPT_OUT",
+      "RIGHT_TO_DELETE"
+    ],
+    "OPTIONS": {},
+    "HEALTH_CHECK_STATUS": "NEEDS_LIVE_CAPTURE",
+    "AUTOMATABLE": true
+  },
+  "carfax": {
+    "URLS": [
+      {
+        "GENERAL": "https://www.carfax.com/company/consumer-privacy/"
+      }
+    ],
+    "RIGHTS": [
+      "RIGHT_TO_ACCESS",
+      "RIGHT_TO_DELETE"
+    ],
+    "OPTIONS": {},
+    "HEALTH_CHECK_STATUS": "NEEDS_LIVE_CAPTURE",
+    "AUTOMATABLE": true
+  },
+  "catalist": {
+    "URLS": [
+      {
+        "GENERAL": "https://catalist.us/your-privacy-choices/"
+      }
+    ],
+    "RIGHTS": [
+      "RIGHT_TO_DELETE",
+      "RIGHT_TO_OPT_OUT"
+    ],
+    "OPTIONS": {},
+    "HEALTH_CHECK_STATUS": "NEEDS_LIVE_CAPTURE",
+    "AUTOMATABLE": false,
+    "NOT_AUTOMATABLE_REASON": "submission requires an emailed 8-digit verification code (OTP)"
+  },
+  "censia": {
+    "URLS": [
+      {
+        "GENERAL": "https://docs.google.com/forms/d/1VhF33VAQG4AmUqBWf7e3m8fw17h9ek64EtQXnuuBQcA/viewform?edit_requested=true"
+      }
+    ],
+    "RIGHTS": [
+      "RIGHT_TO_ACCESS",
+      "RIGHT_TO_OPT_OUT",
+      "RIGHT_TO_DELETE"
+    ],
+    "OPTIONS": {},
+    "HEALTH_CHECK_STATUS": "NEEDS_LIVE_CAPTURE",
+    "AUTOMATABLE": true
+  },
+  "choreograph": {
+    "URLS": [],
+    "RIGHTS": [
+      "RIGHT_TO_ACCESS",
+      "RIGHT_TO_OPT_OUT",
+      "RIGHT_TO_DELETE"
+    ],
+    "OPTIONS": {},
+    "HEALTH_CHECK_STATUS": "NEEDS_LIVE_CAPTURE",
+    "AUTOMATABLE": true
+  },
+  "civicelement": {
+    "URLS": [
+      {
+        "GENERAL": "https://www.civicelement.com/privacy-policy-request"
+      }
+    ],
+    "RIGHTS": [
+      "RIGHT_TO_ACCESS",
+      "RIGHT_TO_OPT_OUT",
+      "RIGHT_TO_DELETE"
+    ],
+    "OPTIONS": {},
+    "HEALTH_CHECK_STATUS": "NEEDS_LIVE_CAPTURE",
+    "AUTOMATABLE": true
+  },
+  "civisanalytics": {
+    "URLS": [
+      {
+        "GENERAL": "https://docs.google.com/forms/d/e/1FAIpQLSfvUYww9wEK9Y4F6VY3nQtm0bBS8QTdcDthet6WAKDYqnnwHA/viewform"
+      }
+    ],
+    "RIGHTS": [],
+    "OPTIONS": {},
+    "HEALTH_CHECK_STATUS": "NO_RIGHTS_CHOOSER",
+    "AUTOMATABLE": true
+  },
+  "claritas": {
+    "URLS": [
+      {
+        "GENERAL": "https://privacyportal.onetrust.com/webform/68582716-6ce4-4f6e-bf08-78371b5f3292/6c7dc52d-0e2b-481f-9256-0755179e3783"
+      }
+    ],
+    "RIGHTS": [
+      "RIGHT_TO_ACCESS",
+      "RIGHT_TO_DELETE"
+    ],
+    "OPTIONS": {},
+    "HEALTH_CHECK_STATUS": "NEEDS_LIVE_CAPTURE",
+    "AUTOMATABLE": true
+  },
+  "clarivate": {
+    "URLS": [
+      {
+        "GENERAL": "https://privacyportal.onetrust.com/webform/7636e208-dda4-4218-8026-e1bc155873fc/ae937376-9b21-4996-9327-81eaaa1b20f9"
+      }
+    ],
+    "RIGHTS": [
+      "RIGHT_TO_ACCESS",
+      "RIGHT_TO_OPT_OUT",
+      "RIGHT_TO_DELETE",
+      "RIGHT_TO_LIST_OF_THIRD_PARTIES"
+    ],
+    "OPTIONS": {},
+    "HEALTH_CHECK_STATUS": "NEEDS_LIVE_CAPTURE",
+    "AUTOMATABLE": true
+  },
+  "clearbit": {
+    "URLS": [
+      {
+        "GENERAL": "https://preferences.clearbit.com/"
+      }
+    ],
+    "RIGHTS": [
+      "RIGHT_TO_ACCESS",
+      "RIGHT_TO_OPT_OUT",
+      "RIGHT_TO_DELETE"
+    ],
+    "OPTIONS": {},
+    "HEALTH_CHECK_STATUS": "NEEDS_LIVE_CAPTURE",
+    "AUTOMATABLE": true
+  },
+  "clearview": {
+    "URLS": [
+      {
+        "GENERAL": "https://privacyportal.onetrust.com/webform/1fdd17ee-bd10-4813-a254-de7d5c09360a/7c79cae5-6e86-4d8d-b409-7a932c09b942"
+      }
+    ],
+    "RIGHTS": [
+      "RIGHT_TO_ACCESS",
+      "RIGHT_TO_OPT_OUT",
+      "RIGHT_TO_DELETE"
+    ],
+    "OPTIONS": {},
+    "HEALTH_CHECK_STATUS": "NEEDS_LIVE_CAPTURE",
+    "AUTOMATABLE": true
+  },
+  "clickagy": {
+    "URLS": [],
+    "RIGHTS": [
+      "RIGHT_TO_ACCESS",
+      "RIGHT_TO_OPT_OUT"
+    ],
+    "OPTIONS": {},
+    "HEALTH_CHECK_STATUS": "NEEDS_LIVE_CAPTURE",
+    "AUTOMATABLE": true
+  },
+  "clientcommand": {
+    "URLS": [
+      {
+        "GENERAL": "https://privacyportal-cdn.onetrust.com/dsarwebform/555c3377-7eb2-4e7a-bf30-c408de4ab483/70df6685-8289-4d72-a9d7-9a736b3b837f.html"
+      }
+    ],
+    "RIGHTS": [
+      "RIGHT_TO_ACCESS",
+      "RIGHT_TO_OPT_OUT",
+      "RIGHT_TO_DELETE"
+    ],
+    "OPTIONS": {},
+    "HEALTH_CHECK_STATUS": "NEEDS_LIVE_CAPTURE",
+    "AUTOMATABLE": true
+  },
+  "completemailinglists": {
+    "URLS": [
+      {
+        "GENERAL": "https://www.completemailinglists.com/consumer-privacy-request"
+      }
+    ],
+    "RIGHTS": [
+      "RIGHT_TO_ACCESS",
+      "RIGHT_TO_OPT_OUT",
+      "RIGHT_TO_DELETE"
+    ],
+    "OPTIONS": {
+      "Access My Information": "RIGHT_TO_ACCESS",
+      "Correct My Information": null,
+      "Opt Out of Sale and Sharing or Use for Targeted Advertising": "RIGHT_TO_OPT_OUT",
+      "Limit the Use of My Sensitive Personal Information": "RIGHT_TO_OPT_OUT",
+      "Delete My Information": "RIGHT_TO_DELETE"
+    },
+    "HEALTH_CHECK_STATUS": "AUDITED",
+    "AUTOMATABLE": true
+  },
+  "connectedinvestors": {
+    "URLS": [
+      {
+        "GENERAL": "https://firstam.service-now.com/x_farf2_dp_request_ci_opt_out.do?sysparm_id=fd58b253875b219095280ed7dabb359a"
+      }
+    ],
+    "RIGHTS": [
+      "RIGHT_TO_ACCESS",
+      "RIGHT_TO_DELETE"
+    ],
+    "OPTIONS": {},
+    "HEALTH_CHECK_STATUS": "NEEDS_LIVE_CAPTURE",
+    "AUTOMATABLE": true
+  },
+  "convergemarketing": {
+    "URLS": [
+      {
+        "GENERAL": "https://my.datasubject.com/FMy59nP1cQ/53694"
+      }
+    ],
+    "RIGHTS": [
+      "RIGHT_TO_ACCESS",
+      "RIGHT_TO_OPT_OUT",
+      "RIGHT_TO_LIST_OF_THIRD_PARTIES",
+      "RIGHT_TO_DELETE"
+    ],
+    "OPTIONS": {
+      "Summarize my personal information": "RIGHT_TO_ACCESS",
+      "Transfer my personal information": "RIGHT_TO_ACCESS",
+      "Do Not Sell or Share to a Third Party": "RIGHT_TO_OPT_OUT",
+      "Don't use my personal information for advertising": "RIGHT_TO_OPT_OUT",
+      "Opt Out of Profiling / Automated Decision-Making": "RIGHT_TO_OPT_OUT",
+      "Third parties your data was sold or shared with": "RIGHT_TO_LIST_OF_THIRD_PARTIES",
+      "Delete my personal information": "RIGHT_TO_DELETE",
+      "Correct my personal information": null,
+      "Other": null
+    },
+    "HEALTH_CHECK_STATUS": "AUDITED",
+    "AUTOMATABLE": true
+  },
+  "crunchbase": {
+    "URLS": [
+      {
+        "GENERAL": "https://preferences.crunchbase.com/"
+      }
+    ],
+    "RIGHTS": [
+      "RIGHT_TO_ACCESS",
+      "RIGHT_TO_OPT_OUT",
+      "RIGHT_TO_DELETE"
+    ],
+    "OPTIONS": {},
+    "HEALTH_CHECK_STATUS": "NEEDS_LIVE_CAPTURE",
+    "AUTOMATABLE": true
+  },
+  "cuebiq": {
+    "URLS": [
+      {
+        "GENERAL": "https://cuebiq.com/privacy-request/"
+      }
+    ],
+    "RIGHTS": [
+      "RIGHT_TO_ACCESS",
+      "RIGHT_TO_OPT_OUT",
+      "RIGHT_TO_DELETE"
+    ],
+    "OPTIONS": {},
+    "HEALTH_CHECK_STATUS": "NEEDS_LIVE_CAPTURE",
+    "AUTOMATABLE": true
+  },
+  "customersai": {
+    "URLS": [
+      {
+        "GENERAL": "https://app.mobilemonkey.com/opt-out"
+      }
+    ],
+    "RIGHTS": [
+      "RIGHT_TO_OPT_OUT"
+    ],
+    "OPTIONS": {},
+    "HEALTH_CHECK_STATUS": "NEEDS_LIVE_CAPTURE",
+    "AUTOMATABLE": true
+  },
+  "cybba": {
+    "URLS": [
+      {
+        "GENERAL": "https://cybba-requests.my.onetrust.com/webform/a4a1351e-d293-4305-bde4-b9cf8f5c0989/f89c576a-b5c6-498e-bad5-698f084ffd30"
+      }
+    ],
+    "RIGHTS": [
+      "RIGHT_TO_ACCESS",
+      "RIGHT_TO_OPT_OUT",
+      "RIGHT_TO_DELETE"
+    ],
+    "OPTIONS": {},
+    "HEALTH_CHECK_STATUS": "NEEDS_LIVE_CAPTURE",
+    "AUTOMATABLE": true
+  },
+  "databaseusa": {
+    "URLS": [
+      {
+        "GENERAL": "https://privacycompliance.biz/databaseusa-mcdpa/"
+      }
+    ],
+    "RIGHTS": [
+      "RIGHT_TO_ACCESS",
+      "RIGHT_TO_OPT_OUT",
+      "RIGHT_TO_DELETE"
+    ],
+    "OPTIONS": {},
+    "HEALTH_CHECK_STATUS": "NEEDS_LIVE_CAPTURE",
+    "AUTOMATABLE": true
+  },
+  "datadelivers": {
+    "URLS": [
+      {
+        "GENERAL": "https://dsr.trustsuperset.com/?orgId=275d6c62-eb0f-4f8a-80c2-b72573902714"
+      }
+    ],
+    "RIGHTS": [
+      "RIGHT_TO_ACCESS",
+      "RIGHT_TO_OPT_OUT",
+      "RIGHT_TO_DELETE"
+    ],
+    "OPTIONS": {
+      "Right to Rectification": null,
+      "Right to Restrict Processing": "RIGHT_TO_OPT_OUT",
+      "Right to Data Portability": "RIGHT_TO_ACCESS",
+      "Right to Not be Subject to Automated Decision-Making": "RIGHT_TO_OPT_OUT",
+      "Right to Opt-out of Sales": "RIGHT_TO_OPT_OUT",
+      "Right to Limit Sensitive Personal Information": "RIGHT_TO_OPT_OUT",
+      "Right to Erasure": "RIGHT_TO_DELETE"
+    },
+    "HEALTH_CHECK_STATUS": "AUDITED",
+    "AUTOMATABLE": true
+  },
+  "datamasters": {
+    "URLS": [
+      {
+        "GENERAL": "https://api.leadconnectorhq.com/widget/form/41dpCVPDaPkQi42RkPKk"
+      }
+    ],
+    "RIGHTS": [
+      "RIGHT_TO_ACCESS",
+      "RIGHT_TO_OPT_OUT",
+      "RIGHT_TO_DELETE"
+    ],
+    "OPTIONS": {},
+    "HEALTH_CHECK_STATUS": "NEEDS_LIVE_CAPTURE",
+    "AUTOMATABLE": true
+  },
+  "datapartners": {
+    "URLS": [],
+    "RIGHTS": [
+      "RIGHT_TO_ACCESS",
+      "RIGHT_TO_OPT_OUT"
+    ],
+    "OPTIONS": {},
+    "HEALTH_CHECK_STATUS": "NEEDS_LIVE_CAPTURE",
+    "AUTOMATABLE": true
+  },
+  "datasys": {
+    "URLS": [
+      {
+        "GENERAL": "https://privacy.datasys.com"
+      }
+    ],
+    "RIGHTS": [
+      "RIGHT_TO_ACCESS",
+      "RIGHT_TO_OPT_OUT",
+      "RIGHT_TO_DELETE"
+    ],
+    "OPTIONS": {},
+    "HEALTH_CHECK_STATUS": "NEEDS_LIVE_CAPTURE",
+    "AUTOMATABLE": true
+  },
+  "datonics": {
+    "URLS": [
+      {
+        "GENERAL": "https://www.datonics.com/privacy/privacy-choices"
+      }
+    ],
+    "RIGHTS": [
+      "RIGHT_TO_ACCESS",
+      "RIGHT_TO_OPT_OUT",
+      "RIGHT_TO_DELETE"
+    ],
+    "OPTIONS": {},
+    "HEALTH_CHECK_STATUS": "NEEDS_LIVE_CAPTURE",
+    "AUTOMATABLE": true
+  },
+  "decisionlinks": {
+    "URLS": [
+      {
+        "GENERAL": "https://www.decisionlinks.com/legal-pages/your-privacy-choices"
+      }
+    ],
+    "RIGHTS": [
+      "RIGHT_TO_OPT_OUT",
+      "RIGHT_TO_ACCESS",
+      "RIGHT_TO_DELETE"
+    ],
+    "OPTIONS": {},
+    "HEALTH_CHECK_STATUS": "NEEDS_LIVE_CAPTURE",
+    "AUTOMATABLE": true
+  },
+  "deeprootanalytics": {
+    "URLS": [
+      {
+        "GENERAL": "https://privacy.deeprootanalytics.com/"
+      }
+    ],
+    "RIGHTS": [
+      "RIGHT_TO_ACCESS",
+      "RIGHT_TO_DELETE"
+    ],
+    "OPTIONS": {
+      "Access your data": "RIGHT_TO_ACCESS",
+      "Delete your data": "RIGHT_TO_DELETE",
+      "Opt out of data sales and sharing": null
+    },
+    "HEALTH_CHECK_STATUS": "AUDITED",
+    "AUTOMATABLE": false,
+    "NOT_AUTOMATABLE_REASON": "the form emails a verification code that must be entered mid-run to proceed"
+  },
+  "deepsync": {
+    "URLS": [],
+    "RIGHTS": [
+      "RIGHT_TO_ACCESS",
+      "RIGHT_TO_OPT_OUT",
+      "RIGHT_TO_DELETE"
+    ],
+    "OPTIONS": {},
+    "HEALTH_CHECK_STATUS": "NO_RIGHTS_CHOOSER",
+    "AUTOMATABLE": true
+  },
+  "delivr": {
+    "URLS": [
+      {
+        "GENERAL": "https://www.delivr.ai/privacy"
+      }
+    ],
+    "RIGHTS": [
+      "RIGHT_TO_ACCESS",
+      "RIGHT_TO_OPT_OUT",
+      "RIGHT_TO_DELETE"
+    ],
+    "OPTIONS": {},
+    "HEALTH_CHECK_STATUS": "NEEDS_LIVE_CAPTURE",
+    "AUTOMATABLE": true
+  },
+  "deloitte": {
+    "URLS": [
+      {
+        "GENERAL": "https://datasubject.deloitte.com/"
+      }
+    ],
+    "RIGHTS": [
+      "RIGHT_TO_ACCESS",
+      "RIGHT_TO_OPT_OUT",
+      "RIGHT_TO_DELETE"
+    ],
+    "OPTIONS": {},
+    "HEALTH_CHECK_STATUS": "NEEDS_LIVE_CAPTURE",
+    "AUTOMATABLE": true
+  },
+  "demandscience": {
+    "URLS": [
+      {
+        "GENERAL": "https://portal.privacyengine.io/app/0CEB4BAE-BBE7-4DD9-BD70-4E2DBB01D64D/4F5BED3F-8BFB-4BF4-A1F8-8A2261BDE0CE"
+      }
+    ],
+    "RIGHTS": [
+      "RIGHT_TO_ACCESS",
+      "RIGHT_TO_OPT_OUT",
+      "RIGHT_TO_DELETE"
+    ],
+    "OPTIONS": {},
+    "HEALTH_CHECK_STATUS": "NEEDS_LIVE_CAPTURE",
+    "AUTOMATABLE": true
+  },
+  "diablomedia": {
+    "URLS": [
+      {
+        "GENERAL": "https://my.datasubject.com/aSCwO6P3vw/60584"
+      }
+    ],
+    "RIGHTS": [
+      "RIGHT_TO_ACCESS",
+      "RIGHT_TO_OPT_OUT",
+      "RIGHT_TO_DELETE"
+    ],
+    "OPTIONS": {},
+    "HEALTH_CHECK_STATUS": "NEEDS_LIVE_CAPTURE",
+    "AUTOMATABLE": true
+  },
+  "dice": {
+    "URLS": [
+      {
+        "GENERAL": "https://www.dice.com/about/ccpa#ccpa-form-anchor"
+      }
+    ],
+    "RIGHTS": [
+      "RIGHT_TO_ACCESS",
+      "RIGHT_TO_OPT_OUT",
+      "RIGHT_TO_DELETE"
+    ],
+    "OPTIONS": {},
+    "HEALTH_CHECK_STATUS": "NEEDS_LIVE_CAPTURE",
+    "AUTOMATABLE": true
+  },
+  "directmail": {
+    "URLS": [
+      {
+        "GENERAL": "https://www.directmail.com/mail_preference/"
+      }
+    ],
+    "RIGHTS": [
+      "RIGHT_TO_OPT_OUT"
+    ],
+    "OPTIONS": {},
+    "HEALTH_CHECK_STATUS": "NEEDS_LIVE_CAPTURE",
+    "AUTOMATABLE": true
+  },
+  "disqus": {
+    "URLS": [
+      {
+        "GENERAL": "https://privacyportal-cdn.onetrust.com/dsarwebform/bc2d3301-11a5-4de5-b15e-ce796187a352/9a049fa1-37af-4598-a87a-d0df2e2d904b.html"
+      }
+    ],
+    "RIGHTS": [
+      "RIGHT_TO_ACCESS",
+      "RIGHT_TO_OPT_OUT",
+      "RIGHT_TO_DELETE"
+    ],
+    "OPTIONS": {},
+    "HEALTH_CHECK_STATUS": "NEEDS_LIVE_CAPTURE",
+    "AUTOMATABLE": true
+  },
+  "dnb": {
+    "URLS": [
+      {
+        "GENERAL": "https://submit-irm.trustarc.eu/services/validation/ba81b98f-997d-4216-b4cc-d64cf261b082"
+      }
+    ],
+    "RIGHTS": [
+      "RIGHT_TO_ACCESS",
+      "RIGHT_TO_OPT_OUT",
+      "RIGHT_TO_DELETE"
+    ],
+    "OPTIONS": {},
+    "HEALTH_CHECK_STATUS": "NEEDS_LIVE_CAPTURE",
+    "AUTOMATABLE": true
+  },
+  "dspolitical": {
+    "URLS": [
+      {
+        "GENERAL": "https://privacyportal.onetrust.com/webform/2de5f42a-3bbb-4bcf-867b-251b00739ee1/a8b3a307-cdeb-46d5-bb3c-7733424b01ff"
+      }
+    ],
+    "RIGHTS": [
+      "RIGHT_TO_ACCESS",
+      "RIGHT_TO_OPT_OUT",
+      "RIGHT_TO_DELETE"
+    ],
+    "OPTIONS": {},
+    "HEALTH_CHECK_STATUS": "NEEDS_LIVE_CAPTURE",
+    "AUTOMATABLE": true
+  },
+  "dstillery": {
+    "URLS": [
+      {
+        "GENERAL": "https://privacyportal-eu-cdn.onetrust.com/dsarwebform/246426b7-49c6-4bf5-879b-d3fdd4cbc15d/35502283-7b19-4b67-b3e0-ede06d3820c5.html"
+      }
+    ],
+    "RIGHTS": [
+      "RIGHT_TO_ACCESS",
+      "RIGHT_TO_OPT_OUT",
+      "RIGHT_TO_DELETE"
+    ],
+    "OPTIONS": {},
+    "HEALTH_CHECK_STATUS": "NEEDS_LIVE_CAPTURE",
+    "AUTOMATABLE": true
+  },
+  "dtn": {
+    "URLS": [
+      {
+        "GENERAL": "https://www.dtn.com/do-not-sell-my-information-form/"
+      }
+    ],
+    "RIGHTS": [
+      "RIGHT_TO_ACCESS",
+      "RIGHT_TO_OPT_OUT",
+      "RIGHT_TO_DELETE"
+    ],
+    "OPTIONS": {},
+    "HEALTH_CHECK_STATUS": "NEEDS_LIVE_CAPTURE",
+    "AUTOMATABLE": true
+  },
+  "eltoro": {
+    "URLS": [],
+    "RIGHTS": [
+      "RIGHT_TO_ACCESS",
+      "RIGHT_TO_OPT_OUT",
+      "RIGHT_TO_DELETE"
+    ],
+    "OPTIONS": {},
+    "HEALTH_CHECK_STATUS": "NEEDS_LIVE_CAPTURE",
+    "AUTOMATABLE": true
+  },
+  "emailindustries": {
+    "URLS": [
+      {
+        "GENERAL": "https://privacyportal.onetrust.com/webform/f73513a8-7a10-4a9d-939a-703f8d994839/262761ab-edc4-440a-8e56-e6348b131382"
+      }
+    ],
+    "RIGHTS": [
+      "RIGHT_TO_ACCESS",
+      "RIGHT_TO_DELETE"
+    ],
+    "OPTIONS": {},
+    "HEALTH_CHECK_STATUS": "NEEDS_LIVE_CAPTURE",
+    "AUTOMATABLE": true
+  },
+  "enformion": {
+    "URLS": [
+      {
+        "GENERAL": "https://www.enformion.com/opt-out/"
+      }
+    ],
+    "RIGHTS": [
+      "RIGHT_TO_OPT_OUT",
+      "RIGHT_TO_ACCESS",
+      "RIGHT_TO_DELETE"
+    ],
+    "OPTIONS": {},
+    "HEALTH_CHECK_STATUS": "NEEDS_LIVE_CAPTURE",
+    "AUTOMATABLE": true
+  },
+  "epsilon": {
+    "URLS": [
+      {
+        "GENERAL": "https://legal.epsilon.com/dsr"
+      }
+    ],
+    "RIGHTS": [
+      "RIGHT_TO_ACCESS",
+      "RIGHT_TO_OPT_OUT",
+      "RIGHT_TO_DELETE"
+    ],
+    "OPTIONS": {},
+    "HEALTH_CHECK_STATUS": "NEEDS_LIVE_CAPTURE",
+    "AUTOMATABLE": true
+  },
+  "equifax": {
+    "URLS": [
+      {
+        "GENERAL": "https://myprivacy.equifax.com/opt-in-opt-out/personal-info"
+      }
+    ],
+    "RIGHTS": [
+      "RIGHT_TO_OPT_OUT"
+    ],
+    "OPTIONS": {},
+    "HEALTH_CHECK_STATUS": "NEEDS_LIVE_CAPTURE",
+    "AUTOMATABLE": true
+  },
+  "evs7": {
+    "URLS": [
+      {
+        "GENERAL": "https://www.evs7.com/personal-information-request"
+      }
+    ],
+    "RIGHTS": [
+      "RIGHT_TO_ACCESS",
+      "RIGHT_TO_OPT_OUT",
+      "RIGHT_TO_DELETE"
+    ],
+    "OPTIONS": {
+      "I request to view the information that you have about me.": "RIGHT_TO_ACCESS",
+      "I request that any information about me will not be sold to anyone.": "RIGHT_TO_OPT_OUT",
+      "I request that you delete any information about me.": "RIGHT_TO_DELETE"
+    },
+    "HEALTH_CHECK_STATUS": "AUDITED",
+    "AUTOMATABLE": true
+  },
+  "experian": {
+    "URLS": [
+      {
+        "GENERAL": "https://consumerprivacy.experian.com/request"
+      }
+    ],
+    "RIGHTS": [
+      "RIGHT_TO_ACCESS",
+      "RIGHT_TO_OPT_OUT",
+      "RIGHT_TO_DELETE"
+    ],
+    "OPTIONS": {},
+    "HEALTH_CHECK_STATUS": "NEEDS_LIVE_CAPTURE",
+    "AUTOMATABLE": true
+  },
+  "eyeota": {
+    "URLS": [
+      {
+        "GENERAL": "https://www.eyeota.com/data-subject-request"
+      }
+    ],
+    "RIGHTS": [
+      "RIGHT_TO_ACCESS",
+      "RIGHT_TO_OPT_OUT",
+      "RIGHT_TO_DELETE"
+    ],
+    "OPTIONS": {
+      "Access Request": "RIGHT_TO_ACCESS",
+      "Deletion": "RIGHT_TO_DELETE",
+      "Update Request": null,
+      "HEM Opt-out": "RIGHT_TO_OPT_OUT",
+      "Opt-out": "RIGHT_TO_OPT_OUT",
+      "Questions": null,
+      "Complaints": null
+    },
+    "HEALTH_CHECK_STATUS": "AUDITED",
+    "AUTOMATABLE": true
+  },
+  "factori": {
+    "URLS": [],
+    "RIGHTS": [
+      "RIGHT_TO_OPT_OUT"
+    ],
+    "OPTIONS": {},
+    "HEALTH_CHECK_STATUS": "NEEDS_LIVE_CAPTURE",
+    "AUTOMATABLE": true
+  },
+  "fastpeoplesearch": {
+    "URLS": [
+      {
+        "GENERAL": "https://www.fastpeoplesearch.com/removal"
+      }
+    ],
+    "RIGHTS": [
+      "RIGHT_TO_OPT_OUT"
+    ],
+    "OPTIONS": {},
+    "HEALTH_CHECK_STATUS": "NEEDS_LIVE_CAPTURE",
+    "AUTOMATABLE": true
+  },
+  "fetcher": {
+    "URLS": [
+      {
+        "GENERAL": "https://app.fetcher.ai/opt-out"
+      }
+    ],
+    "RIGHTS": [
+      "RIGHT_TO_OPT_OUT"
+    ],
+    "OPTIONS": {},
+    "HEALTH_CHECK_STATUS": "NEEDS_LIVE_CAPTURE",
+    "AUTOMATABLE": true
+  },
+  "fideo": {
+    "URLS": [
+      {
+        "GENERAL": "https://app.fideo.ai/your-privacy-choices"
+      }
+    ],
+    "RIGHTS": [
+      "RIGHT_TO_ACCESS",
+      "RIGHT_TO_OPT_OUT",
+      "RIGHT_TO_DELETE"
+    ],
+    "OPTIONS": {
+      "Access": "RIGHT_TO_ACCESS",
+      "Correct": null,
+      "Do Not Sell": "RIGHT_TO_OPT_OUT",
+      "Limit Sharing of Sensitive Data": "RIGHT_TO_OPT_OUT",
+      "Delete": "RIGHT_TO_DELETE"
+    },
+    "HEALTH_CHECK_STATUS": "AUDITED",
+    "AUTOMATABLE": false,
+    "NOT_AUTOMATABLE_REASON": "every right requires an email/phone OTP before any data is submitted"
+  },
+  "finthrive": {
+    "URLS": [
+      {
+        "GENERAL": "https://privacyportal.onetrust.com/webform/e2abd578-6539-47f6-9895-b18d23b76ac4/c3d22390-d038-4464-83d3-3f0c91c76a01"
+      }
+    ],
+    "RIGHTS": [
+      "RIGHT_TO_ACCESS",
+      "RIGHT_TO_OPT_OUT",
+      "RIGHT_TO_DELETE"
+    ],
+    "OPTIONS": {},
+    "HEALTH_CHECK_STATUS": "NEEDS_LIVE_CAPTURE",
+    "AUTOMATABLE": true
+  },
+  "firstorion": {
+    "URLS": [
+      {
+        "GENERAL": "https://privacy.firstorion.com/"
+      }
+    ],
+    "RIGHTS": [
+      "RIGHT_TO_ACCESS",
+      "RIGHT_TO_OPT_OUT",
+      "RIGHT_TO_DELETE"
+    ],
+    "OPTIONS": {},
+    "HEALTH_CHECK_STATUS": "NEEDS_LIVE_CAPTURE",
+    "AUTOMATABLE": true
+  },
+  "fmadata": {
+    "URLS": [
+      {
+        "GENERAL": "https://www.fmadata.com/opt-out-requests/new"
+      }
+    ],
+    "RIGHTS": [
+      "RIGHT_TO_ACCESS",
+      "RIGHT_TO_OPT_OUT",
+      "RIGHT_TO_DELETE"
+    ],
+    "OPTIONS": {
+      "Opt out": "RIGHT_TO_OPT_OUT",
+      "Disclosure": "RIGHT_TO_ACCESS",
+      "Deletion": "RIGHT_TO_DELETE"
+    },
+    "HEALTH_CHECK_STATUS": "AUDITED",
+    "AUTOMATABLE": true
+  },
+  "fogdatascience": {
+    "URLS": [
+      {
+        "GENERAL": "https://www.fogdatascience.com/opt-out"
+      }
+    ],
+    "RIGHTS": [
+      "RIGHT_TO_ACCESS",
+      "RIGHT_TO_OPT_OUT",
+      "RIGHT_TO_DELETE"
+    ],
+    "OPTIONS": {},
+    "HEALTH_CHECK_STATUS": "NEEDS_LIVE_CAPTURE",
+    "AUTOMATABLE": true
+  },
+  "fourthwall": {
+    "URLS": [
+      {
+        "GENERAL": "https://www.fourthwall.tv/donotsellorshare-fourthwall"
+      }
+    ],
+    "RIGHTS": [
+      "RIGHT_TO_OPT_OUT"
+    ],
+    "OPTIONS": {},
+    "HEALTH_CHECK_STATUS": "NEEDS_LIVE_CAPTURE",
+    "AUTOMATABLE": true
+  },
+  "fraiser": {
+    "URLS": [
+      {
+        "GENERAL": "https://my.datasubject.com/Azq9ITU2sQioIKhOV/44046"
+      }
+    ],
+    "RIGHTS": [
+      "RIGHT_TO_ACCESS",
+      "RIGHT_TO_OPT_OUT",
+      "RIGHT_TO_LIST_OF_THIRD_PARTIES",
+      "RIGHT_TO_DELETE"
+    ],
+    "OPTIONS": {
+      "Correct my personal information": null,
+      "Summarize my personal information": "RIGHT_TO_ACCESS",
+      "Transfer my personal information": "RIGHT_TO_ACCESS",
+      "Do Not Sell or Share to a Third Party": "RIGHT_TO_OPT_OUT",
+      "Don't use my personal information for advertising": "RIGHT_TO_OPT_OUT",
+      "Third parties your data was sold or shared with": "RIGHT_TO_LIST_OF_THIRD_PARTIES",
+      "Opt Out of Profiling / Automated Decision-Making": "RIGHT_TO_OPT_OUT",
+      "Delete my personal information": "RIGHT_TO_DELETE"
+    },
+    "HEALTH_CHECK_STATUS": "AUDITED",
+    "AUTOMATABLE": true
+  },
+  "fullcontact": {
+    "URLS": [
+      {
+        "GENERAL": "https://platform.fullcontact.com/your-privacy-choices"
+      }
+    ],
+    "RIGHTS": [
+      "RIGHT_TO_ACCESS",
+      "RIGHT_TO_OPT_OUT",
+      "RIGHT_TO_DELETE"
+    ],
+    "OPTIONS": {
+      "Access My Data": "RIGHT_TO_ACCESS",
+      "Do Not Sell or Share My Data": "RIGHT_TO_OPT_OUT",
+      "Delete My Data": "RIGHT_TO_DELETE"
+    },
+    "HEALTH_CHECK_STATUS": "AUDITED",
+    "AUTOMATABLE": false,
+    "NOT_AUTOMATABLE_REASON": "identity verification sends a real email OTP that must be entered to continue"
+  },
+  "gostrata": {
+    "URLS": [
+      {
+        "GENERAL": "https://www.gostrata.com/do-not-sell-my-personal-information/"
+      }
+    ],
+    "RIGHTS": [
+      "RIGHT_TO_OPT_OUT",
+      "RIGHT_TO_DELETE"
+    ],
+    "OPTIONS": {},
+    "HEALTH_CHECK_STATUS": "NEEDS_LIVE_CAPTURE",
+    "AUTOMATABLE": true
+  },
+  "grassrootsanalytics": {
+    "URLS": [
+      {
+        "GENERAL": "https://www.grassrootsanalytics.com/california-consumer-privacy-act-ccpa"
+      }
+    ],
+    "RIGHTS": [
+      "RIGHT_TO_ACCESS",
+      "RIGHT_TO_OPT_OUT",
+      "RIGHT_TO_DELETE"
+    ],
+    "OPTIONS": {},
+    "HEALTH_CHECK_STATUS": "NEEDS_LIVE_CAPTURE",
+    "AUTOMATABLE": true
+  },
+  "grin": {
+    "URLS": [
+      {
+        "GENERAL": "https://grin.privacy.saymine.io/Grin"
+      }
+    ],
+    "RIGHTS": [
+      "RIGHT_TO_ACCESS",
+      "RIGHT_TO_OPT_OUT",
+      "RIGHT_TO_DELETE"
+    ],
+    "OPTIONS": {},
+    "HEALTH_CHECK_STATUS": "NEEDS_LIVE_CAPTURE",
+    "AUTOMATABLE": true
+  },
+  "groundtruth": {
+    "URLS": [
+      {
+        "GENERAL": "https://share.hsforms.com/1BoOyoq-ASaS-3zNW4dh5Agnn8aa"
+      }
+    ],
+    "RIGHTS": [
+      "RIGHT_TO_ACCESS",
+      "RIGHT_TO_OPT_OUT",
+      "RIGHT_TO_DELETE"
+    ],
+    "OPTIONS": {},
+    "HEALTH_CHECK_STATUS": "NEEDS_LIVE_CAPTURE",
+    "AUTOMATABLE": true
+  },
+  "growinglibraries": {
+    "URLS": [
+      {
+        "GENERAL": "https://growinglibraries.com/do-not-sell"
+      }
+    ],
+    "RIGHTS": [
+      "RIGHT_TO_OPT_OUT",
+      "RIGHT_TO_DELETE"
+    ],
+    "OPTIONS": {},
+    "HEALTH_CHECK_STATUS": "NEEDS_LIVE_CAPTURE",
+    "AUTOMATABLE": true
+  },
+  "gumgum": {
+    "URLS": [
+      {
+        "GENERAL": "https://privacyportal.onetrust.com/webform/fbe4d6b4-7f02-4251-bc4b-142d5109ae3e/1683277a-0ae1-47dd-8845-5e811a07e307"
+      }
+    ],
+    "RIGHTS": [
+      "RIGHT_TO_ACCESS",
+      "RIGHT_TO_OPT_OUT",
+      "RIGHT_TO_DELETE"
+    ],
+    "OPTIONS": {
+      "Info Request": "RIGHT_TO_ACCESS",
+      "Data Portability": "RIGHT_TO_ACCESS",
+      "Opt out": "RIGHT_TO_OPT_OUT",
+      "Do Not Sell": "RIGHT_TO_OPT_OUT",
+      "Data Deletion": "RIGHT_TO_DELETE",
+      "Update Data": null,
+      "Object to Processing": null,
+      "File a Complaint": null,
+      "Review Automated Decision": null,
+      "Restrict Processing": null
+    },
+    "HEALTH_CHECK_STATUS": "AUDITED",
+    "AUTOMATABLE": true
+  },
+  "hartehanks": {
+    "URLS": [
+      {
+        "GENERAL": "https://privacy-in-action.hartehanks.com/"
+      }
+    ],
+    "RIGHTS": [
+      "RIGHT_TO_ACCESS",
+      "RIGHT_TO_OPT_OUT",
+      "RIGHT_TO_DELETE"
+    ],
+    "OPTIONS": {},
+    "HEALTH_CHECK_STATUS": "NEEDS_LIVE_CAPTURE",
+    "AUTOMATABLE": true
+  },
+  "healthcare": {
+    "URLS": [
+      {
+        "GENERAL": "https://www.healthcare.com/data-request/request-form/"
+      }
+    ],
+    "RIGHTS": [
+      "RIGHT_TO_ACCESS",
+      "RIGHT_TO_OPT_OUT",
+      "RIGHT_TO_DELETE"
+    ],
+    "OPTIONS": {
+      "Right to know what information is collected": "RIGHT_TO_ACCESS",
+      "Right to opt-out of sales": "RIGHT_TO_OPT_OUT",
+      "Right to delete personal information": "RIGHT_TO_DELETE"
+    },
+    "HEALTH_CHECK_STATUS": "AUDITED",
+    "AUTOMATABLE": true
+  },
+  "hibu": {
+    "URLS": [
+      {
+        "GENERAL": "https://hibu.com/legal/privacy-form"
+      }
+    ],
+    "RIGHTS": [
+      "RIGHT_TO_ACCESS",
+      "RIGHT_TO_OPT_OUT",
+      "RIGHT_TO_DELETE"
+    ],
+    "OPTIONS": {
+      "Correct my Personal Information": null,
+      "Access to my Personal Information": "RIGHT_TO_ACCESS",
+      "Opt-out from the Sale or Share of Personal Information": "RIGHT_TO_OPT_OUT",
+      "Deletion of my Personal Information": "RIGHT_TO_DELETE"
+    },
+    "HEALTH_CHECK_STATUS": "AUDITED",
+    "AUTOMATABLE": true
+  },
+  "hightouch": {
+    "URLS": [
+      {
+        "GENERAL": "https://preferences.hightouch.com/"
+      }
+    ],
+    "RIGHTS": [
+      "RIGHT_TO_ACCESS",
+      "RIGHT_TO_OPT_OUT",
+      "RIGHT_TO_DELETE"
+    ],
+    "OPTIONS": {},
+    "HEALTH_CHECK_STATUS": "NEEDS_LIVE_CAPTURE",
+    "AUTOMATABLE": true
+  },
+  "homeownersmarketingservices": {
+    "URLS": [
+      {
+        "GENERAL": "https://homeownersmarketingservices.com/list-removal-request-new/"
+      }
+    ],
+    "RIGHTS": [
+      "RIGHT_TO_OPT_OUT"
+    ],
+    "OPTIONS": {},
+    "HEALTH_CHECK_STATUS": "NEEDS_LIVE_CAPTURE",
+    "AUTOMATABLE": true
+  },
+  "hubspot": {
+    "URLS": [
+      {
+        "GENERAL": "https://preferences.hubspot.com/?locale=en"
+      }
+    ],
+    "RIGHTS": [
+      "RIGHT_TO_ACCESS",
+      "RIGHT_TO_DELETE"
+    ],
+    "OPTIONS": {},
+    "HEALTH_CHECK_STATUS": "NEEDS_LIVE_CAPTURE",
+    "AUTOMATABLE": true
+  },
+  "i-360": {
+    "URLS": [
+      {
+        "GENERAL": "https://privacyportal.onetrust.com/webform/94afa614-d9cb-419b-99f1-20c87afaca7f/7527122f-48fe-46ad-bd59-6d69a33ac4db"
+      }
+    ],
+    "RIGHTS": [
+      "RIGHT_TO_ACCESS",
+      "RIGHT_TO_OPT_OUT",
+      "RIGHT_TO_DELETE"
+    ],
+    "OPTIONS": {},
+    "HEALTH_CHECK_STATUS": "NEEDS_LIVE_CAPTURE",
+    "AUTOMATABLE": true
+  },
+  "ice": {
+    "URLS": [
+      {
+        "GENERAL": "https://ice-privacy.my.onetrust.com/webform/cca3ac39-00b6-45f4-819b-bec660878b46/124d1692-407b-4384-9036-bef3ece530e3"
+      }
+    ],
+    "RIGHTS": [
+      "RIGHT_TO_ACCESS",
+      "RIGHT_TO_OPT_OUT",
+      "RIGHT_TO_DELETE"
+    ],
+    "OPTIONS": {},
+    "HEALTH_CHECK_STATUS": "NEEDS_LIVE_CAPTURE",
+    "AUTOMATABLE": true
+  },
+  "id5": {
+    "URLS": [
+      {
+        "GENERAL": "https://id5-sync.com/privacy/"
+      }
+    ],
+    "RIGHTS": [
+      "RIGHT_TO_ACCESS",
+      "RIGHT_TO_OPT_OUT",
+      "RIGHT_TO_DELETE"
+    ],
+    "OPTIONS": {},
+    "HEALTH_CHECK_STATUS": "NEEDS_LIVE_CAPTURE",
+    "AUTOMATABLE": true
+  },
+  "ididata": {
+    "URLS": [],
+    "RIGHTS": [
+      "RIGHT_TO_ACCESS",
+      "RIGHT_TO_OPT_OUT",
+      "RIGHT_TO_DELETE"
+    ],
+    "OPTIONS": {},
+    "HEALTH_CHECK_STATUS": "NEEDS_LIVE_CAPTURE",
+    "AUTOMATABLE": true
+  },
+  "idstrong": {
+    "URLS": [
+      {
+        "GENERAL": "https://privacyportal-eu.onetrust.com/webform/f6adb000-5a85-4ec1-a631-151c15d9d854/cbee3ef7-0c4c-44c0-b897-a08a9c4c1d62"
+      }
+    ],
+    "RIGHTS": [
+      "RIGHT_TO_ACCESS",
+      "RIGHT_TO_OPT_OUT",
+      "RIGHT_TO_DELETE"
+    ],
+    "OPTIONS": {},
+    "HEALTH_CHECK_STATUS": "NEEDS_LIVE_CAPTURE",
+    "AUTOMATABLE": true
+  },
+  "ileads": {
+    "URLS": [
+      {
+        "GENERAL": "https://ileads.com/submitrequest/"
+      }
+    ],
+    "RIGHTS": [
+      "RIGHT_TO_ACCESS",
+      "RIGHT_TO_OPT_OUT",
+      "RIGHT_TO_DELETE"
+    ],
+    "OPTIONS": {
+      "Data Access": "RIGHT_TO_ACCESS",
+      "Right to Know": "RIGHT_TO_ACCESS",
+      "Do Not Sell My Information": "RIGHT_TO_OPT_OUT",
+      "Data Deletion": "RIGHT_TO_DELETE"
+    },
+    "HEALTH_CHECK_STATUS": "AUDITED",
+    "AUTOMATABLE": true
+  },
+  "inboundinsight": {
+    "URLS": [
+      {
+        "GENERAL": "https://dsr.trustsuperset.com/?orgId=2183d64e-c307-4322-938f-5711d839719e"
+      }
+    ],
+    "RIGHTS": [
+      "RIGHT_TO_ACCESS",
+      "RIGHT_TO_OPT_OUT",
+      "RIGHT_TO_DELETE"
+    ],
+    "OPTIONS": {},
+    "HEALTH_CHECK_STATUS": "NEEDS_LIVE_CAPTURE",
+    "AUTOMATABLE": true
+  },
+  "infillion": {
+    "URLS": [
+      {
+        "GENERAL": "https://privacyportal.onetrust.com/webform/f7e3f6db-ed65-4759-a3f5-3b5c8b7e9bff/draft/9949a1a8-aa69-4848-a93f-d093d877a981"
+      }
+    ],
+    "RIGHTS": [
+      "RIGHT_TO_ACCESS",
+      "RIGHT_TO_OPT_OUT",
+      "RIGHT_TO_DELETE"
+    ],
+    "OPTIONS": {},
+    "HEALTH_CHECK_STATUS": "NEEDS_LIVE_CAPTURE",
+    "AUTOMATABLE": true
+  },
+  "informa": {
+    "URLS": [
+      {
+        "GENERAL": "https://privacy.informa.com/policies/en/"
+      }
+    ],
+    "RIGHTS": [
+      "RIGHT_TO_ACCESS",
+      "RIGHT_TO_OPT_OUT",
+      "RIGHT_TO_DELETE"
+    ],
+    "OPTIONS": {},
+    "HEALTH_CHECK_STATUS": "NEEDS_LIVE_CAPTURE",
+    "AUTOMATABLE": true
+  },
+  "information": {
+    "URLS": [
+      {
+        "GENERAL": "https://information.com/privacy-rights/"
+      }
+    ],
+    "RIGHTS": [
+      "RIGHT_TO_ACCESS",
+      "RIGHT_TO_DELETE",
+      "RIGHT_TO_OPT_OUT"
+    ],
+    "OPTIONS": {},
+    "HEALTH_CHECK_STATUS": "NEEDS_LIVE_CAPTURE",
+    "AUTOMATABLE": true
+  },
+  "infotracer": {
+    "URLS": [
+      {
+        "GENERAL": "https://submit-irm.trustarc.com/services/validation/8bec428f-079d-421f-8b6b-3ede6c5d5930/?brandId=7e2c71e1-7122-4856-bcaf-60248daf9d46"
+      }
+    ],
+    "RIGHTS": [
+      "RIGHT_TO_ACCESS",
+      "RIGHT_TO_DELETE"
+    ],
+    "OPTIONS": {},
+    "HEALTH_CHECK_STATUS": "NEEDS_LIVE_CAPTURE",
+    "AUTOMATABLE": true
+  },
+  "inmar": {
+    "URLS": [
+      {
+        "GENERAL": "https://privacyportal-cdn.onetrust.com/dsarwebform/fa9f2f77-33ff-473b-ae55-579e2e693a91/ea2fadbb-3208-459b-8ed6-c975b6a9901c.html"
+      }
+    ],
+    "RIGHTS": [
+      "RIGHT_TO_ACCESS",
+      "RIGHT_TO_DELETE"
+    ],
+    "OPTIONS": {},
+    "HEALTH_CHECK_STATUS": "NEEDS_LIVE_CAPTURE",
+    "AUTOMATABLE": true
+  },
+  "inmarket": {
+    "URLS": [
+      {
+        "GENERAL": "https://preferences.inmarket.com/?locationCode=US-MN"
+      }
+    ],
+    "RIGHTS": [
+      "RIGHT_TO_ACCESS",
+      "RIGHT_TO_OPT_OUT",
+      "RIGHT_TO_DELETE"
+    ],
+    "OPTIONS": {},
+    "HEALTH_CHECK_STATUS": "NEEDS_LIVE_CAPTURE",
+    "AUTOMATABLE": true
+  },
+  "instantly": {
+    "URLS": [],
+    "RIGHTS": [
+      "RIGHT_TO_ACCESS",
+      "RIGHT_TO_DELETE"
+    ],
+    "OPTIONS": {},
+    "HEALTH_CHECK_STATUS": "NEEDS_LIVE_CAPTURE",
+    "AUTOMATABLE": true
+  },
+  "intelius": {
+    "URLS": [
+      {
+        "GENERAL": "https://app.intelius.com/privacy-center/"
+      }
+    ],
+    "RIGHTS": [
+      "RIGHT_TO_ACCESS",
+      "RIGHT_TO_OPT_OUT",
+      "RIGHT_TO_DELETE"
+    ],
+    "OPTIONS": {
+      "Right to Know": "RIGHT_TO_ACCESS",
+      "Right to Opt Out": "RIGHT_TO_OPT_OUT",
+      "Right to Correct": null,
+      "Right to Delete": "RIGHT_TO_DELETE"
+    },
+    "HEALTH_CHECK_STATUS": "AUDITED",
+    "AUTOMATABLE": true
+  },
+  "intentsify": {
+    "URLS": [
+      {
+        "GENERAL": "https://app.intentsify.io/opt-out"
+      }
+    ],
+    "RIGHTS": [
+      "RIGHT_TO_ACCESS",
+      "RIGHT_TO_OPT_OUT",
+      "RIGHT_TO_DELETE"
+    ],
+    "OPTIONS": {
+      "Do not sell or share my personal information": "RIGHT_TO_OPT_OUT",
+      "Do not process my information for purposes of targeted advertising": "RIGHT_TO_OPT_OUT",
+      "Request to delete/erase my personal information": "RIGHT_TO_DELETE",
+      "Request to correct/rectify my personal information": null,
+      "Request to know/access my personal information": "RIGHT_TO_ACCESS"
+    },
+    "HEALTH_CHECK_STATUS": "AUDITED",
+    "AUTOMATABLE": true
+  },
+  "ip2location": {
+    "URLS": [
+      {
+        "GENERAL": "https://www.ip2location.com/do-not-sell"
+      }
+    ],
+    "RIGHTS": [
+      "RIGHT_TO_ACCESS",
+      "RIGHT_TO_OPT_OUT",
+      "RIGHT_TO_DELETE"
+    ],
+    "OPTIONS": {},
+    "HEALTH_CHECK_STATUS": "NEEDS_LIVE_CAPTURE",
+    "AUTOMATABLE": true
+  },
+  "iqm": {
+    "URLS": [
+      {
+        "GENERAL": "https://privacyportal-de.onetrust.com/webform/7436a756-393f-458a-a582-dca7d0d14e78/6e117877-3171-4edd-b9ef-4b42732bcace"
+      }
+    ],
+    "RIGHTS": [
+      "RIGHT_TO_ACCESS",
+      "RIGHT_TO_OPT_OUT",
+      "RIGHT_TO_DELETE"
+    ],
+    "OPTIONS": {},
+    "HEALTH_CHECK_STATUS": "NEEDS_LIVE_CAPTURE",
+    "AUTOMATABLE": true
+  },
+  "iqviadigital": {
+    "URLS": [
+      {
+        "GENERAL": "https://privacyportal.onetrust.com/webform/07e8dc4d-6686-403e-9b11-39fe7347d2f4/2f999bd2-c826-498c-a504-894eaf543b6f"
+      }
+    ],
+    "RIGHTS": [
+      "RIGHT_TO_ACCESS",
+      "RIGHT_TO_OPT_OUT",
+      "RIGHT_TO_DELETE"
+    ],
+    "OPTIONS": {},
+    "HEALTH_CHECK_STATUS": "NEEDS_LIVE_CAPTURE",
+    "AUTOMATABLE": true
+  },
+  "irys": {
+    "URLS": [
+      {
+        "GENERAL": "https://dsr.trustsuperset.com/?orgId=0d0512a8-9337-4cb5-9369-acf2ef40a077"
+      }
+    ],
+    "RIGHTS": [
+      "RIGHT_TO_ACCESS",
+      "RIGHT_TO_OPT_OUT",
+      "RIGHT_TO_DELETE"
+    ],
+    "OPTIONS": {},
+    "HEALTH_CHECK_STATUS": "NEEDS_LIVE_CAPTURE",
+    "AUTOMATABLE": true
+  },
+  "issgovernance": {
+    "URLS": [
+      {
+        "GENERAL": "https://www.iss-stoxx.com/legal/ccpa/"
+      }
+    ],
+    "RIGHTS": [
+      "RIGHT_TO_ACCESS",
+      "RIGHT_TO_OPT_OUT",
+      "RIGHT_TO_DELETE"
+    ],
+    "OPTIONS": {},
+    "HEALTH_CHECK_STATUS": "NEEDS_LIVE_CAPTURE",
+    "AUTOMATABLE": true
+  },
+  "jmr-media": {
+    "URLS": [
+      {
+        "GENERAL": "https://jmr-media.com/do-not-sell"
+      }
+    ],
+    "RIGHTS": [
+      "RIGHT_TO_ACCESS",
+      "RIGHT_TO_OPT_OUT",
+      "RIGHT_TO_DELETE"
+    ],
+    "OPTIONS": {},
+    "HEALTH_CHECK_STATUS": "NEEDS_LIVE_CAPTURE",
+    "AUTOMATABLE": true
+  },
+  "jobot": {
+    "URLS": [],
+    "RIGHTS": [
+      "RIGHT_TO_ACCESS",
+      "RIGHT_TO_DELETE"
+    ],
+    "OPTIONS": {},
+    "HEALTH_CHECK_STATUS": "NEEDS_LIVE_CAPTURE",
+    "AUTOMATABLE": true
+  },
+  "jungroup": {
+    "URLS": [],
+    "RIGHTS": [
+      "RIGHT_TO_OPT_OUT",
+      "RIGHT_TO_ACCESS",
+      "RIGHT_TO_DELETE"
+    ],
+    "OPTIONS": {
+      "Don't Sell/Share": "RIGHT_TO_OPT_OUT",
+      "View My Data": "RIGHT_TO_ACCESS",
+      "Edit My Data": null,
+      "Delete My Data": "RIGHT_TO_DELETE"
+    },
+    "HEALTH_CHECK_STATUS": "AUDITED",
+    "AUTOMATABLE": true
+  },
+  "kalibrate": {
+    "URLS": [
+      {
+        "GENERAL": "https://privacyportal-uk.onetrust.com/webform/6e95a345-1222-4957-a118-93d60494951b/390b0718-0304-49af-9629-7cb64a946019"
+      }
+    ],
+    "RIGHTS": [
+      "RIGHT_TO_ACCESS",
+      "RIGHT_TO_OPT_OUT",
+      "RIGHT_TO_DELETE"
+    ],
+    "OPTIONS": {
+      "Right to Know/Access to Information": "RIGHT_TO_ACCESS",
+      "Data Deletion/Opt-out/Do Not Sell": "RIGHT_TO_DELETE",
+      "Object to Processing": "RIGHT_TO_OPT_OUT",
+      "Rectify Personal Data": null,
+      "Unsubscribe from Marketing": null
+    },
+    "HEALTH_CHECK_STATUS": "AUDITED",
+    "AUTOMATABLE": true
+  },
+  "kidslivesafe": {
+    "URLS": [
+      {
+        "GENERAL": "https://www.kidslivesafe.com/help-center/privacy-requests"
+      }
+    ],
+    "RIGHTS": [
+      "RIGHT_TO_ACCESS",
+      "RIGHT_TO_OPT_OUT",
+      "RIGHT_TO_DELETE"
+    ],
+    "OPTIONS": {
+      "Do Not Sell My Info": "RIGHT_TO_OPT_OUT",
+      "Delete My Info": "RIGHT_TO_DELETE",
+      "Request a Copy": "RIGHT_TO_ACCESS"
+    },
+    "HEALTH_CHECK_STATUS": "AUDITED",
+    "AUTOMATABLE": true
+  },
+  "kochava": {
+    "URLS": [
+      {
+        "GENERAL": "https://www.kochava.com/opt-out-do-not-sell-request-process/"
+      }
+    ],
+    "RIGHTS": [
+      "RIGHT_TO_OPT_OUT"
+    ],
+    "OPTIONS": {},
+    "HEALTH_CHECK_STATUS": "NEEDS_LIVE_CAPTURE",
+    "AUTOMATABLE": true
+  },
+  "l2-data": {
+    "URLS": [
+      {
+        "GENERAL": "https://l2-data.com/optout1-667457/"
+      }
+    ],
+    "RIGHTS": [
+      "RIGHT_TO_OPT_OUT"
+    ],
+    "OPTIONS": {},
+    "HEALTH_CHECK_STATUS": "NEEDS_LIVE_CAPTURE",
+    "AUTOMATABLE": true
+  },
+  "lakeb2b": {
+    "URLS": [
+      {
+        "GENERAL": "https://www.lakeb2b.com/do-not-sell-my-data"
+      }
+    ],
+    "RIGHTS": [
+      "RIGHT_TO_OPT_OUT"
+    ],
+    "OPTIONS": {},
+    "HEALTH_CHECK_STATUS": "NEEDS_LIVE_CAPTURE",
+    "AUTOMATABLE": true
+  },
+  "lead411": {
+    "URLS": [
+      {
+        "GENERAL": "https://www.lead411.com/your-privacy-choices/"
+      }
+    ],
+    "RIGHTS": [
+      "RIGHT_TO_ACCESS",
+      "RIGHT_TO_OPT_OUT",
+      "RIGHT_TO_DELETE"
+    ],
+    "OPTIONS": {},
+    "HEALTH_CHECK_STATUS": "NEEDS_LIVE_CAPTURE",
+    "AUTOMATABLE": false,
+    "NOT_AUTOMATABLE_REASON": "submission requires an emailed verification code (OTP)"
+  },
+  "leadloft": {
+    "URLS": [
+      {
+        "GENERAL": "https://www.leadloft.com/user-agreements/personal-data"
+      }
+    ],
+    "RIGHTS": [
+      "RIGHT_TO_OPT_OUT",
+      "RIGHT_TO_DELETE"
+    ],
+    "OPTIONS": {},
+    "HEALTH_CHECK_STATUS": "NEEDS_LIVE_CAPTURE",
+    "AUTOMATABLE": true
+  },
+  "leadmemedia": {
+    "URLS": [
+      {
+        "GENERAL": "https://policy.leadmemedia.com/States/privacyrequestform.html"
+      }
+    ],
+    "RIGHTS": [
+      "RIGHT_TO_ACCESS",
+      "RIGHT_TO_OPT_OUT",
+      "RIGHT_TO_DELETE"
+    ],
+    "OPTIONS": {},
+    "HEALTH_CHECK_STATUS": "NEEDS_LIVE_CAPTURE",
+    "AUTOMATABLE": true
+  },
+  "leadpost": {
+    "URLS": [
+      {
+        "GENERAL": "https://client.leadpost.com/PrivacyRequest"
+      }
+    ],
+    "RIGHTS": [
+      "RIGHT_TO_OPT_OUT",
+      "RIGHT_TO_ACCESS",
+      "RIGHT_TO_DELETE"
+    ],
+    "OPTIONS": {},
+    "HEALTH_CHECK_STATUS": "NEEDS_LIVE_CAPTURE",
+    "AUTOMATABLE": true
+  },
+  "learnmore": {
+    "URLS": [
+      {
+        "GENERAL": "https://learnmore.com/privacy-rights/"
+      }
+    ],
+    "RIGHTS": [
+      "RIGHT_TO_ACCESS",
+      "RIGHT_TO_DELETE"
+    ],
+    "OPTIONS": {
+      "Request a Copy of My Data": "RIGHT_TO_ACCESS",
+      "Delete My User Data": "RIGHT_TO_DELETE",
+      "Exert Right to Opt-out": null
+    },
+    "HEALTH_CHECK_STATUS": "AUDITED",
+    "AUTOMATABLE": true
+  },
+  "lifesight": {
+    "URLS": [],
+    "RIGHTS": [
+      "RIGHT_TO_OPT_OUT"
+    ],
+    "OPTIONS": {},
+    "HEALTH_CHECK_STATUS": "NEEDS_LIVE_CAPTURE",
+    "AUTOMATABLE": true
+  },
+  "liftbasedata": {
+    "URLS": [
+      {
+        "GENERAL": "https://www.liftbasedata.com/request-to-know/liftbase/"
+      }
+    ],
+    "RIGHTS": [
+      "RIGHT_TO_ACCESS",
+      "RIGHT_TO_DELETE"
+    ],
+    "OPTIONS": {},
+    "HEALTH_CHECK_STATUS": "NEEDS_LIVE_CAPTURE",
+    "AUTOMATABLE": true
+  },
+  "lightboxre": {
+    "URLS": [
+      {
+        "GENERAL": "https://my.datasubject.com/16BXQXSvkBnuN4W2w/51306"
+      }
+    ],
+    "RIGHTS": [
+      "RIGHT_TO_ACCESS",
+      "RIGHT_TO_LIST_OF_THIRD_PARTIES",
+      "RIGHT_TO_DELETE"
+    ],
+    "OPTIONS": {},
+    "HEALTH_CHECK_STATUS": "NEEDS_LIVE_CAPTURE",
+    "AUTOMATABLE": true
+  },
+  "lightcast": {
+    "URLS": [
+      {
+        "GENERAL": "https://privacyportal.onetrust.com/webform/0f61f895-d08d-410f-b96d-ecfd34fd42e3/4b91c2db-5fdc-4f47-8523-b9f01d9e92a3"
+      }
+    ],
+    "RIGHTS": [
+      "RIGHT_TO_ACCESS",
+      "RIGHT_TO_OPT_OUT",
+      "RIGHT_TO_DELETE"
+    ],
+    "OPTIONS": {},
+    "HEALTH_CHECK_STATUS": "NEEDS_LIVE_CAPTURE",
+    "AUTOMATABLE": true
+  },
+  "listkit": {
+    "URLS": [
+      {
+        "GENERAL": "https://app.termly.io/dsar/c4e44408-4a15-4dc3-9604-8cd01dd64998"
+      }
+    ],
+    "RIGHTS": [
+      "RIGHT_TO_ACCESS",
+      "RIGHT_TO_OPT_OUT",
+      "RIGHT_TO_DELETE",
+      "RIGHT_TO_LIST_OF_THIRD_PARTIES"
+    ],
+    "OPTIONS": {},
+    "HEALTH_CHECK_STATUS": "NEEDS_LIVE_CAPTURE",
+    "AUTOMATABLE": true
+  },
+  "listservicedirect": {
+    "URLS": [
+      {
+        "GENERAL": "https://listservicedirect.com/opt-out/"
+      }
+    ],
+    "RIGHTS": [
+      "RIGHT_TO_OPT_OUT"
+    ],
+    "OPTIONS": {
+      "Opt-Out": "RIGHT_TO_OPT_OUT"
+    },
+    "HEALTH_CHECK_STATUS": "AUDITED",
+    "AUTOMATABLE": true
+  },
+  "liveintent": {
+    "URLS": [
+      {
+        "GENERAL": "https://privacy.liveintent.com/"
+      }
+    ],
+    "RIGHTS": [],
+    "OPTIONS": {},
+    "HEALTH_CHECK_STATUS": "NO_RIGHTS_CHOOSER",
+    "AUTOMATABLE": true
+  },
+  "liveramp": {
+    "URLS": [],
+    "RIGHTS": [
+      "RIGHT_TO_ACCESS",
+      "RIGHT_TO_OPT_OUT",
+      "RIGHT_TO_DELETE"
+    ],
+    "OPTIONS": {},
+    "HEALTH_CHECK_STATUS": "NEEDS_LIVE_CAPTURE",
+    "AUTOMATABLE": true
+  },
+  "lizdev": {
+    "URLS": [
+      {
+        "GENERAL": "https://lizdev.com/opt-out-form/"
+      }
+    ],
+    "RIGHTS": [
+      "RIGHT_TO_OPT_OUT"
+    ],
+    "OPTIONS": {},
+    "HEALTH_CHECK_STATUS": "NEEDS_LIVE_CAPTURE",
+    "AUTOMATABLE": true
+  },
+  "locatesmarter": {
+    "URLS": [],
+    "RIGHTS": [
+      "RIGHT_TO_ACCESS",
+      "RIGHT_TO_DELETE",
+      "RIGHT_TO_OPT_OUT"
+    ],
+    "OPTIONS": {},
+    "HEALTH_CHECK_STATUS": "NEEDS_LIVE_CAPTURE",
+    "AUTOMATABLE": true
+  },
+  "lsdirect": {
+    "URLS": [
+      {
+        "GENERAL": "https://lsdirect.com/my-personal-information/"
+      }
+    ],
+    "RIGHTS": [
+      "RIGHT_TO_OPT_OUT",
+      "RIGHT_TO_ACCESS"
+    ],
+    "OPTIONS": {},
+    "HEALTH_CHECK_STATUS": "NEEDS_LIVE_CAPTURE",
+    "AUTOMATABLE": true
+  },
+  "lsmapps": {
+    "URLS": [
+      {
+        "GENERAL": "https://lsmapps.com/opt-out"
+      }
+    ],
+    "RIGHTS": [
+      "RIGHT_TO_ACCESS",
+      "RIGHT_TO_OPT_OUT",
+      "RIGHT_TO_DELETE"
+    ],
+    "OPTIONS": {},
+    "HEALTH_CHECK_STATUS": "NEEDS_LIVE_CAPTURE",
+    "AUTOMATABLE": true
+  },
+  "m1data": {
+    "URLS": [
+      {
+        "GENERAL": "https://m1-data.com/unsubscribe/"
+      }
+    ],
+    "RIGHTS": [
+      "RIGHT_TO_ACCESS",
+      "RIGHT_TO_OPT_OUT",
+      "RIGHT_TO_DELETE"
+    ],
+    "OPTIONS": {
+      "Request to Know": "RIGHT_TO_ACCESS",
+      "Request to Delete": "RIGHT_TO_DELETE",
+      "Do Not Sell My Information": "RIGHT_TO_OPT_OUT"
+    },
+    "HEALTH_CHECK_STATUS": "AUDITED",
+    "AUTOMATABLE": true
+  },
+  "madisonlogic": {
+    "URLS": [
+      {
+        "GENERAL": "https://madisonlogic-privacy.my.onetrust.com/webform/b7449bea-44c6-4823-a2ac-30a8f33047d0/9a375b0c-9030-44ce-bfd3-217fd7a71993"
+      }
+    ],
+    "RIGHTS": [
+      "RIGHT_TO_ACCESS",
+      "RIGHT_TO_OPT_OUT",
+      "RIGHT_TO_DELETE"
+    ],
+    "OPTIONS": {},
+    "HEALTH_CHECK_STATUS": "NEEDS_LIVE_CAPTURE",
+    "AUTOMATABLE": true
+  },
+  "mailinglists": {
+    "URLS": [
+      {
+        "GENERAL": "https://41b1vr.share-na2.hsforms.com/2mF48cI-GSjaSTP9FG8gkjA"
+      }
+    ],
+    "RIGHTS": [
+      "RIGHT_TO_OPT_OUT",
+      "RIGHT_TO_DELETE"
+    ],
+    "OPTIONS": {
+      "Do Not Sell or Share": "RIGHT_TO_OPT_OUT",
+      "Delete": "RIGHT_TO_DELETE"
+    },
+    "HEALTH_CHECK_STATUS": "AUDITED",
+    "AUTOMATABLE": true
+  },
+  "malvernmedia": {
+    "URLS": [
+      {
+        "GENERAL": "https://privacyportal.privacypillar.com/dsar/form?formid=6e6ff4b8-2296-4589-ae7f-563fa743ec2d&orgid=369c8ff9-8ffb-4308-8362-f01691e77db8&propid=64c8904f-8bac-4dd9-8e6c-d052be1918a2&status=publish"
+      }
+    ],
+    "RIGHTS": [
+      "RIGHT_TO_ACCESS",
+      "RIGHT_TO_OPT_OUT",
+      "RIGHT_TO_DELETE"
+    ],
+    "OPTIONS": {
+      "Right to Know": "RIGHT_TO_ACCESS",
+      "Right to Correct": null,
+      "Right to Opt-Out of the Sale or Sharing of Personal Information": "RIGHT_TO_OPT_OUT",
+      "Right to Opt-Out of Cross-Behavioral Sale or Sharing": "RIGHT_TO_OPT_OUT",
+      "Right to Limit Use and Disclosure of Sensitive Personal Information": "RIGHT_TO_OPT_OUT",
+      "Right to Delete": "RIGHT_TO_DELETE"
+    },
+    "HEALTH_CHECK_STATUS": "AUDITED",
+    "AUTOMATABLE": true
+  },
+  "matchbookdata": {
+    "URLS": [
+      {
+        "GENERAL": "https://www.matchbookdata.com/your-privacy-choices/"
+      }
+    ],
+    "RIGHTS": [
+      "RIGHT_TO_OPT_OUT",
+      "RIGHT_TO_DELETE"
+    ],
+    "OPTIONS": {},
+    "HEALTH_CHECK_STATUS": "NEEDS_LIVE_CAPTURE",
+    "AUTOMATABLE": true
+  },
+  "mchdata": {
+    "URLS": [
+      {
+        "GENERAL": "https://www.mchdata.com/about/ccpaemail"
+      }
+    ],
+    "RIGHTS": [
+      "RIGHT_TO_OPT_OUT"
+    ],
+    "OPTIONS": {},
+    "HEALTH_CHECK_STATUS": "NEEDS_LIVE_CAPTURE",
+    "AUTOMATABLE": true
+  },
+  "mckessoncompile": {
+    "URLS": [
+      {
+        "GENERAL": "https://privacyportal.onetrust.com/webform/599133ba-bafa-4e24-8173-6e59b6c96dab/1554ac76-9012-4a4d-8cd4-53776f517530"
+      }
+    ],
+    "RIGHTS": [
+      "RIGHT_TO_ACCESS",
+      "RIGHT_TO_LIST_OF_THIRD_PARTIES",
+      "RIGHT_TO_OPT_OUT",
+      "RIGHT_TO_DELETE"
+    ],
+    "OPTIONS": {},
+    "HEALTH_CHECK_STATUS": "NEEDS_LIVE_CAPTURE",
+    "AUTOMATABLE": true
+  },
+  "media_net": {
+    "URLS": [
+      {
+        "GENERAL": "https://privacyrequest.net/privacy-request/?flavor=098ca9ee3e41231029aac9762ccd6a13"
+      }
+    ],
+    "RIGHTS": [
+      "RIGHT_TO_ACCESS",
+      "RIGHT_TO_OPT_OUT",
+      "RIGHT_TO_DELETE"
+    ],
+    "OPTIONS": {},
+    "HEALTH_CHECK_STATUS": "NEEDS_LIVE_CAPTURE",
+    "AUTOMATABLE": true
+  },
+  "mediaocean": {
+    "URLS": [
+      {
+        "GENERAL": "https://www.mediaocean.com/your-privacy-rights"
+      }
+    ],
+    "RIGHTS": [
+      "RIGHT_TO_ACCESS",
+      "RIGHT_TO_OPT_OUT",
+      "RIGHT_TO_DELETE"
+    ],
+    "OPTIONS": {},
+    "HEALTH_CHECK_STATUS": "NEEDS_LIVE_CAPTURE",
+    "AUTOMATABLE": true
+  },
+  "mediawallah": {
+    "URLS": [
+      {
+        "GENERAL": "https://privacyportal-eu-cdn.onetrust.com/dsarwebform/e3df3040-c675-462f-99c4-15c05ac3bf5c/545897d5-7793-4317-921b-4efe187a2c02.html"
+      }
+    ],
+    "RIGHTS": [
+      "RIGHT_TO_ACCESS",
+      "RIGHT_TO_OPT_OUT",
+      "RIGHT_TO_DELETE"
+    ],
+    "OPTIONS": {
+      "Customer": null,
+      "Partner": null,
+      "Employee": null,
+      "Info Request": "RIGHT_TO_ACCESS",
+      "Do Not Sell My Information": "RIGHT_TO_OPT_OUT",
+      "Data Deletion": "RIGHT_TO_DELETE"
+    },
+    "HEALTH_CHECK_STATUS": "AUDITED",
+    "AUTOMATABLE": true
+  },
+  "merkle": {
+    "URLS": [
+      {
+        "GENERAL": "https://privacyportal-de.onetrust.com/webform/79bad1a6-7964-4224-be55-bb1da49b8d2d/3e467ef9-b66a-49d8-bc62-40943a80745c"
+      }
+    ],
+    "RIGHTS": [
+      "RIGHT_TO_ACCESS",
+      "RIGHT_TO_OPT_OUT",
+      "RIGHT_TO_DELETE"
+    ],
+    "OPTIONS": {},
+    "HEALTH_CHECK_STATUS": "NEEDS_LIVE_CAPTURE",
+    "AUTOMATABLE": true
+  },
+  "messagedigital": {
+    "URLS": [
+      {
+        "GENERAL": "https://privacyportal.onetrust.com/webform/dad2d808-afe9-4335-9217-e650f906ee17/f3f3d5e6-bc82-4d21-ab04-f733117d11d2"
+      }
+    ],
+    "RIGHTS": [
+      "RIGHT_TO_ACCESS",
+      "RIGHT_TO_OPT_OUT",
+      "RIGHT_TO_DELETE"
+    ],
+    "OPTIONS": {},
+    "HEALTH_CHECK_STATUS": "NEEDS_LIVE_CAPTURE",
+    "AUTOMATABLE": true
+  },
+  "minerva": {
+    "URLS": [
+      {
+        "GENERAL": "https://preferences.minerva.io/"
+      }
+    ],
+    "RIGHTS": [
+      "RIGHT_TO_ACCESS",
+      "RIGHT_TO_OPT_OUT",
+      "RIGHT_TO_DELETE"
+    ],
+    "OPTIONS": {},
+    "HEALTH_CHECK_STATUS": "NEEDS_LIVE_CAPTURE",
+    "AUTOMATABLE": true
+  },
+  "mobilewalla": {
+    "URLS": [
+      {
+        "GENERAL": "https://www.mobilewalla.com/global-opt-out-request"
+      }
+    ],
+    "RIGHTS": [
+      "RIGHT_TO_ACCESS",
+      "RIGHT_TO_OPT_OUT",
+      "RIGHT_TO_DELETE"
+    ],
+    "OPTIONS": {},
+    "HEALTH_CHECK_STATUS": "NEEDS_LIVE_CAPTURE",
+    "AUTOMATABLE": true
+  },
+  "mobilityglobal": {
+    "URLS": [
+      {
+        "GENERAL": "https://privacyportal.onetrust.com/webform/87c0b060-447b-4c56-a99e-6fc89bd3c7e4/c5ce1867-0472-4257-953c-7ed388ede130"
+      }
+    ],
+    "RIGHTS": [
+      "RIGHT_TO_ACCESS",
+      "RIGHT_TO_OPT_OUT",
+      "RIGHT_TO_DELETE"
+    ],
+    "OPTIONS": {},
+    "HEALTH_CHECK_STATUS": "NEEDS_LIVE_CAPTURE",
+    "AUTOMATABLE": true
+  },
+  "monitorbase": {
+    "URLS": [
+      {
+        "GENERAL": "https://my.monitorbase.com/privacypolicy"
+      }
+    ],
+    "RIGHTS": [
+      "RIGHT_TO_ACCESS",
+      "RIGHT_TO_OPT_OUT",
+      "RIGHT_TO_DELETE"
+    ],
+    "OPTIONS": {
+      "What Information of Mine Do You Have?": "RIGHT_TO_ACCESS",
+      "Opt Me Out Of Having My Data Sold": "RIGHT_TO_OPT_OUT",
+      "Delete My Information": "RIGHT_TO_DELETE"
+    },
+    "HEALTH_CHECK_STATUS": "AUDITED",
+    "AUTOMATABLE": true
+  },
+  "motrixi": {
+    "URLS": [
+      {
+        "GENERAL": "https://www.motrixi.com/index.php/opt-out/"
+      }
+    ],
+    "RIGHTS": [
+      "RIGHT_TO_OPT_OUT"
+    ],
+    "OPTIONS": {},
+    "HEALTH_CHECK_STATUS": "NEEDS_LIVE_CAPTURE",
+    "AUTOMATABLE": true
+  },
+  "mrginc": {
+    "URLS": [
+      {
+        "GENERAL": "https://www.mrginc.com/do-not-sell-my-personal-information"
+      }
+    ],
+    "RIGHTS": [
+      "RIGHT_TO_ACCESS",
+      "RIGHT_TO_OPT_OUT",
+      "RIGHT_TO_DELETE"
+    ],
+    "OPTIONS": {},
+    "HEALTH_CHECK_STATUS": "NEEDS_LIVE_CAPTURE",
+    "AUTOMATABLE": true
+  },
+  "mrss": {
+    "URLS": [
+      {
+        "GENERAL": "https://www.mrss.com/my-personal-information/"
+      }
+    ],
+    "RIGHTS": [
+      "RIGHT_TO_OPT_OUT"
+    ],
+    "OPTIONS": {},
+    "HEALTH_CHECK_STATUS": "NEEDS_LIVE_CAPTURE",
+    "AUTOMATABLE": true
+  },
+  "narvar": {
+    "URLS": [
+      {
+        "GENERAL": "https://narvar.my.onetrust.com/webform/04b3731f-2a9a-42ce-bd6b-106d4b4ec3bf/a7c944bf-3cec-4f00-9dc5-dea5bf2b6f4f"
+      }
+    ],
+    "RIGHTS": [
+      "RIGHT_TO_ACCESS",
+      "RIGHT_TO_OPT_OUT",
+      "RIGHT_TO_DELETE"
+    ],
+    "OPTIONS": {},
+    "HEALTH_CHECK_STATUS": "NO_RIGHTS_CHOOSER",
+    "AUTOMATABLE": true
+  },
+  "nextroll": {
+    "URLS": [
+      {
+        "GENERAL": "https://app.adroll.com/optout"
+      }
+    ],
+    "RIGHTS": [
+      "RIGHT_TO_OPT_OUT"
+    ],
+    "OPTIONS": {},
+    "HEALTH_CHECK_STATUS": "NEEDS_LIVE_CAPTURE",
+    "AUTOMATABLE": true
+  },
+  "nexxagroup": {
+    "URLS": [
+      {
+        "GENERAL": "https://privacyportal.onetrust.com/webform/c02129bc-bbab-43a6-a0b4-175489cb893e/156ac96a-9d7e-4fe6-bab8-a44df779202b"
+      }
+    ],
+    "RIGHTS": [
+      "RIGHT_TO_ACCESS",
+      "RIGHT_TO_OPT_OUT",
+      "RIGHT_TO_DELETE"
+    ],
+    "OPTIONS": {},
+    "HEALTH_CHECK_STATUS": "NEEDS_LIVE_CAPTURE",
+    "AUTOMATABLE": true
+  },
+  "nexxen": {
+    "URLS": [
+      {
+        "GENERAL": "https://privacyportal.onetrust.com/webform/76394770-3c6c-4d28-a57b-18817b0a8e3f/2bbd01a5-983c-440b-9fd5-fd341c9326a1"
+      }
+    ],
+    "RIGHTS": [
+      "RIGHT_TO_ACCESS",
+      "RIGHT_TO_OPT_OUT",
+      "RIGHT_TO_DELETE"
+    ],
+    "OPTIONS": {},
+    "HEALTH_CHECK_STATUS": "NEEDS_LIVE_CAPTURE",
+    "AUTOMATABLE": true
+  },
+  "nielsen": {
+    "URLS": [
+      {
+        "GENERAL": "https://privacyportalde-cdn.onetrust.com/dsarwebform/70b0083d-d519-4ad2-84ca-96b7c5f8e1a9/9810a8bc-e54d-4d70-bac0-5e4d781ef5b9.html"
+      }
+    ],
+    "RIGHTS": [
+      "RIGHT_TO_ACCESS",
+      "RIGHT_TO_DELETE"
+    ],
+    "OPTIONS": {},
+    "HEALTH_CHECK_STATUS": "NEEDS_LIVE_CAPTURE",
+    "AUTOMATABLE": true
+  },
+  "onpointdatastrategy": {
+    "URLS": [
+      {
+        "GENERAL": "https://onpointdatastrategy.com/opt-out/"
+      }
+    ],
+    "RIGHTS": [
+      "RIGHT_TO_ACCESS",
+      "RIGHT_TO_OPT_OUT",
+      "RIGHT_TO_DELETE"
+    ],
+    "OPTIONS": {
+      "Opt-Out Only": "RIGHT_TO_OPT_OUT",
+      "Do Not Sell My Data Only": "RIGHT_TO_OPT_OUT",
+      "Request Information Only": "RIGHT_TO_ACCESS",
+      "Opt Out & Request Information": "RIGHT_TO_OPT_OUT",
+      "Remove me from your database": "RIGHT_TO_DELETE"
+    },
+    "HEALTH_CHECK_STATUS": "AUDITED",
+    "AUTOMATABLE": true
+  },
+  "optimalfusion": {
+    "URLS": [
+      {
+        "GENERAL": "https://optimalfusion.com/do-not-sell-my-personal-information/"
+      }
+    ],
+    "RIGHTS": [
+      "RIGHT_TO_ACCESS",
+      "RIGHT_TO_OPT_OUT",
+      "RIGHT_TO_DELETE"
+    ],
+    "OPTIONS": {},
+    "HEALTH_CHECK_STATUS": "NEEDS_LIVE_CAPTURE",
+    "AUTOMATABLE": true
+  },
+  "oracle": {
+    "URLS": [
+      {
+        "GENERAL": "https://submit-irm.trustarc.com/services/validation/742d5422-26ad-45bc-89b1-05e40e58b59d"
+      }
+    ],
+    "RIGHTS": [
+      "RIGHT_TO_ACCESS",
+      "RIGHT_TO_OPT_OUT",
+      "RIGHT_TO_DELETE"
+    ],
+    "OPTIONS": {
+      "Access My Information": "RIGHT_TO_ACCESS",
+      "Do Not Sell My Personal Information": "RIGHT_TO_OPT_OUT",
+      "Marketing e-Mail Opt-out or Unsubscribe": "RIGHT_TO_OPT_OUT",
+      "Delete My Information": "RIGHT_TO_DELETE",
+      "Correct or Update My Information": null,
+      "Other Privacy Inquiry – Contact our DPO": null
+    },
+    "HEALTH_CHECK_STATUS": "AUDITED",
+    "AUTOMATABLE": true
+  },
+  "outlogic": {
+    "URLS": [
+      {
+        "GENERAL": "https://outlogic.io/opt-out-form/"
+      }
+    ],
+    "RIGHTS": [
+      "RIGHT_TO_OPT_OUT"
+    ],
+    "OPTIONS": {},
+    "HEALTH_CHECK_STATUS": "NEEDS_LIVE_CAPTURE",
+    "AUTOMATABLE": true
+  },
+  "owneriq": {
+    "URLS": [
+      {
+        "GENERAL": "https://privacyportal-cdn.onetrust.com/dsarwebform/fa9f2f77-33ff-473b-ae55-579e2e693a91/ea2fadbb-3208-459b-8ed6-c975b6a9901c.html"
+      }
+    ],
+    "RIGHTS": [
+      "RIGHT_TO_ACCESS",
+      "RIGHT_TO_DELETE"
+    ],
+    "OPTIONS": {},
+    "HEALTH_CHECK_STATUS": "NEEDS_LIVE_CAPTURE",
+    "AUTOMATABLE": true
+  },
+  "pacificeast": {
+    "URLS": [
+      {
+        "GENERAL": "https://www.pacificeast.com/contact-us-privacy/"
+      }
+    ],
+    "RIGHTS": [
+      "RIGHT_TO_OPT_OUT"
+    ],
+    "OPTIONS": {},
+    "HEALTH_CHECK_STATUS": "NEEDS_LIVE_CAPTURE",
+    "AUTOMATABLE": true
+  },
+  "paramountdirectmarketing": {
+    "URLS": [
+      {
+        "GENERAL": "https://paramountdirectmarketing.com/do-not-sell-non-ca"
+      }
+    ],
+    "RIGHTS": [
+      "RIGHT_TO_OPT_OUT",
+      "RIGHT_TO_DELETE"
+    ],
+    "OPTIONS": {
+      "Right to Opt Out": "RIGHT_TO_OPT_OUT",
+      "Right to Delete": "RIGHT_TO_DELETE"
+    },
+    "HEALTH_CHECK_STATUS": "AUDITED",
+    "AUTOMATABLE": true
+  },
+  "parasolleads": {
+    "URLS": [
+      {
+        "GENERAL": "https://www.parasolleads.com/ccpa-opt-out-form.php"
+      }
+    ],
+    "RIGHTS": [
+      "RIGHT_TO_OPT_OUT"
+    ],
+    "OPTIONS": {},
+    "HEALTH_CHECK_STATUS": "NEEDS_LIVE_CAPTURE",
+    "AUTOMATABLE": true
+  },
+  "path2response": {
+    "URLS": [
+      {
+        "GENERAL": "https://privacyportal-cdn.onetrust.com/dsarwebform/2de26f06-de6f-45a7-8e1d-7d1148a3f301/draft/7a5dc7d1-cc7e-43a8-9f24-702807deb65b.html"
+      }
+    ],
+    "RIGHTS": [
+      "RIGHT_TO_OPT_OUT",
+      "RIGHT_TO_ACCESS",
+      "RIGHT_TO_DELETE"
+    ],
+    "OPTIONS": {},
+    "HEALTH_CHECK_STATUS": "NEEDS_LIVE_CAPTURE",
+    "AUTOMATABLE": true
+  },
+  "penlink": {
+    "URLS": [
+      {
+        "GENERAL": "https://www.penlink.com/your-privacy-choices/"
+      }
+    ],
+    "RIGHTS": [
+      "RIGHT_TO_ACCESS",
+      "RIGHT_TO_OPT_OUT",
+      "RIGHT_TO_LIST_OF_THIRD_PARTIES",
+      "RIGHT_TO_DELETE"
+    ],
+    "OPTIONS": {},
+    "HEALTH_CHECK_STATUS": "NEEDS_LIVE_CAPTURE",
+    "AUTOMATABLE": true
+  },
+  "peoplefinders": {
+    "URLS": [
+      {
+        "GENERAL": "https://www.peoplefinders.com/request-my-info"
+      }
+    ],
+    "RIGHTS": [
+      "RIGHT_TO_ACCESS"
+    ],
+    "OPTIONS": {},
+    "HEALTH_CHECK_STATUS": "NEEDS_LIVE_CAPTURE",
+    "AUTOMATABLE": true
+  },
+  "perion": {
+    "URLS": [
+      {
+        "GENERAL": "https://forms.monday.com/forms/2e643e95786ac0c2cdf2dca015d20c68?r=use1"
+      }
+    ],
+    "RIGHTS": [
+      "RIGHT_TO_ACCESS",
+      "RIGHT_TO_OPT_OUT",
+      "RIGHT_TO_DELETE"
+    ],
+    "OPTIONS": {
+      "Right to Know or Access my Personal Data": "RIGHT_TO_ACCESS",
+      "Right to opt-out of Sale": "RIGHT_TO_OPT_OUT",
+      "Right to Delete my Personal Data": "RIGHT_TO_DELETE"
+    },
+    "HEALTH_CHECK_STATUS": "AUDITED",
+    "AUTOMATABLE": true
+  },
+  "persistent_id": {
+    "URLS": [
+      {
+        "GENERAL": "https://dsr.trustsuperset.com/?orgId=7b774bc1-608f-8c4c-bb90-453b1540f48b"
+      }
+    ],
+    "RIGHTS": [
+      "RIGHT_TO_ACCESS",
+      "RIGHT_TO_OPT_OUT",
+      "RIGHT_TO_DELETE"
+    ],
+    "OPTIONS": {
+      "Right to Rectification": null,
+      "Right to Data Portability": "RIGHT_TO_ACCESS",
+      "Right to Not be Subject to Automated Decision-Making": "RIGHT_TO_OPT_OUT",
+      "Right to Opt-out of Sales": "RIGHT_TO_OPT_OUT",
+      "Right to Restrict Processing": "RIGHT_TO_OPT_OUT",
+      "Right to Limit Sensitive Personal Information": "RIGHT_TO_OPT_OUT",
+      "Right to Erasure": "RIGHT_TO_DELETE"
+    },
+    "HEALTH_CHECK_STATUS": "AUDITED",
+    "AUTOMATABLE": true
+  },
+  "placeiq": {
+    "URLS": [
+      {
+        "GENERAL": "https://privacyportal-eu.onetrust.com/webform/d88b298e-1f7e-420f-949c-fedc475c1e77/83126462-6c9f-4d90-9077-f029b129a2a6"
+      }
+    ],
+    "RIGHTS": [
+      "RIGHT_TO_ACCESS",
+      "RIGHT_TO_OPT_OUT",
+      "RIGHT_TO_DELETE"
+    ],
+    "OPTIONS": {},
+    "HEALTH_CHECK_STATUS": "NEEDS_LIVE_CAPTURE",
+    "AUTOMATABLE": true
+  },
+  "popacta": {
+    "URLS": [
+      {
+        "GENERAL": "https://optout.popacta.com/contact-us"
+      }
+    ],
+    "RIGHTS": [
+      "RIGHT_TO_ACCESS",
+      "RIGHT_TO_OPT_OUT",
+      "RIGHT_TO_DELETE"
+    ],
+    "OPTIONS": {},
+    "HEALTH_CHECK_STATUS": "NEEDS_LIVE_CAPTURE",
+    "AUTOMATABLE": true
+  },
+  "postpilot": {
+    "URLS": [
+      {
+        "GENERAL": "https://forms.clickup.com/14183078/f/dgun6-8690/XIZIQMFCDPWFOG8PKO"
+      }
+    ],
+    "RIGHTS": [
+      "RIGHT_TO_ACCESS",
+      "RIGHT_TO_OPT_OUT",
+      "RIGHT_TO_DELETE"
+    ],
+    "OPTIONS": {
+      "Right to Access / Portability": "RIGHT_TO_ACCESS",
+      "Right to Know": "RIGHT_TO_OPT_OUT",
+      "Right to Correction": null,
+      "Right to Deletion": "RIGHT_TO_DELETE",
+      "Right to Opt Out of Sales": null
+    },
+    "HEALTH_CHECK_STATUS": "AUDITED",
+    "AUTOMATABLE": true
+  },
+  "precisely": {
+    "URLS": [
+      {
+        "GENERAL": "https://privacyportal-eu.onetrust.com/webform/d88b298e-1f7e-420f-949c-fedc475c1e77/draft/9c253316-9abf-49fb-a3e1-a4e214c4cf41"
+      }
+    ],
+    "RIGHTS": [
+      "RIGHT_TO_ACCESS",
+      "RIGHT_TO_OPT_OUT",
+      "RIGHT_TO_DELETE"
+    ],
+    "OPTIONS": {},
+    "HEALTH_CHECK_STATUS": "NEEDS_LIVE_CAPTURE",
+    "AUTOMATABLE": true
+  },
+  "preqin": {
+    "URLS": [
+      {
+        "GENERAL": "https://portals.dporganizer.com/cbf39a0c-c047-4a7b-814d-c9d45754b4af"
+      }
+    ],
+    "RIGHTS": [
+      "RIGHT_TO_ACCESS",
+      "RIGHT_TO_OPT_OUT",
+      "RIGHT_TO_DELETE"
+    ],
+    "OPTIONS": {
+      "Erasure": "RIGHT_TO_DELETE",
+      "Data portability": "RIGHT_TO_ACCESS",
+      "Correction": null,
+      "Know or Access": "RIGHT_TO_ACCESS",
+      "Opt-out from Cross-Context Behavioral Advertising or Targeted Advertising": "RIGHT_TO_OPT_OUT",
+      "Opt-out from Sales of Personal Information": "RIGHT_TO_OPT_OUT"
+    },
+    "HEALTH_CHECK_STATUS": "AUDITED",
+    "AUTOMATABLE": true
+  },
+  "propertyradar": {
+    "URLS": [
+      {
+        "GENERAL": "https://privacyportal.onetrust.com/webform/c3eb779a-028a-4045-aefc-ac78be730689/6f6c2bef-b565-4753-adc6-95585d7a9486"
+      }
+    ],
+    "RIGHTS": [
+      "RIGHT_TO_ACCESS",
+      "RIGHT_TO_OPT_OUT",
+      "RIGHT_TO_DELETE"
+    ],
+    "OPTIONS": {},
+    "HEALTH_CHECK_STATUS": "NEEDS_LIVE_CAPTURE",
+    "AUTOMATABLE": true
+  },
+  "propstream": {
+    "URLS": [
+      {
+        "GENERAL": "https://privacyportal.onetrust.com/webform/23dbbccc-a76c-4410-a68e-f247d70e566c/7d013624-d2db-430a-9265-3112f7c4177c"
+      }
+    ],
+    "RIGHTS": [
+      "RIGHT_TO_ACCESS",
+      "RIGHT_TO_OPT_OUT",
+      "RIGHT_TO_DELETE"
+    ],
+    "OPTIONS": {
+      "Request a copy of my personal information": "RIGHT_TO_ACCESS",
+      "Request to know about categories of information maintained by PropStream": "RIGHT_TO_ACCESS",
+      "Request to opt-out of sale and sharing": "RIGHT_TO_OPT_OUT",
+      "Request to delete": "RIGHT_TO_DELETE",
+      "Request to correct": null
+    },
+    "HEALTH_CHECK_STATUS": "AUDITED",
+    "AUTOMATABLE": true
+  },
+  "publicdatacheck": {
+    "URLS": [
+      {
+        "GENERAL": "https://www.publicdatacheck.com/help-center/privacy-requests"
+      }
+    ],
+    "RIGHTS": [
+      "RIGHT_TO_ACCESS",
+      "RIGHT_TO_OPT_OUT",
+      "RIGHT_TO_DELETE"
+    ],
+    "OPTIONS": {
+      "Do Not Sell My Info": "RIGHT_TO_OPT_OUT",
+      "Delete My Info": "RIGHT_TO_DELETE",
+      "Request a Copy": "RIGHT_TO_ACCESS"
+    },
+    "HEALTH_CHECK_STATUS": "AUDITED",
+    "AUTOMATABLE": true
+  },
+  "pulsepoint": {
+    "URLS": [
+      {
+        "GENERAL": "https://mynt-test-privacy.my.onetrust.com/webform/ebe19500-bc8d-487f-9d89-98fde8b270e2/bac5d2a2-fd3e-4830-99b6-bd2a69fec1c9"
+      }
+    ],
+    "RIGHTS": [
+      "RIGHT_TO_ACCESS",
+      "RIGHT_TO_DELETE"
+    ],
+    "OPTIONS": {},
+    "HEALTH_CHECK_STATUS": "NEEDS_LIVE_CAPTURE",
+    "AUTOMATABLE": true
+  },
+  "quad": {
+    "URLS": [
+      {
+        "GENERAL": "https://privacyportal.onetrust.com/webform/9bbdeb31-9ca4-4397-b421-b165438ad177/1ca01042-21a7-4307-8b42-a6c7439c9685"
+      }
+    ],
+    "RIGHTS": [
+      "RIGHT_TO_OPT_OUT"
+    ],
+    "OPTIONS": {},
+    "HEALTH_CHECK_STATUS": "NEEDS_LIVE_CAPTURE",
+    "AUTOMATABLE": true
+  },
+  "qualcomm": {
+    "URLS": [
+      {
+        "GENERAL": "https://privacyportal.onetrust.com/webform/b0a5f2cc-0b29-4907-89bf-3f6b380a03c8/7ab89abb-0d42-492a-a324-0570883e2c11"
+      }
+    ],
+    "RIGHTS": [
+      "RIGHT_TO_ACCESS",
+      "RIGHT_TO_OPT_OUT",
+      "RIGHT_TO_DELETE"
+    ],
+    "OPTIONS": {
+      "Access": "RIGHT_TO_ACCESS",
+      "Data Portability": "RIGHT_TO_ACCESS",
+      "Update Data": null,
+      "Review Automated Decision": "RIGHT_TO_OPT_OUT",
+      "Opt out": "RIGHT_TO_OPT_OUT",
+      "Object to Processing": "RIGHT_TO_OPT_OUT",
+      "Data Deletion": "RIGHT_TO_DELETE"
+    },
+    "HEALTH_CHECK_STATUS": "AUDITED",
+    "AUTOMATABLE": true
+  },
+  "quantcast": {
+    "URLS": [
+      {
+        "GENERAL": "https://data-access.quantserve.com/gdpr/"
+      }
+    ],
+    "RIGHTS": [
+      "RIGHT_TO_ACCESS",
+      "RIGHT_TO_DELETE"
+    ],
+    "OPTIONS": {},
+    "HEALTH_CHECK_STATUS": "NEEDS_LIVE_CAPTURE",
+    "AUTOMATABLE": true
+  },
+  "quinstreet": {
+    "URLS": [
+      {
+        "GENERAL": "https://privacy-central.securiti.ai/#/dsr/1b319101-f00c-470f-a7f0-26aa81f057b8"
+      }
+    ],
+    "RIGHTS": [
+      "RIGHT_TO_OPT_OUT"
+    ],
+    "OPTIONS": {},
+    "HEALTH_CHECK_STATUS": "NEEDS_LIVE_CAPTURE",
+    "AUTOMATABLE": true
+  },
+  "rayinsights": {
+    "URLS": [],
+    "RIGHTS": [
+      "RIGHT_TO_ACCESS",
+      "RIGHT_TO_OPT_OUT",
+      "RIGHT_TO_DELETE"
+    ],
+    "OPTIONS": {},
+    "HEALTH_CHECK_STATUS": "NEEDS_LIVE_CAPTURE",
+    "AUTOMATABLE": true
+  },
+  "realsourcedata": {
+    "URLS": [
+      {
+        "GENERAL": "https://www.realsourcedata.com/do-not-sell-my-personal-information"
+      }
+    ],
+    "RIGHTS": [
+      "RIGHT_TO_OPT_OUT"
+    ],
+    "OPTIONS": {},
+    "HEALTH_CHECK_STATUS": "NEEDS_LIVE_CAPTURE",
+    "AUTOMATABLE": true
+  },
+  "recordsfinder": {
+    "URLS": [
+      {
+        "GENERAL": "https://recordsfinder.com/optout/"
+      }
+    ],
+    "RIGHTS": [
+      "RIGHT_TO_OPT_OUT"
+    ],
+    "OPTIONS": {},
+    "HEALTH_CHECK_STATUS": "NEEDS_LIVE_CAPTURE",
+    "AUTOMATABLE": true
+  },
+  "refinitiv": {
+    "URLS": [
+      {
+        "GENERAL": "https://privacyportal-de.onetrust.com/webform/5f7a2da0-bed0-45e8-ac2c-c1f297e2efdc/4ae30ef5-8107-4353-a0b5-1bf34dd647f6"
+      }
+    ],
+    "RIGHTS": [
+      "RIGHT_TO_ACCESS",
+      "RIGHT_TO_DELETE"
+    ],
+    "OPTIONS": {},
+    "HEALTH_CHECK_STATUS": "NEEDS_LIVE_CAPTURE",
+    "AUTOMATABLE": true
+  },
+  "reklaimyours": {
+    "URLS": [
+      {
+        "GENERAL": "https://www.reklaimyou.com/optout"
+      }
+    ],
+    "RIGHTS": [
+      "RIGHT_TO_ACCESS",
+      "RIGHT_TO_OPT_OUT",
+      "RIGHT_TO_DELETE"
+    ],
+    "OPTIONS": {},
+    "HEALTH_CHECK_STATUS": "NEEDS_LIVE_CAPTURE",
+    "AUTOMATABLE": true
+  },
+  "reonomy": {
+    "URLS": [
+      {
+        "GENERAL": "https://privacyportal-cdn.onetrust.com/dsarwebform/ed2a4eae-cadd-4d40-9f21-cf27556d3a21/49fbe5ce-5ee2-487b-9b4f-bfdab733819b.html"
+      }
+    ],
+    "RIGHTS": [
+      "RIGHT_TO_ACCESS",
+      "RIGHT_TO_OPT_OUT",
+      "RIGHT_TO_DELETE"
+    ],
+    "OPTIONS": {},
+    "HEALTH_CHECK_STATUS": "NEEDS_LIVE_CAPTURE",
+    "AUTOMATABLE": true
+  },
+  "resonate": {
+    "URLS": [
+      {
+        "GENERAL": "https://optout-form.reson8.com/"
+      }
+    ],
+    "RIGHTS": [
+      "RIGHT_TO_ACCESS",
+      "RIGHT_TO_OPT_OUT",
+      "RIGHT_TO_DELETE"
+    ],
+    "OPTIONS": {},
+    "HEALTH_CHECK_STATUS": "NEEDS_LIVE_CAPTURE",
+    "AUTOMATABLE": true
+  },
+  "revenuebase": {
+    "URLS": [
+      {
+        "GENERAL": "https://forms.gle/5Cab6bJcRtqVzAJS8"
+      }
+    ],
+    "RIGHTS": [
+      "RIGHT_TO_DELETE"
+    ],
+    "OPTIONS": {},
+    "HEALTH_CHECK_STATUS": "NEEDS_LIVE_CAPTURE",
+    "AUTOMATABLE": true
+  },
+  "rhetorik": {
+    "URLS": [
+      {
+        "GENERAL": "https://privacyportal.onetrust.com/webform/0f61f895-d08d-410f-b96d-ecfd34fd42e3/83acc2bf-4742-4946-8a7a-7b2a463d00a5"
+      }
+    ],
+    "RIGHTS": [
+      "RIGHT_TO_ACCESS",
+      "RIGHT_TO_OPT_OUT",
+      "RIGHT_TO_DELETE"
+    ],
+    "OPTIONS": {},
+    "HEALTH_CHECK_STATUS": "NEEDS_LIVE_CAPTURE",
+    "AUTOMATABLE": true
+  },
+  "richmediallc": {
+    "URLS": [
+      {
+        "GENERAL": "https://privacy.richmediallc.com/"
+      }
+    ],
+    "RIGHTS": [
+      "RIGHT_TO_ACCESS",
+      "RIGHT_TO_OPT_OUT",
+      "RIGHT_TO_DELETE"
+    ],
+    "OPTIONS": {
+      "Right to know": "RIGHT_TO_ACCESS",
+      "Opt out of sale/share": "RIGHT_TO_OPT_OUT",
+      "Right to delete": "RIGHT_TO_DELETE",
+      "Limit use of sensitive personal information": null,
+      "Correct inaccurate personal information": null
+    },
+    "HEALTH_CHECK_STATUS": "AUDITED",
+    "AUTOMATABLE": true
+  },
+  "risk_lexisnexis": {
+    "URLS": [
+      {
+        "GENERAL": "https://consumer.risk.lexisnexis.com/request#privacy"
+      }
+    ],
+    "RIGHTS": [
+      "RIGHT_TO_ACCESS",
+      "RIGHT_TO_OPT_OUT",
+      "RIGHT_TO_DELETE"
+    ],
+    "OPTIONS": {},
+    "HEALTH_CHECK_STATUS": "NEEDS_LIVE_CAPTURE",
+    "AUTOMATABLE": true
+  },
+  "roqad": {
+    "URLS": [
+      {
+        "GENERAL": "https://roqad-privacy.my.onetrust.com/webform/bdcc4a2f-2458-4e17-96c3-cf88f7115dfc/dcc653f1-96d6-4d0f-ba5d-cb7f17fff0aa"
+      }
+    ],
+    "RIGHTS": [
+      "RIGHT_TO_ACCESS",
+      "RIGHT_TO_OPT_OUT",
+      "RIGHT_TO_DELETE"
+    ],
+    "OPTIONS": {},
+    "HEALTH_CHECK_STATUS": "NEEDS_LIVE_CAPTURE",
+    "AUTOMATABLE": true
+  },
+  "rrd": {
+    "URLS": [
+      {
+        "GENERAL": "https://privacyportal.onetrust.com/webform/45e4be25-919b-483f-9f95-12809576a2b3/6e633594-9a81-48bb-97ab-6fb29bf46019"
+      }
+    ],
+    "RIGHTS": [
+      "RIGHT_TO_ACCESS",
+      "RIGHT_TO_LIST_OF_THIRD_PARTIES",
+      "RIGHT_TO_OPT_OUT",
+      "RIGHT_TO_DELETE"
+    ],
+    "OPTIONS": {},
+    "HEALTH_CHECK_STATUS": "NEEDS_LIVE_CAPTURE",
+    "AUTOMATABLE": true
+  },
+  "salutarydata": {
+    "URLS": [
+      {
+        "GENERAL": "https://salutarydata.com/privacy-opt-out-and-disclosure-form/"
+      }
+    ],
+    "RIGHTS": [
+      "RIGHT_TO_OPT_OUT"
+    ],
+    "OPTIONS": {},
+    "HEALTH_CHECK_STATUS": "NEEDS_LIVE_CAPTURE",
+    "AUTOMATABLE": true
+  },
+  "samba": {
+    "URLS": [
+      {
+        "GENERAL": "https://privacyportal-cdn.onetrust.com/dsarwebform/87c5ee85-893d-4972-ba26-2e82b743d041/d84d9664-facb-4de3-85fd-a2e339b73dbf.html"
+      }
+    ],
+    "RIGHTS": [
+      "RIGHT_TO_ACCESS",
+      "RIGHT_TO_OPT_OUT",
+      "RIGHT_TO_DELETE"
+    ],
+    "OPTIONS": {},
+    "HEALTH_CHECK_STATUS": "NEEDS_LIVE_CAPTURE",
+    "AUTOMATABLE": true
+  },
+  "seekout": {
+    "URLS": [
+      {
+        "GENERAL": "https://40ros1.share-na2.hsforms.com/2vQIxZUeERGOPFcRto1AFgw"
+      }
+    ],
+    "RIGHTS": [
+      "RIGHT_TO_ACCESS",
+      "RIGHT_TO_OPT_OUT",
+      "RIGHT_TO_DELETE"
+    ],
+    "OPTIONS": {},
+    "HEALTH_CHECK_STATUS": "NEEDS_LIVE_CAPTURE",
+    "AUTOMATABLE": true
+  },
+  "slashdotmedia": {
+    "URLS": [
+      {
+        "GENERAL": "https://privacyportal.onetrust.com/webform/611e70e2-1994-43ff-b07b-646df870db4b/f4165d65-f39c-4ea5-8628-163090b74137"
+      }
+    ],
+    "RIGHTS": [
+      "RIGHT_TO_ACCESS",
+      "RIGHT_TO_DELETE"
+    ],
+    "OPTIONS": {},
+    "HEALTH_CHECK_STATUS": "NEEDS_LIVE_CAPTURE",
+    "AUTOMATABLE": true
+  },
+  "snov": {
+    "URLS": [
+      {
+        "GENERAL": "https://snov.io/do-not-sell-my-personal-information"
+      }
+    ],
+    "RIGHTS": [
+      "RIGHT_TO_OPT_OUT"
+    ],
+    "OPTIONS": {
+      "Do not sell my personal information": "RIGHT_TO_OPT_OUT"
+    },
+    "HEALTH_CHECK_STATUS": "AUDITED",
+    "AUTOMATABLE": false,
+    "NOT_AUTOMATABLE_REASON": "submission requires an email OTP code after the CAPTCHA"
+  },
+  "socialcatfish": {
+    "URLS": [],
+    "RIGHTS": [
+      "RIGHT_TO_ACCESS",
+      "RIGHT_TO_OPT_OUT",
+      "RIGHT_TO_DELETE"
+    ],
+    "OPTIONS": {},
+    "HEALTH_CHECK_STATUS": "NEEDS_LIVE_CAPTURE",
+    "AUTOMATABLE": true
+  },
+  "sourceitmarketing": {
+    "URLS": [
+      {
+        "GENERAL": "https://sourceitmarketing.com/privacy/"
+      }
+    ],
+    "RIGHTS": [
+      "RIGHT_TO_ACCESS",
+      "RIGHT_TO_OPT_OUT",
+      "RIGHT_TO_DELETE"
+    ],
+    "OPTIONS": {},
+    "HEALTH_CHECK_STATUS": "NEEDS_LIVE_CAPTURE",
+    "AUTOMATABLE": true
+  },
+  "specialtycontactdatabases": {
+    "URLS": [
+      {
+        "GENERAL": "https://specialtycontactdatabases.com/do-not-sell/"
+      }
+    ],
+    "RIGHTS": [
+      "RIGHT_TO_ACCESS",
+      "RIGHT_TO_OPT_OUT",
+      "RIGHT_TO_DELETE"
+    ],
+    "OPTIONS": {},
+    "HEALTH_CHECK_STATUS": "NEEDS_LIVE_CAPTURE",
+    "AUTOMATABLE": true
+  },
+  "spectrummailinglists": {
+    "URLS": [],
+    "RIGHTS": [
+      "RIGHT_TO_OPT_OUT"
+    ],
+    "OPTIONS": {},
+    "HEALTH_CHECK_STATUS": "NEEDS_LIVE_CAPTURE",
+    "AUTOMATABLE": true
+  },
+  "speedeondata": {
+    "URLS": [
+      {
+        "GENERAL": "https://optout.speedeondata.com/"
+      }
+    ],
+    "RIGHTS": [
+      "RIGHT_TO_OPT_OUT",
+      "RIGHT_TO_DELETE"
+    ],
+    "OPTIONS": {
+      "Opt-out": "RIGHT_TO_OPT_OUT",
+      "Sensitive Data": "RIGHT_TO_OPT_OUT",
+      "Deletion": "RIGHT_TO_DELETE"
+    },
+    "HEALTH_CHECK_STATUS": "AUDITED",
+    "AUTOMATABLE": true
+  },
+  "spglobal": {
+    "URLS": [
+      {
+        "GENERAL": "https://privacyportal.onetrust.com/webform/5cb57702-8ef7-437e-a62b-408fe78cd310/93391c3d-d6c8-45b1-a169-39a0b7f9fb74"
+      }
+    ],
+    "RIGHTS": [
+      "RIGHT_TO_ACCESS",
+      "RIGHT_TO_OPT_OUT",
+      "RIGHT_TO_LIST_OF_THIRD_PARTIES",
+      "RIGHT_TO_DELETE"
+    ],
+    "OPTIONS": {
+      "Access Data": "RIGHT_TO_ACCESS",
+      "Do Not Sell my information": "RIGHT_TO_OPT_OUT",
+      "Opt-Out of profiling in furtherance of decisions that produce legal / similarly significant effects": "RIGHT_TO_OPT_OUT",
+      "Obtain list of specific 3rd parties to which personal data was disclosed": "RIGHT_TO_LIST_OF_THIRD_PARTIES",
+      "Correct or update my data": null,
+      "Delete my data": "RIGHT_TO_DELETE"
+    },
+    "HEALTH_CHECK_STATUS": "AUDITED",
+    "AUTOMATABLE": true
+  },
+  "spycloud": {
+    "URLS": [
+      {
+        "GENERAL": "https://my.datasubject.com/169m4FTnIOxju2VXg/28523"
+      }
+    ],
+    "RIGHTS": [
+      "RIGHT_TO_ACCESS",
+      "RIGHT_TO_OPT_OUT",
+      "RIGHT_TO_DELETE"
+    ],
+    "OPTIONS": {
+      "Summarize my personal information": "RIGHT_TO_ACCESS",
+      "Correct my personal information": null,
+      "Do Not Sell or Share to a Third Party": "RIGHT_TO_OPT_OUT",
+      "Don't use my personal information for advertising": "RIGHT_TO_OPT_OUT",
+      "Opt Out of Profiling / Automated Decision-Making": "RIGHT_TO_OPT_OUT",
+      "Delete my personal information": "RIGHT_TO_DELETE"
+    },
+    "HEALTH_CHECK_STATUS": "AUDITED",
+    "AUTOMATABLE": true
+  },
+  "spydialer": {
+    "URLS": [
+      {
+        "GENERAL": "https://www.spydialer.com/Consumers/wizards.aspx"
+      }
+    ],
+    "RIGHTS": [
+      "RIGHT_TO_DELETE"
+    ],
+    "OPTIONS": {},
+    "HEALTH_CHECK_STATUS": "NEEDS_LIVE_CAPTURE",
+    "AUTOMATABLE": true
+  },
+  "statara": {
+    "URLS": [
+      {
+        "GENERAL": "https://statara.com/consumerdeletion/"
+      }
+    ],
+    "RIGHTS": [
+      "RIGHT_TO_ACCESS",
+      "RIGHT_TO_DELETE"
+    ],
+    "OPTIONS": {},
+    "HEALTH_CHECK_STATUS": "NEEDS_LIVE_CAPTURE",
+    "AUTOMATABLE": true
+  },
+  "statsocial": {
+    "URLS": [
+      {
+        "GENERAL": "https://www.statsocial.com/optout/"
+      }
+    ],
+    "RIGHTS": [
+      "RIGHT_TO_OPT_OUT",
+      "RIGHT_TO_DELETE"
+    ],
+    "OPTIONS": {},
+    "HEALTH_CHECK_STATUS": "NEEDS_LIVE_CAPTURE",
+    "AUTOMATABLE": true
+  },
+  "steppingblocks": {
+    "URLS": [
+      {
+        "GENERAL": "https://www.steppingblocks.com/personal-information-inquiry"
+      }
+    ],
+    "RIGHTS": [],
+    "OPTIONS": {},
+    "HEALTH_CHECK_STATUS": "NO_RIGHTS_CHOOSER",
+    "AUTOMATABLE": true
+  },
+  "swoop": {
+    "URLS": [
+      {
+        "GENERAL": "https://my.datasubject.com/16A0AaT1hE8CL2xPu/19933"
+      }
+    ],
+    "RIGHTS": [
+      "RIGHT_TO_ACCESS",
+      "RIGHT_TO_OPT_OUT",
+      "RIGHT_TO_LIST_OF_THIRD_PARTIES",
+      "RIGHT_TO_DELETE"
+    ],
+    "OPTIONS": {
+      "Access or Request to Know": "RIGHT_TO_ACCESS",
+      "Transfer my personal information": "RIGHT_TO_ACCESS",
+      "Opt-Out Request": "RIGHT_TO_OPT_OUT",
+      "Automated Decision-Making": "RIGHT_TO_OPT_OUT",
+      "Third parties your data was sold or shared with": "RIGHT_TO_LIST_OF_THIRD_PARTIES",
+      "Delete my personal information": "RIGHT_TO_DELETE",
+      "Correct my personal information": null,
+      "Employee Request": null
+    },
+    "HEALTH_CHECK_STATUS": "AUDITED",
+    "AUTOMATABLE": true
+  },
+  "synapsegroupinc": {
+    "URLS": [
+      {
+        "GENERAL": "https://privacyportalde-cdn.onetrust.com/dsarwebform/2159c482-749a-49db-916b-475017a9efa5/855e3b71-3dd3-4546-977c-88c7430ade09.html"
+      }
+    ],
+    "RIGHTS": [
+      "RIGHT_TO_ACCESS",
+      "RIGHT_TO_DELETE"
+    ],
+    "OPTIONS": {
+      "Request a Copy of My Personal Information": "RIGHT_TO_ACCESS",
+      "Request More Information about How Synapse Processes My Personal Information": "RIGHT_TO_ACCESS",
+      "Request Deletion of My Personal Information": "RIGHT_TO_DELETE"
+    },
+    "HEALTH_CHECK_STATUS": "AUDITED",
+    "AUTOMATABLE": true
+  },
+  "system1": {
+    "URLS": [
+      {
+        "GENERAL": "https://privacyportal.onetrust.com/webform/f25d1283-339b-438f-9445-922b74e13939/a65f494a-fd3d-4117-8051-f2c0f0d66133"
+      }
+    ],
+    "RIGHTS": [
+      "RIGHT_TO_ACCESS",
+      "RIGHT_TO_OPT_OUT",
+      "RIGHT_TO_DELETE"
+    ],
+    "OPTIONS": {},
+    "HEALTH_CHECK_STATUS": "NEEDS_LIVE_CAPTURE",
+    "AUTOMATABLE": true
+  },
+  "tapad": {
+    "URLS": [
+      {
+        "GENERAL": "https://crportal.tapad.com/#/email"
+      }
+    ],
+    "RIGHTS": [
+      "RIGHT_TO_ACCESS",
+      "RIGHT_TO_OPT_OUT",
+      "RIGHT_TO_DELETE"
+    ],
+    "OPTIONS": {},
+    "HEALTH_CHECK_STATUS": "NEEDS_LIVE_CAPTURE",
+    "AUTOMATABLE": true
+  },
+  "targetsmart": {
+    "URLS": [
+      {
+        "GENERAL": "https://privacy.targetsmart.com/US/email/verify/form/"
+      }
+    ],
+    "RIGHTS": [],
+    "OPTIONS": {},
+    "HEALTH_CHECK_STATUS": "NO_RIGHTS_CHOOSER",
+    "AUTOMATABLE": true
+  },
+  "techtarget": {
+    "URLS": [
+      {
+        "GENERAL": "https://techtarget.zendesk.com/hc/en-us/requests/new?ticket_form_id=360004852434"
+      }
+    ],
+    "RIGHTS": [
+      "RIGHT_TO_ACCESS",
+      "RIGHT_TO_OPT_OUT",
+      "RIGHT_TO_DELETE"
+    ],
+    "OPTIONS": {},
+    "HEALTH_CHECK_STATUS": "NEEDS_LIVE_CAPTURE",
+    "AUTOMATABLE": true
+  },
+  "thebridgecorp": {
+    "URLS": [
+      {
+        "GENERAL": "https://www.thebridgecorp.com/opt-out/"
+      }
+    ],
+    "RIGHTS": [
+      "RIGHT_TO_ACCESS",
+      "RIGHT_TO_OPT_OUT",
+      "RIGHT_TO_DELETE"
+    ],
+    "OPTIONS": {
+      "Request Information": "RIGHT_TO_ACCESS",
+      "Opt Out": "RIGHT_TO_OPT_OUT",
+      "Delete My Record": "RIGHT_TO_DELETE"
+    },
+    "HEALTH_CHECK_STATUS": "AUDITED",
+    "AUTOMATABLE": true
+  },
+  "thedatatrust": {
+    "URLS": [
+      {
+        "GENERAL": "https://my.datasubject.com/dvx9xrLka0/68954"
+      }
+    ],
+    "RIGHTS": [
+      "RIGHT_TO_ACCESS",
+      "RIGHT_TO_OPT_OUT",
+      "RIGHT_TO_LIST_OF_THIRD_PARTIES",
+      "RIGHT_TO_DELETE"
+    ],
+    "OPTIONS": {},
+    "HEALTH_CHECK_STATUS": "NEEDS_LIVE_CAPTURE",
+    "AUTOMATABLE": true
+  },
+  "thomsonreuters": {
+    "URLS": [
+      {
+        "GENERAL": "https://privacyportal.onetrust.com/webform/dbf5ae8a-0a6a-4f4b-b527-7f94d0de6bbc/23dce484-737f-4d47-a389-2e990f683e8c"
+      }
+    ],
+    "RIGHTS": [
+      "RIGHT_TO_ACCESS",
+      "RIGHT_TO_OPT_OUT",
+      "RIGHT_TO_DELETE"
+    ],
+    "OPTIONS": {},
+    "HEALTH_CHECK_STATUS": "NEEDS_LIVE_CAPTURE",
+    "AUTOMATABLE": true
+  },
+  "throtle": {
+    "URLS": [
+      {
+        "GENERAL": "https://privacyportal.onetrust.com/webform/07e8dc4d-6686-403e-9b11-39fe7347d2f4/2f999bd2-c826-498c-a504-894eaf543b6f"
+      }
+    ],
+    "RIGHTS": [
+      "RIGHT_TO_ACCESS",
+      "RIGHT_TO_OPT_OUT",
+      "RIGHT_TO_DELETE"
+    ],
+    "OPTIONS": {},
+    "HEALTH_CHECK_STATUS": "NEEDS_LIVE_CAPTURE",
+    "AUTOMATABLE": true
+  },
+  "tmobile": {
+    "URLS": [
+      {
+        "GENERAL": "https://privacyportal-t-mobile.my.onetrust.com/webform/d4a925f0-4ebf-40ba-817b-bccc309e602f/7831d667-1ebc-4b1e-a941-e545cb0d0523"
+      }
+    ],
+    "RIGHTS": [
+      "RIGHT_TO_ACCESS",
+      "RIGHT_TO_DELETE"
+    ],
+    "OPTIONS": {
+      "Access personal data": "RIGHT_TO_ACCESS",
+      "Delete personal data": "RIGHT_TO_DELETE",
+      "Correct personal data": null
+    },
+    "HEALTH_CHECK_STATUS": "AUDITED",
+    "AUTOMATABLE": true
+  },
+  "traackr": {
+    "URLS": [
+      {
+        "GENERAL": "https://www.traackr.com/data-opt-out"
+      }
+    ],
+    "RIGHTS": [
+      "RIGHT_TO_ACCESS",
+      "RIGHT_TO_DELETE"
+    ],
+    "OPTIONS": {},
+    "HEALTH_CHECK_STATUS": "NEEDS_LIVE_CAPTURE",
+    "AUTOMATABLE": true
+  },
+  "trueblueanalytics": {
+    "URLS": [
+      {
+        "GENERAL": "https://trueblueanalytics.org/dont-sell"
+      }
+    ],
+    "RIGHTS": [
+      "RIGHT_TO_ACCESS",
+      "RIGHT_TO_OPT_OUT",
+      "RIGHT_TO_DELETE"
+    ],
+    "OPTIONS": {},
+    "HEALTH_CHECK_STATUS": "NEEDS_LIVE_CAPTURE",
+    "AUTOMATABLE": true
+  },
+  "truedata": {
+    "URLS": [
+      {
+        "GENERAL": "https://info-prod.truedata.co/access-delete-request"
+      }
+    ],
+    "RIGHTS": [
+      "RIGHT_TO_ACCESS",
+      "RIGHT_TO_OPT_OUT",
+      "RIGHT_TO_DELETE"
+    ],
+    "OPTIONS": {},
+    "HEALTH_CHECK_STATUS": "NEEDS_LIVE_CAPTURE",
+    "AUTOMATABLE": true
+  },
+  "tunnldata": {
+    "URLS": [
+      {
+        "GENERAL": "https://privacy.tunnldata.com/"
+      }
+    ],
+    "RIGHTS": [
+      "RIGHT_TO_ACCESS",
+      "RIGHT_TO_DELETE"
+    ],
+    "OPTIONS": {
+      "Access your data": "RIGHT_TO_ACCESS",
+      "Delete your data and Opt Out of Data Sale": "RIGHT_TO_DELETE"
+    },
+    "HEALTH_CHECK_STATUS": "AUDITED",
+    "AUTOMATABLE": false,
+    "NOT_AUTOMATABLE_REASON": "the form emails a verification code that must be entered mid-run to proceed"
+  },
+  "upcell": {
+    "URLS": [
+      {
+        "GENERAL": "https://www.upcell.io/data-claim"
+      }
+    ],
+    "RIGHTS": [
+      "RIGHT_TO_ACCESS",
+      "RIGHT_TO_OPT_OUT",
+      "RIGHT_TO_DELETE"
+    ],
+    "OPTIONS": {
+      "Opt-Out / Delete My Information": "RIGHT_TO_DELETE",
+      "Data Access": "RIGHT_TO_ACCESS",
+      "Other Privacy Request": null
+    },
+    "HEALTH_CHECK_STATUS": "AUDITED",
+    "AUTOMATABLE": true
+  },
+  "uplead": {
+    "URLS": [
+      {
+        "GENERAL": "https://www.uplead.com/opt-out/"
+      }
+    ],
+    "RIGHTS": [
+      "RIGHT_TO_ACCESS",
+      "RIGHT_TO_DELETE"
+    ],
+    "OPTIONS": {
+      "Request my Information": "RIGHT_TO_ACCESS",
+      "Delete my Information": "RIGHT_TO_DELETE"
+    },
+    "HEALTH_CHECK_STATUS": "AUDITED",
+    "AUTOMATABLE": true
+  },
+  "usa_people_search": {
+    "URLS": [],
+    "RIGHTS": [
+      "RIGHT_TO_ACCESS",
+      "RIGHT_TO_DELETE"
+    ],
+    "OPTIONS": {},
+    "HEALTH_CHECK_STATUS": "NEEDS_LIVE_CAPTURE",
+    "AUTOMATABLE": true
+  },
+  "usdatacorporation": {
+    "URLS": [
+      {
+        "GENERAL": "https://www.forgetmenaut.com/rtbf/unjVFFNnmFvsZ17Fnk3Tap6U"
+      }
+    ],
+    "RIGHTS": [
+      "RIGHT_TO_ACCESS",
+      "RIGHT_TO_OPT_OUT",
+      "RIGHT_TO_DELETE"
+    ],
+    "OPTIONS": {},
+    "HEALTH_CHECK_STATUS": "NEEDS_LIVE_CAPTURE",
+    "AUTOMATABLE": true
+  },
+  "vector": {
+    "URLS": [
+      {
+        "GENERAL": "https://www.vector.co/opt-out"
+      }
+    ],
+    "RIGHTS": [
+      "RIGHT_TO_ACCESS",
+      "RIGHT_TO_OPT_OUT",
+      "RIGHT_TO_DELETE"
+    ],
+    "OPTIONS": {},
+    "HEALTH_CHECK_STATUS": "NEEDS_LIVE_CAPTURE",
+    "AUTOMATABLE": true
+  },
+  "veeva": {
+    "URLS": [
+      {
+        "GENERAL": "https://privacyportal.onetrust.com/webform/3d676ed2-16b1-4c48-97f8-a911923a3adf/a0df0a98-d990-40ff-9bdb-35b5f9e06620"
+      }
+    ],
+    "RIGHTS": [
+      "RIGHT_TO_ACCESS",
+      "RIGHT_TO_OPT_OUT",
+      "RIGHT_TO_LIST_OF_THIRD_PARTIES",
+      "RIGHT_TO_DELETE"
+    ],
+    "OPTIONS": {},
+    "HEALTH_CHECK_STATUS": "NEEDS_LIVE_CAPTURE",
+    "AUTOMATABLE": true
+  },
+  "ventiveiq": {
+    "URLS": [
+      {
+        "GENERAL": "https://privacyportal.privacypillar.com/dsar/form?orgid=0c31c814-ea86-461f-8ccb-294f05bc74c3&propid=cc95835d-7719-4336-b0c4-18146e5d000a&formid=4348f332-6917-4566-8c56-6fc9eb57097f&status=publish"
+      }
+    ],
+    "RIGHTS": [
+      "RIGHT_TO_ACCESS",
+      "RIGHT_TO_OPT_OUT",
+      "RIGHT_TO_DELETE"
+    ],
+    "OPTIONS": {
+      "Info Request": "RIGHT_TO_ACCESS",
+      "Data Portability": "RIGHT_TO_ACCESS",
+      "Opt out": "RIGHT_TO_OPT_OUT",
+      "Data Processing": "RIGHT_TO_OPT_OUT",
+      "Data Deletion": "RIGHT_TO_DELETE",
+      "Update Data": null
+    },
+    "HEALTH_CHECK_STATUS": "AUDITED",
+    "AUTOMATABLE": true
+  },
+  "verizon": {
+    "URLS": [
+      {
+        "GENERAL": "https://www.verizon.com/about/privacy/privacy-inquiries"
+      }
+    ],
+    "RIGHTS": [
+      "RIGHT_TO_ACCESS",
+      "RIGHT_TO_DELETE"
+    ],
+    "OPTIONS": {
+      "Download": "RIGHT_TO_ACCESS",
+      "Deletion": "RIGHT_TO_DELETE"
+    },
+    "HEALTH_CHECK_STATUS": "AUDITED",
+    "AUTOMATABLE": true
+  },
+  "verve": {
+    "URLS": [
+      {
+        "GENERAL": "https://verve.com/data-subject-request-form/"
+      }
+    ],
+    "RIGHTS": [
+      "RIGHT_TO_ACCESS",
+      "RIGHT_TO_OPT_OUT",
+      "RIGHT_TO_DELETE"
+    ],
+    "OPTIONS": {},
+    "HEALTH_CHECK_STATUS": "NEEDS_LIVE_CAPTURE",
+    "AUTOMATABLE": true
+  },
+  "viantic": {
+    "URLS": [
+      {
+        "GENERAL": "https://privacyportal.onetrust.com/webform/18c06089-a9ec-473c-a6d8-23d20fea46af/43201dea-88d7-44cd-9142-e5b4f485e428"
+      }
+    ],
+    "RIGHTS": [
+      "RIGHT_TO_ACCESS",
+      "RIGHT_TO_DELETE"
+    ],
+    "OPTIONS": {},
+    "HEALTH_CHECK_STATUS": "NEEDS_LIVE_CAPTURE",
+    "AUTOMATABLE": true
+  },
+  "videoamp": {
+    "URLS": [
+      {
+        "GENERAL": "https://videoamp.com/your-privacy-choices"
+      }
+    ],
+    "RIGHTS": [
+      "RIGHT_TO_ACCESS",
+      "RIGHT_TO_LIST_OF_THIRD_PARTIES",
+      "RIGHT_TO_OPT_OUT",
+      "RIGHT_TO_DELETE"
+    ],
+    "OPTIONS": {},
+    "HEALTH_CHECK_STATUS": "NEEDS_LIVE_CAPTURE",
+    "AUTOMATABLE": true
+  },
+  "vrtcal": {
+    "URLS": [
+      {
+        "GENERAL": "https://www.vrtcal.com/opt-out/"
+      }
+    ],
+    "RIGHTS": [
+      "RIGHT_TO_OPT_OUT"
+    ],
+    "OPTIONS": {
+      "CHANGE OPT-OUT STATUS": "RIGHT_TO_OPT_OUT"
+    },
+    "HEALTH_CHECK_STATUS": "AUDITED",
+    "AUTOMATABLE": true
+  },
+  "wiland": {
+    "URLS": [],
+    "RIGHTS": [
+      "RIGHT_TO_ACCESS",
+      "RIGHT_TO_DELETE"
+    ],
+    "OPTIONS": {},
+    "HEALTH_CHECK_STATUS": "NEEDS_LIVE_CAPTURE",
+    "AUTOMATABLE": true
+  },
+  "windfall": {
+    "URLS": [
+      {
+        "GENERAL": "https://my.datasubject.com/AkrxLuYOww/60579"
+      }
+    ],
+    "RIGHTS": [
+      "RIGHT_TO_ACCESS",
+      "RIGHT_TO_OPT_OUT",
+      "RIGHT_TO_LIST_OF_THIRD_PARTIES",
+      "RIGHT_TO_DELETE"
+    ],
+    "OPTIONS": {
+      "Access Request": "RIGHT_TO_ACCESS",
+      "Do Not Sell or Share to a Third Party": "RIGHT_TO_OPT_OUT",
+      "Don't use my personal information for advertising": "RIGHT_TO_OPT_OUT",
+      "Third parties your data was sold or shared with": "RIGHT_TO_LIST_OF_THIRD_PARTIES",
+      "Delete my personal information": "RIGHT_TO_DELETE",
+      "Correct my personal information": null,
+      "Other": null
+    },
+    "HEALTH_CHECK_STATUS": "AUDITED",
+    "AUTOMATABLE": true
+  },
+  "withrealcustomers": {
+    "URLS": [
+      {
+        "GENERAL": "https://support.withrealcustomers.com/index.php/opt-out/"
+      }
+    ],
+    "RIGHTS": [
+      "RIGHT_TO_ACCESS",
+      "RIGHT_TO_OPT_OUT",
+      "RIGHT_TO_DELETE"
+    ],
+    "OPTIONS": {},
+    "HEALTH_CHECK_STATUS": "NEEDS_LIVE_CAPTURE",
+    "AUTOMATABLE": true
+  },
+  "xcelerated": {
+    "URLS": [
+      {
+        "GENERAL": "https://xcelerated.com/unsubscribe/"
+      }
+    ],
+    "RIGHTS": [
+      "RIGHT_TO_OPT_OUT"
+    ],
+    "OPTIONS": {},
+    "HEALTH_CHECK_STATUS": "NEEDS_LIVE_CAPTURE",
+    "AUTOMATABLE": true
+  },
+  "yellowpages": {
+    "URLS": [
+      {
+        "GENERAL": "https://privacyportal-cdn.onetrust.com/dsarwebform/dd6500c7-03cb-45b0-8bed-97ece55a892d/cfcefb69-41db-4aee-bd00-c702df72ee0f.html"
+      }
+    ],
+    "RIGHTS": [
+      "RIGHT_TO_ACCESS",
+      "RIGHT_TO_OPT_OUT",
+      "RIGHT_TO_DELETE"
+    ],
+    "OPTIONS": {},
+    "HEALTH_CHECK_STATUS": "NEEDS_LIVE_CAPTURE",
+    "AUTOMATABLE": true
+  },
+  "yobi": {
+    "URLS": [
+      {
+        "GENERAL": "https://www.yobi.ai/opt-out"
+      }
+    ],
+    "RIGHTS": [
+      "RIGHT_TO_ACCESS",
+      "RIGHT_TO_OPT_OUT",
+      "RIGHT_TO_DELETE"
+    ],
+    "OPTIONS": {
+      "Access My Information": "RIGHT_TO_ACCESS",
+      "Move My Data": "RIGHT_TO_ACCESS",
+      "Do Not Sell My Information": "RIGHT_TO_OPT_OUT",
+      "Object or Restrict the Processing of My Data": "RIGHT_TO_OPT_OUT",
+      "Delete My Information": "RIGHT_TO_DELETE",
+      "Correct My Data": null
+    },
+    "HEALTH_CHECK_STATUS": "AUDITED",
+    "AUTOMATABLE": true
+  },
+  "zetaglobal": {
+    "URLS": [
+      {
+        "GENERAL": "https://privacyportal-cdn.onetrust.com/dsarwebform/bc2d3301-11a5-4de5-b15e-ce796187a352/d0720d0f-d427-4a7d-a773-5d6793229f15.html"
+      }
+    ],
+    "RIGHTS": [
+      "RIGHT_TO_ACCESS",
+      "RIGHT_TO_OPT_OUT",
+      "RIGHT_TO_DELETE"
+    ],
+    "OPTIONS": {
+      "Request a copy of identifiable information that relates to me": "RIGHT_TO_ACCESS",
+      "Do not sell or share my identifiable information": "RIGHT_TO_OPT_OUT",
+      "Opt out of receiving email from Zeta on behalf of its clients": "RIGHT_TO_OPT_OUT",
+      "Opt out of Zeta using sensitive information that relates to me": "RIGHT_TO_OPT_OUT",
+      "Delete identifiable information that relates to me": "RIGHT_TO_DELETE",
+      "Ask a question, report a problem, or file a complaint": null
+    },
+    "HEALTH_CHECK_STATUS": "AUDITED",
+    "AUTOMATABLE": true
+  }
+}

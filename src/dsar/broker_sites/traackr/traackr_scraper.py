@@ -81,8 +81,7 @@ async def submit_request(tab, right, request_type_value, super_scraper):
         else:
             print(f"{super_scraper.OOPS} field '{field_id}' not found")
 
-    socials = SuperScraper.social_urls()
-    social_url = socials.get("twitter") or socials.get("instagram") or socials.get("facebook")
+    social_url = SuperScraper.first_social_url()
     if social_url:
         social_field = await frame.find(id=SOCIAL_FIELD_ID, raise_exc=False)
         if social_field:

@@ -32,6 +32,7 @@ Broker Poker is an application that assists users to receive a copy of and delet
   - [ ] Create a "learn more" section for the readme
 
 # Where the state privacy-law data lives
+- `src/dsar/scraper_info.json` — generated per-broker map: URL(S), rights offered (`RIGHT_MAP`), every page option (`PAGE_RIGHTS`), `HEALTH_CHECK_STATUS`, `AUTOMATABLE`. The scrapers are the source of truth; regenerate with `python scripts/build_scraper_info.py` after changing one.
 - `src/state_privacy_request_factory/state_privacy_data.json` — one row per state: abbreviation, whether it has a comprehensive privacy law, the law's name and citation, the `request_basis` phrase used in request messages, and which rights it grants. **Update this file when a state's law changes** (schema: `docs/development_reference/state_privacy_data.md`).
 - Rights the scrapers can exercise: `RIGHT_TO_ACCESS`, `RIGHT_TO_OPT_OUT`, `RIGHT_TO_DELETE`, `RIGHT_TO_LIST_OF_THIRD_PARTIES` (`src/dsar/rights.py`); which ones run is the `RIGHTS_TO_EXERCISE` setting in `.env`.
 

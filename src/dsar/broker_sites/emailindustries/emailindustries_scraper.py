@@ -27,6 +27,16 @@ RIGHT_MAP = {
 }
 RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
 
+PAGE_RIGHTS = {}  # TODO(health-check): run HEALTH_CHECK once live; it prints the full list
+# (One generic request form: there is no rights chooser to inventory.)
+
+FIELD_XPATHS = {
+    "First name": "//*[@id='firstNameDSARElement']",
+    "Last name": "//*[@id='lastNameDSARElement']",
+    "Email": "//*[@id='email']",
+    "Request details": "//*[@id='requestDetailsDSARElement']",
+}
+
 
 async def main():
     super_scraper = SuperScraper()
@@ -79,6 +89,9 @@ async def main():
         request_details = await tab.find(id="requestDetailsDSARElement", raise_exc=False)
         if request_details:
             await request_details.type_text(request_text)
+
+        if SuperScraper.HEALTH_CHECK:
+            await SuperScraper.assert_fields_filled(tab, FIELD_XPATHS)
 
         if SuperScraper.DRY_RUN:
             print(

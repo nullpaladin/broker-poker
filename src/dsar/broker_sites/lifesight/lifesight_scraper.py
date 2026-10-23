@@ -31,6 +31,15 @@ FORM_URL = (
 RIGHT_MAP = {Right.RIGHT_TO_OPT_OUT: "opt-out"}
 RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
 
+PAGE_RIGHTS = {}  # TODO(health-check): run HEALTH_CHECK once live; it prints the full list
+
+FIELD_XPATHS = {
+    "Name": "//div[@role='listitem'][.//span[contains(normalize-space(.), 'Name')]]//input",
+    "Email": "//div[@role='listitem'][.//span[contains(normalize-space(.), 'Email')]]//input",
+    "Country": "//div[@role='listitem'][.//span[contains(normalize-space(.), 'Country')]]//input",
+    "Message": "//div[@role='listitem'][.//span[contains(normalize-space(.), 'Message')]]//textarea",
+}
+
 
 async def fill_text(tab, super_scraper, question, value, para=False):
     if not value:
@@ -72,6 +81,9 @@ async def main():
             SuperScraper.request_statement(rights, broker="Lifesight"),
             para=True,
         )
+
+        if SuperScraper.HEALTH_CHECK:
+            await SuperScraper.assert_fields_filled(tab, FIELD_XPATHS)
 
         await asyncio.sleep(1)
         await SuperScraper.screenshot(tab, "dry_run")

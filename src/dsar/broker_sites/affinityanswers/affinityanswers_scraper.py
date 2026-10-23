@@ -37,6 +37,11 @@ RIGHT_MAP = {
 }
 RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
 
+PAGE_RIGHTS = {}  # TODO(health-check): run HEALTH_CHECK once live; it prints the full list
+
+RESIDENCY_XPATH = "//select[@name='input_4']"
+EMAIL_XPATH = "//input[@name='input_3']"
+
 
 async def main():
     super_scraper = SuperScraper()
@@ -78,6 +83,9 @@ async def main():
             time.sleep(0.3)
 
         # Leave honeypot input_13 untouched
+
+        if SuperScraper.HEALTH_CHECK:
+            await SuperScraper.assert_fields_filled(tab, {"Residency": RESIDENCY_XPATH, "Email": EMAIL_XPATH})
 
         if SuperScraper.DRY_RUN:
             print(

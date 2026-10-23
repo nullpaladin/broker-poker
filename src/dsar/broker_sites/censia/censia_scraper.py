@@ -31,6 +31,20 @@ RIGHT_MAP = {
 }
 RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
 
+PAGE_RIGHTS = {}  # TODO(health-check): run HEALTH_CHECK once live; it prints the full list
+# (Google Forms checkbox labels are aria-labels, not element text, so no selector is wired yet.)
+
+FIELD_XPATHS = {
+    "First Name": "//div[@role='listitem'][.//span[contains(text(),'First Name')]]//input",
+    "Last Name": "//div[@role='listitem'][.//span[contains(text(),'Last Name')]]//input",
+    "Phone Number": "//div[@role='listitem'][.//span[contains(text(),'Phone Number')]]//input",
+    "Email Address": "//div[@role='listitem'][.//span[contains(text(),'Email Address')]]//input",
+    "City": "//div[@role='listitem'][.//span[contains(text(),'City')]]//input",
+    "State": "//div[@role='listitem'][.//span[contains(text(),'State')]]//input",
+    "Zip Code": "//div[@role='listitem'][.//span[contains(text(),'Zip Code')]]//input",
+    "Country": "//div[@role='listitem'][.//span[contains(text(),'Country')]]//input",
+}
+
 
 async def main():
     super_scraper = SuperScraper()
@@ -71,6 +85,9 @@ async def main():
             if box:
                 await box.click()
                 await asyncio.sleep(0.2)
+
+        if SuperScraper.HEALTH_CHECK:
+            await SuperScraper.assert_fields_filled(tab, FIELD_XPATHS)
 
         if SuperScraper.DRY_RUN:
             print(f"DRY RUN: would submit {[r.name for r in rights]} for {SuperScraper.EMAIL}")

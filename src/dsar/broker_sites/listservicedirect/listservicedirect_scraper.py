@@ -33,6 +33,23 @@ URL = "https://listservicedirect.com/opt-out/"
 RIGHT_MAP = {Right.RIGHT_TO_OPT_OUT: "Opt-Out"}
 RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
 
+# Every option in the request-type <select name="Please">, as displayed -> the Right it maps to.
+PAGE_RIGHTS = {"Opt-Out": Right.RIGHT_TO_OPT_OUT}
+RIGHTS_OPTIONS_CSS = "select[name='Please'] option"
+
+FORM_XP = "//form[.//select[@name='Please']]"
+FIELD_XPATHS = {
+    "Request type": f"{FORM_XP}//select[@name='Please']",
+    "Name": f"{FORM_XP}//input[@name='your-name']",
+    "Email": f"{FORM_XP}//input[@name='your-email']",
+    "Phone": f"{FORM_XP}//input[@name='telephone-number']",
+    "Address": f"{FORM_XP}//input[@name='Address']",
+    "City": f"{FORM_XP}//input[@name='City']",
+    "State": f"{FORM_XP}//input[@name='State']",
+    "Zip": f"{FORM_XP}//input[@name='Zip']",
+    "Certification (YES)": f"{FORM_XP}//input[@name='yes']",
+}
+
 
 async def main():
     super_scraper = SuperScraper()
@@ -53,7 +70,11 @@ async def main():
         await tab.go_to(URL)
         await asyncio.sleep(5)
 
-        form_xp = "//form[.//select[@name='Please']]"
+        form_xp = FORM_XP
+
+        if SuperScraper.HEALTH_CHECK:
+            offered = await SuperScraper.read_option_labels(tab, RIGHTS_OPTIONS_CSS)
+            SuperScraper.audit_rights(offered, PAGE_RIGHTS)
 
         please = await tab.find(xpath=f"{form_xp}//select[@name='Please']", raise_exc=False)
         if please:
@@ -79,6 +100,9 @@ async def main():
                 await asyncio.sleep(0.15)
             else:
                 print(f"{super_scraper.OOPS} field '{name}' not found")
+
+        if SuperScraper.HEALTH_CHECK:
+            await SuperScraper.assert_fields_filled(tab, FIELD_XPATHS)
 
         await asyncio.sleep(1)
         await SuperScraper.screenshot(tab, "dry_run")

@@ -47,6 +47,19 @@ RIGHT_MAP = {
 }
 RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
 
+PAGE_RIGHTS = {}  # TODO(health-check): run HEALTH_CHECK once live; it prints the full list
+RIGHTS_OPTIONS_CSS = "#requestTypesDSARElement [role='option']"
+
+FIELD_XPATHS = {
+    "Country": "//*[@id='countryDSARElement']",
+    "State": "//*[@id='stateDSARElement']",
+    "City": "//*[@id='cityDSARElement']",
+    "First name": "//*[@id='firstNameDSARElement']",
+    "Last name": "//*[@id='lastNameDSARElement']",
+    "Email": "//*[@id='emailDSARElement']",
+    "Date of birth": "//*[@id='dateOfBirthDSARElement']",
+}
+
 
 def _dob_mm_dd_yyyy():
     if not SuperScraper.DATE_OF_BIRTH:
@@ -106,6 +119,10 @@ async def submit_request(tab, right_label, tag, super_scraper):
     await tab.go_to(URL)
     await asyncio.sleep(7)
 
+    if SuperScraper.HEALTH_CHECK:
+        offered = await SuperScraper.read_option_labels(tab, RIGHTS_OPTIONS_CSS)
+        SuperScraper.audit_rights(offered, PAGE_RIGHTS)
+
     await _combo(tab, super_scraper, "countryDSARElement", "United States")
     await _combo(tab, super_scraper, "stateDSARElement", SuperScraper.STATE)
     city = await tab.find(id="cityDSARElement", raise_exc=False)
@@ -130,6 +147,9 @@ async def submit_request(tab, right_label, tag, super_scraper):
             await asyncio.sleep(0.2)
         else:
             print(f"{super_scraper.OOPS} field '{field_id}' not found")
+
+    if SuperScraper.HEALTH_CHECK:
+        await SuperScraper.assert_fields_filled(tab, FIELD_XPATHS)
 
     await asyncio.sleep(1)
     await SuperScraper.screenshot(tab, f"dry_run_{tag}")

@@ -44,6 +44,9 @@ RIGHT_MAP = {
 }
 RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
 
+PAGE_RIGHTS = {}  # TODO(health-check): run HEALTH_CHECK once live; it prints the full list
+# (NOT_AUTOMATABLE: no running path is added. Only three of the six "Request Type" labels are recorded verbatim.)
+
 
 async def submit_request(tab, right, request_type, super_scraper):
     await tab.go_to(URL)

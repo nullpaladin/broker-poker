@@ -45,6 +45,17 @@ RIGHT_MAP = {
 }
 RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
 
+PAGE_RIGHTS = {}  # TODO(health-check): run HEALTH_CHECK once live; it prints the full list
+# (The form has no rights chooser: the rights are stated in the free-text field.)
+
+FIELD_XPATHS = {
+    "First name": "//*[@id='firstNameDSARElement']",
+    "Last name": "//*[@id='lastNameDSARElement']",
+    "Email": "//*[@id='emailDSARElement']",
+    "City": "//*[@id='cityDSARElement']",
+    "Request details": "//*[@id='requestDetailsDSARElement']",
+}
+
 SUBJECT_TYPE = "a person whose personal information is part of the content of our products and services"
 
 
@@ -107,6 +118,9 @@ async def main():
         details_field = await tab.find(id="requestDetailsDSARElement", raise_exc=False)
         if details_field:
             await details_field.type_text(request_text)
+
+        if SuperScraper.HEALTH_CHECK:
+            await SuperScraper.assert_fields_filled(tab, FIELD_XPATHS)
 
         await asyncio.sleep(1)
         await SuperScraper.screenshot(tab, "dry_run_" + "_".join(r.value for r in rights))

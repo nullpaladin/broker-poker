@@ -40,6 +40,16 @@ RIGHT_MAP = {
 }
 RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
 
+PAGE_RIGHTS = {}  # TODO(health-check): run HEALTH_CHECK once live; it prints the full list
+# (The checkbox labels are not recorded verbatim, only their input names.)
+
+FIELD_XPATHS = {
+    "First name": "//input[@class='first_name']",
+    "Last name": "//input[@class='last_name']",
+    "Email": "//input[@class='email']",
+    "State": "//select[@class='state']",
+}
+
 
 async def main():
     super_scraper = SuperScraper()
@@ -80,6 +90,9 @@ async def main():
                 await checkbox.click()
             else:
                 print(f"{super_scraper.OOPS} checkbox '{value}' not found")
+
+        if SuperScraper.HEALTH_CHECK:
+            await SuperScraper.assert_fields_filled(tab, FIELD_XPATHS)
 
         await asyncio.sleep(1)
         await SuperScraper.screenshot(tab, "dry_run_" + "_".join(r.value for r in rights))

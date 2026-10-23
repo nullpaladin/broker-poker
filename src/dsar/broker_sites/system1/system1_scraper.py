@@ -33,6 +33,18 @@ RIGHT_MAP = {
 }
 RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
 
+PAGE_RIGHTS = {}  # TODO(health-check): run HEALTH_CHECK once live; it prints the full list
+RIGHTS_OPTIONS_CSS = "[role='option']"  # read while the request-type menu is open
+
+FIELD_XPATHS = {
+    "Country": "//*[@id='countryDSARElement']",
+    "Website visited": "//*[@id='formField50DSARElement']",
+    "First name": "//*[@id='firstNameDSARElement']",
+    "Last name": "//*[@id='lastNameDSARElement']",
+    "Email": "//*[@id='emailDSARElement']",
+    "Request details": "//*[@id='requestDetailsDSARElement']",
+}
+
 
 async def submit_request(tab, right, req_type_text, super_scraper):
     await tab.go_to(URL)
@@ -54,6 +66,10 @@ async def submit_request(tab, right, req_type_text, super_scraper):
     if req_field:
         await req_field.click()
         await asyncio.sleep(2)
+        if SuperScraper.HEALTH_CHECK:
+            offered = await SuperScraper.read_option_labels(tab, RIGHTS_OPTIONS_CSS)
+            SuperScraper.audit_rights(offered, PAGE_RIGHTS)
+
         opts = await tab.find(**{"role": "option"}, find_all=True, raise_exc=False) or []
         clicked = False
         for opt in opts:
@@ -90,6 +106,9 @@ async def submit_request(tab, right, req_type_text, super_scraper):
         await details.type_text(SuperScraper.request_statement([right], broker="System1"))
 
     time.sleep(0.5)
+
+    if SuperScraper.HEALTH_CHECK:
+        await SuperScraper.assert_fields_filled(tab, FIELD_XPATHS)
 
     if SuperScraper.DRY_RUN:
         submit_btn = await tab.find(**{"aria-label": "click to submit form"}, raise_exc=False)

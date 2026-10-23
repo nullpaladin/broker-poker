@@ -50,6 +50,14 @@ RIGHT_MAP = {
 }
 RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
 
+PAGE_RIGHTS = {}  # TODO(health-check): run HEALTH_CHECK once live; it prints the full list
+# (Only "Right to Know or Access" and "Right to Correct" have been seen; a Delete option is unconfirmed.)
+
+FIELD_XPATHS = {
+    "Full name": "//input[@id='00000000-0000-0000-0000-000000001002']",
+    "Email": "//input[@id='00000000-0000-0000-0000-000000001003']",
+}
+
 
 async def _select_option(tab, super_scraper, container_id, text, label=""):
     ctrl = await tab.find(
@@ -110,6 +118,9 @@ async def submit_request(tab, right, keyword, tag, super_scraper):
             await js_utils.js_check(cb)
         except Exception:
             pass
+
+    if SuperScraper.HEALTH_CHECK:
+        await SuperScraper.assert_fields_filled(tab, FIELD_XPATHS)
 
     await asyncio.sleep(1)
     await SuperScraper.screenshot(tab, f"dry_run_{tag}")

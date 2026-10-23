@@ -31,6 +31,24 @@ RIGHT_MAP = {
 }
 RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
 
+# Every option of the request-type checkbox group, as displayed -> the Right it maps to.
+PAGE_RIGHTS = {
+    "Request Information": Right.RIGHT_TO_ACCESS,
+    "Opt Out": Right.RIGHT_TO_OPT_OUT,
+    "Delete My Record": Right.RIGHT_TO_DELETE,
+}
+RIGHTS_OPTIONS_CSS = (
+    "label:has(input[type='checkbox'][value='Request Information']), "
+    "label:has(input[type='checkbox'][value='Opt Out']), "
+    "label:has(input[type='checkbox'][value='Delete My Record'])"
+)  # built from the three recorded checkbox values
+
+FIELD_XPATHS = {
+    "State of residency": "//select[contains(@id,'_i_am_a')]",
+    "Email": "//input[contains(@id,'_email') and @type='email']",
+    "Name": "//input[contains(@id,'_write_your_name_below')]",
+}
+
 
 async def main():
     super_scraper = SuperScraper()
@@ -47,6 +65,10 @@ async def main():
         tab = await browser.start()
         await tab.go_to(URL)
         await asyncio.sleep(7)
+
+        if SuperScraper.HEALTH_CHECK:
+            offered = await SuperScraper.read_option_labels(tab, RIGHTS_OPTIONS_CSS)
+            SuperScraper.audit_rights(offered, PAGE_RIGHTS)
 
         residency = await tab.find(xpath="//select[contains(@id,'_i_am_a')]", raise_exc=False)
         if residency:
@@ -90,6 +112,9 @@ async def main():
         name_field = await tab.find(xpath="//input[contains(@id,'_write_your_name_below')]", raise_exc=False)
         if name_field:
             await name_field.type_text(full_name)
+
+        if SuperScraper.HEALTH_CHECK:
+            await SuperScraper.assert_fields_filled(tab, FIELD_XPATHS)
 
         await asyncio.sleep(1)
         await SuperScraper.screenshot(tab, "dry_run")

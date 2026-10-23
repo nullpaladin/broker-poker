@@ -54,6 +54,18 @@ RIGHT_MAP = {
 }
 RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
 
+PAGE_RIGHTS = {}  # TODO(health-check): run HEALTH_CHECK once live; it prints the full list
+
+FIELD_XPATHS = {
+    "First name": "//*[@id='firstname']",
+    "Last name": "//*[@id='lastname']",
+    "Email": "//*[@id='email']",
+    "Address": "//*[@id='address']",
+    "City": "//*[@id='city']",
+    "Zip": "//*[@id='zipcode']",
+    "Phone": "//*[@id='pnumber']",
+}
+
 
 async def _select_country_and_state(tab, super_scraper):
     country_combo = await tab.find(
@@ -116,6 +128,9 @@ async def submit_access(tab, super_scraper):
         return
     await _fill_contact_fields(tab)
 
+    if SuperScraper.HEALTH_CHECK:
+        await SuperScraper.assert_fields_filled(tab, FIELD_XPATHS)
+
     await asyncio.sleep(1)
     await SuperScraper.screenshot(tab, "dry_run_access")
     print(
@@ -141,6 +156,9 @@ async def submit_manage(tab, button_id, label, super_scraper):
     await asyncio.sleep(2)
 
     await _fill_contact_fields(tab)
+
+    if SuperScraper.HEALTH_CHECK:
+        await SuperScraper.assert_fields_filled(tab, FIELD_XPATHS)
 
     if SuperScraper.DRY_RUN:
         print(f"DRY RUN: would submit '{label}' for {SuperScraper.FIRST_NAME} {SuperScraper.LAST_NAME}")

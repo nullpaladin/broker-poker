@@ -43,6 +43,19 @@ RIGHT_MAP = {
 }
 RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
 
+PAGE_RIGHTS = {}  # TODO(health-check): run HEALTH_CHECK once live; it prints the full list
+# (The request-type listbox is inconsistent between loads, so no stable inventory exists.)
+
+FIELD_XPATHS = {
+    "Country": "//*[@id='countryDSARElement']",
+    "State": "//*[@id='stateDSARElement']",
+    "First name": "//*[@id='firstNameDSARElement']",
+    "Last name": "//*[@id='lastNameDSARElement']",
+    "Email": "//*[@id='emailDSARElement']",
+    "Phone": "//*[@id='phoneNumberDSARElement']",
+    "Request details": "//*[@id='requestDetailsDSARElement']",
+}
+
 
 async def _field_value(field):
     return ((await js_utils.js_eval(field, "return this.value;")) or "").strip()
@@ -133,6 +146,9 @@ async def main():
             await details.type_text(rights_text)
 
         time.sleep(0.5)
+        if SuperScraper.HEALTH_CHECK:
+            await SuperScraper.assert_fields_filled(tab, FIELD_XPATHS)
+
         submit_btn = await tab.find(id="dsar-webform-submit-button", raise_exc=False)
         if submit_btn:
             await submit_btn.scroll_into_view()

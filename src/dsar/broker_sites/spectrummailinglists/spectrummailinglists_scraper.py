@@ -30,6 +30,17 @@ FORM_URL = (
 RIGHT_MAP = {Right.RIGHT_TO_OPT_OUT: "opt-out"}
 RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
 
+PAGE_RIGHTS = {}  # TODO(health-check): run HEALTH_CHECK once live; it prints the full list
+# (A fixed-purpose opt-out Google Form; its heading selector is unrecorded.)
+
+FIELD_XPATHS = {
+    "First Name": "//div[@role='listitem'][.//span[contains(normalize-space(.), 'First Name')]]//input",
+    "Last Name": "//div[@role='listitem'][.//span[contains(normalize-space(.), 'Last Name')]]//input",
+    "Mailing Street Address": "//div[@role='listitem'][.//span[contains(normalize-space(.), 'Mailing Street Address')]]//textarea",
+    "City": "//div[@role='listitem'][.//span[contains(normalize-space(.), 'City')]]//input",
+    "Zip Code": "//div[@role='listitem'][.//span[contains(normalize-space(.), 'Zip Code')]]//input",
+}
+
 
 async def fill_text(tab, super_scraper, question, value, para=False):
     if not value:
@@ -119,6 +130,9 @@ async def main():
                 print(f"{super_scraper.OOPS} arithmetic answer field not found")
         else:
             print(f"{super_scraper.OOPS} could not parse arithmetic question: {q_text!r}")
+
+        if SuperScraper.HEALTH_CHECK:
+            await SuperScraper.assert_fields_filled(tab, FIELD_XPATHS)
 
         await asyncio.sleep(1)
         await SuperScraper.screenshot(tab, "dry_run_opt_out")

@@ -35,6 +35,18 @@ RIGHT_MAP = {
 }
 RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
 
+PAGE_RIGHTS = {}  # TODO(health-check): run HEALTH_CHECK once live; it prints the full list
+# (Only two request-type texts are recorded verbatim; Correct and Other are not.)
+
+FIELD_XPATHS = {
+    "First name": "//*[@id='firstNameDSARElement']",
+    "Last name": "//*[@id='lastNameDSARElement']",
+    "Email": "//*[@id='emailDSARElement']",
+    "Country": "//*[@id='countryDSARElement']",
+    "State": "//*[@id='stateDSARElement']",
+    "Request details": "//*[@id='requestDetailsDSARElement']",
+}
+
 
 async def _select_autocomplete(tab, field_id, value, super_scraper, description):
     field = await tab.find(id=field_id, raise_exc=False)
@@ -89,6 +101,9 @@ async def submit_request(tab, right, request_type_text, super_scraper):
     details_field = await tab.find(id="requestDetailsDSARElement", raise_exc=False)
     if details_field:
         await details_field.type_text(SuperScraper.request_statement([right], broker="Nielsen"))
+
+    if SuperScraper.HEALTH_CHECK:
+        await SuperScraper.assert_fields_filled(tab, FIELD_XPATHS)
 
     await asyncio.sleep(1)
     await SuperScraper.screenshot(tab, f"dry_run_{right.value}")

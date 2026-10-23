@@ -40,6 +40,9 @@ RIGHT_MAP = {
 }
 RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
 
+PAGE_RIGHTS = {}  # TODO(health-check): run HEALTH_CHECK once live; it prints the full list
+# (Recorded request types are aria-labels; the visible text may differ, so they are not copied in.)
+
 
 async def _select_autocomplete(tab, field_id, search_text):
     field = await tab.find(id=field_id, raise_exc=False)

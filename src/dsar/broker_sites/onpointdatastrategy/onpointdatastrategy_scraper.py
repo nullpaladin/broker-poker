@@ -39,6 +39,29 @@ RIGHT_MAP = {
     Right.RIGHT_TO_DELETE: "Remove me from your database",
 }
 RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
+
+# Every option in the "Request Type" <select>, as displayed -> the Right it maps to. The combined option is
+# listed under RIGHT_TO_OPT_OUT; RIGHT_MAP also submits it for RIGHT_TO_ACCESS.
+PAGE_RIGHTS = {
+    "Opt-Out Only": Right.RIGHT_TO_OPT_OUT,
+    "Do Not Sell My Data Only": Right.RIGHT_TO_OPT_OUT,
+    "Request Information Only": Right.RIGHT_TO_ACCESS,
+    "Opt Out & Request Information": Right.RIGHT_TO_OPT_OUT,
+    "Remove me from your database": Right.RIGHT_TO_DELETE,
+}
+RIGHTS_OPTIONS_CSS = "#input_1_5 option"  # a placeholder option, if any, is unrecorded
+
+FIELD_XPATHS = {
+    "First name": "//*[@id='input_1_1_3']",
+    "Last name": "//*[@id='input_1_1_6']",
+    "Email": "//*[@id='input_1_3']",
+    "Street": "//*[@id='input_1_4_1']",
+    "City": "//*[@id='input_1_4_3']",
+    "State": "//*[@id='input_1_4_4']",
+    "Zip": "//*[@id='input_1_4_5']",
+    "Country": "//*[@id='input_1_4_6']",
+    "Request type": "//*[@id='input_1_5']",
+}
 REQUEST_TYPE_SELECT = "input_1_5"
 
 
@@ -68,6 +91,10 @@ async def main():
         await tab.go_to(URL)
         await asyncio.sleep(5)
 
+        if SuperScraper.HEALTH_CHECK:
+            offered = await SuperScraper.read_option_labels(tab, RIGHTS_OPTIONS_CSS)
+            SuperScraper.audit_rights(offered, PAGE_RIGHTS)
+
         for xpath, value in {
             "//input[@id='input_1_1_3']": SuperScraper.FIRST_NAME,
             "//input[@id='input_1_1_6']": SuperScraper.LAST_NAME,
@@ -82,6 +109,9 @@ async def main():
 
         await _select_native(tab, "input_1_4_6", "United States")      # address: country
         await _select_native(tab, REQUEST_TYPE_SELECT, request_type)           # request type
+
+        if SuperScraper.HEALTH_CHECK:
+            await SuperScraper.assert_fields_filled(tab, FIELD_XPATHS)
 
         await asyncio.sleep(0.5)
         next_btn = await tab.find(id="gform_next_button_1_8", raise_exc=False)

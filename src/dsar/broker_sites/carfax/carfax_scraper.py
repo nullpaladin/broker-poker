@@ -38,6 +38,18 @@ RIGHT_MAP = {
 }
 RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
 
+PAGE_RIGHTS = {}  # TODO(health-check): run HEALTH_CHECK once live; it prints the full list
+RIGHTS_OPTIONS_CSS = "label:has(input[name='requestTypeInput'])"  # revealed once a State is chosen
+
+FIELD_XPATHS = {
+    "State of residence": "//*[@id='selectInput-userInput-state-input']",
+    "First name": "//*[@id='textInput-userInput-firstName-input']",
+    "Last name": "//*[@id='textInput-userInput-lastName-input']",
+    "Email": "//*[@id='textInput-userInput-email-input']",
+    "Confirm email": "//*[@id='textInput-userInput-confirmEmail-input']",
+    "Phone": "//*[@id='textInput-userInput-phone-input']",
+}
+
 
 async def submit_request(tab, right, radio_label, super_scraper):
     try:
@@ -58,6 +70,10 @@ async def submit_request(tab, right, radio_label, super_scraper):
         await asyncio.sleep(2)
     else:
         print(f"{super_scraper.OOPS} state select not found")
+
+    if SuperScraper.HEALTH_CHECK:
+        offered = await SuperScraper.read_option_labels(tab, RIGHTS_OPTIONS_CSS)
+        SuperScraper.audit_rights(offered, PAGE_RIGHTS)
 
     # The radio lives inside its <label>; click the label (clicking the bare
     # <input> via pydoll doesn't fire React's onChange, so the identity fields
@@ -106,6 +122,9 @@ async def submit_request(tab, right, radio_label, super_scraper):
         await attest.click()
     else:
         print(f"{super_scraper.OOPS} attestation checkbox not found")
+
+    if SuperScraper.HEALTH_CHECK:
+        await SuperScraper.assert_fields_filled(tab, FIELD_XPATHS)
 
     await asyncio.sleep(1)
     await SuperScraper.screenshot(tab, f"dry_run_{right.value}")

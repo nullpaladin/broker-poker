@@ -41,6 +41,9 @@ RIGHT_MAP = {
 }
 RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
 
+PAGE_RIGHTS = {}  # TODO(health-check): run HEALTH_CHECK once live; it prints the full list
+# (No rights chooser: every right is stated in the free-text field.)
+
 CAL_RESIDENT = "cal_resident"  # checkbox: California residency attestation
 FIRST_NAME = "first_name"  # "First name"
 LAST_NAME = "last_name"  # "Last name"
@@ -81,6 +84,14 @@ async def main():
         await _set(tab, LAST_NAME, SuperScraper.LAST_NAME)
         await _set(tab, EMAIL, SuperScraper.EMAIL)
         await _set(tab, REQUEST_TEXT, SuperScraper.request_statement(rights, broker="ISS"))
+
+        if SuperScraper.HEALTH_CHECK:
+            await SuperScraper.assert_fields_filled(tab, {
+                "First name": f"//*[@id='{FIRST_NAME}']",
+                "Last name": f"//*[@id='{LAST_NAME}']",
+                "Email address": f"//*[@id='{EMAIL}']",
+                "Right(s) to exercise": f"//*[@id='{REQUEST_TEXT}']",
+            })
 
         rights_label = ", ".join(r.name for r in rights)
         if SuperScraper.DRY_RUN:

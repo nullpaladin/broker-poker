@@ -34,6 +34,27 @@ RIGHT_MAP = {
 }
 RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
 
+# Every request-type radio, as displayed -> the Right it maps to.
+PAGE_RIGHTS = {
+    "Request to Know": Right.RIGHT_TO_ACCESS,
+    "Request to Delete": Right.RIGHT_TO_DELETE,
+    "Do Not Sell My Information": Right.RIGHT_TO_OPT_OUT,
+}
+RIGHTS_OPTIONS_CSS = (
+    "label:has(#RequestType1), label:has(#RequestType2), label:has(#RequestType3), "
+    "label[for='RequestType1'], label[for='RequestType2'], label[for='RequestType3']"
+)  # built from the three recorded radio ids
+
+FIELD_XPATHS = {
+    "First name": "//*[@id='FName']",
+    "Last name": "//*[@id='LName']",
+    "Address": "//*[@id='Address']",
+    "City": "//*[@id='City']",
+    "State": "//*[@id='State']",
+    "Zip": "//*[@id='Zip']",
+    "Email": "//*[@id='EmailId']",
+}
+
 LABELS = {
     "RequestType1": "know",
     "RequestType2": "delete",
@@ -44,6 +65,10 @@ LABELS = {
 async def submit_request(tab, request_type_id, super_scraper):
     await tab.go_to(URL)
     await asyncio.sleep(5)
+
+    if SuperScraper.HEALTH_CHECK:
+        offered = await SuperScraper.read_option_labels(tab, RIGHTS_OPTIONS_CSS)
+        SuperScraper.audit_rights(offered, PAGE_RIGHTS)
 
     fields = {
         "FName": SuperScraper.FIRST_NAME,
@@ -73,6 +98,9 @@ async def submit_request(tab, request_type_id, super_scraper):
 
     label = LABELS[request_type_id]
 
+    if SuperScraper.HEALTH_CHECK:
+        await SuperScraper.assert_fields_filled(tab, FIELD_XPATHS)
+
     await asyncio.sleep(1)
     await SuperScraper.screenshot(tab, f"dry_run_{label}")
     if SuperScraper.DRY_RUN:
@@ -83,7 +111,7 @@ async def submit_request(tab, request_type_id, super_scraper):
     if submit_btn:
         await submit_btn.click()
         await asyncio.sleep(2)
-        print(f"Submitted '{label}' request for {SuperScraper.FIRST_NAME} {SuperScraper.LAST_NAME}")
+        print(f"Submitted '{label}' request for {SuperScraper.FIRST_NAME} {SuperScraper.LAST_NAME} — confirm in the browser.")
     else:
         print(f"{super_scraper.OOPS} Submit button not found for '{label}'")
 

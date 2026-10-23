@@ -33,6 +33,17 @@ RIGHT_MAP = {
 }
 RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
 
+PAGE_RIGHTS = {}  # TODO(health-check): run HEALTH_CHECK once live; it prints the full list
+
+FIELD_XPATHS = {
+    "First name": "//*[contains(concat(' ', normalize-space(@class), ' '), ' text-field-7 ')]",
+    "Last name": "//*[contains(concat(' ', normalize-space(@class), ' '), ' text-field-8 ')]",
+    "State or province": "//*[@id='State-or-Province']",
+    "Phone": "//*[contains(concat(' ', normalize-space(@class), ' '), ' text-field-6 ')]",
+    "Email": "//*[contains(concat(' ', normalize-space(@class), ' '), ' text-field-5 ')]",
+    "Request type": "//*[@id='Request-Types']",
+}
+
 
 def _js_set(selector, value):
     sel = json.dumps(selector)
@@ -62,6 +73,9 @@ async def submit_request(tab, right, request_type, label, super_scraper):
     await tab.execute_script(_js_set(".text-field-6", SuperScraper.PHONE_NUMBER))
     await tab.execute_script(_js_set(".text-field-5", SuperScraper.EMAIL))
     await tab.execute_script(_js_set("#Request-Types", request_type))
+
+    if SuperScraper.HEALTH_CHECK:
+        await SuperScraper.assert_fields_filled(tab, FIELD_XPATHS)
 
     if SuperScraper.DRY_RUN:
         print(

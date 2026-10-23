@@ -35,6 +35,9 @@ RIGHT_MAP = {
 }
 RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
 
+PAGE_RIGHTS = {}  # TODO(health-check): run HEALTH_CHECK once live; it prints the full list
+RIGHTS_OPTIONS_CSS = "form#form-do-not-sell select[name='requestType'] option"  # change / stop-using options are unrecorded
+
 
 def _public_ip():
     for svc in ("https://api.ipify.org", "https://ifconfig.me/ip", "https://icanhazip.com"):
@@ -50,6 +53,10 @@ async def submit_request(tab, right, right_label, tag, super_scraper, ip):
     await asyncio.sleep(6)
 
     form_xp = "//form[@id='form-do-not-sell']"
+
+    if SuperScraper.HEALTH_CHECK:
+        offered = await SuperScraper.read_option_labels(tab, RIGHTS_OPTIONS_CSS)
+        SuperScraper.audit_rights(offered, PAGE_RIGHTS)
 
     name = await tab.find(xpath=f"{form_xp}//input[@name='name']", raise_exc=False)
     if name:
@@ -75,6 +82,16 @@ async def submit_request(tab, right, right_label, tag, super_scraper, ip):
     behalf = await tab.find(xpath=f"{form_xp}//select[@name='behalf']", raise_exc=False)
     if behalf:
         await js_utils.select_native_option(behalf, text="No")
+
+    if SuperScraper.HEALTH_CHECK:
+        await SuperScraper.assert_fields_filled(tab, {
+            "Name": f"{form_xp}//input[@name='name']",
+            "Email": f"{form_xp}//input[@name='emailAddress']",
+            "IP addresses": f"{form_xp}//textarea[@name='ipAddresses']",
+            "Request type": f"{form_xp}//select[@name='requestType']",
+            "Scope": f"{form_xp}//select[@name='scope']",
+            "On behalf of": f"{form_xp}//select[@name='behalf']",
+        })
 
     await asyncio.sleep(1)
     await SuperScraper.screenshot(tab, f"dry_run_{right.value}")

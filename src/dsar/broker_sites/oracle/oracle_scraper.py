@@ -35,6 +35,7 @@
 import asyncio
 
 from pydoll.browser.chromium import Chrome
+from pydoll.constants import Key
 
 from src.dsar.rights import Right
 from src.dsar.super_scraper import SuperScraper
@@ -55,6 +56,23 @@ RIGHT_MAP = {
     Right.RIGHT_TO_DELETE: ["Delete My Information"],
 }
 RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
+
+# Every option in the "Type of Request" react-select, as displayed -> the Right it maps to (None = not automated).
+PAGE_RIGHTS = {
+    "Access My Information": Right.RIGHT_TO_ACCESS,
+    "Do Not Sell My Personal Information": Right.RIGHT_TO_OPT_OUT,
+    "Marketing e-Mail Opt-out or Unsubscribe": Right.RIGHT_TO_OPT_OUT,
+    "Delete My Information": Right.RIGHT_TO_DELETE,
+    "Correct or Update My Information": None,
+    "Other Privacy Inquiry – Contact our DPO": None,
+}
+RIGHTS_OPTIONS_CSS = "[class*='select__option']"  # only rendered while the request-type menu is open (class prefix is ta-upm-select__)
+
+FIELD_XPATHS = {
+    "First name": "//input[@id='00000000-0000-0000-0000-000000001002fn']",
+    "Last name": "//input[@id='00000000-0000-0000-0000-000000001002ln']",
+    "Email": "//input[@id='00000000-0000-0000-0000-000000001003']",
+}
 
 
 async def _select_option(tab, container_id, text):
@@ -85,6 +103,20 @@ async def submit_request(tab, request_type, super_scraper):
 
     await _select_option(tab, RESIDENT_CONTAINER, SuperScraper.STATE)
     await _select_option(tab, IAM_CONTAINER, "Consumer / Customer")
+    if SuperScraper.HEALTH_CHECK:
+        # Options only populate after "Resident of"; open the menu, read it, close it again.
+        ctrl = await tab.find(
+            xpath=f"//div[@id='{REQUEST_TYPE_CONTAINER}']//div[contains(@class,'select__control')]",
+            raise_exc=False,
+        )
+        if ctrl:
+            await ctrl.click()
+            await asyncio.sleep(1)
+            offered = await SuperScraper.read_option_labels(tab, RIGHTS_OPTIONS_CSS)
+            SuperScraper.audit_rights(offered, PAGE_RIGHTS)
+            await tab.keyboard.press(Key.ESCAPE)
+            await asyncio.sleep(0.5)
+
     await _select_option(tab, REQUEST_TYPE_CONTAINER, request_type)
     await asyncio.sleep(1)
 
@@ -110,6 +142,9 @@ async def submit_request(tab, request_type, super_scraper):
             "this.dispatchEvent(new Event('click', {bubbles:true}));"
             "this.dispatchEvent(new Event('change', {bubbles:true}));"
         )
+
+    if SuperScraper.HEALTH_CHECK:
+        await SuperScraper.assert_fields_filled(tab, FIELD_XPATHS)
 
     label = request_type.lower().split("–")[0].strip().replace(" ", "_").replace("/", "_")
 

@@ -37,6 +37,30 @@ RIGHT_MAP = {
 }
 RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
 
+# Every option in the "Select the right(s) you want to exercise" checkbox group, as displayed -> the Right it maps to (None = not automated).
+PAGE_RIGHTS = {
+    "Access My Information": Right.RIGHT_TO_ACCESS,
+    "Move My Data": Right.RIGHT_TO_ACCESS,
+    "Do Not Sell My Information": Right.RIGHT_TO_OPT_OUT,
+    "Object or Restrict the Processing of My Data": Right.RIGHT_TO_OPT_OUT,
+    "Delete My Information": Right.RIGHT_TO_DELETE,
+    "Correct My Data": None,
+}
+RIGHTS_OPTIONS_CSS = "label:has(input[name='select_the_right_s__you_want_to_exercise_'])"
+
+FIELD_XPATHS = {
+    "First name": "//*[@name='firstname']",
+    "Last name": "//*[@name='lastname']",
+    "Email": "//*[@name='email']",
+    "Phone": "//*[@name='phone']",
+    "Address": "//*[@name='address']",
+    "City": "//*[@name='city']",
+    "State": "//*[@name='state']",
+    "Zip": "//*[@name='zip']",
+    "Country": "//*[@name='country']",
+    "Date of birth": "//*[@id='date_of_birth__do_not_sell_']",
+}
+
 
 def _dob_iso():
     raw = (SuperScraper.DATE_OF_BIRTH or "").strip()
@@ -63,6 +87,10 @@ async def main():
         tab = await browser.start()
         await tab.go_to(URL)
         await asyncio.sleep(4)
+
+        if SuperScraper.HEALTH_CHECK:
+            offered = await SuperScraper.read_option_labels(tab, RIGHTS_OPTIONS_CSS)
+            SuperScraper.audit_rights(offered, PAGE_RIGHTS)
 
         text_fields = {
             "firstname": SuperScraper.FIRST_NAME,
@@ -102,6 +130,9 @@ async def main():
             if box:
                 await js_utils.js_check(box)
                 await asyncio.sleep(0.1)
+
+        if SuperScraper.HEALTH_CHECK:
+            await SuperScraper.assert_fields_filled(tab, FIELD_XPATHS)
 
         time.sleep(0.5)
         await SuperScraper.screenshot(tab, "dry_run")

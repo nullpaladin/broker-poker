@@ -51,6 +51,19 @@ RIGHT_MAP = {
     Right.RIGHT_TO_DELETE: "Delete personal data",
 }
 RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
+
+# Every option in the "Type of request" toggle group, as displayed -> the Right it maps to (None = not automated).
+PAGE_RIGHTS = {
+    "Access personal data": Right.RIGHT_TO_ACCESS,
+    "Delete personal data": Right.RIGHT_TO_DELETE,
+    "Correct personal data": None,
+}
+RIGHTS_OPTIONS_CSS = "#requestTypesDSARElement [role='option']"
+
+FIELD_XPATHS = {
+    "State of residence": "//*[@id='stateDSARElement']",
+    "Email": "//*[@id='emailDSARElement']",
+}
 DELETE_REQUEST_TYPE = RIGHT_MAP[Right.RIGHT_TO_DELETE]
 
 
@@ -74,6 +87,10 @@ async def submit_request(tab, request_type, super_scraper):
         await _select_option(tab, "I am requesting my own personal data", super_scraper, "Requestor")
     else:
         print(f"{super_scraper.OOPS} Requestor field not found")
+
+    if SuperScraper.HEALTH_CHECK:
+        offered = await SuperScraper.read_option_labels(tab, RIGHTS_OPTIONS_CSS)
+        SuperScraper.audit_rights(offered, PAGE_RIGHTS)
 
     await _select_option(tab, request_type, super_scraper, "Type of request")
     await _select_option(tab, "Current customer", super_scraper, "Relationship with T-Mobile")
@@ -124,6 +141,9 @@ async def submit_request(tab, request_type, super_scraper):
                 print(f"{super_scraper.OOPS} field '{field_id}' not found")
     else:
         await _select_option(tab, "Secure online portal", super_scraper, "Delivery method")
+
+    if SuperScraper.HEALTH_CHECK:
+        await SuperScraper.assert_fields_filled(tab, FIELD_XPATHS)
 
     label = "".join(c if c.isalnum() else "_" for c in request_type.lower())[:40].strip("_")
     await asyncio.sleep(1)

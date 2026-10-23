@@ -51,6 +51,23 @@ RIGHT_MAP = {
 }
 RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
 
+PAGE_RIGHTS = {}  # TODO(health-check): run HEALTH_CHECK once live; it prints the full list
+# (A single "Select request type" autocomplete; only "Access" is recorded, so no inventory is built.)
+
+FIELD_XPATHS = {
+    "State of residence": f"//*[@id='{STATE_COMBO}']",
+    "Second state": f"//*[@id='{ADDRESS_STATE_COMBO}']",
+    "Request details": f"//*[@id='{DETAILS_FIELD}']",
+    "Email": "//*[@id='emailDSARElement']",
+    "First name": "//*[@id='firstNameDSARElement']",
+    "Last name": "//*[@id='lastNameDSARElement']",
+    "Date of birth": "//*[@id='dateOfBirthDSARElement']",
+    "Phone": "//*[@id='phoneNumberDSARElement']",
+    "Address": "//*[@id='addressDSARElement']",
+    "City": "//*[@id='cityDSARElement']",
+    "Zip": "//*[@id='zipDSARElement']",
+}
+
 
 def _dob_mm_dd_yyyy():
     if not SuperScraper.DATE_OF_BIRTH:
@@ -199,6 +216,9 @@ async def main():
             await certify.click_using_js()
         else:
             print(f"{super_scraper.OOPS} perjury-certification checkbox not found")
+
+        if SuperScraper.HEALTH_CHECK:
+            await SuperScraper.assert_fields_filled(tab, FIELD_XPATHS)
 
         await asyncio.sleep(1)
         await SuperScraper.screenshot(tab, "dry_run_" + "_".join(r.value for r in rights))

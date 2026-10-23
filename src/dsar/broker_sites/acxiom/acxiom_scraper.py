@@ -59,6 +59,10 @@ RIGHT_MAP = {
 }
 RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
 
+PAGE_RIGHTS = {}  # TODO(health-check): run HEALTH_CHECK once live; it prints the full list
+# No audit/field checks wired: the form lives in iframe#frameresize (read_option_labels reads the outer
+# document only) and the grid's Add buttons clear each field after it is added.
+
 
 async def _add_name(iframe):
     who = await iframe.find(id="Identity")

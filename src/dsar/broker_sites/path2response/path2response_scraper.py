@@ -32,6 +32,22 @@ RIGHT_MAP = {
     Right.RIGHT_TO_DELETE: "Delete My Data",
 }
 RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
+
+PAGE_RIGHTS = {}  # TODO(health-check): run HEALTH_CHECK once live; it prints the full list
+# (Recorded request types are aria-labels; the visible text may differ, so they are not copied in.)
+
+FIELD_XPATHS = {
+    "Email": "//*[@id='emailDSARElement']",
+    "Submitting for yourself": "//*[@id='formField17DSARElement']",
+    "First name": "//*[@id='firstNameDSARElement']",
+    "Last name": "//*[@id='lastNameDSARElement']",
+    "Phone": "//*[@id='phoneNumberDSARElement']",
+    "Address": "//*[@id='addressDSARElement']",
+    "City": "//*[@id='cityDSARElement']",
+    "State": "//*[@id='stateDSARElement']",
+    "Zip": "//*[@id='zipDSARElement']",
+    "Country": "//*[@id='countryDSARElement']",
+}
 PHONE_COUNTRY_CODE = "vt-input-5"
 
 
@@ -128,6 +144,9 @@ async def main():
         if yes_btn:
             await yes_btn.click_using_js()
         await asyncio.sleep(0.5)
+
+        if SuperScraper.HEALTH_CHECK:
+            await SuperScraper.assert_fields_filled(tab, FIELD_XPATHS)
 
         if SuperScraper.DRY_RUN:
             print(

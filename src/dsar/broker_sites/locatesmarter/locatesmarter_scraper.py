@@ -49,6 +49,26 @@ RIGHT_MAP = {
 }
 RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
 
+PAGE_RIGHTS = {}  # TODO(health-check): run HEALTH_CHECK once live; it prints the full list
+# (Checkbox labels are paraphrased in the notes, so no inventory is built.)
+
+KNOW_DELETE_FIELD_XPATHS = {
+    "Name": "//*[@id='input_2_2']",
+    "Email": "//*[@id='input_2_3']",
+    "Street": "//*[@id='input_2_5_1']",
+    "City": "//*[@id='input_2_5_3']",
+    "State": "//*[@id='input_2_5_4']",
+    "Zip": "//*[@id='input_2_5_5']",
+}
+OPT_OUT_FIELD_XPATHS = {
+    "Name": "//*[@id='input_1_2']",
+    "Email": "//*[@id='input_1_3']",
+    "Street": "//*[@id='input_1_5_1']",
+    "City": "//*[@id='input_1_5_3']",
+    "State": "//*[@id='input_1_5_4']",
+    "Zip": "//*[@id='input_1_5_5']",
+}
+
 
 async def _fill_common_fields(tab, name_id, email_id, street_id, city_id, state_id, zip_id, super_scraper):
     fields = {
@@ -92,7 +112,7 @@ async def _submit_or_dry_run(tab, submit_button_id, label, super_scraper):
     if submit_button:
         await submit_button.click()
         await asyncio.sleep(3)
-        print(f"Submitted '{label}' request for {SuperScraper.EMAIL}")
+        print(f"Submitted '{label}' request for {SuperScraper.EMAIL} — confirm in the browser.")
     else:
         print(f"{super_scraper.OOPS} submit button '{submit_button_id}' not found")
 
@@ -108,6 +128,9 @@ async def submit_know_delete(tab, checkbox_ids, super_scraper):
     for checkbox_id in checkbox_ids:
         await _check(tab, checkbox_id, super_scraper)
 
+    if SuperScraper.HEALTH_CHECK:
+        await SuperScraper.assert_fields_filled(tab, KNOW_DELETE_FIELD_XPATHS)
+
     await _submit_or_dry_run(tab, "gform_submit_button_2", "know_delete", super_scraper)
 
 
@@ -119,6 +142,9 @@ async def submit_opt_out(tab, super_scraper):
         tab, "input_1_2", "input_1_3", "input_1_5_1", "input_1_5_3", "input_1_5_4", "input_1_5_5", super_scraper
     )
     await _check(tab, "choice_1_14_1", super_scraper)  # STOP_SELLING
+
+    if SuperScraper.HEALTH_CHECK:
+        await SuperScraper.assert_fields_filled(tab, OPT_OUT_FIELD_XPATHS)
 
     await _submit_or_dry_run(tab, "gform_submit_button_1", "opt_out", super_scraper)
 

@@ -47,6 +47,22 @@ GENERAL_BOXES = {
 RIGHT_MAP = {**OPT_OUT_BOXES, **GENERAL_BOXES}
 RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
 
+PAGE_RIGHTS = {}  # TODO(health-check): run HEALTH_CHECK once live; it prints the full list
+# (Checkbox labels differ per form and only "Opt-Out of All the Above" is recorded verbatim.)
+
+OPT_OUT_FIELD_XPATHS = {
+    "First name": "//*[@id='Opt-Out-First-Name']",
+    "Last name": "//*[@id='Opt-out-Last-Name']",
+    "Email": "//*[@id='Opt-Out-Email']",
+    "State of residence": "//*[@id='Contact-Company-Name']",
+}
+GENERAL_FIELD_XPATHS = {
+    "First name": "//*[@id='General-Opt-Out-First-Name']",
+    "Last name": "//*[@id='General-Opt-out-Last-Name']",
+    "Email": "//*[@id='General-Opt-Out-Email']",
+    "State of residence": "//*[@id='General-Opt-Out-State']",
+}
+
 
 async def _check(tab, anchor_id, checkbox_name):
     # The real <input type="checkbox"> is visually hidden (opacity:0) — Webflow's
@@ -84,6 +100,9 @@ async def main():
             for name in OPT_OUT_BOXES[Right.RIGHT_TO_OPT_OUT]:
                 await _check(tab, OPT_OUT_ANCHOR, name)
 
+            if SuperScraper.HEALTH_CHECK:
+                await SuperScraper.assert_fields_filled(tab, OPT_OUT_FIELD_XPATHS)
+
             if SuperScraper.DRY_RUN:
                 await asyncio.sleep(1)
                 await SuperScraper.screenshot(tab, "dry_run_opt_out")
@@ -108,6 +127,9 @@ async def main():
             await _check(tab, GENERAL_ANCHOR, name)
 
         names = ", ".join(r.name for r in general_rights)
+        if SuperScraper.HEALTH_CHECK:
+            await SuperScraper.assert_fields_filled(tab, GENERAL_FIELD_XPATHS)
+
         if SuperScraper.DRY_RUN:
             await asyncio.sleep(1)
             await SuperScraper.screenshot(tab, "dry_run_general")

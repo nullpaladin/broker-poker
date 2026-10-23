@@ -35,6 +35,15 @@ RIGHT_MAP = {
 }
 RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
 
+PAGE_RIGHTS = {}  # TODO(health-check): run HEALTH_CHECK once live; it prints the full list
+RIGHTS_OPTIONS_CSS = "h4[data-testid='card-title']"
+
+FIELD_XPATHS = {
+    "First name": "//*[@name='given-name']",
+    "Last name": "//*[@name='family-name']",
+    "Email": "//*[@name='email']",
+}
+
 FIELDS = {
     "given-name": "FIRST_NAME",
     "family-name": "LAST_NAME",
@@ -50,6 +59,10 @@ FIELDS = {
 async def submit_request(tab, card_text, label, super_scraper):
     await tab.go_to(URL)
     await asyncio.sleep(5)
+
+    if SuperScraper.HEALTH_CHECK:
+        offered = await SuperScraper.read_option_labels(tab, RIGHTS_OPTIONS_CSS)
+        SuperScraper.audit_rights(offered, PAGE_RIGHTS)
 
     card = await tab.find(
         xpath=f"//h4[@data-testid='card-title' and normalize-space()={card_text!r}]", raise_exc=False
@@ -68,6 +81,9 @@ async def submit_request(tab, card_text, label, super_scraper):
         if field:
             await field.type_text(value)
             await asyncio.sleep(0.2)
+
+    if SuperScraper.HEALTH_CHECK:
+        await SuperScraper.assert_fields_filled(tab, FIELD_XPATHS)
 
     # NOTE: any name="representative-type" control is the "on behalf of someone
     # else" checkbox — left UNCHECKED (default) so this stays a self-submission.

@@ -80,6 +80,15 @@ RIGHT_MAP = {
 }
 RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
 
+PAGE_RIGHTS = {}  # TODO(health-check): run HEALTH_CHECK once live; it prints the full list
+# (The options differ per TrustArc form, so one inventory does not fit; per-form capture is needed.)
+
+FIELD_XPATHS = {
+    "First name": "//input[@id='00000000-0000-0000-0000-000000001002fn']",
+    "Last name": "//input[@id='00000000-0000-0000-0000-000000001002ln']",
+    "Email": "//input[@id='00000000-0000-0000-0000-000000001003']",
+}
+
 
 async def _select_option(tab, container_id, text):
     ctrl = await tab.find(
@@ -145,6 +154,9 @@ async def submit_request(tab, right, form_id, request_type, super_scraper):
             "this.dispatchEvent(new Event('click', {bubbles:true}));"
             "this.dispatchEvent(new Event('change', {bubbles:true}));"
         )
+
+    if SuperScraper.HEALTH_CHECK:
+        await SuperScraper.assert_fields_filled(tab, FIELD_XPATHS)
 
     label = request_type.lower().split("(")[0].strip().replace(" ", "_")
 

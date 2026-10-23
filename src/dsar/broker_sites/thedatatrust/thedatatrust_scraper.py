@@ -51,6 +51,20 @@ RIGHT_MAP = {
 }
 RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
 
+PAGE_RIGHTS = {}  # TODO(health-check): run HEALTH_CHECK once live; it prints the full list
+RIGHTS_OPTIONS_CSS = "h4[data-testid='card-title']"  # datasubject.com card titles (selector not recorded for this site)
+
+FIELD_XPATHS = {
+    "Email": "//*[@id='email']",
+    "First name": "//*[@id='given-name']",
+    "Last name": "//*[@id='family-name']",
+    "Address": "//*[@name='o-addressLine1']",
+    "City": "//*[@name='o-city']",
+    "State": "//*[@name='o-requestState']",
+    "Zip": "//*[@name='o-zipCode']",
+    "Request description": "//*[@id='request-description']",
+}
+
 
 async def _fill_step2(tab, super_scraper):
     email_field = await tab.find(id="email", raise_exc=False)
@@ -115,6 +129,10 @@ async def main():
             await tab.go_to(URL)
             await asyncio.sleep(6)
 
+            if SuperScraper.HEALTH_CHECK:
+                offered = await SuperScraper.read_option_labels(tab, RIGHTS_OPTIONS_CSS)
+                SuperScraper.audit_rights(offered, PAGE_RIGHTS)
+
             card = await tab.find(text=card_title, raise_exc=False)
             if not card:
                 print(f"{super_scraper.OOPS} Card not found: '{card_title}'")
@@ -132,6 +150,9 @@ async def main():
                 )
             else:
                 print(f"{super_scraper.OOPS} Request Description field not found")
+
+            if SuperScraper.HEALTH_CHECK:
+                await SuperScraper.assert_fields_filled(tab, FIELD_XPATHS)
 
             safe_name = "".join(c if c.isalnum() else "_" for c in card_title.lower())[:40].strip("_")
             await asyncio.sleep(1)

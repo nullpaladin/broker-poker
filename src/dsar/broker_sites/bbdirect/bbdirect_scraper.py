@@ -26,6 +26,8 @@ URL = "https://www.bbdirect.com/resources/privacy-compliance.html"
 RIGHT_MAP = {Right.RIGHT_TO_OPT_OUT: "opt-out"}
 RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
 
+PAGE_RIGHTS = {}  # TODO(health-check): run HEALTH_CHECK once live; it prints the full list
+
 FIRST_NAME_XPATH = "//input[@id='cog-input-auto-0']"
 LAST_NAME_XPATH = "//input[@id='cog-input-auto-1']"
 ADDRESS_ONE_XPATH = "//input[@id='cog-1-line1']"
@@ -72,6 +74,17 @@ async def main():
 
         await super_scraper.input_text_field(tab=tab, xpath=ZIP_XPATH, text=SuperScraper.ZIP_CODE, sleep=0.5)
         await super_scraper.input_text_field(tab=tab, xpath=EMAIL_XPATH, text=SuperScraper.EMAIL, sleep=0.5)
+
+        if SuperScraper.HEALTH_CHECK:
+            await SuperScraper.assert_fields_filled(tab, {
+                "First name": FIRST_NAME_XPATH,
+                "Last name": LAST_NAME_XPATH,
+                "Address": ADDRESS_ONE_XPATH,
+                "City": CITY_XPATH,
+                "State": STATE_XPATH,
+                "Zip": ZIP_XPATH,
+                "Email": EMAIL_XPATH,
+            })
 
         if SuperScraper.DRY_RUN:
             print(f"DRY RUN: would submit '{Right.RIGHT_TO_OPT_OUT.name}' for {SuperScraper.EMAIL}")

@@ -37,6 +37,17 @@ RIGHT_MAP = {
 }
 RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
 
+PAGE_RIGHTS = {}  # TODO(health-check): run HEALTH_CHECK once live; it prints the full list
+
+FIELD_XPATHS = {
+    "Name": "//*[@name='first_name']",
+    "Email": "//*[@name='email']",
+    "Address": "//*[@name='address']",
+    "City": "//*[@name='city']",
+    "State": "//*[@name='state']",
+    "Postal code": "//*[@name='postal_code']",
+}
+
 
 def _dob_iso():
     raw = (SuperScraper.DATE_OF_BIRTH or "").strip()
@@ -94,6 +105,9 @@ async def main():
                 await asyncio.sleep(0.1)
 
         time.sleep(0.5)
+        if SuperScraper.HEALTH_CHECK:
+            await SuperScraper.assert_fields_filled(tab, FIELD_XPATHS)
+
         await SuperScraper.screenshot(tab, "dry_run")
         print(
             "Request filled but NOT submitted — a reCAPTCHA / Cloudflare Turnstile must be "

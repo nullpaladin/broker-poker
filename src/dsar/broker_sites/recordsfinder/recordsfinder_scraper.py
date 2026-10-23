@@ -23,12 +23,15 @@ URL = "https://recordsfinder.com/optout/"
 RIGHT_MAP = {Right.RIGHT_TO_OPT_OUT: "removal request"}
 RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
 
+PAGE_RIGHTS = {}  # TODO(health-check): run HEALTH_CHECK once live; it prints the full list
+
 _PREFIX = "InfoPay_Core_Components_OptOuts_DataRemovalServiceModel"
 FIRST_NAME_XPATH = f'//input[@id="{_PREFIX}_fname"]'
 LAST_NAME_XPATH = f'//input[@id="{_PREFIX}_lname"]'
 STATE_SELECT_ID = f"{_PREFIX}_state"
 CITY_XPATH = f'//input[@id="{_PREFIX}_city"]'
 SUBMIT_XPATH = '//button[@type="submit"]'
+STATE_XPATH = f'//select[@id="{STATE_SELECT_ID}"]'
 
 
 async def main():
@@ -55,6 +58,14 @@ async def main():
 
         await super_scraper.input_text_field(tab=tab, xpath=CITY_XPATH, text=SuperScraper.CITY)
 
+        if SuperScraper.HEALTH_CHECK:
+            await SuperScraper.assert_fields_filled(tab, {
+                "First name": FIRST_NAME_XPATH,
+                "Last name": LAST_NAME_XPATH,
+                "State": STATE_XPATH,
+                "City": CITY_XPATH,
+            })
+
         if SuperScraper.DRY_RUN:
             await SuperScraper.screenshot(tab, "dry_run_opt_out")
             print(f"DRY RUN: would submit removal request for {SuperScraper.FIRST_NAME} {SuperScraper.LAST_NAME}")
@@ -63,7 +74,7 @@ async def main():
 
         await super_scraper.click_item_by_xpath(tab=tab, xpath=SUBMIT_XPATH)
         time.sleep(3)
-        print(f"Submitted removal request for {SuperScraper.FIRST_NAME} {SuperScraper.LAST_NAME}")
+        print(f"Submitted removal request for {SuperScraper.FIRST_NAME} {SuperScraper.LAST_NAME} — confirm in the browser.")
 
         await asyncio.sleep(3)
 

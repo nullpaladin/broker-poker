@@ -34,6 +34,15 @@ RIGHT_MAP = {
 }
 RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
 
+PAGE_RIGHTS = {}  # TODO(health-check): run HEALTH_CHECK once live; it prints the full list
+# (Only three request-type texts are recorded; the group may offer more.)
+
+FIELD_XPATHS = {
+    "State": "//*[@id='formField103DSARElement']",
+    "Name": "//*[@id='firstNameDSARElement']",
+    "Email": "//*[@id='emailDSARElement']",
+}
+
 
 async def _autocomplete_select(tab, field_id, text, super_scraper, description):
     field = await tab.find(id=field_id, raise_exc=False)
@@ -83,6 +92,9 @@ async def submit_request(tab, right, entry, super_scraper):
     maid_field = await tab.find(id="formField83DSARElement", raise_exc=False)
     if maid_field and SuperScraper.ADVERTISING_ID:
         await maid_field.type_text(SuperScraper.ADVERTISING_ID)
+
+    if SuperScraper.HEALTH_CHECK:
+        await SuperScraper.assert_fields_filled(tab, FIELD_XPATHS)
 
     label = "".join(c if c.isalnum() else "_" for c in entry.lower())[:40].strip("_")
     await asyncio.sleep(1)

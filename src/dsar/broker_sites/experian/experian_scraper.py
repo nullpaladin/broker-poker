@@ -41,6 +41,9 @@ RIGHT_MAP = {
 }
 RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
 
+PAGE_RIGHTS = {}  # TODO(health-check): run HEALTH_CHECK once live; it prints the full list
+# (Step 2 offers one checkbox per request type; only the Delete label is recorded.)
+
 
 async def main():
     super_scraper = SuperScraper()
@@ -126,6 +129,15 @@ async def main():
             if field and await field.is_visible():
                 await field.type_text(value)
                 await asyncio.sleep(0.2)
+
+        if SuperScraper.HEALTH_CHECK:
+            await SuperScraper.assert_fields_filled(tab, {
+                label: (
+                    f"//label[normalize-space()={label!r} or starts-with(normalize-space(),{label!r})]"
+                    f"/following::input[1]"
+                )
+                for label in step3
+            })
 
         time.sleep(0.5)
         await SuperScraper.screenshot(tab, "dry_run_step3")

@@ -46,6 +46,23 @@ RIGHT_MAP = {
 }
 RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
 
+# Every option of the request-type radio, as displayed -> the Right it maps to (None = not automated).
+PAGE_RIGHTS = {
+    "Right to Know": Right.RIGHT_TO_ACCESS,
+    "Right to Correct": None,
+    "Right to Opt-Out of the Sale or Sharing of Personal Information": Right.RIGHT_TO_OPT_OUT,
+    "Right to Opt-Out of Cross-Behavioral Sale or Sharing": Right.RIGHT_TO_OPT_OUT,
+    "Right to Limit Use and Disclosure of Sensitive Personal Information": Right.RIGHT_TO_OPT_OUT,
+    "Right to Delete": Right.RIGHT_TO_DELETE,
+}
+RIGHTS_OPTIONS_CSS = "label:has(input[name='requesttype'])"
+
+FIELD_XPATHS = {
+    "Email": "//input[@type='email']",
+    "Country": "//*[@name='country']",
+    "State": "//*[@name='state']",
+}
+
 
 async def _typeahead(tab, name_attr, search_text):
     field = await tab.find(name=name_attr, raise_exc=False)
@@ -72,6 +89,10 @@ async def _submit_request(tab, right_label_text, label, super_scraper):
         print(f"{super_scraper.OOPS} Subject type label not found for {label}")
         return
     await asyncio.sleep(0.5)
+
+    if SuperScraper.HEALTH_CHECK:
+        offered = await SuperScraper.read_option_labels(tab, RIGHTS_OPTIONS_CSS)
+        SuperScraper.audit_rights(offered, PAGE_RIGHTS)
 
     req_lbl = await tab.find(text=right_label_text, raise_exc=False)
     if req_lbl:
@@ -104,6 +125,9 @@ async def _submit_request(tab, right_label_text, label, super_scraper):
     await asyncio.sleep(1)
     await _typeahead(tab, "state", SuperScraper.STATE)
     await asyncio.sleep(1)
+
+    if SuperScraper.HEALTH_CHECK:
+        await SuperScraper.assert_fields_filled(tab, FIELD_XPATHS)
 
     if SuperScraper.DRY_RUN:
         print(

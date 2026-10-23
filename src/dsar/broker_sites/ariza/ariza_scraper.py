@@ -40,6 +40,7 @@
 import asyncio
 
 from pydoll.browser.chromium import Chrome
+from pydoll.constants import Key
 
 from src.dsar import js_utils
 from src.dsar.rights import Right
@@ -63,6 +64,22 @@ RIGHT_MAP = {
     Right.RIGHT_TO_DELETE: ["Delete My Information"],
 }
 RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
+
+# Every option in the "Type of Request" react-select, as displayed -> the Right it maps to.
+PAGE_RIGHTS = {
+    "Access My Information": Right.RIGHT_TO_ACCESS,
+    "Correct or Update My Information": None,
+    "Limit the Use of My Sensitive Personal Information": Right.RIGHT_TO_OPT_OUT,
+    "Do not Sell or Share My Personal Information": Right.RIGHT_TO_OPT_OUT,
+    "Opt-out or Unsubscribe": Right.RIGHT_TO_OPT_OUT,
+    "Withdraw My Consent": Right.RIGHT_TO_OPT_OUT,
+    "Delete My Information": Right.RIGHT_TO_DELETE,
+}
+RIGHTS_OPTIONS_CSS = ".select__option"  # only rendered while the request-type menu is open
+
+FIRST_NAME_XPATH = "//input[@id='00000000-0000-0000-0000-000000001002fn']"
+LAST_NAME_XPATH = "//input[@id='00000000-0000-0000-0000-000000001002ln']"
+EMAIL_XPATH = "//input[@id='00000000-0000-0000-0000-000000001003']"
 
 
 async def _select_option(tab, container_id, text):
@@ -113,12 +130,31 @@ async def submit_request(tab, right, request_type, super_scraper):
             await maid.type_text(SuperScraper.ADVERTISING_ID)
 
     await _select_option(tab, RESIDENT_CONTAINER, SuperScraper.STATE)
+    if SuperScraper.HEALTH_CHECK:
+        # Options only populate after "Resident of"; open the menu, read it, close it again.
+        ctrl = await tab.find(
+            xpath=f"//div[@id='{REQUEST_TYPE_CONTAINER}']//div[contains(@class,'select__control')]",
+            raise_exc=False,
+        )
+        if ctrl:
+            await ctrl.click()
+            await asyncio.sleep(1)
+            offered = await SuperScraper.read_option_labels(tab, RIGHTS_OPTIONS_CSS)
+            SuperScraper.audit_rights(offered, PAGE_RIGHTS)
+            await tab.keyboard.press(Key.ESCAPE)
+            await asyncio.sleep(0.5)
+
     await _select_option(tab, REQUEST_TYPE_CONTAINER, request_type)
 
     consent = await tab.find(xpath="//input[@id='00000000-0000-0000-0000-000000001007']", raise_exc=False)
     if consent:
         # custom-styled hidden checkbox (ta-custom-hidden-checkbox)
         await js_utils.js_check(consent)
+
+    if SuperScraper.HEALTH_CHECK:
+        await SuperScraper.assert_fields_filled(
+            tab, {"First name": FIRST_NAME_XPATH, "Last name": LAST_NAME_XPATH, "Email": EMAIL_XPATH}
+        )
 
     label = request_type.lower().replace(" ", "_").replace("/", "_")
 

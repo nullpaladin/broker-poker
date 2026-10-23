@@ -30,6 +30,11 @@ RIGHT_MAP = {
 }
 RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
 
+PAGE_RIGHTS = {}  # TODO(health-check): run HEALTH_CHECK once live; it prints the full list
+
+EMAIL_XPATH = "//input[@placeholder='Enter Your Email']"
+MESSAGE_XPATH = "//textarea[@placeholder='Write your Request Here']"
+
 
 async def _fill_and_shot(tab, super_scraper, url, tag, message=None):
     await tab.go_to(url)
@@ -49,6 +54,11 @@ async def _fill_and_shot(tab, super_scraper, url, tag, message=None):
     else:
         print(f"{super_scraper.OOPS} [{tag}] email field not found")
 
+    if SuperScraper.HEALTH_CHECK:
+        await SuperScraper.assert_fields_filled(
+            tab, {"Email": EMAIL_XPATH, **({"Request text": MESSAGE_XPATH} if message else {})}
+        )
+
     await asyncio.sleep(1)
     await SuperScraper.screenshot(tab, f"dry_run_{tag}")
     if SuperScraper.DRY_RUN:
@@ -59,7 +69,7 @@ async def _fill_and_shot(tab, super_scraper, url, tag, message=None):
     if submit:
         await submit.click()
         await asyncio.sleep(3)
-        print(f"Submitted [{tag}] for {SuperScraper.EMAIL}")
+        print(f"Submitted [{tag}] for {SuperScraper.EMAIL} — confirm in the browser.")
 
 
 async def main():

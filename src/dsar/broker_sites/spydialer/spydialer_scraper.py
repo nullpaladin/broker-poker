@@ -37,6 +37,11 @@ async def _select_option(tab, select_id, value):
 RIGHT_MAP = {Right.RIGHT_TO_DELETE: "Delete All"}
 RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
 
+PAGE_RIGHTS = {}  # TODO(health-check): run HEALTH_CHECK once live; it prints the full list
+# (A delete-only removal tool; no rights chooser to inventory.)
+
+STATE_FILTER_XPATH = "//*[@id='SttFltrDrpDwnLst']"
+
 
 async def main():
     super_scraper = SuperScraper()
@@ -63,6 +68,9 @@ async def main():
         # State filter (narrows displayed records to your state)
         await _select_option(tab, "SttFltrDrpDwnLst", state_abbr)
         await asyncio.sleep(1)
+
+        if SuperScraper.HEALTH_CHECK:
+            await SuperScraper.assert_fields_filled(tab, {"State filter": STATE_FILTER_XPATH})
 
         if SuperScraper.DRY_RUN:
             submit_btn = await tab.find(

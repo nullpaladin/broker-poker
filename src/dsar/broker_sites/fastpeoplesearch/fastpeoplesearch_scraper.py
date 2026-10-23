@@ -26,6 +26,14 @@ URL = "https://www.fastpeoplesearch.com/removal"
 RIGHT_MAP = {Right.RIGHT_TO_OPT_OUT: "removal"}
 RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
 
+PAGE_RIGHTS = {}  # TODO(health-check): run HEALTH_CHECK once live; it prints the full list
+
+FIELD_XPATHS = {
+    "First name": "//*[@id='firstname']",
+    "Last name": "//*[@id='lastname']",
+    "Email": "//*[@id='email']",
+}
+
 
 async def main():
     super_scraper = SuperScraper()
@@ -74,6 +82,9 @@ async def main():
         if am_select:
             await js_utils.select_native_option(am_select, index=1)
         await asyncio.sleep(0.3)
+
+        if SuperScraper.HEALTH_CHECK:
+            await SuperScraper.assert_fields_filled(tab, FIELD_XPATHS)
 
         if SuperScraper.DRY_RUN:
             print(f"DRY RUN: would submit opt-out for {SuperScraper.EMAIL}")

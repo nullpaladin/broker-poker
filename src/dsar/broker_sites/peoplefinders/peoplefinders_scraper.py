@@ -40,6 +40,9 @@ URL = "https://www.peoplefinders.com/request-my-info"
 RIGHT_MAP = {Right.RIGHT_TO_ACCESS: "Request My Information"}
 RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
 
+PAGE_RIGHTS = {}  # TODO(health-check): run HEALTH_CHECK once live; it prints the full list
+# (A wizard that stops at a reCAPTCHA before any field; no rights chooser or fields to assert.)
+
 
 async def main():
     super_scraper = SuperScraper()

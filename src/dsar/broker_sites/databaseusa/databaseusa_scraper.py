@@ -37,6 +37,15 @@ RIGHT_MAP = {
 }
 RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
 
+PAGE_RIGHTS = {}  # TODO(health-check): run HEALTH_CHECK once live; it prints the full list
+# (One generic MCDPA request: there is no rights chooser to inventory.)
+
+FIELD_XPATHS = {
+    "Email": "//*[@name='email']",
+    "Full name": "//*[@name='fullname']",
+    "State": "//*[@id='state']",
+}
+
 
 async def main():
     super_scraper = SuperScraper()
@@ -64,6 +73,9 @@ async def main():
         if state_select:
             state_abbr = SuperScraper.STATE_ABBREVIATED
             await js_utils.select_native_option(state_select, value=state_abbr, dispatch=("change",))
+
+        if SuperScraper.HEALTH_CHECK:
+            await SuperScraper.assert_fields_filled(tab, FIELD_XPATHS)
 
         await asyncio.sleep(1)
         await SuperScraper.screenshot(tab, "dry_run_general_request")

@@ -34,6 +34,15 @@ RIGHT_MAP = {
 }
 RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
 
+# Every button on the page that starts a request, as displayed -> the Right it maps to (None = not automated).
+PAGE_RIGHTS = {
+    "Request a Copy of My Data": Right.RIGHT_TO_ACCESS,
+    "Delete My User Data": Right.RIGHT_TO_DELETE,
+    "Exert Right to Opt-out": None,
+}
+RIGHTS_OPTIONS_CSS = ""  # TODO(health-check): capture the card-button selector on a live run (no audit wired until then)
+# No field assertions: the form inputs share names with hidden twins on the page, so only the visible one may be read.
+
 
 async def _click(tab, text):
     el = await tab.find(text=text, raise_exc=False)

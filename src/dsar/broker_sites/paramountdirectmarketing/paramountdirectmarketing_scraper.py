@@ -37,6 +37,23 @@ URL = "https://paramountdirectmarketing.com/do-not-sell-non-ca"
 RIGHT_MAP = {Right.RIGHT_TO_OPT_OUT: ["optOut"], Right.RIGHT_TO_DELETE: ["deleteInfo"]}
 RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
 
+# Every checkbox on the form, as displayed -> the Right it maps to.
+PAGE_RIGHTS = {
+    "Right to Opt Out": Right.RIGHT_TO_OPT_OUT,
+    "Right to Delete": Right.RIGHT_TO_DELETE,
+}
+RIGHTS_OPTIONS_CSS = "label:has(#optOut), label:has(#deleteInfo), label[for='optOut'], label[for='deleteInfo']"  # built from the two recorded ids
+
+FIELD_XPATHS = {
+    "First name": "//*[@id='firstName']",
+    "Last name": "//*[@id='lastName']",
+    "Email": "//*[@id='email']",
+    "Address": "//*[@id='address1']",
+    "City": "//*[@id='city']",
+    "Zip": "//*[@id='zip']",
+    "State": "//*[@id='state']",
+}
+
 
 async def main():
     super_scraper = SuperScraper()
@@ -60,6 +77,10 @@ async def main():
             await asyncio.sleep(2)
         else:
             print(f"{super_scraper.OOPS} 'I am submitting this request for myself' option not found")
+
+        if SuperScraper.HEALTH_CHECK:
+            offered = await SuperScraper.read_option_labels(tab, RIGHTS_OPTIONS_CSS)
+            SuperScraper.audit_rights(offered, PAGE_RIGHTS)
 
         checkbox_ids = [cb for right in rights for cb in RIGHT_MAP[right]]
         for checkbox_id in checkbox_ids:
@@ -91,6 +112,9 @@ async def main():
         if state_select:
             state_abbrev = SuperScraper.STATE_ABBREVIATED
             await js_utils.select_native_option(state_select, text=state_abbrev)
+
+        if SuperScraper.HEALTH_CHECK:
+            await SuperScraper.assert_fields_filled(tab, FIELD_XPATHS)
 
         await asyncio.sleep(1)
         await SuperScraper.screenshot(tab, "dry_run_" + "_".join(r.value for r in rights))

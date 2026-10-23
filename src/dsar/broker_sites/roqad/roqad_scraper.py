@@ -42,6 +42,17 @@ RIGHT_MAP = {
 }
 RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
 
+PAGE_RIGHTS = {}  # TODO(health-check): run HEALTH_CHECK once live; it prints the full list
+# (The "I am a (an)" options other than "Consumer/ Data subject" are unrecorded and share role=option with the request types.)
+
+FIELD_XPATHS = {
+    "Country": "//*[@id='countryDSARElement']",
+    "First name": "//*[@id='firstNameDSARElement']",
+    "Last name": "//*[@id='lastNameDSARElement']",
+    "Email": "//*[@id='emailDSARElement']",
+    "Request details": "//*[@id='requestDetailsDSARElement']",
+}
+
 
 async def _select_option(tab, option_text, super_scraper, description):
     option = await tab.find(xpath=f"//*[@role='option' and normalize-space()='{option_text}']", raise_exc=False)
@@ -105,6 +116,9 @@ async def main():
         if details_field:
             request_text = SuperScraper.request_statement(rights, broker="Roqad")
             await details_field.type_text(request_text)
+
+        if SuperScraper.HEALTH_CHECK:
+            await SuperScraper.assert_fields_filled(tab, FIELD_XPATHS)
 
         await asyncio.sleep(1)
         await SuperScraper.screenshot(tab, "dry_run_" + "_".join(r.value for r in rights))

@@ -28,6 +28,14 @@ RIGHT_MAP = {
 }
 RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
 
+PAGE_RIGHTS = {}  # TODO(health-check): run HEALTH_CHECK once live; it prints the full list
+
+FIELD_XPATHS = {
+    "First name": "//input[@name='first_name']",
+    "Last name": "//input[@name='last_name']",
+    "Email": "//input[@name='email_address']",
+}
+
 
 async def submit_request(tab, right, entry, super_scraper):
     await tab.go_to(URL)
@@ -70,6 +78,9 @@ async def submit_request(tab, right, entry, super_scraper):
             await asyncio.sleep(0.5)
 
     label = f"{right.value}"
+
+    if SuperScraper.HEALTH_CHECK:
+        await SuperScraper.assert_fields_filled(tab, FIELD_XPATHS)
 
     if SuperScraper.DRY_RUN:
         print(f"DRY RUN: would submit '{right.name}' for {SuperScraper.EMAIL}")

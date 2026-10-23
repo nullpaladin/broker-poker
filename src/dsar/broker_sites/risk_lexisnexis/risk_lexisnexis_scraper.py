@@ -58,6 +58,22 @@ RIGHT_MAP = {
 }
 RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
 
+PAGE_RIGHTS = {}  # TODO(health-check): run HEALTH_CHECK once live; it prints the full list
+# (The opt-out / delete controls only render after a state is chosen, and their label texts are paraphrased in the notes.)
+
+FIELD_XPATHS = {
+    "First name": "//*[@name='FirstName']",
+    "Last name": "//*[@name='LastName']",
+    "Street address": "//*[@name='Residence_StreetAddress1']",
+    "City": "//*[@name='Residence_City']",
+    "Zip": "//*[@name='Residence_Zip5']",
+    "Residence state": "//*[@name='Residence_State']",
+    "Email": "//*[@name='Email']",
+    "Phone": "//*[@name='Phone']",
+    "SSN": "//*[@name='SSN']",
+    "Date of birth": "//*[@name='DOB']",
+}
+
 URL = "https://consumer.risk.lexisnexis.com/request#privacy"
 
 
@@ -120,6 +136,9 @@ async def main():
                 await control.click()
             else:
                 print(f"{super_scraper.OOPS} {description} not found")
+
+        if SuperScraper.HEALTH_CHECK:
+            await SuperScraper.assert_fields_filled(tab, FIELD_XPATHS)
 
         await asyncio.sleep(1)
         await SuperScraper.screenshot(tab, "dry_run_" + "_".join(r.value for r in rights))

@@ -29,6 +29,15 @@ RIGHT_MAP = {
 }
 RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
 
+PAGE_RIGHTS = {}  # TODO(health-check): run HEALTH_CHECK once live; it prints the full list
+# (Recorded request types are aria-labels; the visible text may differ, so they are not copied in.)
+
+FIELD_XPATHS = {
+    "First name": "//*[@id='firstNameDSARElement']",
+    "Last name": "//*[@id='lastNameDSARElement']",
+    "Email": "//*[@id='emailDSARElement']",
+}
+
 
 async def submit_request(tab, right, aria_label, label, super_scraper):
     await tab.go_to(URL)
@@ -59,6 +68,9 @@ async def submit_request(tab, right, aria_label, label, super_scraper):
         await email.type_text(SuperScraper.EMAIL)
 
     time.sleep(0.5)
+
+    if SuperScraper.HEALTH_CHECK:
+        await SuperScraper.assert_fields_filled(tab, FIELD_XPATHS)
 
     if SuperScraper.DRY_RUN:
         submit_btn = await tab.find(**{"aria-label": "click to submit form"}, raise_exc=False)

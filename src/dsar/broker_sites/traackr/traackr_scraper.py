@@ -36,6 +36,17 @@ RIGHT_MAP = {
 }
 RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
 
+PAGE_RIGHTS = {}  # TODO(health-check): run HEALTH_CHECK once live; it prints the full list
+# (The request-type <select> lives inside the Formsite iframe, which read_option_labels cannot read.)
+
+FRAME_FIELD_XPATHS = {
+    "Request type": "//*[@id='RESULT_RadioButton-0']",
+    "First name": "//*[@id='RESULT_TextField-1']",
+    "Last name": "//*[@id='RESULT_TextField-2']",
+    "Email": "//*[@id='RESULT_TextField-3']",
+    "Confirm email": "//*[@id='CONFIRM_TextField-3']",
+}
+
 # Best-guess Formsite id for the social handle/URL field (after name/email/confirm).
 SOCIAL_FIELD_ID = "RESULT_TextField-4"
 
@@ -83,6 +94,10 @@ async def submit_request(tab, right, request_type_value, super_scraper):
             f"{super_scraper.OOPS} no TWITTER_URL / INSTAGRAM_URL / FACEBOOK_URL set in .env — "
             "Traackr requires one to validate identity, so submission will likely be rejected."
         )
+
+    if SuperScraper.HEALTH_CHECK:
+        # `frame` stands in for `tab`: its find() resolves into the Formsite iframe's document.
+        await SuperScraper.assert_fields_filled(frame, FRAME_FIELD_XPATHS)
 
     await asyncio.sleep(1)
     await SuperScraper.screenshot(tab, f"dry_run_{right.value}")

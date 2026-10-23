@@ -39,6 +39,20 @@ RIGHT_MAP = {
 }
 RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
 
+PAGE_RIGHTS = {}  # TODO(health-check): run HEALTH_CHECK once live; it prints the full list
+
+FIELD_XPATHS = {
+    "First name": "//*[@name='first_name']",
+    "Last name": "//*[@name='last_name']",
+    "Email": "//*[@name='email']",
+    "Phone": "//*[@name='phone']",
+    "Country": "//*[@name='country']",
+    "Address": "//*[@name='address_1']",
+    "City": "//*[@name='city']",
+    "State": "//*[@name='region']",
+    "Zip": "//*[@name='zip_code']",
+}
+
 
 async def submit_request(tab, right, entry, super_scraper):
     await tab.go_to(URL)
@@ -70,6 +84,9 @@ async def submit_request(tab, right, entry, super_scraper):
             await asyncio.sleep(0.2)
 
     label = "".join(c if c.isalnum() else "_" for c in entry.lower()).strip("_")
+
+    if SuperScraper.HEALTH_CHECK:
+        await SuperScraper.assert_fields_filled(tab, FIELD_XPATHS)
 
     if SuperScraper.DRY_RUN:
         print(

@@ -43,6 +43,20 @@ RIGHT_MAP = {
 }
 RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
 
+PAGE_RIGHTS = {}  # TODO(health-check): run HEALTH_CHECK once live; it prints the full list
+# (Recorded request types are aria-labels; the visible text may differ, so they are not copied in.)
+
+FIELD_XPATHS = {
+    "State": STATE_XPATH,
+    "First name": FIRST_NAME_XPATH,
+    "Last name": LAST_NAME_XPATH,
+    "Email": EMAIL_XPATH,
+    "Address": ADDRESS_XPATH,
+    "City": CITY_XPATH,
+    "Zip": ZIP_XPATH,
+    "Date of birth": DOB_XPATH,
+}
+
 
 async def main():
     super_scraper = SuperScraper()
@@ -88,6 +102,9 @@ async def main():
         await super_scraper.input_text_field(tab=tab, xpath=CITY_XPATH, text=SuperScraper.CITY)
         await super_scraper.input_text_field(tab=tab, xpath=ZIP_XPATH, text=SuperScraper.ZIP_CODE)
         await super_scraper.input_text_field(tab=tab, xpath=DOB_XPATH, text=SuperScraper.DATE_OF_BIRTH)
+
+        if SuperScraper.HEALTH_CHECK:
+            await SuperScraper.assert_fields_filled(tab, FIELD_XPATHS)
 
         if SuperScraper.DRY_RUN:
             await SuperScraper.screenshot(tab, "dry_run")

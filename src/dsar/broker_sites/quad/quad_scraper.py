@@ -31,6 +31,16 @@ URL = "https://privacyportal.onetrust.com/webform/9bbdeb31-9ca4-4397-b421-b16543
 RIGHT_MAP = {Right.RIGHT_TO_OPT_OUT: "combined opt-out / limit sensitive PI"}
 RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
 
+PAGE_RIGHTS = {}  # TODO(health-check): run HEALTH_CHECK once live; it prints the full list
+# (One combined opt-out / limit-sensitive-PI form: there is no rights chooser to inventory.)
+
+FIELD_XPATHS = {
+    "State": "//*[@id='stateDSARElement']",
+    "First name": "//*[@id='firstNameDSARElement']",
+    "Last name": "//*[@id='lastNameDSARElement']",
+    "Email": "//*[@id='emailDSARElement']",
+}
+
 
 async def main():
     super_scraper = SuperScraper()
@@ -82,6 +92,9 @@ async def main():
                 await field.type_text(value)
             else:
                 print(f"{super_scraper.OOPS} field '{field_id}' not found")
+
+        if SuperScraper.HEALTH_CHECK:
+            await SuperScraper.assert_fields_filled(tab, FIELD_XPATHS)
 
         await asyncio.sleep(1)
         await SuperScraper.screenshot(tab, "dry_run")

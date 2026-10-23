@@ -34,6 +34,20 @@ URL = "https://l2-data.com/optout1-667457/"
 RIGHT_MAP = {Right.RIGHT_TO_OPT_OUT: "opt-out"}
 RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
 
+PAGE_RIGHTS = {}  # TODO(health-check): run HEALTH_CHECK once live; it prints the full list
+
+FIELD_XPATHS = {
+    "First name": "//*[@id='input_5_2_3']",
+    "Last name": "//*[@id='input_5_2_6']",
+    "Phone": "//*[@id='input_5_3']",
+    "Email": "//*[@id='input_5_4']",
+    "Address": "//*[@id='input_5_5_1']",
+    "City": "//*[@id='input_5_5_3']",
+    "State": "//*[@id='input_5_5_4']",
+    "Zip": "//*[@id='input_5_5_5']",
+    "Arithmetic answer": "//*[@id='input_5_16']",
+}
+
 
 async def main():
     super_scraper = SuperScraper()
@@ -83,6 +97,9 @@ async def main():
                 print(f"{super_scraper.OOPS} math CAPTCHA field not found")
         else:
             print(f"{super_scraper.OOPS} could not parse math CAPTCHA text: '{math_text}'")
+
+        if SuperScraper.HEALTH_CHECK:
+            await SuperScraper.assert_fields_filled(tab, FIELD_XPATHS)
 
         await asyncio.sleep(1)
         await SuperScraper.screenshot(tab, "dry_run")

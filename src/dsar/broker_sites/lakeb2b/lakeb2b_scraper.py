@@ -30,6 +30,21 @@ URL = "https://www.lakeb2b.com/do-not-sell-my-data"
 RIGHT_MAP = {Right.RIGHT_TO_OPT_OUT: "opt-out"}
 RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
 
+PAGE_RIGHTS = {}  # TODO(health-check): run HEALTH_CHECK once live; it prints the full list
+# (The two acceptance-checkbox labels are truncated in the notes, so no inventory is built.)
+
+FIELD_XPATHS = {
+    "First name": "//*[@name='first-name']",
+    "Last name": "//*[@name='last-name']",
+    "Email": "//*[@name='your-email']",
+    "Phone": "//*[@name='phone']",
+    "Address": "//*[@name='address']",
+    "City": "//*[@name='city']",
+    "State": "//*[@name='state']",
+    "Zip": "//*[@name='zip']",
+    "Message": "//*[@name='message']",
+}
+
 
 async def main():
     super_scraper = SuperScraper()
@@ -70,6 +85,9 @@ async def main():
                 await asyncio.sleep(0.15)
             else:
                 print(f"{super_scraper.OOPS} field '{name}' not found")
+
+        if SuperScraper.HEALTH_CHECK:
+            await SuperScraper.assert_fields_filled(tab, FIELD_XPATHS)
 
         await asyncio.sleep(1)
         await SuperScraper.screenshot(tab, "dry_run")

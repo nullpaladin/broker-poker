@@ -54,10 +54,26 @@ RIGHT_MAP = {
 }
 RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
 
+# Request-type radio labels as displayed -> Right (None = not automated).
+PAGE_RIGHTS = {
+    "Get a copy of my data": Right.RIGHT_TO_ACCESS,
+    "Right to edit": None,
+    "Do not sell": Right.RIGHT_TO_OPT_OUT,
+    "Do not mail": Right.RIGHT_TO_OPT_OUT,
+    "Delete my data": Right.RIGHT_TO_DELETE,
+}
+# Built from the five recorded radio ids: catches a vanished option but not a brand-new one.
+RIGHTS_OPTIONS_CSS = ("label[for='getcopy'], label[for='righttoedit'], label[for='donotsell'], "
+                      "label[for='donotmail'], label[for='delete']")
+
 
 async def submit_request(tab, right, right_id, label, super_scraper):
     await tab.go_to(URL)
     await asyncio.sleep(5)
+
+    if SuperScraper.HEALTH_CHECK:
+        offered = await SuperScraper.read_option_labels(tab, RIGHTS_OPTIONS_CSS)
+        SuperScraper.audit_rights(offered, PAGE_RIGHTS)
 
     await super_scraper.click_item_by_xpath(tab=tab, xpath=STATE_DROPDOWN_LABEL_XPATH, sleep=1)
     await super_scraper.click_item_by_xpath(
@@ -76,6 +92,15 @@ async def submit_request(tab, right, right_id, label, super_scraper):
 
     await super_scraper.click_item_by_xpath(tab=tab, xpath=BRAND_LABEL_XPATH, sleep=1)
     await super_scraper.click_item_by_xpath(tab=tab, xpath=PERJURY_LABEL_XPATH, sleep=1)
+
+    if SuperScraper.HEALTH_CHECK:
+        await SuperScraper.assert_fields_filled(tab, {
+            "First name": FIRST_NAME_XPATH,
+            "Last name": LAST_NAME_XPATH,
+            "Email": EMAIL_XPATH,
+            "Address": ADDRESS_XPATH,
+            "Zip Code": ZIP_XPATH,
+        })
 
     if SuperScraper.DRY_RUN:
         print(f"DRY RUN: would submit '{right.name}' ({right_id}) for {SuperScraper.EMAIL}")

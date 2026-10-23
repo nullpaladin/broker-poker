@@ -28,6 +28,7 @@
 import asyncio
 
 from pydoll.browser.chromium import Chrome
+from pydoll.constants import Key
 
 from src.dsar.rights import Right
 from src.dsar.super_scraper import SuperScraper
@@ -40,6 +41,25 @@ RIGHT_MAP = {
     Right.RIGHT_TO_DELETE: ["Erasure"],
 }
 RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
+
+# Every option in the "Type of request" react-select, as displayed -> the Right it maps to (None = not automated).
+PAGE_RIGHTS = {
+    "Access": Right.RIGHT_TO_ACCESS,
+    "Portability": Right.RIGHT_TO_ACCESS,
+    "Do not Sell/Share Data": Right.RIGHT_TO_OPT_OUT,
+    "Erasure": Right.RIGHT_TO_DELETE,
+    "Rectification": None,
+    "Restriction": None,
+    "No auto decisions": None,
+    "Object processing": None,
+    "Opt out from commercial communications": None,
+    "Limit Use of Personal Data": None,
+}
+RIGHTS_OPTIONS_CSS = "[id^='react-select-5-option']"  # only rendered while the request-type menu is open
+
+EMAIL_XPATH = "//form[@id='dsr-form']//input[@type='email' or @name='email']"
+COMMENT_XPATH = "//form[@id='dsr-form']//textarea[not(@name='g-recaptcha-response')]"
+
 
 async def _react_select(tab, super_scraper, index, value):
     control = None
@@ -84,6 +104,16 @@ async def submit_request(tab, right, entry, super_scraper):
         await asyncio.sleep(2)
 
     await _react_select(tab, super_scraper, 4, "Other")
+    if SuperScraper.HEALTH_CHECK:
+        control = await tab.find(xpath="//input[@id='react-select-5-input']/ancestor::div[3]", raise_exc=False)
+        if control:
+            await control.click()
+            await asyncio.sleep(1)
+            offered = await SuperScraper.read_option_labels(tab, RIGHTS_OPTIONS_CSS)
+            SuperScraper.audit_rights(offered, PAGE_RIGHTS)
+            await tab.keyboard.press(Key.ESCAPE)
+            await asyncio.sleep(0.5)
+
     await _react_select(tab, super_scraper, 5, entry)
 
     email = await tab.find(xpath="//form[@id='dsr-form']//input[@type='email' or @name='email']", raise_exc=False)
@@ -97,6 +127,9 @@ async def submit_request(tab, right, entry, super_scraper):
     )
     if comment:
         await comment.type_text(SuperScraper.request_statement([right], broker="Brandwatch"))
+
+    if SuperScraper.HEALTH_CHECK:
+        await SuperScraper.assert_fields_filled(tab, {"Email": EMAIL_XPATH, "Reason / Comment": COMMENT_XPATH})
 
     await asyncio.sleep(1)
     await SuperScraper.screenshot(tab, f"dry_run_{tag}")

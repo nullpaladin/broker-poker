@@ -60,6 +60,25 @@ RIGHT_MAP = {
 }
 RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
 
+PAGE_RIGHTS = {}  # TODO(health-check): run HEALTH_CHECK once live; it prints the full list
+# (The rights are Yes/No toggles whose labels are truncated in the notes, so no inventory is built.)
+
+FIELD_XPATHS = {
+    "Agency question": "//*[@id='input_1_16']",
+    "First name": "//*[@id='input_1_1_3']",
+    "Last name": "//*[@id='input_1_1_6']",
+    "Birth month": "//*[@id='input_1_3_1']",
+    "Birth day": "//*[@id='input_1_3_2']",
+    "Birth year": "//*[@id='input_1_3_3']",
+    "Marital status": "//*[@id='input_1_28']",
+    "Email": "//*[@id='input_1_4']",
+    "Confirm email": "//*[@id='input_1_4_2']",
+    "Address": "//*[@id='input_1_9_1']",
+    "City": "//*[@id='input_1_9_3']",
+    "State": "//*[@id='input_1_9_4']",
+    "Zip": "//*[@id='input_1_9_5']",
+}
+
 
 async def _select_text(tab, element_id, text):
     select = await tab.find(id=element_id, raise_exc=False)
@@ -137,6 +156,9 @@ async def main():
         for select_id in (DELETE_SELECT, CATEGORIES_SELECT, SHARING_SELECT):
             await _select_text(tab, select_id, "Yes" if select_id in yes_ids else "No")
         await _select_text(tab, CORRECT_SELECT, "No")
+
+        if SuperScraper.HEALTH_CHECK:
+            await SuperScraper.assert_fields_filled(tab, FIELD_XPATHS)
 
         await asyncio.sleep(1)
         await SuperScraper.screenshot(tab, "dry_run")

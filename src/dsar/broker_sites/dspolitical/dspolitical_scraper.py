@@ -39,6 +39,22 @@ RIGHT_MAP = {
 }
 RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
 
+PAGE_RIGHTS = {}  # TODO(health-check): run HEALTH_CHECK once live; it prints the full list
+# (Recorded request types are aria-labels; the visible text may differ, so they are not copied in.)
+
+FIELD_XPATHS = {
+    "First name": "//*[@id='firstNameDSARElement']",
+    "Last name": "//*[@id='lastNameDSARElement']",
+    "Email": "//*[@id='emailDSARElement']",
+    "Country": "//*[@id='countryDSARElement']",
+    "State": "//*[@id='stateDSARElement']",
+    "Address": "//*[@id='addressDSARElement']",
+    "City": "//*[@id='cityDSARElement']",
+    "Zip": "//*[@id='zipDSARElement']",
+    "Phone": "//*[@id='phoneNumberDSARElement']",
+    "Request details": "//*[@id='requestDetailsDSARElement']",
+}
+
 
 async def _field_value(field):
     return ((await js_utils.js_eval(field, "return this.value;")) or "").strip()
@@ -117,6 +133,9 @@ async def submit_request(tab, right, right_label, label, super_scraper):
         await details.type_text(SuperScraper.request_statement([right], broker="DS Political"))
 
     time.sleep(0.5)
+    if SuperScraper.HEALTH_CHECK:
+        await SuperScraper.assert_fields_filled(tab, FIELD_XPATHS)
+
     submit_btn = await tab.find(id="dsar-webform-submit-button", raise_exc=False)
     if submit_btn:
         await submit_btn.scroll_into_view()

@@ -39,6 +39,10 @@ RIGHT_MAP = {
 }
 RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
 
+PAGE_RIGHTS = {}  # TODO(health-check): run HEALTH_CHECK once live; it prints the full list
+
+EMAIL_XPATH = "//*[@aria-label='Email Address']"
+
 
 async def submit_request(tab, right, card_text, super_scraper):
     await tab.go_to(URL)
@@ -70,6 +74,9 @@ async def submit_request(tab, right, card_text, super_scraper):
         email_field = await tab.find(xpath="//input[@type='email' or @type='text']", raise_exc=False)
     if email_field:
         await email_field.type_text(SuperScraper.EMAIL)
+
+    if SuperScraper.HEALTH_CHECK:
+        await SuperScraper.assert_fields_filled(tab, {"Email": EMAIL_XPATH})
 
     await asyncio.sleep(1)
     await SuperScraper.screenshot(tab, f"dry_run_{right.value}_{label}")

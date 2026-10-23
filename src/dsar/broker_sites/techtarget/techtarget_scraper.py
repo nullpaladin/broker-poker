@@ -31,6 +31,15 @@ RIGHT_MAP = {
 }
 RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
 
+PAGE_RIGHTS = {}  # TODO(health-check): run HEALTH_CHECK once live; it prints the full list
+# (The Request Type tagger lists options by id only; display texts other than "Right to be DELETED" are unrecorded.)
+
+FIELD_XPATHS = {
+    "Email": "//*[@id='request_anonymous_requester_email']",
+    "First name": "//*[@id='request_custom_fields_360055089353']",
+    "Last name": "//*[@id='request_custom_fields_360055089373']",
+}
+
 
 async def _open_tagger(tab):
     """Open the request type nesty tagger dropdown."""
@@ -103,6 +112,9 @@ async def submit_request(tab, right, entry, super_scraper):
         await _select_tagger_value(tab, tagger_value)
 
     time.sleep(0.5)
+
+    if SuperScraper.HEALTH_CHECK:
+        await SuperScraper.assert_fields_filled(tab, FIELD_XPATHS)
 
     if SuperScraper.DRY_RUN:
         submit_btn = await tab.find(tag_name="input", **{"name": "commit"}, raise_exc=False)

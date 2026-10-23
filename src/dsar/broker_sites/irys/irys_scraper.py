@@ -42,6 +42,18 @@ RIGHT_MAP = {
 }
 RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
 
+PAGE_RIGHTS = {}  # TODO(health-check): run HEALTH_CHECK once live; it prints the full list
+# (The request-type dropdown is a custom widget with no recorded option selector.)
+
+FIELD_XPATHS = {
+    "First name": "//*[@name='first_name']",
+    "Last name": "//*[@name='last_name']",
+    "Email": "//*[@name='email']",
+    "Country": "//*[@name='country']",
+    "State": "//*[@name='region']",
+    "Advertising ID": "//*[@name='maid']",
+}
+
 
 async def submit_request(tab, right, entry, super_scraper):
     await tab.go_to(URL)
@@ -78,6 +90,9 @@ async def submit_request(tab, right, entry, super_scraper):
             await asyncio.sleep(0.2)
 
     label = entry.lower().replace(" ", "_")
+
+    if SuperScraper.HEALTH_CHECK:
+        await SuperScraper.assert_fields_filled(tab, FIELD_XPATHS)
 
     if SuperScraper.DRY_RUN:
         print(

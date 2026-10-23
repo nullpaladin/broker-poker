@@ -39,6 +39,23 @@ RIGHT_MAP = {
 }
 RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
 
+# Every option in the "Inquiry" <select>, as displayed -> the Right it maps to.
+PAGE_RIGHTS = {
+    "Right to know what information is collected": Right.RIGHT_TO_ACCESS,
+    "Right to opt-out of sales": Right.RIGHT_TO_OPT_OUT,
+    "Right to delete personal information": Right.RIGHT_TO_DELETE,
+}
+RIGHTS_OPTIONS_CSS = "select#case_type option"
+
+FIELD_XPATHS = {
+    "Inquiry": "//select[@id='case_type']",
+    "First name": "//*[@name='first_name']",
+    "Last name": "//*[@name='last_name']",
+    "Email": "//*[@name='email']",
+    "Zip code": "//*[@name='zip_code']",
+    "Phone": "//*[@name='phone_number']",
+}
+
 
 async def submit_request(tab, case_type, label, super_scraper):
     await tab.go_to(URL)
@@ -48,6 +65,10 @@ async def submit_request(tab, case_type, label, super_scraper):
     if deny_cookies:
         await deny_cookies.click()
         await asyncio.sleep(1)
+
+    if SuperScraper.HEALTH_CHECK:
+        offered = await SuperScraper.read_option_labels(tab, RIGHTS_OPTIONS_CSS)
+        SuperScraper.audit_rights(offered, PAGE_RIGHTS)
 
     case_select = await tab.find(id="case_type", raise_exc=False)
     if case_select:
@@ -66,6 +87,9 @@ async def submit_request(tab, case_type, label, super_scraper):
         if field:
             await field.type_text(value)
             await asyncio.sleep(0.2)
+
+    if SuperScraper.HEALTH_CHECK:
+        await SuperScraper.assert_fields_filled(tab, FIELD_XPATHS)
 
     if SuperScraper.DRY_RUN:
         print(f"DRY RUN: would submit '{case_type}' for {SuperScraper.EMAIL}")

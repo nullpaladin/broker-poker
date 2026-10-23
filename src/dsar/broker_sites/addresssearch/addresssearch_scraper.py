@@ -25,12 +25,15 @@ RIGHT_MAP = {
 }
 RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
 
+PAGE_RIGHTS = {}  # TODO(health-check): run HEALTH_CHECK once live; it prints the full list
+
 FIRST_NAME_XPATH = '//input[@name="fname"]'
 LAST_NAME_XPATH = '//input[@name="lname"]'
 EMAIL_XPATH = '//input[@name="email"]'
 ADDRESS_XPATH = '//input[@name="address1"]'
 CITY_XPATH = '//input[@name="city"]'
 ZIP_XPATH = '//input[@name="zip"]'
+STATE_XPATH = '//select[@name="state"]'
 SUBMIT_XPATH = '//input[@name="submit"]'
 
 
@@ -64,6 +67,17 @@ async def main():
         )
 
         await super_scraper.input_text_field(tab=tab, xpath=ZIP_XPATH, text=SuperScraper.ZIP_CODE)
+
+        if SuperScraper.HEALTH_CHECK:
+            await SuperScraper.assert_fields_filled(tab, {
+                "First name": FIRST_NAME_XPATH,
+                "Last name": LAST_NAME_XPATH,
+                "Email": EMAIL_XPATH,
+                "Address": ADDRESS_XPATH,
+                "City": CITY_XPATH,
+                "State": STATE_XPATH,
+                "Zip": ZIP_XPATH,
+            })
 
         if SuperScraper.DRY_RUN:
             await SuperScraper.screenshot(tab, "dry_run_delete")

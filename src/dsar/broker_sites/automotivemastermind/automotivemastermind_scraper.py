@@ -48,6 +48,27 @@ RIGHT_MAP = {
 }
 RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
 
+PAGE_RIGHTS = {}  # TODO(health-check): run HEALTH_CHECK once live; it prints the full list
+
+DNS_FIELD_XPATHS = {
+    "Email": "//*[@id='emailDSARElement']",
+    "First name": "//*[@id='firstNameDSARElement']",
+    "Last name": "//*[@id='lastNameDSARElement']",
+    "Address": "//*[@id='addressDSARElement']",
+    "State": "//*[@id='stateDSARElement']",
+}
+MAIN_FIELD_XPATHS = {
+    "Country": "//*[@id='countryDSARElement']",
+    "State": "//*[@id='stateDSARElement']",
+    "Email": "//*[@id='emailDSARElement']",
+    "First name": "//*[@id='firstNameDSARElement']",
+    "Last name": "//*[@id='lastNameDSARElement']",
+    "Address": "//*[@id='formField49DSARElement']",
+    "City": "//*[@id='formField50DSARElement']",
+    "Zip": "//*[@id='formField51DSARElement']",
+    "Request details": "//*[@id='requestDetailsDSARElement']",
+}
+
 
 async def _select_autocomplete(tab, field_id, search_text):
     field = await tab.find(id=field_id, raise_exc=False)
@@ -89,6 +110,9 @@ async def submit_dns(tab, super_scraper):
     await _select_autocomplete(tab, "stateDSARElement", SuperScraper.STATE)
 
     time.sleep(0.5)
+
+    if SuperScraper.HEALTH_CHECK:
+        await SuperScraper.assert_fields_filled(tab, DNS_FIELD_XPATHS)
 
     if SuperScraper.DRY_RUN:
         print(
@@ -172,6 +196,9 @@ async def submit_main(tab, rights, super_scraper):
         await details.type_text(details_text)
 
     time.sleep(0.5)
+
+    if SuperScraper.HEALTH_CHECK:
+        await SuperScraper.assert_fields_filled(tab, MAIN_FIELD_XPATHS)
 
     if SuperScraper.DRY_RUN:
         print(

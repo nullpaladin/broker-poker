@@ -41,6 +41,20 @@ RIGHT_MAP = {
 }
 RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
 
+PAGE_RIGHTS = {}  # TODO(health-check): run HEALTH_CHECK once live; it prints the full list
+# (The page-2 right radios are described as Know/Access, Delete, Correct only, not with verbatim labels.)
+
+PAGE1_FIELD_XPATHS = {
+    "First name": "//*[@id='input_5_8_3']",
+    "Last name": "//*[@id='input_5_8_6']",
+    "Address": "//*[@id='input_5_9_1']",
+    "City": "//*[@id='input_5_9_3']",
+    "Zip": "//*[@id='input_5_9_5']",
+    "State": "//*[@id='input_5_9_4']",
+    "Email": "//*[@id='input_5_10']",
+    "Phone": "//*[@id='input_5_11']",
+}
+
 
 async def submit_request(tab, choice_id, label, super_scraper):
     await tab.go_to(URL)
@@ -67,6 +81,9 @@ async def submit_request(tab, choice_id, label, super_scraper):
     consent = await tab.find(id="input_5_12_1", raise_exc=False)
     if consent:
         await js_utils.js_check(consent)
+
+    if SuperScraper.HEALTH_CHECK:
+        await SuperScraper.assert_fields_filled(tab, PAGE1_FIELD_XPATHS)
 
     await asyncio.sleep(0.5)
     next_btn = await tab.find(id="gform_next_button_5_13", raise_exc=False)

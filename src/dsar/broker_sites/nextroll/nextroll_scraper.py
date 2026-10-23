@@ -36,6 +36,10 @@ RIGHT_MAP = {
 }
 RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
 
+PAGE_RIGHTS = {}  # TODO(health-check): run HEALTH_CHECK once live; it prints the full list
+
+EMAIL_XPATH = "//input[@name='email']"
+
 
 async def main():
     super_scraper = SuperScraper()
@@ -67,6 +71,9 @@ async def main():
         email_field = await tab.find(xpath="//input[@name='email']", raise_exc=False)
         if email_field:
             await email_field.type_text(SuperScraper.EMAIL)
+
+        if SuperScraper.HEALTH_CHECK:
+            await SuperScraper.assert_fields_filled(tab, {"Business email": EMAIL_XPATH})
 
         await asyncio.sleep(1)
         await SuperScraper.screenshot(tab, "dry_run_opt_out")

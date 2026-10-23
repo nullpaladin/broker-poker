@@ -33,6 +33,20 @@ RIGHT_MAP = {
 }
 RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
 
+PAGE_RIGHTS = {}  # TODO(health-check): run HEALTH_CHECK once live; it prints the full list
+RIGHTS_OPTIONS_CSS = "label:has(input[name='requestType'])"  # step 1 request-type radios
+
+FIELD_XPATHS = {
+    "First name": "//*[@id='firstName']",
+    "Last name": "//*[@id='lastName']",
+    "Email": "//*[@id='email']",
+    "Phone": "//*[@id='phone']",
+    "Address": "//*[@id='addressLine1']",
+    "City": "//*[@id='city']",
+    "Postal code": "//*[@id='postalCode']",
+    "State": "//*[@id='state']",
+}
+
 
 async def _click_radio_label(tab, name, value, super_scraper, description):
     label = await tab.find(
@@ -56,6 +70,10 @@ async def _click_next(tab):
 async def submit_request(tab, right, entry, super_scraper):
     await tab.go_to(URL)
     await asyncio.sleep(6)
+
+    if SuperScraper.HEALTH_CHECK:
+        offered = await SuperScraper.read_option_labels(tab, RIGHTS_OPTIONS_CSS)
+        SuperScraper.audit_rights(offered, PAGE_RIGHTS)
 
     if not await _click_radio_label(tab, "requestType", entry, super_scraper, "request type"):
         return
@@ -85,6 +103,10 @@ async def submit_request(tab, right, entry, super_scraper):
     if state_select:
         state_abbr = SuperScraper.STATE_ABBREVIATED
         await js_utils.select_native_option(state_select, value=state_abbr)
+
+    if SuperScraper.HEALTH_CHECK:
+        await SuperScraper.assert_fields_filled(tab, FIELD_XPATHS)
+
     await _click_next(tab)
 
     checkbox = await tab.find(xpath="//input[@type='checkbox']", raise_exc=False)

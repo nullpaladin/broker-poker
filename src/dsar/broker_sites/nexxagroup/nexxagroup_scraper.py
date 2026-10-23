@@ -33,6 +33,21 @@ RIGHT_MAP = {
 }
 RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
 
+PAGE_RIGHTS = {}  # TODO(health-check): run HEALTH_CHECK once live; it prints the full list
+# (Recorded request types are aria-labels; the visible text may differ, so they are not copied in.)
+
+FIELD_XPATHS = {
+    "Country": "//*[@id='countryDSARElement']",
+    "State": "//*[@id='stateDSARElement']",
+    "City": "//*[@id='cityDSARElement']",
+    "Address": "//*[@id='addressDSARElement']",
+    "Zip": "//*[@id='zipDSARElement']",
+    "First name": "//*[@id='firstNameDSARElement']",
+    "Last name": "//*[@id='lastNameDSARElement']",
+    "Email": "//*[@id='emailDSARElement']",
+    "Phone": "//*[@id='phoneNumberDSARElement']",
+}
+
 PHONE_COUNTRY_CODE = "vt-input-10"
 
 
@@ -122,6 +137,9 @@ async def main():
             await asyncio.sleep(0.5)
 
         time.sleep(0.5)
+
+        if SuperScraper.HEALTH_CHECK:
+            await SuperScraper.assert_fields_filled(tab, FIELD_XPATHS)
 
         if SuperScraper.DRY_RUN:
             print(

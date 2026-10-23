@@ -25,6 +25,9 @@ URL = "https://www.parasolleads.com/ccpa-opt-out-form.php"
 RIGHT_MAP = {Right.RIGHT_TO_OPT_OUT: "Do Not Sell My Information"}
 RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
 
+PAGE_RIGHTS = {}  # TODO(health-check): run HEALTH_CHECK once live; it prints the full list
+# (The only checkbox is the mislabeled name="gender" input; its label element is unrecorded.)
+
 NAME_XPATH = '//input[@name="FirstName"]'
 EMAIL_XPATH = '//input[@name="EmailID"]'
 ADDRESS_XPATH = '(//input[@name="LastName"])[1]'
@@ -32,6 +35,15 @@ CITY_XPATH = '(//input[@name="LastName"])[2]'
 STATE_XPATH = '(//input[@name="LastName"])[3]'
 ZIP_XPATH = '//input[@name="pin"]'
 DO_NOT_SELL_CHECKBOX_XPATH = '//input[@name="gender"]'
+
+FIELD_XPATHS = {
+    "Name": NAME_XPATH,
+    "Email": EMAIL_XPATH,
+    "Street address": ADDRESS_XPATH,
+    "City": CITY_XPATH,
+    "State": STATE_XPATH,
+    "Zip": ZIP_XPATH,
+}
 
 
 async def main():
@@ -60,6 +72,9 @@ async def main():
 
         await js_utils.js_click(await tab.find(xpath=DO_NOT_SELL_CHECKBOX_XPATH))
         time.sleep(0.5)
+
+        if SuperScraper.HEALTH_CHECK:
+            await SuperScraper.assert_fields_filled(tab, FIELD_XPATHS)
 
         if SuperScraper.DRY_RUN:
             await SuperScraper.screenshot(tab, "dry_run_opt_out")

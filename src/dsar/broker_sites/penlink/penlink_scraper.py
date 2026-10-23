@@ -33,12 +33,31 @@ RIGHT_MAP = {
     Right.RIGHT_TO_DELETE: [("Delete my personal information", "delete")],
 }
 RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
+
+PAGE_RIGHTS = {}  # TODO(health-check): run HEALTH_CHECK once live; it prints the full list
+RIGHTS_OPTIONS_CSS = "#input_9_33 option"  # Correct / Object / marketing opt-out texts are unrecorded
+
+FIELD_XPATHS = {
+    "Request type": "//*[@id='input_9_33']",
+    "First name": "//*[@id='input_9_1']",
+    "Last name": "//*[@id='input_9_10']",
+    "Email": "//*[@id='input_9_2']",
+    "Street": "//*[@id='input_9_24_1']",
+    "City": "//*[@id='input_9_24_3']",
+    "State": "//*[@id='input_9_24_4']",
+    "Zip": "//*[@id='input_9_24_5']",
+    "Country": "//*[@id='input_9_24_6']",
+}
 REQUEST_TYPE_SELECT = "input_9_33"
 
 
 async def submit_request(tab, right_label, tag, super_scraper):
     await tab.go_to(URL)
     await asyncio.sleep(6)
+
+    if SuperScraper.HEALTH_CHECK:
+        offered = await SuperScraper.read_option_labels(tab, RIGHTS_OPTIONS_CSS)
+        SuperScraper.audit_rights(offered, PAGE_RIGHTS)
 
     rt = await tab.find(id=REQUEST_TYPE_SELECT, raise_exc=False)
     if rt:
@@ -75,6 +94,9 @@ async def submit_request(tab, right_label, tag, super_scraper):
     consumer_radio = await tab.find(id="choice_9_25_0", raise_exc=False)
     if consumer_radio:
         await consumer_radio.click()
+
+    if SuperScraper.HEALTH_CHECK:
+        await SuperScraper.assert_fields_filled(tab, FIELD_XPATHS)
 
     await asyncio.sleep(1)
     await SuperScraper.screenshot(tab, f"dry_run_{tag}")

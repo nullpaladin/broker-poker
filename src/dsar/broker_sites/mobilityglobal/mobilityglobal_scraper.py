@@ -37,6 +37,23 @@ RIGHT_MAP = {
     Right.RIGHT_TO_DELETE: REQUEST_TYPE_SEARCH,
 }
 RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
+
+PAGE_RIGHTS = {}  # TODO(health-check): run HEALTH_CHECK once live; it prints the full list
+# (A cascading form with one generic access request; the request-type options are not recorded.)
+
+FIELD_XPATHS = {
+    "Requesting party": "//*[@id='formField34DSARElement']",
+    "Country": "//*[@id='countryDSARElement']",
+    "State": "//*[@id='stateDSARElement']",
+    "Division": "//*[@id='formField29DSARElement']",
+    "First name": "//*[@id='firstNameDSARElement']",
+    "Last name": "//*[@id='lastNameDSARElement']",
+    "Email": "//*[@id='emailDSARElement']",
+    "Address": "//*[@id='formField49DSARElement']",
+    "City": "//*[@id='formField50DSARElement']",
+    "Zip": "//*[@id='formField51DSARElement']",
+    "Request details": "//*[@id='requestDetailsDSARElement']",
+}
 DIVISIONS = ["automotiveMastermind", "Polk Automotive Solutions", "Market Scan"]
 
 
@@ -100,6 +117,9 @@ async def submit_request(tab, rights, division, label, super_scraper):
         await details.type_text(f"{statement} This request relates to the {division} division.")
 
     time.sleep(0.5)
+    if SuperScraper.HEALTH_CHECK:
+        await SuperScraper.assert_fields_filled(tab, FIELD_XPATHS)
+
     submit_btn = await tab.find(id="dsar-webform-submit-button", raise_exc=False)
     if submit_btn:
         await submit_btn.scroll_into_view()

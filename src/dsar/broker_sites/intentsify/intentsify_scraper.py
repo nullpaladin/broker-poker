@@ -41,6 +41,25 @@ RIGHT_MAP = {
 }
 RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
 
+# Every option in the "Select a reason" <select>, as displayed -> the Right it maps to (None = not automated).
+PAGE_RIGHTS = {
+    "Do not sell or share my personal information": Right.RIGHT_TO_OPT_OUT,
+    "Do not process my information for purposes of targeted advertising": Right.RIGHT_TO_OPT_OUT,
+    "Request to delete/erase my personal information": Right.RIGHT_TO_DELETE,
+    "Request to correct/rectify my personal information": None,
+    "Request to know/access my personal information": Right.RIGHT_TO_ACCESS,
+}
+RIGHTS_OPTIONS_CSS = ""  # TODO(health-check): the reason <select> has no name/id; capture a selector on a live run (no audit wired until then)
+
+FIELD_XPATHS = {
+    "Email": "//input[@name='email']",
+    "First name": "//input[@name='firstName']",
+    "Last name": "//input[@name='lastName']",
+    "Country": "//select[option[normalize-space()='Select country']]",
+    "State": "//select[option[normalize-space()='Select state']]",
+    "Reason": "//select[option[normalize-space()='Select a reason']]",
+}
+
 
 async def _select_by_text(tab, select_xpath, text):
     el = await tab.find(xpath=select_xpath, raise_exc=False)
@@ -69,6 +88,9 @@ async def submit_request(tab, right, reason_text, label, super_scraper):
     state_abbr = SuperScraper.STATE_ABBREVIATED
     await _select_by_text(tab, "//select[option[normalize-space()='Select state']]", state_abbr)
     await _select_by_text(tab, "//select[option[normalize-space()='Select a reason']]", reason_text)
+
+    if SuperScraper.HEALTH_CHECK:
+        await SuperScraper.assert_fields_filled(tab, FIELD_XPATHS)
 
     time.sleep(0.5)
     await SuperScraper.screenshot(tab, f"dry_run_{label}")

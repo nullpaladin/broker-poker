@@ -44,6 +44,19 @@ RIGHT_MAP = {
 }
 RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
 
+PAGE_RIGHTS = {}  # TODO(health-check): run HEALTH_CHECK once live; it prints the full list
+
+ACCESS_FIELD_XPATHS = {
+    "First name": "//*[@id=':r2:']",
+    "Last name": "//*[@id=':r3:']",
+    "Email": "//*[@id=':r4:']",
+}
+OPT_OUT_DELETE_FIELD_XPATHS = {
+    "First name": "//*[@id=':r2:']",
+    "Last name": "//*[@id=':r3:']",
+    "Email": "//*[@id=':r5:']",
+}
+
 
 async def _select_react_option(tab, instance_id, text):
     combobox = await tab.find(xpath=f"//*[@id='{instance_id}-input']", raise_exc=False)
@@ -81,6 +94,9 @@ async def submit_access(tab, super_scraper):
 
     await _select_country_and_state(tab)
 
+    if SuperScraper.HEALTH_CHECK:
+        await SuperScraper.assert_fields_filled(tab, ACCESS_FIELD_XPATHS)
+
     if SuperScraper.DRY_RUN:
         print(f"DRY RUN: would submit '{Right.RIGHT_TO_ACCESS.name}' for {SuperScraper.EMAIL}")
         await asyncio.sleep(1)
@@ -113,6 +129,9 @@ async def submit_opt_out_delete(tab, super_scraper):
             await asyncio.sleep(0.2)
 
     await _select_country_and_state(tab)
+
+    if SuperScraper.HEALTH_CHECK:
+        await SuperScraper.assert_fields_filled(tab, OPT_OUT_DELETE_FIELD_XPATHS)
 
     if SuperScraper.DRY_RUN:
         print(f"DRY RUN: would submit '{Right.RIGHT_TO_DELETE.name}' (bundled opt-out + deletion form) for {SuperScraper.EMAIL}")

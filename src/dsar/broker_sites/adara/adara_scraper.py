@@ -31,6 +31,10 @@ RIGHT_MAP = {
 }
 RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
 
+PAGE_RIGHTS = {}  # TODO(health-check): run HEALTH_CHECK once live; it prints the full list
+# No audit wired: the options are <input type=submit value=...> buttons, which read_option_labels
+# (innerText/textContent) cannot read.
+
 
 async def submit_request(tab, right, op_value, label, super_scraper):
     await tab.go_to(URL)
@@ -38,6 +42,9 @@ async def submit_request(tab, right, op_value, label, super_scraper):
 
     await super_scraper.click_item_by_xpath(tab=tab, xpath=EMAIL_ID_TYPE_RADIO_XPATH, sleep=1)
     await super_scraper.input_text_field(tab=tab, xpath=EMAIL_ADDRESS_XPATH, text=SuperScraper.EMAIL, sleep=1)
+
+    if SuperScraper.HEALTH_CHECK:
+        await SuperScraper.assert_fields_filled(tab, {"Email address": EMAIL_ADDRESS_XPATH})
 
     if SuperScraper.DRY_RUN:
         print(f"DRY RUN: would submit '{right.name}' ({op_value}) for {SuperScraper.EMAIL}")

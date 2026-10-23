@@ -40,6 +40,17 @@ RIGHT_MAP = {
 }
 RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
 
+PAGE_RIGHTS = {}  # TODO(health-check): run HEALTH_CHECK once live; it prints the full list
+# (A plain contact form: there is no rights chooser to inventory.)
+
+FIELD_XPATHS = {
+    "First name": "//input[@name='your-name1']",
+    "Last name": "//input[@name='your-name2']",
+    "Email": "//input[@name='your-email']",
+    "Phone": "//input[@name='your-phone']",
+    "Message": "//textarea[@name='your-message']",
+}
+
 
 def _set_value_script(value):
     return (
@@ -84,6 +95,9 @@ async def main():
         )
         if message:
             await message.execute_script(_set_value_script(request_text))
+
+        if SuperScraper.HEALTH_CHECK:
+            await SuperScraper.assert_fields_filled(tab, FIELD_XPATHS)
 
         if SuperScraper.DRY_RUN:
             print(f"DRY RUN: would submit {[r.name for r in rights]} for {SuperScraper.FIRST_NAME} {SuperScraper.LAST_NAME}")

@@ -41,6 +41,9 @@ RIGHT_MAP = {
 }
 RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
 
+PAGE_RIGHTS = {}  # TODO(health-check): run HEALTH_CHECK once live; it prints the full list
+# (The two pages have no rights chooser or recorded heading text to inventory.)
+
 
 async def _select_california_resident(tab, super_scraper):
     # "Are you a California resident?" — answered truthfully from STATE.
@@ -101,7 +104,7 @@ async def submit_opt_out(tab, super_scraper):
     if submit_button:
         await submit_button.click()
         await asyncio.sleep(3)
-        print("Submitted opt-out-of-sale request for this device/browser.")
+        print("Submitted opt-out-of-sale request for this device/browser — confirm in the browser.")
     else:
         print(f"{super_scraper.OOPS} submit button not found")
 

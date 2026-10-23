@@ -40,10 +40,31 @@ RIGHT_MAP = {
 }
 RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
 
+PAGE_RIGHTS = {}  # TODO(health-check): run HEALTH_CHECK once live; it prints the full list
+RIGHTS_OPTIONS_CSS = "#webform_category option"  # categories are recorded by value only (collection, opt_out, deletion, ...)
+
+FIELD_XPATHS = {
+    "Email": "//*[@id='webform_email']",
+    "First name": "//*[@id='webform_first_name']",
+    "Last name": "//*[@id='webform_last_name']",
+    "Phone": "//*[@id='webform_phone']",
+    "Address": "//*[@id='webform_address_1']",
+    "City": "//*[@id='webform_city']",
+    "State": "//*[@id='webform_state']",
+    "Zip": "//*[@id='webform_zip']",
+    "Country": "//*[@id='webform_country']",
+    "Jurisdiction": "//*[@id='webform_jurisdiction']",
+    "Request category": "//*[@id='webform_category']",
+}
+
 
 async def submit_request(tab, category, super_scraper):
     await tab.go_to(URL)
     await asyncio.sleep(5)
+
+    if SuperScraper.HEALTH_CHECK:
+        offered = await SuperScraper.read_option_labels(tab, RIGHTS_OPTIONS_CSS)
+        SuperScraper.audit_rights(offered, PAGE_RIGHTS)
 
     fields = {
         "webform_email": SuperScraper.EMAIL,
@@ -92,6 +113,9 @@ async def submit_request(tab, category, super_scraper):
         await direct_checkbox.click()
     else:
         print(f"{super_scraper.OOPS} 'first-party request' checkbox not found")
+
+    if SuperScraper.HEALTH_CHECK:
+        await SuperScraper.assert_fields_filled(tab, FIELD_XPATHS)
 
     await asyncio.sleep(1)
     await SuperScraper.screenshot(tab, f"dry_run_{category}")

@@ -35,6 +35,21 @@ RIGHT_MAP = {
 }
 RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
 
+PAGE_RIGHTS = {}  # TODO(health-check): run HEALTH_CHECK once live; it prints the full list
+# (Only the start of each radio value is recorded.)
+
+FIELD_XPATHS = {
+    "First name": "//*[@id='input_2_3_3']",
+    "Last name": "//*[@id='input_2_3_6']",
+    "Email": "//*[@id='input_2_4']",
+    "Phone": "//*[@id='input_2_5']",
+    "Street": "//*[@id='input_2_6_1']",
+    "City": "//*[@id='input_2_6_3']",
+    "State": "//*[@id='input_2_6_4']",
+    "Zip": "//*[@id='input_2_6_5']",
+    "Country": "//*[@id='input_2_6_6']",
+}
+
 
 async def submit_request(tab, value_prefix, label, super_scraper):
     await tab.go_to(URL)
@@ -73,6 +88,9 @@ async def submit_request(tab, value_prefix, label, super_scraper):
     country = await tab.find(id="input_2_6_6", raise_exc=False)
     if country:
         await js_utils.select_native_option(country, text="United States")
+
+    if SuperScraper.HEALTH_CHECK:
+        await SuperScraper.assert_fields_filled(tab, FIELD_XPATHS)
 
     await asyncio.sleep(1)
     await SuperScraper.screenshot(tab, f"dry_run_{label}")

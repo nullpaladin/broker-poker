@@ -21,6 +21,8 @@ URL = "https://www.kochava.com/opt-out-do-not-sell-request-process/"
 RIGHT_MAP = {Right.RIGHT_TO_OPT_OUT: "opt-out"}
 RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
 
+PAGE_RIGHTS = {}  # TODO(health-check): run HEALTH_CHECK once live; it prints the full list
+
 
 async def main():
     super_scraper = SuperScraper()
@@ -45,6 +47,9 @@ async def main():
         await maid_field.type_text(SuperScraper.ADVERTISING_ID)
 
         # Leave honeypot empty (do not interact with it)
+
+        if SuperScraper.HEALTH_CHECK:
+            await SuperScraper.assert_fields_filled(tab, {"Mobile Advertising ID": "//input[@name='maid']"})
 
         if SuperScraper.DRY_RUN:
             print(

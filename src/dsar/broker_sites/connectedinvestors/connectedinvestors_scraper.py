@@ -55,6 +55,9 @@ RIGHT_MAP = {
 }
 RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
 
+PAGE_RIGHTS = {}  # TODO(health-check): run HEALTH_CHECK once live; it prints the full list
+RIGHTS_OPTIONS_CSS = f"select[id='{REQUEST_TYPE_FIELD}'] option"  # populated only after the state is chosen
+
 
 async def _select_by_value(tab, field_id, value, super_scraper, description):
     field = await tab.find(xpath=f"//select[@id='{field_id}']", raise_exc=False)
@@ -76,6 +79,10 @@ async def submit_request(tab, right, request_type, super_scraper):
 
     await _select_by_value(tab, SUBMITTED_BY_FIELD, "consumer", super_scraper, "'Request Submitted by'")
     await asyncio.sleep(0.5)
+    if SuperScraper.HEALTH_CHECK:
+        offered = await SuperScraper.read_option_labels(tab, RIGHTS_OPTIONS_CSS)
+        SuperScraper.audit_rights(offered, PAGE_RIGHTS)
+
     await _select_by_value(tab, REQUEST_TYPE_FIELD, request_type, super_scraper, "request type")
     await asyncio.sleep(0.5)
     await _select_by_value(tab, RESPONSE_METHOD_FIELD, "email", super_scraper, "'Preferred Response Method'")

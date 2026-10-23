@@ -49,6 +49,19 @@ RIGHT_MAP = {
 }
 RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
 
+PAGE_RIGHTS = {}  # TODO(health-check): run HEALTH_CHECK once live; it prints the full list
+# (Recorded request types are aria-labels; the visible text may differ, so they are not copied in.)
+
+FIELD_XPATHS = {
+    "State selection": "//*[@id='formField81DSARElement']",
+    "First name": "//*[@id='firstNameDSARElement']",
+    "Last name": "//*[@id='lastNameDSARElement']",
+    "Email": "//*[@id='emailDSARElement']",
+    "Country": "//*[@id='countryDSARElement']",
+    "State": "//*[@id='stateDSARElement']",
+    "Request details": "//*[@id='requestDetailsDSARElement']",
+}
+
 
 async def _fill_autocomplete(tab, field_id, value):
     field = await tab.find(id=field_id, raise_exc=False)
@@ -98,6 +111,9 @@ async def submit_request(tab, right, request_type, super_scraper):
     request_details = await tab.find(id="requestDetailsDSARElement", raise_exc=False)
     if request_details:
         await request_details.type_text(SuperScraper.request_statement([right], broker="FinThrive"))
+
+    if SuperScraper.HEALTH_CHECK:
+        await SuperScraper.assert_fields_filled(tab, FIELD_XPATHS)
 
     label = "".join(c if c.isalnum() else "_" for c in request_type.lower())[:40].strip("_")
 

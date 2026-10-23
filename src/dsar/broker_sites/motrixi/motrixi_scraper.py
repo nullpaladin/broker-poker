@@ -32,6 +32,10 @@ RIGHT_MAP = {
 }
 RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
 
+PAGE_RIGHTS = {}  # TODO(health-check): run HEALTH_CHECK once live; it prints the full list
+
+AD_ID_XPATH = f"//*[@name='{AD_ID_NAME}']"
+
 
 async def main():
     super_scraper = SuperScraper()
@@ -62,6 +66,10 @@ async def main():
             await ad_id_field.type_text(SuperScraper.ADVERTISING_ID)
         else:
             print(f"{super_scraper.OOPS} 'Enter Advertising ID' field not found in iframe")
+
+        if SuperScraper.HEALTH_CHECK:
+            # `iframe` stands in for `tab`: iframe.find() resolves into the frame's document.
+            await SuperScraper.assert_fields_filled(iframe, {"Advertising ID": AD_ID_XPATH})
 
         await asyncio.sleep(1)
         await SuperScraper.screenshot(tab, "dry_run_opt_out")

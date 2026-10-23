@@ -38,6 +38,16 @@ RIGHT_MAP = {
 }
 RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
 
+PAGE_RIGHTS = {}  # TODO(health-check): run HEALTH_CHECK once live; it prints the full list
+RIGHTS_OPTIONS_CSS = "label:has(input[name='opt-out'])"  # "What right do you want to exercise?" radios
+
+FIELD_XPATHS = {
+    "First name": "//*[@id='firstName']",
+    "Last name": "//*[@id='lastName']",
+    "Email": "//*[@id='email']",
+    "Phone": "//*[@id='phone']",
+}
+
 
 async def submit_request(tab, request_type, super_scraper):
     await tab.go_to(URL)
@@ -49,6 +59,10 @@ async def submit_request(tab, request_type, super_scraper):
         return
     await start_btn.click()
     await asyncio.sleep(3)
+
+    if SuperScraper.HEALTH_CHECK:
+        offered = await SuperScraper.read_option_labels(tab, RIGHTS_OPTIONS_CSS)
+        SuperScraper.audit_rights(offered, PAGE_RIGHTS)
 
     fields = {
         "firstName": SuperScraper.FIRST_NAME,
@@ -72,6 +86,9 @@ async def submit_request(tab, request_type, super_scraper):
         await checkbox.click()
 
     label = request_type.replace("-", "_")
+
+    if SuperScraper.HEALTH_CHECK:
+        await SuperScraper.assert_fields_filled(tab, FIELD_XPATHS)
 
     await asyncio.sleep(1)
     await SuperScraper.screenshot(tab, f"dry_run_{label}")

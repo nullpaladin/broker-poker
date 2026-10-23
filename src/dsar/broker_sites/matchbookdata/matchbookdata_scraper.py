@@ -34,6 +34,14 @@ RIGHT_MAP = {
 }
 RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
 
+PAGE_RIGHTS = {}  # TODO(health-check): run HEALTH_CHECK once live; it prints the full list
+# (One device-ID form for every right: there is no rights chooser to inventory.)
+
+FIELD_XPATHS = {
+    "Device ID": f"//*[@id='{DEVICE_ID_FIELD}']",
+    "Email": f"//*[@id='{EMAIL_FIELD}']",
+}
+
 
 async def main():
     super_scraper = SuperScraper()
@@ -67,6 +75,9 @@ async def main():
         email_field = await tab.find(id=EMAIL_FIELD, raise_exc=False)
         if email_field:
             await email_field.type_text(SuperScraper.EMAIL)
+
+        if SuperScraper.HEALTH_CHECK:
+            await SuperScraper.assert_fields_filled(tab, FIELD_XPATHS)
 
         await asyncio.sleep(1)
         await SuperScraper.screenshot(tab, "dry_run")

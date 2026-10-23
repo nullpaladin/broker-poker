@@ -50,6 +50,9 @@ RIGHT_MAP = {
 }
 RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
 
+PAGE_RIGHTS = {}  # TODO(health-check): run HEALTH_CHECK once live; it prints the full list
+# (The three sections each have their own action button; the button texts are not recorded verbatim.)
+
 
 async def _click_checkbox_by_label(tab, section_selector, label_text):
     await tab.execute_script(
@@ -82,6 +85,9 @@ async def opt_out(tab):
     email = await tab.find(id="opt-out-email-input", raise_exc=False)
     if email:
         await js_utils.js_set_value(email, SuperScraper.EMAIL)
+    if SuperScraper.HEALTH_CHECK:
+        await SuperScraper.assert_fields_filled(tab, {"Opt-out email": "//*[@id='opt-out-email-input']"})
+
     time.sleep(0.5)
     await SuperScraper.screenshot(tab, "dry_run_opt_out")
     print("Opt-out section filled — click the opt-out button to submit.")
@@ -94,6 +100,9 @@ async def know(tab):
     confirm = await tab.find(id="know-request-confirm", raise_exc=False)
     if confirm:
         await js_utils.js_check(confirm)
+    if SuperScraper.HEALTH_CHECK:
+        await SuperScraper.assert_fields_filled(tab, {"Know-request email": "//section[contains(@class,'know-request-section')]//input[@type='email']"})
+
     time.sleep(0.5)
     await SuperScraper.screenshot(tab, "dry_run_access")
     print(
@@ -106,6 +115,9 @@ async def delete(tab):
     await tab.go_to(URL)
     await asyncio.sleep(7)
     await _fill_email(tab, "delete-request-section", SuperScraper.EMAIL)
+    if SuperScraper.HEALTH_CHECK:
+        await SuperScraper.assert_fields_filled(tab, {"Delete-request email": "//section[contains(@class,'delete-request-section')]//input[@type='email']"})
+
     time.sleep(0.5)
     await SuperScraper.screenshot(tab, "dry_run_delete")
     print("Delete section filled — click 'DELETE MY PERSONAL DATA' to submit.")

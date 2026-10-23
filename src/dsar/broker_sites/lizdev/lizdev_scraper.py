@@ -29,6 +29,9 @@ URL = "https://lizdev.com/opt-out-form/"
 RIGHT_MAP = {Right.RIGHT_TO_OPT_OUT: "opt-out"}
 RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
 
+PAGE_RIGHTS = {}  # TODO(health-check): run HEALTH_CHECK once live; it prints the full list
+# (A fixed-purpose opt-out form; its heading text is not recorded.)
+
 FIRST = "//input[@id='wpforms-109-field_1']"
 LAST = "//input[@id='wpforms-109-field_1-last']"
 EMAIL = "//input[@id='wpforms-109-field_2']"

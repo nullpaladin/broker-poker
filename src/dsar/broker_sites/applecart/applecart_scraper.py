@@ -49,6 +49,14 @@ RIGHT_MAP = {
 }
 RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
 
+PAGE_RIGHTS = {}  # TODO(health-check): run HEALTH_CHECK once live; it prints the full list
+# No audit wired: the request <select> lives inside the HubSpot iframe and only appears (with
+# state-specific options) after a State is chosen, which read_option_labels cannot read.
+
+STATE_XPATH = "//select[@name='state2']"
+REQUEST_TYPE_XPATH = "//select[@name='TICKET.request_v2']"
+ATTESTATION_XPATH = "//input[@name='attestation']"
+
 
 async def submit_request(tab, right, request_type, state_abbr, super_scraper):
     await tab.go_to(URL)
@@ -77,6 +85,14 @@ async def submit_request(tab, right, request_type, state_abbr, super_scraper):
     if attestation_field:
         await attestation_field.click()
         await attestation_field.type_text(f"{SuperScraper.FIRST_NAME} {SuperScraper.LAST_NAME}")
+
+    if SuperScraper.HEALTH_CHECK:
+        # `iframe` stands in for `tab`: iframe.find() resolves into the frame's document.
+        await SuperScraper.assert_fields_filled(iframe, {
+            "State": STATE_XPATH,
+            "Request type": REQUEST_TYPE_XPATH,
+            "Attestation (full legal name)": ATTESTATION_XPATH,
+        })
 
     label = "".join(c if c.isalnum() else "_" for c in request_type.lower())[:40].strip("_")
 

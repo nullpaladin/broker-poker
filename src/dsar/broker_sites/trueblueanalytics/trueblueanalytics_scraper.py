@@ -38,6 +38,18 @@ RIGHT_MAP = {
 }
 RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
 
+PAGE_RIGHTS = {}  # TODO(health-check): run HEALTH_CHECK once live; it prints the full list
+# (The "Your Rights" checkboxes are recorded by id only, not by displayed label.)
+
+FIELD_XPATHS = {
+    "First name": "//*[@id='first_name']",
+    "Last name": "//*[@id='last_name']",
+    "Email": "//*[@id='email']",
+    "I am a": "//*[@id='requester_type']",
+    "Country": "//*[@id='country']",
+    "State": "//*[@id='state']",
+}
+
 
 async def main():
     super_scraper = SuperScraper()
@@ -94,6 +106,9 @@ async def main():
                 await checkbox.click()
             else:
                 print(f"{super_scraper.OOPS} right checkbox '{right_id}' not found")
+
+        if SuperScraper.HEALTH_CHECK:
+            await SuperScraper.assert_fields_filled(tab, FIELD_XPATHS)
 
         await asyncio.sleep(1)
         await SuperScraper.screenshot(tab, "dry_run")

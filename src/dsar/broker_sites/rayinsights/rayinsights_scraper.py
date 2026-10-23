@@ -48,6 +48,19 @@ RIGHT_MAP = {
 }
 RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
 
+PAGE_RIGHTS = {}  # TODO(health-check): run HEALTH_CHECK once live; it prints the full list
+# (Two separate forms; only some checkbox labels are recorded verbatim.)
+
+FIELD_XPATHS = {
+    "Email": "//input[@name='email']",
+    "First name": "//input[@name='fname']",
+    "Last name": "//input[@name='lname']",
+    "Address": "//input[@name='address']",
+    "City": "//input[@name='city']",
+    "Zip": "//input[@name='zip']",
+    "State": "//select",
+}
+
 
 async def _fill_common_fields(tab, super_scraper):
     fields = {
@@ -88,6 +101,9 @@ async def _fill_common_fields(tab, super_scraper):
         await affirm_checkbox.click()
     else:
         print(f"{super_scraper.OOPS} affirmation checkbox not found")
+
+    if SuperScraper.HEALTH_CHECK:
+        await SuperScraper.assert_fields_filled(tab, FIELD_XPATHS)
 
 
 async def submit_opt_out_delete(super_scraper, tab, checkbox_values):

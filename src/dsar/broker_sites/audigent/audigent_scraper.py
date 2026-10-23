@@ -63,6 +63,11 @@ RIGHT_MAP = {
 }
 RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
 
+PAGE_RIGHTS = {}  # TODO(health-check): run HEALTH_CHECK once live; it prints the full list
+# Request-type radio labels (label[data-testid^='-'] on the request-type step); only three displayed
+# texts are recorded, so the inventory is left for the first live run.
+RIGHTS_OPTIONS_CSS = "label[data-testid^='-']"
+
 
 async def _click_label(tab, key, super_scraper, description):
     label = await tab.find(xpath=f"//label[@data-testid='-{key}']", raise_exc=False)
@@ -88,6 +93,10 @@ async def submit_request(tab, right, option_key, super_scraper):
     if not await _click_label(tab, _state_key(), super_scraper, "state"):
         return
     await _next(tab)
+
+    if SuperScraper.HEALTH_CHECK:
+        offered = await SuperScraper.read_option_labels(tab, RIGHTS_OPTIONS_CSS)
+        SuperScraper.audit_rights(offered, PAGE_RIGHTS)
 
     if not await _click_label(tab, option_key, super_scraper, "request type"):
         return

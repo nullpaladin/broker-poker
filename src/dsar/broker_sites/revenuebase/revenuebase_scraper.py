@@ -44,6 +44,9 @@ from pydoll.browser.chromium import Chrome
 RIGHT_MAP = {Right.RIGHT_TO_DELETE: "Data Removal Request"}
 RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
 
+PAGE_RIGHTS = {}  # TODO(health-check): run HEALTH_CHECK once live; it prints the full list
+# (A deletion-only Google Form titled "Data Removal Request Form"; its heading selector is unrecorded.)
+
 URL = "https://forms.gle/5Cab6bJcRtqVzAJS8"
 
 TEXT_INPUT_XPATH = '(//input[@jsname="YPqjbf" and (@type="text" or @type="email")])[{index}]'
@@ -127,6 +130,14 @@ async def main():
             "I confirm that the information provided above is accurate to the best of my knowledge.",
             "'confirm accurate' confirmation checkbox",
         )
+
+        if SuperScraper.HEALTH_CHECK:
+            await SuperScraper.assert_fields_filled(tab, {
+                "Email": TEXT_INPUT_XPATH.format(index=1),
+                "Full legal name": TEXT_INPUT_XPATH.format(index=2),
+                "Data subject's email": TEXT_INPUT_XPATH.format(index=3),
+                "State/Province": TEXT_INPUT_XPATH.format(index=4),
+            })
 
         await asyncio.sleep(1)
         await SuperScraper.screenshot(tab, "dry_run_delete")

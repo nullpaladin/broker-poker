@@ -48,6 +48,19 @@ RIGHT_MAP = {
 }
 RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
 
+# Every option of the request-type radios (their ids are the option texts), as displayed -> the Right it maps to (None = not automated).
+PAGE_RIGHTS = {
+    "Info Request": Right.RIGHT_TO_ACCESS,
+    "Data Portability": Right.RIGHT_TO_ACCESS,
+    "Opt out": Right.RIGHT_TO_OPT_OUT,
+    "Data Processing": Right.RIGHT_TO_OPT_OUT,
+    "Data Deletion": Right.RIGHT_TO_DELETE,
+    "Update Data": None,
+}
+RIGHTS_OPTIONS_CSS = "label:has(input[name='requesttype'])"
+
+FIELD_LABELS = ["Email", "First Name", "Last Name", "Address1", "City", "Zipcode"]
+
 
 def _field_by_label_xpath(label_text, tag="input"):
     return (
@@ -69,6 +82,10 @@ async def _fill_labeled_field(tab, super_scraper, label_text, value, tag="input"
 async def submit_request(tab, right, request_type, super_scraper):
     await tab.go_to(URL)
     await asyncio.sleep(5)
+
+    if SuperScraper.HEALTH_CHECK:
+        offered = await SuperScraper.read_option_labels(tab, RIGHTS_OPTIONS_CSS)
+        SuperScraper.audit_rights(offered, PAGE_RIGHTS)
 
     user_type_radio = await tab.find(id="User", raise_exc=False)
     if user_type_radio:
@@ -129,6 +146,9 @@ async def submit_request(tab, right, request_type, super_scraper):
         SuperScraper.request_statement([right], broker="VentiveIQ"),
         tag="textarea",
     )
+
+    if SuperScraper.HEALTH_CHECK:
+        await SuperScraper.assert_fields_filled(tab, {text: _field_by_label_xpath(text) for text in FIELD_LABELS})
 
     label = "".join(c if c.isalnum() else "_" for c in request_type.lower())[:40].strip("_")
     await asyncio.sleep(1)

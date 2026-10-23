@@ -29,6 +29,16 @@ RIGHT_MAP = {
 }
 RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
 
+PAGE_RIGHTS = {}  # TODO(health-check): run HEALTH_CHECK once live; it prints the full list
+RIGHTS_OPTIONS_CSS = "label:has(input[name='requestType'])"
+
+FIELD_XPATHS = {
+    "First name": "//*[@id='firstName']",
+    "Last name": "//*[@id='lastName']",
+    "Email": "//*[@id='email']",
+    "State": "//*[@id='state']",
+}
+
 
 async def submit_request(tab, right, request_value, label, super_scraper):
     await tab.go_to(URL)
@@ -53,6 +63,10 @@ async def submit_request(tab, right, request_value, label, super_scraper):
         if state_opt:
             await state_opt.click()
 
+    if SuperScraper.HEALTH_CHECK:
+        offered = await SuperScraper.read_option_labels(tab, RIGHTS_OPTIONS_CSS)
+        SuperScraper.audit_rights(offered, PAGE_RIGHTS)
+
     radio = await tab.find(
         xpath=f"//input[@name='requestType'][@value='{request_value}']",
         raise_exc=False,
@@ -63,6 +77,9 @@ async def submit_request(tab, right, request_value, label, super_scraper):
     await radio.click()
 
     time.sleep(0.5)
+
+    if SuperScraper.HEALTH_CHECK:
+        await SuperScraper.assert_fields_filled(tab, FIELD_XPATHS)
 
     if SuperScraper.DRY_RUN:
         print(

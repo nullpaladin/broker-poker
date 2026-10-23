@@ -34,10 +34,31 @@ RIGHT_MAP = {
 }
 RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
 
+# Every option of the request-type radio, as displayed -> the Right it maps to.
+PAGE_RIGHTS = {
+    "Do Not Sell or Share": Right.RIGHT_TO_OPT_OUT,
+    "Delete": Right.RIGHT_TO_DELETE,
+}
+RIGHTS_OPTIONS_CSS = "label:has(input[name='0-1/consumer_privacy_request_type'])"
+
+FIELD_XPATHS = {
+    "First name": "//input[@name='0-1/firstname']",
+    "Last name": "//input[@name='0-1/lastname']",
+    "Email": "//input[@name='0-1/email']",
+    "Address": "//input[@name='0-1/address']",
+    "City": "//input[@name='0-1/city']",
+    "State": "//input[@name='0-1/state']",
+    "Country": "//input[@name='0-1/country']",
+}
+
 
 async def submit_request(tab, radio_index, label, super_scraper):
     await tab.go_to(URL)
     await asyncio.sleep(5)
+
+    if SuperScraper.HEALTH_CHECK:
+        offered = await SuperScraper.read_option_labels(tab, RIGHTS_OPTIONS_CSS)
+        SuperScraper.audit_rights(offered, PAGE_RIGHTS)
 
     fields = {
         "0-1/firstname": SuperScraper.FIRST_NAME,
@@ -70,6 +91,9 @@ async def submit_request(tab, radio_index, label, super_scraper):
     )
     if confirm:
         await confirm.click()
+
+    if SuperScraper.HEALTH_CHECK:
+        await SuperScraper.assert_fields_filled(tab, FIELD_XPATHS)
 
     await asyncio.sleep(1)
     await SuperScraper.screenshot(tab, f"dry_run_{label}")

@@ -40,6 +40,23 @@ RIGHT_MAP = {
 }
 RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
 
+PAGE_RIGHTS = {}  # TODO(health-check): run HEALTH_CHECK once live; it prints the full list
+# (The option texts carry curly quotes and are matched by keyword, so no inventory is built.)
+
+FIELD_XPATHS = {
+    "Right requested": "//*[@id='requestTypesDSARElement']",
+    "Relationship": "//*[@id='subjectTypesDSARElement']",
+    "Country": "//*[@id='countryDSARElement']",
+    "State": "//*[@id='stateDSARElement']",
+    "Interaction with IQVIA": "//*[@id='formField87DSARElement']",
+    "Name": "//*[@id='firstNameDSARElement']",
+    "Phone": "//*[@id='formField83DSARElement']",
+    "Email": "//*[@id='emailDSARElement']",
+    "Address": "//*[@id='formField79DSARElement']",
+    "City": "//*[@id='formField81DSARElement']",
+    "Zip": "//*[@id='formField82DSARElement']",
+}
+
 
 async def _field_value(field):
     res = await field.execute_script("return this.value;")
@@ -117,6 +134,9 @@ async def submit_request(tab, right, right_keyword, label, super_scraper):
             await asyncio.sleep(0.2)
 
     time.sleep(0.5)
+    if SuperScraper.HEALTH_CHECK:
+        await SuperScraper.assert_fields_filled(tab, FIELD_XPATHS)
+
     submit_btn = await tab.find(id="dsar-webform-submit-button", raise_exc=False)
     if submit_btn:
         await submit_btn.scroll_into_view()

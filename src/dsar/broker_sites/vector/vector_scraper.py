@@ -29,6 +29,15 @@ RIGHT_MAP = {
 }
 RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
 
+PAGE_RIGHTS = {}  # TODO(health-check): run HEALTH_CHECK once live; it prints the full list
+# (A free-text opt-out form with no rights chooser.)
+
+FIELD_XPATHS = {
+    "Name": "//input[@name='name']",
+    "Email": "//input[@name='email']",
+    "Purpose": "//input[@name='purpose']",
+}
+
 
 async def main():
     super_scraper = SuperScraper()
@@ -59,6 +68,9 @@ async def main():
         )
 
         time.sleep(0.5)
+        if SuperScraper.HEALTH_CHECK:
+            await SuperScraper.assert_fields_filled(tab, FIELD_XPATHS)
+
         submit = await tab.find(xpath="//form[@id='opt-out-form']//button[@type='submit']", raise_exc=False)
         if submit:
             await submit.scroll_into_view()

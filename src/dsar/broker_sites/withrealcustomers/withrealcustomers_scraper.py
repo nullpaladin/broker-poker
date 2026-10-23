@@ -43,6 +43,15 @@ RIGHT_MAP = {
 }
 RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
 
+PAGE_RIGHTS = {}  # TODO(health-check): run HEALTH_CHECK once live; it prints the full list
+# (The request-type checkboxes live inside the HubSpot iframe, which read_option_labels cannot read.)
+
+IFRAME_FIELD_XPATHS = {
+    "State of Residency": "//select[@name='i_am_a']",
+    "Email": "//input[@name='email']",
+    "Name": "//input[@name='write_your_name_below']",
+}
+
 
 async def main():
     super_scraper = SuperScraper()
@@ -130,6 +139,10 @@ async def main():
         name_field = await iframe.find(xpath="//input[@name='write_your_name_below']", raise_exc=False)
         if name_field:
             await name_field.type_text(full_name)
+
+        if SuperScraper.HEALTH_CHECK:
+            # `iframe` stands in for `tab`: iframe.find() resolves into the frame's document.
+            await SuperScraper.assert_fields_filled(iframe, IFRAME_FIELD_XPATHS)
 
         await asyncio.sleep(1)
         await SuperScraper.screenshot(tab, "dry_run")

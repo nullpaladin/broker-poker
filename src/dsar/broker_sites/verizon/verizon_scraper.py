@@ -70,6 +70,23 @@ RIGHT_MAP = {
 }
 RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
 
+# Every option in the download/deletion checkbox pair, as displayed -> the Right it maps to. The pair is revealed only after
+# the relationship and inquiry radios are chosen.
+PAGE_RIGHTS = {"Download": Right.RIGHT_TO_ACCESS, "Deletion": Right.RIGHT_TO_DELETE}
+RIGHTS_OPTIONS_CSS = (
+    "label:has(#edit-select-download), label:has(#edit-select-deletion), "
+    "label[for='edit-select-download'], label[for='edit-select-deletion']"
+)  # built from the two recorded checkbox ids
+
+FIELD_XPATHS = {
+    "First name": "//*[@id='edit-name']",
+    "Last name": "//*[@id='edit-last-name-']",
+    "Email": "//*[@id='edit-email-address-mail-1']",
+    "Confirm email": "//*[@id='edit-email-address-mail-2']",
+    "Home state": "//*[@id='edit-home-state']",
+    "Brand": "//*[@id='edit-brand']",
+}
+
 
 async def _click_via_js(tab, super_scraper, element_id, description):
     element = await tab.find(id=element_id, raise_exc=False)
@@ -153,8 +170,15 @@ async def main():
             "edit-tell-us-more-about-your-inquiry-i-would-like-to-request-a-download-or-deletion-of-personal-information-select-all-that-apply",
             "Tell us more about your inquiry",
         )
+        if SuperScraper.HEALTH_CHECK:
+            offered = await SuperScraper.read_option_labels(tab, RIGHTS_OPTIONS_CSS)
+            SuperScraper.audit_rights(offered, PAGE_RIGHTS)
+
         for right in rights:
             await _click_via_js(tab, super_scraper, RIGHT_MAP[right], f"{right.name} checkbox")
+
+        if SuperScraper.HEALTH_CHECK:
+            await SuperScraper.assert_fields_filled(tab, FIELD_XPATHS)
 
         await asyncio.sleep(1)
         await SuperScraper.screenshot(tab, "dry_run")

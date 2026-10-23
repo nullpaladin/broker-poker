@@ -37,6 +37,16 @@ RIGHT_MAP = {
 }
 RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
 
+PAGE_RIGHTS = {}  # TODO(health-check): run HEALTH_CHECK once live; it prints the full list
+RIGHTS_OPTIONS_CSS = "label:has(input[type='checkbox'])"  # also matches the Yes/No pair; the first live run shows which
+
+FIELD_XPATHS = {
+    "First name": "//input[@name='fname']",
+    "Last name": "//input[@name='lname']",
+    "Email": "//input[@type='email']",
+    "Message": "//textarea[@id='textarea-f01c0ab9-6bb9-48dd-bb97-f71512d2160d-field']",
+}
+
 async def _check_by_text(tab, super_scraper, text):
     for xp in (
         f"//label[normalize-space()={text!r}]//input[@type='checkbox']",
@@ -77,6 +87,10 @@ async def main():
         )
         await asyncio.sleep(1)
 
+        if SuperScraper.HEALTH_CHECK:
+            offered = await SuperScraper.read_option_labels(tab, RIGHTS_OPTIONS_CSS)
+            SuperScraper.audit_rights(offered, PAGE_RIGHTS)
+
         for xp, value in (
             ("//input[@name='fname']", SuperScraper.FIRST_NAME),
             ("//input[@name='lname']", SuperScraper.LAST_NAME),
@@ -113,6 +127,9 @@ async def main():
         for right in rights:
             for entry in RIGHT_MAP[right]:
                 await _check_by_text(tab, super_scraper, entry)
+
+        if SuperScraper.HEALTH_CHECK:
+            await SuperScraper.assert_fields_filled(tab, FIELD_XPATHS)
 
         await asyncio.sleep(1)
         await SuperScraper.screenshot(tab, "dry_run")

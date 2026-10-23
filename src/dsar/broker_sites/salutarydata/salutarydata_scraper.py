@@ -24,6 +24,18 @@ from src.dsar.super_scraper import SuperScraper
 RIGHT_MAP = {Right.RIGHT_TO_OPT_OUT: "opt-out"}
 RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
 
+PAGE_RIGHTS = {}  # TODO(health-check): run HEALTH_CHECK once live; it prints the full list
+
+FIELD_NAMES = {
+    "First name": "0-1/firstname",
+    "Last name": "0-1/lastname",
+    "Work email": "0-1/work_email",
+    "Address": "0-2/address",
+    "City": "0-2/city",
+    "State": "0-2/state",
+    "Zip": "0-2/zip",
+}
+
 URL = "https://salutarydata.com/privacy-opt-out-and-disclosure-form/"
 
 
@@ -74,6 +86,12 @@ async def main():
                 await asyncio.sleep(0.2)
             else:
                 print(f"{super_scraper.OOPS} field name={name!r} not found in frame")
+
+        if SuperScraper.HEALTH_CHECK:
+            # `target` (the iframe element) stands in for `tab`: target.find() resolves into the frame's document.
+            await SuperScraper.assert_fields_filled(
+                target, {label: f"//input[@name={name!r}]" for label, name in FIELD_NAMES.items()}
+            )
 
         await asyncio.sleep(1)
         await SuperScraper.screenshot(tab, "dry_run_opt_out")

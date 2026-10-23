@@ -31,12 +31,26 @@ RIGHT_MAP = {
 }
 RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
 
+PAGE_RIGHTS = {}  # TODO(health-check): run HEALTH_CHECK once live; it prints the full list
+RIGHTS_OPTIONS_CSS = "select[name='subject'] option"  # three of the six option texts are truncated in the notes
+
+FIELD_XPATHS = {
+    "Subject": "//select[@name='subject']",
+    "Reply email": "//input[@name='contactemail']",
+    "Email to investigate": "//input[@name='removeaddress']",
+    "Comments": "//textarea[@name='comments']",
+}
+
 
 async def submit_request(tab, right_label, right, super_scraper):
     await tab.go_to(URL)
     await asyncio.sleep(6)
 
     # The DSAR form is the one containing the "Subject" <select name="subject">.
+    if SuperScraper.HEALTH_CHECK:
+        offered = await SuperScraper.read_option_labels(tab, RIGHTS_OPTIONS_CSS)
+        SuperScraper.audit_rights(offered, PAGE_RIGHTS)
+
     subject = await tab.find(xpath="//select[@name='subject']", raise_exc=False)
     if not subject:
         print(f"{super_scraper.OOPS} 'Subject' select not found")
@@ -61,6 +75,9 @@ async def submit_request(tab, right_label, right, super_scraper):
         await comments.type_text(
             SuperScraper.request_statement([right], broker="Source IT Marketing")
         )
+
+    if SuperScraper.HEALTH_CHECK:
+        await SuperScraper.assert_fields_filled(tab, FIELD_XPATHS)
 
     await asyncio.sleep(1)
     await SuperScraper.screenshot(tab, f"dry_run_{right.value}")

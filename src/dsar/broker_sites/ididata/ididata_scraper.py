@@ -34,6 +34,24 @@ RIGHT_MAP = {
 }
 RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
 
+PAGE_RIGHTS = {}  # TODO(health-check): run HEALTH_CHECK once live; it prints the full list
+
+FIELD_XPATHS = {
+    "First name": "//*[@id='firstName']",
+    "Last name": "//*[@id='lastName']",
+    "Address": "//*[@id='addressLine1']",
+    "City": "//*[@id='city']",
+    "State": "//*[@id='State']",
+    "Zip": "//*[@id='zip']",
+    "Phone": "//*[@id='phone']",
+    "Email": "//*[@id='email']",
+    "Last 4 of SSN": "//*[@id='last4ss']",
+    "Birth month": "//*[@id='month']",
+    "Birth day": "//*[@id='day']",
+    "Birth year": "//*[@id='year']",
+    "Delivery preference": "//*[@id='deliveryChoice']",
+}
+
 
 def _parse_dob():
     """Parse DATE_OF_BIRTH (DD/MM/YYYY) → (day_str, month_str, year_str)."""
@@ -121,6 +139,9 @@ async def submit_request(tab, right, url, label, super_scraper, dob_day, dob_mon
 
     # hplegalAgree is a honeypot — do NOT check it
     time.sleep(0.5)
+
+    if SuperScraper.HEALTH_CHECK:
+        await SuperScraper.assert_fields_filled(tab, FIELD_XPATHS)
 
     if SuperScraper.DRY_RUN:
         submit_btn = await tab.find(tag_name="button", text="Submit Request", raise_exc=False)

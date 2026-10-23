@@ -32,10 +32,31 @@ RIGHT_MAP = {
 }
 RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
 
+# Every option in the "Request Type" <select>, as displayed -> the Right it maps to (None = not automated). The combined
+# option is listed under RIGHT_TO_DELETE; RIGHT_MAP also submits it for RIGHT_TO_OPT_OUT.
+PAGE_RIGHTS = {
+    "Opt-Out / Delete My Information": Right.RIGHT_TO_DELETE,
+    "Data Access": Right.RIGHT_TO_ACCESS,
+    "Other Privacy Request": None,
+}
+RIGHTS_OPTIONS_CSS = "select[name='Request Type'] option"
+
+FIELD_XPATHS = {
+    "First Name": "//input[@name='First Name']",
+    "Last Name": "//input[@name='Last Name']",
+    "Email": "//input[@name='email']",
+    "Phone number": "//input[@name='phone number']",
+    "Request Type": "//select[@name='Request Type']",
+}
+
 
 async def submit_request(tab, right, request_type, super_scraper):
     await tab.go_to(URL)
     await asyncio.sleep(6)
+
+    if SuperScraper.HEALTH_CHECK:
+        offered = await SuperScraper.read_option_labels(tab, RIGHTS_OPTIONS_CSS)
+        SuperScraper.audit_rights(offered, PAGE_RIGHTS)
 
     for name, value in [
         ("First Name", SuperScraper.FIRST_NAME),
@@ -55,6 +76,9 @@ async def submit_request(tab, right, request_type, super_scraper):
             "if(o){const s=Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype,'value').set;"
             "s.call(this,o.value);this.dispatchEvent(new Event('change',{bubbles:true}));}"
         )
+
+    if SuperScraper.HEALTH_CHECK:
+        await SuperScraper.assert_fields_filled(tab, FIELD_XPATHS)
 
     time.sleep(0.5)
     await SuperScraper.screenshot(tab, f"dry_run_{right.value}")

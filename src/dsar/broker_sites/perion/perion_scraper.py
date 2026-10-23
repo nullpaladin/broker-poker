@@ -39,6 +39,7 @@ from src.dsar.rights import Right
 from src.dsar.super_scraper import SuperScraper
 
 from pydoll.browser.chromium import Chrome
+from pydoll.constants import Key
 
 URL = "https://forms.monday.com/forms/2e643e95786ac0c2cdf2dca015d20c68?r=use1"
 
@@ -48,6 +49,21 @@ RIGHT_MAP = {
     Right.RIGHT_TO_DELETE: ["Right to Delete my Personal Data"],
 }
 RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
+
+# Every option in the "Request" Downshift combobox, as displayed -> the Right it maps to.
+PAGE_RIGHTS = {
+    "Right to Know or Access my Personal Data": Right.RIGHT_TO_ACCESS,
+    "Right to opt-out of Sale": Right.RIGHT_TO_OPT_OUT,
+    "Right to Delete my Personal Data": Right.RIGHT_TO_DELETE,
+}
+RIGHTS_OPTIONS_CSS = "[role='option']"  # only rendered while the "Request" menu is open
+REQUEST_TRIGGER_XPATH = "//input[@id='downshift-:r1:-input']/ancestor::div[contains(@class,'triggerWrapper')]"
+
+FIELD_XPATHS = {
+    "Name": "//*[@id='name-input']",
+    "Email": "//*[@id='text_mkym7vyt-input']",
+    "Country": "//*[@id='text__1-input']",
+}
 
 
 async def _open_and_select(tab, input_id, option_text, super_scraper, description):
@@ -103,7 +119,21 @@ async def submit_request(tab, right, super_scraper):
     if country_field:
         await _type_with_settle(country_field, "United States")
 
+    if SuperScraper.HEALTH_CHECK:
+        trigger = await tab.find(xpath=REQUEST_TRIGGER_XPATH, raise_exc=False)
+        if trigger:
+            await trigger.scroll_into_view()
+            await trigger.click()
+            await asyncio.sleep(1)
+            offered = await SuperScraper.read_option_labels(tab, RIGHTS_OPTIONS_CSS)
+            SuperScraper.audit_rights(offered, PAGE_RIGHTS)
+            await tab.keyboard.press(Key.ESCAPE)
+            await asyncio.sleep(0.5)
+
     await _open_and_select(tab, "downshift-:r1:-input", right, super_scraper, "request type")
+
+    if SuperScraper.HEALTH_CHECK:
+        await SuperScraper.assert_fields_filled(tab, FIELD_XPATHS)
 
     label = "".join(c if c.isalnum() else "_" for c in right.lower())[:40].strip("_")
 
@@ -117,7 +147,7 @@ async def submit_request(tab, right, super_scraper):
     if submit_btn:
         await submit_btn.click()
         await asyncio.sleep(2)
-        print(f"Submitted '{right}' for {SuperScraper.FIRST_NAME} {SuperScraper.LAST_NAME}")
+        print(f"Submitted '{right}' for {SuperScraper.FIRST_NAME} {SuperScraper.LAST_NAME} — confirm in the browser.")
     else:
         print(f"{super_scraper.OOPS} Submit button not found for '{right}'")
 

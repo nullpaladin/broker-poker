@@ -39,6 +39,19 @@ RIGHT_MAP = {
 }
 RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
 
+PAGE_RIGHTS = {}  # TODO(health-check): run HEALTH_CHECK once live; it prints the full list
+# (The request-type checkboxes are recorded by id only, not by displayed label.)
+
+FIELD_XPATHS = {
+    "Country": "//*[@id='country']",
+    "State": "//*[@id='state']",
+    "Email": "//*[@id='formBasicEmail']",
+    "Name": "//*[@id='name']",
+    "Address": "//input[@name='address1']",
+    "City": "//input[@name='city']",
+    "Zip": "//input[@name='zip']",
+}
+
 
 async def _set_checkbox(tab, element_id, desired):
     el = await tab.find(id=element_id, raise_exc=False)
@@ -114,6 +127,9 @@ async def main():
             "//input[@id='phone']": SuperScraper.PHONE_NUMBER,
         }.items():
             await super_scraper.input_text_field(tab=tab, xpath=xpath, text=value, sleep=0.3)
+
+        if SuperScraper.HEALTH_CHECK:
+            await SuperScraper.assert_fields_filled(tab, FIELD_XPATHS)
 
         time.sleep(0.5)
         await SuperScraper.screenshot(tab, "dry_run")

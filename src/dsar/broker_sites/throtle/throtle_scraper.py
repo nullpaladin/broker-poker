@@ -61,6 +61,20 @@ RIGHT_MAP = {
 }
 RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
 
+PAGE_RIGHTS = {}  # TODO(health-check): run HEALTH_CHECK once live; it prints the full list
+# (The multi-select lists option texts with curly quotes and several unnamed skipped rights.)
+
+FIELD_XPATHS = {
+    "Relationship with IQVIA": "//*[@id='subjectTypesDSARElement']",
+    "Your Name": "//*[@id='firstNameDSARElement']",
+    "Email": "//*[@id='emailDSARElement']",
+    "Country": "//*[@id='countryDSARElement']",
+    "State": "//*[@id='stateDSARElement']",
+    "Full Address": "//*[@id='formField79DSARElement']",
+    "City": "//*[@id='formField81DSARElement']",
+    "Zip": "//*[@id='formField82DSARElement']",
+}
+
 
 async def _select_option(tab, option_text, super_scraper, description):
     option = await tab.find(xpath=f"//*[@role='option' and normalize-space()='{option_text}']", raise_exc=False)
@@ -172,6 +186,9 @@ async def main():
             await zip_field.type_text(SuperScraper.ZIP_CODE)
         else:
             print(f"{super_scraper.OOPS} Zip Code field not found")
+
+        if SuperScraper.HEALTH_CHECK:
+            await SuperScraper.assert_fields_filled(tab, FIELD_XPATHS)
 
         await asyncio.sleep(1)
         await SuperScraper.screenshot(tab, "dry_run")

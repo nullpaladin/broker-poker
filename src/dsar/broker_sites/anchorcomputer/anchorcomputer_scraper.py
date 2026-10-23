@@ -49,6 +49,10 @@ RIGHT_MAP = {
 }
 RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
 
+PAGE_RIGHTS = {}  # TODO(health-check): run HEALTH_CHECK once live; it prints the full list
+
+STATE_XPATH = "//select[@id='State']"
+
 
 async def main():
     super_scraper = SuperScraper()
@@ -97,6 +101,18 @@ async def main():
 
         for right in rights:
             await super_scraper.click_item_by_xpath(tab=tab, xpath=f"//input[@id='{RIGHT_MAP[right]}']", sleep=0.3)
+
+        if SuperScraper.HEALTH_CHECK:
+            await SuperScraper.assert_fields_filled(tab, {
+                "First name": FIRST_NAME_XPATH,
+                "Last name": LAST_NAME_XPATH,
+                "Address": ADDRESS_ONE_XPATH,
+                "City": CITY_XPATH,
+                "State": STATE_XPATH,
+                "Zip": ZIP_XPATH,
+                "Phone": PHONE_XPATH,
+                "Email": EMAIL_XPATH,
+            })
 
         if SuperScraper.DRY_RUN:
             print(f"DRY RUN: would submit {[r.name for r in rights]} for {SuperScraper.EMAIL}")

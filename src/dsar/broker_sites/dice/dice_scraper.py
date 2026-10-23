@@ -29,6 +29,14 @@ RIGHT_MAP = {
     Right.RIGHT_TO_DELETE: "radio-description-delete",
 }
 RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
+
+PAGE_RIGHTS = {}  # TODO(health-check): run HEALTH_CHECK once live; it prints the full list
+RIGHTS_OPTIONS_CSS = "label:has(input[name='description'])"  # "Please indicate whether you wish to" radios
+
+FIELD_XPATHS = {
+    "Name": "//form[@id='form-dice-ccpa']//input[@id='name']",
+    "Email": "//form[@id='form-dice-ccpa']//input[@id='email']",
+}
 PASS_ORDER = (Right.RIGHT_TO_DELETE, Right.RIGHT_TO_ACCESS, Right.RIGHT_TO_OPT_OUT)
 
 
@@ -54,6 +62,10 @@ async def main():
             print(f"(dice: go_to reported {exc!r} — continuing once DOM is ready)")
         await asyncio.sleep(8)
 
+        if SuperScraper.HEALTH_CHECK:
+            offered = await SuperScraper.read_option_labels(tab, RIGHTS_OPTIONS_CSS)
+            SuperScraper.audit_rights(offered, PAGE_RIGHTS)
+
         radio = await tab.find(id=radio_id, raise_exc=False)
         if radio:
             await radio.click()
@@ -67,6 +79,9 @@ async def main():
         email = await tab.find(xpath="//form[@id='form-dice-ccpa']//input[@id='email']", raise_exc=False)
         if email:
             await email.type_text(SuperScraper.EMAIL)
+
+        if SuperScraper.HEALTH_CHECK:
+            await SuperScraper.assert_fields_filled(tab, FIELD_XPATHS)
 
         await asyncio.sleep(1)
         await SuperScraper.screenshot(tab, f"dry_run_{right.value}")

@@ -50,6 +50,20 @@ RIGHT_MAP = {
 }
 RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
 
+PAGE_RIGHTS = {}  # TODO(health-check): run HEALTH_CHECK once live; it prints the full list
+# (Recorded request types are aria-labels; the visible text may differ, so they are not copied in.)
+
+FIELD_XPATHS = {
+    "First name": "//*[@id='firstNameDSARElement']",
+    "Last name": "//*[@id='lastNameDSARElement']",
+    "Email": "//*[@id='emailDSARElement']",
+    "Address": "//*[@id='addressDSARElement']",
+    "City": "//*[@id='cityDSARElement']",
+    "Country": "//*[@id='countryDSARElement']",
+    "State": "//*[@id='stateDSARElement']",
+    "Zip": "//*[@id='zipDSARElement']",
+}
+
 
 async def _select_autocomplete(tab, field_id, text):
     field = await tab.find(id=field_id, raise_exc=False)
@@ -117,6 +131,9 @@ async def submit_form(tab, url, request_types, right, super_scraper):
         await zip_field.type_text(SuperScraper.ZIP_CODE)
 
     time.sleep(0.5)
+
+    if SuperScraper.HEALTH_CHECK:
+        await SuperScraper.assert_fields_filled(tab, FIELD_XPATHS)
 
     if SuperScraper.DRY_RUN:
         print(

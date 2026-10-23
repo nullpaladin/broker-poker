@@ -43,6 +43,18 @@ RIGHT_MAP = {
 }
 RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
 
+PAGE_RIGHTS = {}  # TODO(health-check): run HEALTH_CHECK once live; it prints the full list
+# (The Correct card's title is not recorded, so no inventory is built.)
+
+FIELD_XPATHS = {
+    "First name": "//*[@id='text-field-firstName']",
+    "Last name": "//*[@id='text-field-lastName']",
+    "Email": "//*[@id='text-field-email']",
+    "Country": "//*[@id='select-field-country']",
+    "State": "//*[@id='select-field-state_']",
+    "I am a (an)": "//*[@id='select-field-typeCode']",
+}
+
 
 async def submit_request(tab, card_text, super_scraper):
     await tab.go_to(URL)
@@ -84,6 +96,9 @@ async def submit_request(tab, card_text, super_scraper):
         await js_utils.select_native_option(type_select, value="customer")
     else:
         print(f"{super_scraper.OOPS} 'I am a (an)' select not found")
+
+    if SuperScraper.HEALTH_CHECK:
+        await SuperScraper.assert_fields_filled(tab, FIELD_XPATHS)
 
     label = "".join(c if c.isalnum() else "_" for c in card_text.lower())[:40].strip("_")
     await asyncio.sleep(1)

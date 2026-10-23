@@ -47,6 +47,14 @@ RIGHT_MAP = {
 }
 RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
 
+PAGE_RIGHTS = {}  # TODO(health-check): run HEALTH_CHECK once live; it prints the full list
+
+FIELD_XPATHS = {
+    "First name": "//input[@name='first_name']",
+    "Last name": "//input[@name='last_name']",
+    "Email": "//input[@name='email_address']",
+}
+
 
 async def _fill_common(tab, super_scraper):
     first = await tab.find(xpath="//input[@name='first_name']", raise_exc=False)
@@ -116,6 +124,9 @@ async def submit_request(tab, right, card_text, sub_choice, super_scraper):
                 print(f"{super_scraper.OOPS} sub-option '{sub_choice}' not found")
         else:
             print(f"{super_scraper.OOPS} opt-out/limit-PI sub-select not found")
+
+    if SuperScraper.HEALTH_CHECK:
+        await SuperScraper.assert_fields_filled(tab, FIELD_XPATHS)
 
     if SuperScraper.DRY_RUN:
         await asyncio.sleep(1)

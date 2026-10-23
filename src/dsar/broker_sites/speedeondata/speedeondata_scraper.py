@@ -34,6 +34,27 @@ RIGHT_MAP = {
 }
 RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
 
+# Every checkbox on the form, as displayed -> the Right it maps to.
+PAGE_RIGHTS = {
+    "Opt-out": Right.RIGHT_TO_OPT_OUT,
+    "Sensitive Data": Right.RIGHT_TO_OPT_OUT,
+    "Deletion": Right.RIGHT_TO_DELETE,
+}
+RIGHTS_OPTIONS_CSS = (
+    "label:has(#optOut), label:has(#sensitiveData), label:has(#deletion), "
+    "label[for='optOut'], label[for='sensitiveData'], label[for='deletion']"
+)  # built from the three recorded checkbox ids
+
+FIELD_XPATHS = {
+    "First name": "//*[@name='firstName']",
+    "Last name": "//*[@name='lastName']",
+    "Email": "//*[@name='email']",
+    "Phone": "//*[@name='phone']",
+    "Address": "//*[@name='address1']",
+    "City": "//*[@name='city']",
+    "Zip": "//*[@name='zip']",
+}
+
 
 async def main():
     super_scraper = SuperScraper()
@@ -47,6 +68,10 @@ async def main():
         tab = await browser.start()
         await tab.go_to(URL)
         await asyncio.sleep(4)
+
+        if SuperScraper.HEALTH_CHECK:
+            offered = await SuperScraper.read_option_labels(tab, RIGHTS_OPTIONS_CSS)
+            SuperScraper.audit_rights(offered, PAGE_RIGHTS)
 
         for right in rights:
             for checkbox_id in RIGHT_MAP[right]:
@@ -89,6 +114,9 @@ async def main():
             await state_button.click()
         else:
             print(f"{super_scraper.OOPS} State option '{SuperScraper.STATE}' not found")
+
+        if SuperScraper.HEALTH_CHECK:
+            await SuperScraper.assert_fields_filled(tab, FIELD_XPATHS)
 
         await asyncio.sleep(1)
         await SuperScraper.screenshot(tab, "dry_run_" + "_".join(r.value for r in rights))

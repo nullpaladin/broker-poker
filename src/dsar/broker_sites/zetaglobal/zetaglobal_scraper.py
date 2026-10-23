@@ -42,6 +42,25 @@ RIGHT_MAP = {
 }
 RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
 
+# Every option in the "Select request type(s)" group, as displayed -> the Right it maps to (None = not automated).
+PAGE_RIGHTS = {
+    "Request a copy of identifiable information that relates to me": Right.RIGHT_TO_ACCESS,
+    "Do not sell or share my identifiable information": Right.RIGHT_TO_OPT_OUT,
+    "Opt out of receiving email from Zeta on behalf of its clients": Right.RIGHT_TO_OPT_OUT,
+    "Opt out of Zeta using sensitive information that relates to me": Right.RIGHT_TO_OPT_OUT,
+    "Delete identifiable information that relates to me": Right.RIGHT_TO_DELETE,
+    "Ask a question, report a problem, or file a complaint": None,
+}
+RIGHTS_OPTIONS_CSS = "#requestTypesDSARElement [role='option']"
+
+FIELD_XPATHS = {
+    "First name": "//*[@id='firstNameDSARElement']",
+    "Last name": "//*[@id='lastNameDSARElement']",
+    "Email": "//*[@id='emailDSARElement']",
+    "Country": "//*[@id='countryDSARElement']",
+    "Request details": "//*[@id='requestDetailsDSARElement']",
+}
+
 
 async def _select_option(tab, option_text, super_scraper, description):
     option = await tab.find(xpath=f"//*[@role='option' and normalize-space()='{option_text}']", raise_exc=False)
@@ -71,6 +90,10 @@ async def main():
         tab = await browser.start()
         await tab.go_to(URL)
         await asyncio.sleep(5)
+
+        if SuperScraper.HEALTH_CHECK:
+            offered = await SuperScraper.read_option_labels(tab, RIGHTS_OPTIONS_CSS)
+            SuperScraper.audit_rights(offered, PAGE_RIGHTS)
 
         await _select_option(tab, "Email recipient or Internet user", super_scraper, "'I am an'")
 
@@ -113,6 +136,9 @@ async def main():
         details_field = await tab.find(id="requestDetailsDSARElement", raise_exc=False)
         if details_field:
             await details_field.type_text(SuperScraper.request_statement(rights, broker="Zeta Global"))
+
+        if SuperScraper.HEALTH_CHECK:
+            await SuperScraper.assert_fields_filled(tab, FIELD_XPATHS)
 
         await asyncio.sleep(1)
         await SuperScraper.screenshot(tab, "dry_run")

@@ -37,6 +37,18 @@ RIGHT_MAP = {
 }
 RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
 
+PAGE_RIGHTS = {}  # TODO(health-check): run HEALTH_CHECK once live; it prints the full list
+RIGHTS_OPTIONS_CSS = "#privacyRight option"  # options depend on the Territory chosen first
+
+FIELD_XPATHS = {
+    "Full name": "//*[@id='fullName']",
+    "Email": "//*[@id='email']",
+    "Phone": "//*[@id='phoneNumber']",
+    "App user": "//*[@id='appUser']",
+    "Territory": "//*[@id='territory']",
+    "Right": "//*[@id='privacyRight']",
+}
+
 
 async def submit_request(tab, right, super_scraper):
     await tab.go_to(URL)
@@ -63,6 +75,10 @@ async def submit_request(tab, right, super_scraper):
         await js_utils.select_native_option(territory_select, text="US")
         await asyncio.sleep(0.5)
 
+    if SuperScraper.HEALTH_CHECK:
+        offered = await SuperScraper.read_option_labels(tab, RIGHTS_OPTIONS_CSS)
+        SuperScraper.audit_rights(offered, PAGE_RIGHTS)
+
     right_select = await tab.find(id="privacyRight", raise_exc=False)
     if right_select:
         await js_utils.select_native_option(right_select, text=right)
@@ -72,6 +88,9 @@ async def submit_request(tab, right, super_scraper):
         await confirmation.click()
 
     label = "".join(c if c.isalnum() else "_" for c in right.lower())[:40].strip("_")
+
+    if SuperScraper.HEALTH_CHECK:
+        await SuperScraper.assert_fields_filled(tab, FIELD_XPATHS)
 
     await asyncio.sleep(1)
     await SuperScraper.screenshot(tab, f"dry_run_{label}")

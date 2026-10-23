@@ -40,6 +40,20 @@ RIGHT_MAP = {
 }
 RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
 
+PAGE_RIGHTS = {}  # TODO(health-check): run HEALTH_CHECK once live; it prints the full list
+# (The four opt-out category checkbox labels are paraphrased in the notes.)
+
+FIELD_XPATHS = {
+    "First name": "//*[@name='names[first_name]']",
+    "Last name": "//*[@name='names[last_name]']",
+    "Address": "//*[@name='input_text']",
+    "City": "//*[@name='input_text_2']",
+    "State": "//select[@name='dropdown']",
+    "Zip": "//*[@name='input_text_3']",
+    "Email": "//*[@name='email']",
+    "Phone": "//*[@name='phone']",
+}
+
 
 async def main():
     super_scraper = SuperScraper()
@@ -77,6 +91,9 @@ async def main():
         for box in checkboxes:
             await js_utils.js_check(box)
             await asyncio.sleep(0.1)
+
+        if SuperScraper.HEALTH_CHECK:
+            await SuperScraper.assert_fields_filled(tab, FIELD_XPATHS)
 
         time.sleep(0.5)
         await SuperScraper.screenshot(tab, "dry_run")

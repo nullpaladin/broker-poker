@@ -29,6 +29,8 @@ RIGHT_MAP = {
 }
 RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
 
+PAGE_RIGHTS = {}  # TODO(health-check): run HEALTH_CHECK once live; it prints the full list
+
 FIRST_NAME_XPATH = '//input[@id="wrap_txtFirstName"]'
 LAST_NAME_XPATH = '//input[@id="wrap_txtLastName"]'
 ADDRESS_ONE_XPATH = '//input[@id="wrap_txtAdd1"]'
@@ -76,6 +78,17 @@ async def main():
         if SuperScraper.PHONE_NUMBER:
             await super_scraper.input_text_field(tab=tab, xpath=PHONE_XPATH, text=SuperScraper.PHONE_NUMBER)
         await super_scraper.input_text_field(tab=tab, xpath=EMAIL_XPATH, text=SuperScraper.EMAIL)
+
+        if SuperScraper.HEALTH_CHECK:
+            await SuperScraper.assert_fields_filled(tab, {
+                "First name": FIRST_NAME_XPATH,
+                "Last name": LAST_NAME_XPATH,
+                "Address": ADDRESS_ONE_XPATH,
+                "City": CITY_XPATH,
+                "State": '//select[@id="wrap_ddlState"]',
+                "Zip": ZIP_XPATH,
+                "Email": EMAIL_XPATH,
+            })
 
         if SuperScraper.DRY_RUN:
             await asyncio.sleep(3)

@@ -28,6 +28,25 @@ RIGHT_MAP = {
 }
 RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
 
+# Every option in the rights checkbox group, as displayed -> the Right it maps to.
+PAGE_RIGHTS = {
+    "I request to view the information that you have about me.": Right.RIGHT_TO_ACCESS,
+    "I request that any information about me will not be sold to anyone.": Right.RIGHT_TO_OPT_OUT,
+    "I request that you delete any information about me.": Right.RIGHT_TO_DELETE,
+}
+RIGHTS_OPTIONS_CSS = ".wpcf7-checkbox .wpcf7-list-item-label"  # Contact Form 7 checkbox labels
+
+FIELD_XPATHS = {
+    "First name": "//input[@name='text-163']",
+    "Last name": "//input[@name='text-52']",
+    "Address": "//input[@name='text-637']",
+    "City": "//input[@name='text-566']",
+    "State": "//select[@name='menu-415']",
+    "Zip": "//input[@name='text-863']",
+    "Phone": "//input[@name='tel-877']",
+    "Email": "//input[@name='email-382']",
+}
+
 
 async def main():
     super_scraper = SuperScraper()
@@ -45,6 +64,10 @@ async def main():
         tab = await browser.start()
         await tab.go_to(URL)
         await asyncio.sleep(3)
+
+        if SuperScraper.HEALTH_CHECK:
+            offered = await SuperScraper.read_option_labels(tab, RIGHTS_OPTIONS_CSS)
+            SuperScraper.audit_rights(offered, PAGE_RIGHTS)
 
         await super_scraper.input_text_field(tab=tab, xpath="//input[@name='text-163']", text=SuperScraper.FIRST_NAME, sleep=0.2)
         await super_scraper.input_text_field(tab=tab, xpath="//input[@name='text-52']", text=SuperScraper.LAST_NAME, sleep=0.2)
@@ -65,6 +88,9 @@ async def main():
             if box:
                 await box.click()
                 await asyncio.sleep(0.2)
+
+        if SuperScraper.HEALTH_CHECK:
+            await SuperScraper.assert_fields_filled(tab, FIELD_XPATHS)
 
         if SuperScraper.DRY_RUN:
             print(f"DRY RUN: would submit {[r.name for r in rights]} for {SuperScraper.EMAIL}")

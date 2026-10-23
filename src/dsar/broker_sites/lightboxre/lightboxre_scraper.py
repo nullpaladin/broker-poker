@@ -35,10 +35,27 @@ RIGHT_MAP = {
 }
 RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
 
+PAGE_RIGHTS = {}  # TODO(health-check): run HEALTH_CHECK once live; it prints the full list
+RIGHTS_OPTIONS_CSS = "h4[data-testid='card-title']"  # datasubject.com card titles (selector not recorded for this site)
+
+FIELD_XPATHS = {
+    "Email": "//*[@id='email']",
+    "First name": "//*[@id='given-name']",
+    "Last name": "//*[@id='family-name']",
+    "Address": "//*[@name='o-Address']",
+    "City": "//*[@name='o-City']",
+    "State": "//*[@name='o-State']",
+    "Zip": "//*[@name='o-ZipCode']",
+}
+
 
 async def submit_request(tab, card_text, super_scraper):
     await tab.go_to(URL)
     await asyncio.sleep(5)
+
+    if SuperScraper.HEALTH_CHECK:
+        offered = await SuperScraper.read_option_labels(tab, RIGHTS_OPTIONS_CSS)
+        SuperScraper.audit_rights(offered, PAGE_RIGHTS)
 
     card_btn = await tab.find(text=card_text, raise_exc=False)
     if not card_btn:
@@ -82,6 +99,9 @@ async def submit_request(tab, card_text, super_scraper):
 
     label = "".join(c if c.isalnum() else "_" for c in card_text.lower())[:40].strip("_")
 
+    if SuperScraper.HEALTH_CHECK:
+        await SuperScraper.assert_fields_filled(tab, FIELD_XPATHS)
+
     await asyncio.sleep(1)
     await SuperScraper.screenshot(tab, f"dry_run_{label}")
     if SuperScraper.DRY_RUN:
@@ -92,7 +112,7 @@ async def submit_request(tab, card_text, super_scraper):
     if submit_btn:
         await submit_btn.click()
         await asyncio.sleep(2)
-        print(f"Submitted '{card_text}' for {SuperScraper.FIRST_NAME} {SuperScraper.LAST_NAME}")
+        print(f"Submitted '{card_text}' for {SuperScraper.FIRST_NAME} {SuperScraper.LAST_NAME} — confirm in the browser.")
     else:
         print(f"{super_scraper.OOPS} Submit button not found for '{card_text}'")
 

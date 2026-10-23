@@ -35,6 +35,16 @@ RIGHT_MAP = {
 }
 RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
 
+PAGE_RIGHTS = {}  # TODO(health-check): run HEALTH_CHECK once live; it prints the full list
+# (The Correction and "Limit Use of Sensitive ..." checkbox texts are truncated in the notes.)
+
+FIELD_XPATHS = {
+    "First name": "//input[@name='0-1/firstname']",
+    "Last name": "//input[@name='0-1/lastname']",
+    "Email": "//input[@name='0-1/email']",
+    "LinkedIn profile": "//input[@name='0-1/hs_linkedin_url']",
+}
+
 
 async def _type_by_name(tab, super_scraper, name, value):
     if not value:
@@ -139,6 +149,9 @@ async def main():
 
         for choice in choices:
             await _click_label(tab, super_scraper, choice)
+
+        if SuperScraper.HEALTH_CHECK:
+            await SuperScraper.assert_fields_filled(tab, FIELD_XPATHS)
 
         await asyncio.sleep(1)
         await SuperScraper.screenshot(tab, "dry_run_" + "_".join(r.value for r in rights))

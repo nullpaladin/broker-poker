@@ -32,6 +32,9 @@ RIGHT_MAP = {
 }
 RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
 
+PAGE_RIGHTS = {}  # TODO(health-check): run HEALTH_CHECK once live; it prints the full list
+RIGHTS_OPTIONS_CSS = ".rightsDropdown option"  # values optOut / access / correct / delete
+
 
 def _js_set(selector, value):
     sel = json.dumps(selector)
@@ -61,6 +64,11 @@ def _js_check(selector):
 
 async def process_form(tab, dropdown_val, label, right, super_scraper):
     form_sel = f'[data-value="{dropdown_val}"] .enf-zendesk-form'
+
+    if SuperScraper.HEALTH_CHECK:
+        offered = await SuperScraper.read_option_labels(tab, RIGHTS_OPTIONS_CSS)
+        SuperScraper.audit_rights(offered, PAGE_RIGHTS)
+
     section_sel = f'[data-value="{dropdown_val}"]'
 
     # Reveal the section and sync the visible dropdown.
@@ -85,6 +93,14 @@ async def process_form(tab, dropdown_val, label, right, super_scraper):
     await tab.execute_script(_js_set(f'{form_sel} [name="email"]', SuperScraper.EMAIL))
     await tab.execute_script(_js_check(f'{form_sel} [name="privacyAuthorization"]'))
 
+    if SuperScraper.HEALTH_CHECK:
+        form_xpath = f'//*[@data-value="{dropdown_val}"]//*[contains(@class, "enf-zendesk-form")]'
+        await SuperScraper.assert_fields_filled(tab, {
+            "First name": f'{form_xpath}//*[@name="firstName"]',
+            "Last name": f'{form_xpath}//*[@name="lastName"]',
+            "Email": f'{form_xpath}//*[@name="email"]',
+        })
+
     if SuperScraper.DRY_RUN:
         print(
             f"DRY RUN: would submit '{right.name}' ({label}) for {SuperScraper.EMAIL}"
@@ -103,7 +119,7 @@ async def process_form(tab, dropdown_val, label, right, super_scraper):
         "var c=document.querySelector('.enf-zendesk-form-cont'); return c ? c.innerText : '';"
     )
     if result and ("Email Sent" in result or "Submission Confirmation" in result):
-        print(f"Submitted '{right.name}' for {SuperScraper.EMAIL}")
+        print(f"Submitted '{right.name}' for {SuperScraper.EMAIL} — confirm in the browser.")
     else:
         print(f"{super_scraper.OOPS} Confirmation not detected — verify in browser before continuing")
 

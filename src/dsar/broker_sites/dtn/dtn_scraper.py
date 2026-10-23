@@ -50,6 +50,18 @@ RIGHT_MAP = {
 }
 RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
 
+PAGE_RIGHTS = {}  # TODO(health-check): run HEALTH_CHECK once live; it prints the full list
+# (Only some of the rights-checkbox labels are recorded, so no inventory is built.)
+
+FIELD_XPATHS = {
+    "First name": "//*[@id='input_47_1']",
+    "Last name": "//*[@id='input_47_2']",
+    "Email": "//*[@id='input_47_3']",
+    "Phone": "//*[@id='input_47_4']",
+    "Zip": "//*[@id='input_47_17']",
+    "Arithmetic answer": "//*[@id='input_47_42']",
+}
+
 
 async def main():
     super_scraper = SuperScraper()
@@ -101,6 +113,9 @@ async def main():
         verify_box = await tab.find(id="choice_47_31_1", raise_exc=False)
         if verify_box:
             await verify_box.click()
+
+        if SuperScraper.HEALTH_CHECK:
+            await SuperScraper.assert_fields_filled(tab, FIELD_XPATHS)
 
         if SuperScraper.DRY_RUN:
             print(f"DRY RUN: would submit {[r.name for r in rights]} for {SuperScraper.EMAIL}")

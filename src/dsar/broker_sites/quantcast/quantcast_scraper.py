@@ -22,6 +22,9 @@ URL = "https://data-access.quantserve.com/gdpr/"
 RIGHT_MAP = {Right.RIGHT_TO_ACCESS: "retrieval", Right.RIGHT_TO_DELETE: "deletion"}
 RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
 
+PAGE_RIGHTS = {}  # TODO(health-check): run HEALTH_CHECK once live; it prints the full list
+# (No audit wired: the radio labels are unrecorded and read_option_labels' querySelectorAll is noted as failing on this domain.)
+
 
 async def _submit_right(tab, super_scraper, radio_value, label):
     """Select radio, check confirmation, take screenshot or await manual submit."""

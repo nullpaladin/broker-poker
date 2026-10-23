@@ -34,10 +34,24 @@ RIGHT_MAP = {
 }
 RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
 
+PAGE_RIGHTS = {}  # TODO(health-check): run HEALTH_CHECK once live; it prints the full list
+RIGHTS_OPTIONS_CSS = "label:has(input[name='reason'])"
+
+FIELD_XPATHS = {
+    "First name": "//*[@id='firstName']",
+    "Last name": "//*[@id='lastName']",
+    "Postal code": "//*[@id='postalCode']",
+    "Email": "//*[@id='email']",
+}
+
 
 async def submit_request(tab, reason_value, label, super_scraper):
     await tab.go_to(URL)
     await asyncio.sleep(4)
+
+    if SuperScraper.HEALTH_CHECK:
+        offered = await SuperScraper.read_option_labels(tab, RIGHTS_OPTIONS_CSS)
+        SuperScraper.audit_rights(offered, PAGE_RIGHTS)
 
     reason_radio = await tab.find(
         xpath=f"//input[@name='reason' and @value={reason_value!r}]", raise_exc=False
@@ -70,6 +84,9 @@ async def submit_request(tab, reason_value, label, super_scraper):
     else:
         print(f"{super_scraper.OOPS} 'accept' attestation checkbox not found")
 
+    if SuperScraper.HEALTH_CHECK:
+        await SuperScraper.assert_fields_filled(tab, FIELD_XPATHS)
+
     await asyncio.sleep(1)
     await SuperScraper.screenshot(tab, f"dry_run_{label}")
     if SuperScraper.DRY_RUN:
@@ -83,7 +100,7 @@ async def submit_request(tab, reason_value, label, super_scraper):
     if submit:
         await submit.click()
         await asyncio.sleep(3)
-        print(f"Submitted '{reason_value}' for {SuperScraper.FIRST_NAME} {SuperScraper.LAST_NAME}")
+        print(f"Submitted '{reason_value}' for {SuperScraper.FIRST_NAME} {SuperScraper.LAST_NAME} — confirm in the browser.")
 
 
 async def main():

@@ -35,6 +35,15 @@ RIGHT_MAP = {
 }
 RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
 
+# Every card on the landing page, as displayed -> the Right it maps to. No running path (NOT_AUTOMATABLE);
+# this only documents the page. The card selector has not been captured yet.
+PAGE_RIGHTS = {
+    "Access My Data": Right.RIGHT_TO_ACCESS,
+    "Do Not Sell or Share My Data": Right.RIGHT_TO_OPT_OUT,
+    "Delete My Data": Right.RIGHT_TO_DELETE,
+}
+RIGHTS_OPTIONS_CSS = ""  # TODO(health-check): capture the card-title selector on a live run
+
 
 async def submit_request(tab, card_text, super_scraper):
     await tab.go_to(URL)

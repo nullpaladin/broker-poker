@@ -40,6 +40,19 @@ URL = "https://myprivacy.equifax.com/opt-in-opt-out/personal-info"
 RIGHT_MAP = {Right.RIGHT_TO_OPT_OUT: "Info step of the opt-in/opt-out wizard"}
 RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
 
+PAGE_RIGHTS = {}  # TODO(health-check): run HEALTH_CHECK once live; it prints the full list
+# (Only the Info step was observed; the right-selection UI beyond Verify is unknown.)
+
+FIELD_XPATHS = {
+    "First name": "//*[@id='firstname']",
+    "Last name": "//*[@id='lastname']",
+    "Address": "//*[@id='address1']",
+    "City": "//*[@id='city']",
+    "Zip": "//*[@id='zipCode']",
+    "Email": "//*[@id='email']",
+    "State": "//select[@id='state']",
+}
+
 
 async def main():
     super_scraper = SuperScraper()
@@ -96,6 +109,9 @@ async def main():
         if tou_label:
             await tou_label.click()
         await asyncio.sleep(1)
+
+        if SuperScraper.HEALTH_CHECK:
+            await SuperScraper.assert_fields_filled(tab, FIELD_XPATHS)
 
         if SuperScraper.DRY_RUN:
             print(f"DRY RUN: would advance to Verify step for {SuperScraper.EMAIL}")

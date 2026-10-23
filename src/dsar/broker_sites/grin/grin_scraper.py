@@ -52,6 +52,14 @@ RIGHT_MAP = {
 }
 RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
 
+PAGE_RIGHTS = {}  # TODO(health-check): run HEALTH_CHECK once live; it prints the full list
+
+FIELD_XPATHS = {
+    "First name": "//*[@id='fname-field']",
+    "Last name": "//*[@id='lname-field']",
+    "Email": "//*[@id='email-field']",
+}
+
 
 async def _fill(tab, el_id, value):
     el = await tab.find(id=el_id, raise_exc=False)
@@ -136,6 +144,9 @@ async def main():
 
             if not await _fill_form(tab, super_scraper, right_id):
                 continue
+
+            if SuperScraper.HEALTH_CHECK:
+                await SuperScraper.assert_fields_filled(tab, FIELD_XPATHS)
 
             if SuperScraper.DRY_RUN:
                 await asyncio.sleep(1)

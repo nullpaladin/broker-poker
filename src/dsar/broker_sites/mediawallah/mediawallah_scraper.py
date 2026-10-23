@@ -48,10 +48,33 @@ RIGHT_MAP = {
 }
 RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
 
+# Every role=option toggle visible on load ("I am a (an)" + "Select request type(s)"), as displayed -> the Right it maps to.
+PAGE_RIGHTS = {
+    "Customer": None,
+    "Partner": None,
+    "Employee": None,
+    "Info Request": Right.RIGHT_TO_ACCESS,
+    "Do Not Sell My Information": Right.RIGHT_TO_OPT_OUT,
+    "Data Deletion": Right.RIGHT_TO_DELETE,
+}
+RIGHTS_OPTIONS_CSS = "div[role='option']"
+
+FIELD_XPATHS = {
+    "First name": f"//*[@id='{FIRST_NAME_FIELD}']",
+    "Last name": f"//*[@id='{LAST_NAME_FIELD}']",
+    "Email": f"//*[@id='{EMAIL_FIELD}']",
+    "Country": f"//*[@id='{COUNTRY_FIELD}']",
+    "State": f"//*[@id='{STATE_FIELD}']",
+}
+
 
 async def submit_request(tab, right, option, super_scraper):
     await tab.go_to(URL)
     await asyncio.sleep(5)
+
+    if SuperScraper.HEALTH_CHECK:
+        offered = await SuperScraper.read_option_labels(tab, RIGHTS_OPTIONS_CSS)
+        SuperScraper.audit_rights(offered, PAGE_RIGHTS)
 
     i_am_a = await tab.find(text=I_AM_A_OPTION, raise_exc=False)
     if i_am_a:
@@ -106,6 +129,9 @@ async def submit_request(tab, right, option, super_scraper):
         if state_opt:
             await state_opt.click()
             await asyncio.sleep(0.5)
+
+    if SuperScraper.HEALTH_CHECK:
+        await SuperScraper.assert_fields_filled(tab, FIELD_XPATHS)
 
     await asyncio.sleep(1)
     await SuperScraper.screenshot(tab, f"dry_run_{right.value}")

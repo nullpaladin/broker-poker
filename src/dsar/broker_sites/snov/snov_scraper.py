@@ -23,6 +23,10 @@ from pydoll.browser.chromium import Chrome
 RIGHT_MAP = {Right.RIGHT_TO_OPT_OUT: "requested"}  # checkbox id
 RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
 
+# The page's only option (a checkbox), as displayed -> the Right it maps to. No running path (NOT_AUTOMATABLE).
+PAGE_RIGHTS = {"Do not sell my personal information": Right.RIGHT_TO_OPT_OUT}
+RIGHTS_OPTIONS_CSS = "label[for='requested']"  # assumes the checkbox has a for-linked label; unverified
+
 URL = "https://snov.io/do-not-sell-my-personal-information"
 
 NOT_AUTOMATABLE = True

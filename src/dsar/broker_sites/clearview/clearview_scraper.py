@@ -42,6 +42,14 @@ RIGHT_MAP = {
 }
 RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
 
+PAGE_RIGHTS = {}  # TODO(health-check): run HEALTH_CHECK once live; it prints the full list
+# (Recorded request types are aria-labels; the visible text may differ, so they are not copied in.)
+
+FIELD_XPATHS = {
+    "State": "//*[@id='formField78DSARElement']",
+    "Email": "//*[@id='emailDSARElement']",
+}
+
 
 async def main():
     super_scraper = SuperScraper()
@@ -85,6 +93,9 @@ async def main():
         acknowledge = await tab.find(xpath="//div[@role='option' and @aria-label='I acknowledge']", raise_exc=False)
         if acknowledge:
             await acknowledge.click_using_js()
+
+        if SuperScraper.HEALTH_CHECK:
+            await SuperScraper.assert_fields_filled(tab, FIELD_XPATHS)
 
         await asyncio.sleep(1)
         await SuperScraper.screenshot(tab, "dry_run_" + "_".join(r.value for r in rights))

@@ -35,6 +35,16 @@ URL = "https://privacy-central.securiti.ai/#/dsr/1b319101-f00c-470f-a7f0-26aa81f
 RIGHT_MAP = {Right.RIGHT_TO_OPT_OUT: "Request to Opt-Out"}
 RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
 
+PAGE_RIGHTS = {}  # TODO(health-check): run HEALTH_CHECK once live; it prints the full list
+
+FIELD_XPATHS = {
+    "First name": "//*[@id='first_name']",
+    "Last name": "//*[@id='last_name']",
+    "Email": "//*[@id='email']",
+    "Phone": "//*[@id='phone']",
+    "Zip": "//*[@id='zipCode']",
+}
+
 
 async def main():
     super_scraper = SuperScraper()
@@ -92,6 +102,9 @@ async def main():
             await certification.click()
         else:
             print(f"{super_scraper.OOPS} Certification checkbox not found")
+
+        if SuperScraper.HEALTH_CHECK:
+            await SuperScraper.assert_fields_filled(tab, FIELD_XPATHS)
 
         await asyncio.sleep(1)
         await SuperScraper.screenshot(tab, "dry_run")

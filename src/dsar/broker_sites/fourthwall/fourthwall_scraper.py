@@ -26,6 +26,8 @@ URL = "https://www.fourthwall.tv/donotsellorshare-fourthwall"
 RIGHT_MAP = {Right.RIGHT_TO_OPT_OUT: "opt-out"}
 RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
 
+PAGE_RIGHTS = {}  # TODO(health-check): run HEALTH_CHECK once live; it prints the full list
+
 FIELDS = [
     ("first-name", "FIRST_NAME"),
     ("last-name", "LAST_NAME"),
@@ -66,6 +68,13 @@ async def main():
                 await asyncio.sleep(0.2)
             else:
                 print(f"{super_scraper.OOPS} field '{name}' not found")
+
+        if SuperScraper.HEALTH_CHECK:
+            await SuperScraper.assert_fields_filled(tab, {
+                name: f"(//input[@name={name!r}])[1]"
+                for name, _attr in FIELDS
+                if name != "phone"  # optional
+            })
 
         time.sleep(0.5)
         await SuperScraper.screenshot(tab, "dry_run")

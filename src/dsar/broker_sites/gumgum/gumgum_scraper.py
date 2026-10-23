@@ -37,6 +37,30 @@ RIGHT_MAP = {
 }
 RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
 
+# Every option in the "Select request type(s)" group, as displayed -> the Right it maps to (None = not automated).
+PAGE_RIGHTS = {
+    "Info Request": Right.RIGHT_TO_ACCESS,
+    "Data Portability": Right.RIGHT_TO_ACCESS,
+    "Opt out": Right.RIGHT_TO_OPT_OUT,
+    "Do Not Sell": Right.RIGHT_TO_OPT_OUT,
+    "Data Deletion": Right.RIGHT_TO_DELETE,
+    "Update Data": None,
+    "Object to Processing": None,
+    "File a Complaint": None,
+    "Review Automated Decision": None,
+    "Restrict Processing": None,
+}
+RIGHTS_OPTIONS_CSS = "#requestTypesDSARElement [role='option']"
+
+FIELD_XPATHS = {
+    "First name": "//*[@id='firstNameDSARElement']",
+    "Last name": "//*[@id='lastNameDSARElement']",
+    "Email": "//*[@id='emailDSARElement']",
+    "Country": "//*[@id='countryDSARElement']",
+    "State": "//*[@id='stateDSARElement']",
+    "Request details": "//*[@id='requestDetailsDSARElement']",
+}
+
 
 async def _combo(tab, super_scraper, field_id, value):
     field = await tab.find(id=field_id, raise_exc=False)
@@ -85,6 +109,10 @@ async def submit_request(tab, right, right_label, tag, super_scraper):
     await tab.go_to(URL)
     await asyncio.sleep(7)
 
+    if SuperScraper.HEALTH_CHECK:
+        offered = await SuperScraper.read_option_labels(tab, RIGHTS_OPTIONS_CSS)
+        SuperScraper.audit_rights(offered, PAGE_RIGHTS)
+
     await _pick(tab, super_scraper, "Visitor")
     await _pick(tab, super_scraper, right_label)
     await _combo(tab, super_scraper, "countryDSARElement", "United States")
@@ -108,6 +136,9 @@ async def submit_request(tab, right, right_label, tag, super_scraper):
             await asyncio.sleep(0.2)
         else:
             print(f"{super_scraper.OOPS} field '{field_id}' not found")
+
+    if SuperScraper.HEALTH_CHECK:
+        await SuperScraper.assert_fields_filled(tab, FIELD_XPATHS)
 
     await asyncio.sleep(1)
     await SuperScraper.screenshot(tab, f"dry_run_{tag}")

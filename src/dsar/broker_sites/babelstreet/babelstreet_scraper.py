@@ -43,6 +43,22 @@ RIGHT_MAP = {
 }
 RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
 
+PAGE_RIGHTS = {}  # TODO(health-check): run HEALTH_CHECK once live; it prints the full list
+# (Recorded request types are aria-labels; the visible text may differ, so they are not copied in.)
+
+FIELD_XPATHS = {
+    "First name": "//*[@id='firstNameDSARElement']",
+    "Last name": "//*[@id='lastNameDSARElement']",
+    "Email": "//*[@id='emailDSARElement']",
+    "Confirm email": "//*[@id='confirmEmailInputDSARElement']",
+    "Phone": "//*[@id='phoneNumberDSARElement']",
+    "Address": "//*[@id='addressDSARElement']",
+    "City": "//*[@id='cityDSARElement']",
+    "State": "//*[@id='stateDSARElement']",
+    "Country": "//*[@id='countryDSARElement']",
+    "Today's date": "//*[@id='formField78DSARElement']",
+}
+
 
 async def _select_autocomplete(tab, field_id, search_text):
     field = await tab.find(id=field_id, raise_exc=False)
@@ -136,6 +152,9 @@ async def main():
             await asyncio.sleep(1)
 
         time.sleep(0.5)
+
+        if SuperScraper.HEALTH_CHECK:
+            await SuperScraper.assert_fields_filled(tab, FIELD_XPATHS)
 
         if SuperScraper.DRY_RUN:
             print(f"DRY RUN: would submit {[r.name for r in rights]} ({request_types}) for {SuperScraper.EMAIL}")

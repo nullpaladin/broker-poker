@@ -40,6 +40,19 @@ RIGHT_MAP = {
 }
 RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
 
+PAGE_RIGHTS = {}  # TODO(health-check): run HEALTH_CHECK once live; it prints the full list
+# (Only one of the two checkbox labels is recorded in full, so no inventory is built.)
+
+FIELD_XPATHS = {
+    "First name": "//*[@id='form-field-12c652']",
+    "Last name": "//*[@id='form-field-d0b8e9']",
+    "Address": "//*[@id='form-field-239f51']",
+    "City": "//*[@id='form-field-ed3995']",
+    "State": "//*[@id='form-field-f184b1']",
+    "Zip": "//*[@id='form-field-be2796']",
+    "Email": "//*[@id='form-field-be43c6']",
+}
+
 
 async def main():
     super_scraper = SuperScraper()
@@ -88,6 +101,9 @@ async def main():
         state = await tab.find(id="form-field-f184b1", raise_exc=False)
         if state:
             await js_utils.select_native_option(state, text=SuperScraper.STATE)
+
+        if SuperScraper.HEALTH_CHECK:
+            await SuperScraper.assert_fields_filled(tab, FIELD_XPATHS)
 
         await asyncio.sleep(1)
         await SuperScraper.screenshot(tab, "dry_run")

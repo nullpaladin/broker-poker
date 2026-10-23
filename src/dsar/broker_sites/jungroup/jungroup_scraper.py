@@ -30,9 +30,24 @@ RIGHT_MAP = {
 }
 RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
 
+# Every checkbox on the form (aria-labels) -> the Right it maps to (None = not automated).
+PAGE_RIGHTS = {
+    "Don't Sell/Share": Right.RIGHT_TO_OPT_OUT,
+    "View My Data": Right.RIGHT_TO_ACCESS,
+    "Edit My Data": None,
+    "Delete My Data": Right.RIGHT_TO_DELETE,
+}
+RIGHTS_OPTIONS_CSS = ""  # TODO(health-check): Google Forms checkbox labels are aria-labels, not element text; capture a selector on a live run (no audit wired until then)
+
 EMAIL_XPATH = '//input[@aria-label="Your email"]'
 NAME_XPATH = '(//input[@jsname="YPqjbf" and @type="text"])[1]'
 ADVERTISING_ID_XPATH = '(//input[@jsname="YPqjbf" and @type="text"])[2]'
+
+FIELD_XPATHS = {
+    "Email": EMAIL_XPATH,
+    "Name": NAME_XPATH,
+    "Advertising ID": ADVERTISING_ID_XPATH,
+}
 
 
 async def check_checkbox(tab, aria_label):
@@ -66,6 +81,9 @@ async def main():
                                              text=f"{SuperScraper.FIRST_NAME} {SuperScraper.LAST_NAME}", sleep=1)
         await super_scraper.input_text_field(tab=tab, xpath=ADVERTISING_ID_XPATH,
                                              text=SuperScraper.ADVERTISING_ID, sleep=1)
+
+        if SuperScraper.HEALTH_CHECK:
+            await SuperScraper.assert_fields_filled(tab, FIELD_XPATHS)
 
         if SuperScraper.DRY_RUN:
             print(f"DRY RUN: would submit {[r.name for r in rights]} for {SuperScraper.EMAIL} (ad ID: {SuperScraper.ADVERTISING_ID})")

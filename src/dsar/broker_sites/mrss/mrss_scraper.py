@@ -35,6 +35,13 @@ RIGHT_MAP = {
 }
 RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
 
+PAGE_RIGHTS = {}  # TODO(health-check): run HEALTH_CHECK once live; it prints the full list
+
+FIELD_XPATHS = {
+    "Email": f"//*[@id='{EMAIL_ID}']",
+    "Phone": f"//*[@id='{PHONE_ID}']",
+}
+
 
 async def main():
     super_scraper = SuperScraper()
@@ -69,6 +76,9 @@ async def main():
             await phone_field.type_text(SuperScraper.PHONE_NUMBER)
         else:
             print(f"{super_scraper.OOPS} Phone field not found")
+
+        if SuperScraper.HEALTH_CHECK:
+            await SuperScraper.assert_fields_filled(tab, FIELD_XPATHS)
 
         await asyncio.sleep(1)
         await SuperScraper.screenshot(tab, "dry_run_opt_out")

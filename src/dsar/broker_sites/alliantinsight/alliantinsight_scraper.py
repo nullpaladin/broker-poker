@@ -37,6 +37,18 @@ RIGHT_MAP = {
 }
 RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
 
+PAGE_RIGHTS = {}  # TODO(health-check): run HEALTH_CHECK once live; it prints the full list
+
+# Fields present on all three forms (country/state/phone vary per form).
+FIELD_XPATHS = {
+    "First name": "//*[@id='firstNameDSARElement']",
+    "Last name": "//*[@id='lastNameDSARElement']",
+    "Email": "//*[@id='emailDSARElement']",
+    "Address": "//*[@id='addressDSARElement']",
+    "City": "//*[@id='cityDSARElement']",
+    "Zip": "//*[@id='zipDSARElement']",
+}
+
 
 async def _fill_autocomplete(tab, field_id, value):
     field = await tab.find(id=field_id, raise_exc=False)
@@ -87,6 +99,9 @@ async def submit_request(tab, right, url, super_scraper):
     phone = await tab.find(id="phoneNumber", raise_exc=False)
     if phone:
         await phone.type_text(SuperScraper.PHONE_NUMBER)
+
+    if SuperScraper.HEALTH_CHECK:
+        await SuperScraper.assert_fields_filled(tab, FIELD_XPATHS)
 
     if SuperScraper.DRY_RUN:
         print(

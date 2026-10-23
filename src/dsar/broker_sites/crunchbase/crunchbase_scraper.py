@@ -28,6 +28,9 @@ RIGHT_MAP = {
 }
 RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
 
+PAGE_RIGHTS = {}  # TODO(health-check): run HEALTH_CHECK once live; it prints the full list
+# (Recorded card names for Transfer / Update Inaccuracies are not exact, so no inventory is built.)
+
 
 async def submit_request(tab, right, entry, super_scraper):
     await tab.go_to(URL)

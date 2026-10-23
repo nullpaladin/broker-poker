@@ -22,6 +22,10 @@ URL = "https://app.mobilemonkey.com/opt-out"
 RIGHT_MAP = {Right.RIGHT_TO_OPT_OUT: "Opt Out of Tracking and Personal Data Processing"}
 RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
 
+PAGE_RIGHTS = {}  # TODO(health-check): run HEALTH_CHECK once live; it prints the full list
+
+EMAIL_XPATH = "//input[@type='email' or @name='email']"
+
 
 async def main():
     super_scraper = SuperScraper()
@@ -48,6 +52,9 @@ async def main():
         )
         if zip_field and SuperScraper.ZIP_CODE:
             await zip_field.type_text(SuperScraper.ZIP_CODE)
+
+        if SuperScraper.HEALTH_CHECK:
+            await SuperScraper.assert_fields_filled(tab, {"Email": EMAIL_XPATH})
 
         await asyncio.sleep(1)
         await SuperScraper.screenshot(tab, "dry_run_opt_out")

@@ -47,6 +47,17 @@ RIGHT_MAP = {
 }
 RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
 
+# Every request radio label, as displayed -> the Right it maps to (None = not automated). No running path
+# (NOT_AUTOMATABLE); this only documents the page.
+PAGE_RIGHTS = {
+    "Access": Right.RIGHT_TO_ACCESS,
+    "Correct": None,
+    "Do Not Sell": Right.RIGHT_TO_OPT_OUT,
+    "Limit Sharing of Sensitive Data": Right.RIGHT_TO_OPT_OUT,
+    "Delete": Right.RIGHT_TO_DELETE,
+}
+RIGHTS_OPTIONS_CSS = "label[for^='radio-'][for$='-data']"
+
 
 async def _click_continue(tab):
     return await tab.execute_script(

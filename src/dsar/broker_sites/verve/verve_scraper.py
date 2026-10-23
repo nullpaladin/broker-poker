@@ -45,6 +45,17 @@ RIGHT_MAP = {
 }
 RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
 
+PAGE_RIGHTS = {}  # TODO(health-check): run HEALTH_CHECK once live; it prints the full list
+# (The checkbox texts are paraphrased and one value has an embedded literal quote/asterisk, so no inventory is built.)
+
+FIELD_XPATHS = {
+    "First name": "//*[@id='field_xr2fa_first']",
+    "Last name": "//*[@id='field_xr2fa_last']",
+    "Email": "//*[@id='field_ayz61']",
+    "Country": "//*[@id='field_zf5gh']",
+    "Request details": "//*[@id='field_ck1lr']",
+}
+
 
 async def main():
     super_scraper = SuperScraper()
@@ -108,6 +119,9 @@ async def main():
             await details_field.type_text(SuperScraper.request_statement(rights, broker="Verve"))
         else:
             print(f"{super_scraper.OOPS} Request Details field not found")
+
+        if SuperScraper.HEALTH_CHECK:
+            await SuperScraper.assert_fields_filled(tab, FIELD_XPATHS)
 
         await asyncio.sleep(1)
         await SuperScraper.screenshot(tab, "dry_run")

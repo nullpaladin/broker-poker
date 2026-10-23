@@ -36,6 +36,18 @@ RIGHT_MAP = {
 }
 RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
 
+PAGE_RIGHTS = {}  # TODO(health-check): run HEALTH_CHECK once live; it prints the full list
+RIGHTS_OPTIONS_CSS = f"#{REQUEST_TYPE_ID} option"  # option texts may differ from the recorded option values
+
+FIELD_XPATHS = {
+    "First name": f"//*[@id='{FIRST_NAME_ID}']",
+    "Last name": f"//*[@id='{LAST_NAME_ID}']",
+    "Email": f"//*[@id='{EMAIL_ID}']",
+    "State": f"//*[@id='{STATE_ID}']",
+    "Are you the consumer": f"//*[@id='{CONSUMER_ID}']",
+    "Request type": f"//*[@id='{REQUEST_TYPE_ID}']",
+}
+
 
 async def submit_request(tab, right, ccpa_value, super_scraper):
     await tab.go_to(URL)
@@ -46,6 +58,10 @@ async def submit_request(tab, right, ccpa_value, super_scraper):
     if reject and await reject.is_visible():
         await reject.click()
         await asyncio.sleep(1)
+
+    if SuperScraper.HEALTH_CHECK:
+        offered = await SuperScraper.read_option_labels(tab, RIGHTS_OPTIONS_CSS)
+        SuperScraper.audit_rights(offered, PAGE_RIGHTS)
 
     first = await tab.find(id=FIRST_NAME_ID, raise_exc=False)
     if first:
@@ -86,6 +102,9 @@ async def submit_request(tab, right, ccpa_value, super_scraper):
         return
 
     time.sleep(0.5)
+
+    if SuperScraper.HEALTH_CHECK:
+        await SuperScraper.assert_fields_filled(tab, FIELD_XPATHS)
 
     if SuperScraper.DRY_RUN:
         submit_btn = await tab.find(tag_name="button", text="Submit", raise_exc=False)

@@ -26,6 +26,10 @@ URL = "https://www.realsourcedata.com/do-not-sell-my-personal-information"
 RIGHT_MAP = {Right.RIGHT_TO_OPT_OUT: "Do Not Sell My Personal Information"}
 RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
 
+PAGE_RIGHTS = {}  # TODO(health-check): run HEALTH_CHECK once live; it prints the full list
+
+FIELD_LABELS = ["First name", "Last name", "Street address", "City", "State", "Zip", "Phone", "Email"]
+
 FIELD_VALUES = [
     SuperScraper.FIRST_NAME,
     SuperScraper.LAST_NAME,
@@ -67,6 +71,13 @@ async def main():
         for field, value in zip(fields, FIELD_VALUES):
             await field.type_text(value)
             await asyncio.sleep(0.2)
+
+        if SuperScraper.HEALTH_CHECK:
+            # The Tally inputs are positional (see header); check them inside the iframe.
+            await SuperScraper.assert_fields_filled(frame, {
+                label: f"(//input[@type='text' or @type='tel' or @type='email'])[{i}]"
+                for i, label in enumerate(FIELD_LABELS, start=1)
+            })
 
         await asyncio.sleep(1)
         await SuperScraper.screenshot(tab, "dry_run")

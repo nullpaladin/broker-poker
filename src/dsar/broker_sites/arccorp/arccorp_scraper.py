@@ -46,6 +46,19 @@ RIGHT_MAP = {
 }
 RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
 
+# Every request card title, as displayed -> the Right it maps to (None = not automated).
+PAGE_RIGHTS = {
+    "Summarize my personal information": Right.RIGHT_TO_ACCESS,
+    "Transfer my personal information": Right.RIGHT_TO_ACCESS,
+    "Do Not Sell or Share to a Third Party": Right.RIGHT_TO_OPT_OUT,
+    "Don't use my personal information for advertising": Right.RIGHT_TO_OPT_OUT,
+    "Opt Out of Profiling / Automated Decision-Making": Right.RIGHT_TO_OPT_OUT,
+    "Third parties your data was sold or shared with": Right.RIGHT_TO_LIST_OF_THIRD_PARTIES,
+    "Delete my personal information": Right.RIGHT_TO_DELETE,
+    "Correct my personal information": None,
+}
+RIGHTS_OPTIONS_CSS = "h4[data-testid='card-title']"
+
 FIELDS = {
     "given-name": "FIRST_NAME",
     "family-name": "LAST_NAME",
@@ -60,6 +73,10 @@ FIELDS = {
 async def submit_request(tab, card_text, label, super_scraper):
     await tab.go_to(URL)
     await asyncio.sleep(5)
+
+    if SuperScraper.HEALTH_CHECK:
+        offered = await SuperScraper.read_option_labels(tab, RIGHTS_OPTIONS_CSS)
+        SuperScraper.audit_rights(offered, PAGE_RIGHTS)
 
     card = await tab.find(
         xpath=f"//h4[@data-testid='card-title' and normalize-space()={card_text!r}]", raise_exc=False
@@ -82,6 +99,11 @@ async def submit_request(tab, card_text, label, super_scraper):
     country = await tab.find(name="o-Country", timeout=4, raise_exc=False)
     if country:
         await country.type_text("United States")
+
+    if SuperScraper.HEALTH_CHECK:
+        await SuperScraper.assert_fields_filled(
+            tab, {name: f"//*[@name='{name}']" for name in [*FIELDS, "o-Country"]}
+        )
 
     # NOTE: name="representative-type" is the "I am submitting this request on
     # behalf of someone other than myself." CHECKBOX — left UNCHECKED (default)

@@ -41,6 +41,18 @@ RIGHT_MAP = {
 }
 RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
 
+PAGE_RIGHTS = {}  # TODO(health-check): run HEALTH_CHECK once live; it prints the full list
+# (Recorded request types are aria-labels; the visible text may differ, so they are not copied in.)
+
+FIELD_XPATHS = {
+    "Country": "//*[@id='countryDSARElement']",
+    "State": "//*[@id='stateDSARElement']",
+    "First name": "//*[@id='firstNameDSARElement']",
+    "Last name": "//*[@id='lastNameDSARElement']",
+    "Email": "//*[@id='emailDSARElement']",
+    "Request details": "//*[@id='requestDetailsDSARElement']",
+}
+
 
 async def _field_value(field):
     return str((await js_utils.js_eval(field, "return this.value;")) or "").strip()
@@ -114,6 +126,9 @@ async def submit_request(tab, right, right_label, super_scraper):
         await details.type_text(SuperScraper.request_statement([right], broker="Cybba"))
 
     time.sleep(0.5)
+    if SuperScraper.HEALTH_CHECK:
+        await SuperScraper.assert_fields_filled(tab, FIELD_XPATHS)
+
     submit_btn = await tab.find(id="dsar-webform-submit-button", raise_exc=False)
     if submit_btn:
         await submit_btn.scroll_into_view()

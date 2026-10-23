@@ -48,6 +48,28 @@ RIGHT_MAP = {
 }
 RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
 
+# Every checkbox in the rights group, as displayed -> the Right it maps to (None = not automated). "Right to Know" is
+# mapped to RIGHT_TO_OPT_OUT because RIGHT_MAP currently does so (see its MANUAL REVIEW note); "Right to Opt Out of
+# Sales" is not used by RIGHT_MAP.
+PAGE_RIGHTS = {
+    "Right to Access / Portability": Right.RIGHT_TO_ACCESS,
+    "Right to Know": Right.RIGHT_TO_OPT_OUT,
+    "Right to Correction": None,
+    "Right to Deletion": Right.RIGHT_TO_DELETE,
+    "Right to Opt Out of Sales": None,
+}
+RIGHTS_OPTIONS_CSS = "label[for^='cu3-checkbox-']"
+
+FIELD_XPATHS = {
+    "Full name": "//*[@id='cu-form-control-6']",
+    "Company name": "//*[@id='cu-form-control-7']",
+    "Email": "//*[@id='cu-form-control-9']",
+    "Street address": "//*[@id='cu-form-control-11']",
+    "City": "//*[@id='cu-form-control-13']",
+    "State": "//*[@id='cu-form-control-14']",
+    "Zip": "//*[@id='cu-form-control-15']",
+}
+
 
 async def main():
     super_scraper = SuperScraper()
@@ -66,6 +88,10 @@ async def main():
         tab = await browser.start()
         await tab.go_to(URL)
         await asyncio.sleep(8)
+
+        if SuperScraper.HEALTH_CHECK:
+            offered = await SuperScraper.read_option_labels(tab, RIGHTS_OPTIONS_CSS)
+            SuperScraper.audit_rights(offered, PAGE_RIGHTS)
 
         # Required "relationship with PostPilot" ClickUp dropdown -> Consumer
         toggle = await tab.find(
@@ -118,6 +144,9 @@ async def main():
                 await asyncio.sleep(0.15)
             else:
                 print(f"{super_scraper.OOPS} field '{field_id}' not found")
+
+        if SuperScraper.HEALTH_CHECK:
+            await SuperScraper.assert_fields_filled(tab, FIELD_XPATHS)
 
         await asyncio.sleep(1)
         await SuperScraper.screenshot(tab, "dry_run")

@@ -54,6 +54,18 @@ RIGHT_MAP = {
 }
 RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
 
+# Every accordion section under "User Data Tools", as displayed -> the Right it maps to (None = not automated).
+PAGE_RIGHTS = {
+    "Right to Know": Right.RIGHT_TO_ACCESS,
+    "Right to Opt Out": Right.RIGHT_TO_OPT_OUT,
+    "Right to Correct": None,
+    "Right to Delete": Right.RIGHT_TO_DELETE,
+}
+RIGHTS_OPTIONS_CSS = ""  # TODO(health-check): capture the accordion-header selector on a live run (no audit wired until then)
+
+ACCESS_FIELD_XPATHS = {"Email": "//input[@name='retrievalEmail']"}
+DELETE_FIELD_XPATHS = {"Email": "//input[@name='deletionEmail']"}
+
 
 async def _open_accordion(tab, label):
     link = await tab.find(text=label, raise_exc=False)
@@ -70,6 +82,8 @@ async def do_access(tab, super_scraper):
         print(f"{super_scraper.OOPS} retrievalEmail field not found")
         return
     await email_field.type_text(SuperScraper.EMAIL)
+    if SuperScraper.HEALTH_CHECK:
+        await SuperScraper.assert_fields_filled(tab, ACCESS_FIELD_XPATHS)
     await asyncio.sleep(1)
     await SuperScraper.screenshot(tab, "dry_run_access")
     print(
@@ -124,6 +138,8 @@ async def do_delete(tab, super_scraper):
         print(f"{super_scraper.OOPS} deletionEmail field not found")
         return
     await email_field.type_text(SuperScraper.EMAIL)
+    if SuperScraper.HEALTH_CHECK:
+        await SuperScraper.assert_fields_filled(tab, DELETE_FIELD_XPATHS)
     await asyncio.sleep(1)
     await SuperScraper.screenshot(tab, "dry_run_delete")
     print(

@@ -37,10 +37,30 @@ RIGHT_MAP = {
 }
 RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
 
+# Every option in the "Request Type" <select>, as displayed -> the Right it maps to.
+PAGE_RIGHTS = {
+    "Request my Information": Right.RIGHT_TO_ACCESS,
+    "Delete my Information": Right.RIGHT_TO_DELETE,
+}
+RIGHTS_OPTIONS_CSS = "#form-field-type option"  # a placeholder option, if any, is unrecorded
+
+FIELD_XPATHS = {
+    "Full name": "//*[@id='form-field-full_name']",
+    "Contact email": "//*[@id='form-field-contact_email_address']",
+    "Email": "//*[@id='form-field-email']",
+    "Phone": "//*[@id='form-field-phone_number']",
+    "Jurisdiction": "//*[@id='form-field-jurisdiction']",
+    "Request type": "//*[@id='form-field-type']",
+}
+
 
 async def submit_request(tab, request_type, super_scraper):
     await tab.go_to(URL)
     await asyncio.sleep(5)
+
+    if SuperScraper.HEALTH_CHECK:
+        offered = await SuperScraper.read_option_labels(tab, RIGHTS_OPTIONS_CSS)
+        SuperScraper.audit_rights(offered, PAGE_RIGHTS)
 
     fields = {
         "form-field-full_name": f"{SuperScraper.FIRST_NAME} {SuperScraper.LAST_NAME}",
@@ -68,6 +88,9 @@ async def submit_request(tab, request_type, super_scraper):
         await js_utils.select_native_option(type_select, value=request_type)
     else:
         print(f"{super_scraper.OOPS} Request Type select not found")
+
+    if SuperScraper.HEALTH_CHECK:
+        await SuperScraper.assert_fields_filled(tab, FIELD_XPATHS)
 
     label = "".join(c if c.isalnum() else "_" for c in request_type.lower())[:40].strip("_")
     await asyncio.sleep(1)

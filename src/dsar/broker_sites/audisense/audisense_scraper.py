@@ -46,6 +46,20 @@ RIGHT_MAP = {
 }
 RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
 
+PAGE_RIGHTS = {}  # TODO(health-check): run HEALTH_CHECK once live; it prints the full list
+
+FIELD_XPATHS = {
+    "First name": "//*[@name='FirstName']",
+    "Last name": "//*[@name='LastName']",
+    "Email": "//*[@name='PrimaryEmail']",
+    "Phone": "//*[@name='PrimaryPhone']",
+    "Address": "//*[@name='HomeAddress']",
+    "City": "//*[@name='City']",
+    "Zip": "//*[@name='Zip']",
+    "Jurisdiction of residence": "//*[@name='JurisdictionOfResidence']",
+    "State": "//select[@name='PersonalState']",
+}
+
 
 async def main():
     super_scraper = SuperScraper()
@@ -108,6 +122,9 @@ async def main():
             maid = await tab.find(name="MobileAdvertisingId", raise_exc=False)
             if maid:
                 await maid.type_text(SuperScraper.ADVERTISING_ID)
+
+        if SuperScraper.HEALTH_CHECK:
+            await SuperScraper.assert_fields_filled(tab, FIELD_XPATHS)
 
         await asyncio.sleep(1)
         await SuperScraper.screenshot(tab, "prefilled")

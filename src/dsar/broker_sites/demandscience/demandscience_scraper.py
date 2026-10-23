@@ -45,6 +45,16 @@ RIGHT_MAP = {
 }
 RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
 
+PAGE_RIGHTS = {}  # TODO(health-check): run HEALTH_CHECK once live; it prints the full list
+
+FIELD_XPATHS = {
+    "First name": "//*[@name='10652']",
+    "Last name": "//*[@name='10661']",
+    "Business email": "//*[@id='Email_10653']",
+    "Company": "//*[@name='10662']",
+    "Country of residence": "//*[@id='QuestionTypeID_10663']",
+}
+
 
 async def _check_radio(tab, name, value, super_scraper, description):
     radio = await tab.find(xpath=f"//input[@name='{name}' and @value='{value}']", raise_exc=False)
@@ -81,6 +91,9 @@ async def submit_request(tab, right, request_type, super_scraper):
         await js_utils.select_native_option(country_select, value=UNITED_STATES_VALUE)
 
     await _check_radio(tab, REQUEST_TYPE_RADIO_NAME, request_type, super_scraper, "request type")
+
+    if SuperScraper.HEALTH_CHECK:
+        await SuperScraper.assert_fields_filled(tab, FIELD_XPATHS)
 
     if SuperScraper.DRY_RUN:
         await asyncio.sleep(1)

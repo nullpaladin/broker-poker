@@ -40,6 +40,29 @@ RIGHT_MAP = {
 }
 RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
 
+# Every option in the "Select request type(s)" listbox, as displayed -> the Right it maps to (None = not automated).
+# The combined option is mapped to RIGHT_TO_DELETE here; RIGHT_MAP also submits it for RIGHT_TO_OPT_OUT.
+PAGE_RIGHTS = {
+    "Right to Know/Access to Information": Right.RIGHT_TO_ACCESS,
+    "Data Deletion/Opt-out/Do Not Sell": Right.RIGHT_TO_DELETE,
+    "Object to Processing": Right.RIGHT_TO_OPT_OUT,
+    "Rectify Personal Data": None,
+    "Unsubscribe from Marketing": None,
+}
+RIGHTS_OPTIONS_CSS = "#requestTypesDSARElement [role='option']"
+
+FIELD_XPATHS = {
+    "Country": "//*[@id='countryDSARElement']",
+    "State": "//*[@id='stateDSARElement']",
+    "First name": "//*[@id='firstNameDSARElement']",
+    "Last name": "//*[@id='lastNameDSARElement']",
+    "Address": "//*[@id='addressDSARElement']",
+    "City": "//*[@id='cityDSARElement']",
+    "Zip": "//*[@id='zipDSARElement']",
+    "Email": "//*[@id='emailDSARElement']",
+    "Request details": "//*[@id='requestDetailsDSARElement']",
+}
+
 
 async def _field_value(field):
     res = await field.execute_script("return this.value;")
@@ -94,6 +117,10 @@ async def submit_request(tab, right, right_label, label, super_scraper):
     await tab.go_to(URL)
     await asyncio.sleep(7)
 
+    if SuperScraper.HEALTH_CHECK:
+        offered = await SuperScraper.read_option_labels(tab, RIGHTS_OPTIONS_CSS)
+        SuperScraper.audit_rights(offered, PAGE_RIGHTS)
+
     if not await _click_listbox_option(tab, right_label):
         print(f"{super_scraper.OOPS} Request type '{right_label}' not found")
         return
@@ -122,6 +149,9 @@ async def submit_request(tab, right, right_label, label, super_scraper):
         await details.type_text(SuperScraper.request_statement([right], broker="Kalibrate"))
 
     time.sleep(0.5)
+    if SuperScraper.HEALTH_CHECK:
+        await SuperScraper.assert_fields_filled(tab, FIELD_XPATHS)
+
     submit_btn = await tab.find(id="dsar-webform-submit-button", raise_exc=False)
     if submit_btn:
         await submit_btn.scroll_into_view()

@@ -41,6 +41,23 @@ RIGHT_MAP = {
 }
 RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
 
+# Every option in the "Request Type" <select>, as displayed -> the Right it maps to.
+PAGE_RIGHTS = {
+    "Do Not Sell My Info": Right.RIGHT_TO_OPT_OUT,
+    "Delete My Info": Right.RIGHT_TO_DELETE,
+    "Request a Copy": Right.RIGHT_TO_ACCESS,
+}
+RIGHTS_OPTIONS_CSS = "#requestType option"
+
+FIELD_XPATHS = {
+    "First name": "//*[@id='firstName']",
+    "Last name": "(//input[@type='text'])[3]",
+    "City": "//*[@id='city']",
+    "State": "//*[@id='states']",
+    "Zip": "//*[@id='zip']",
+    "Age": "//*[@id='age']",
+}
+
 
 def _age_from_dob(dob_str):
     try:
@@ -54,6 +71,10 @@ def _age_from_dob(dob_str):
 async def submit_request(tab, request_type, super_scraper):
     await tab.go_to(URL)
     await asyncio.sleep(5)
+
+    if SuperScraper.HEALTH_CHECK:
+        offered = await SuperScraper.read_option_labels(tab, RIGHTS_OPTIONS_CSS)
+        SuperScraper.audit_rights(offered, PAGE_RIGHTS)
 
     request_select = await tab.find(id="requestType", raise_exc=False)
     if request_select:
@@ -95,6 +116,9 @@ async def submit_request(tab, request_type, super_scraper):
             await email_field.type_text(SuperScraper.EMAIL)
 
     label = request_type.lower().replace(" ", "_")
+
+    if SuperScraper.HEALTH_CHECK:
+        await SuperScraper.assert_fields_filled(tab, FIELD_XPATHS)
 
     await asyncio.sleep(1)
     await SuperScraper.screenshot(tab, f"dry_run_{label}")

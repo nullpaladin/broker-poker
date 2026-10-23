@@ -29,6 +29,7 @@ import asyncio
 import time
 
 from pydoll.browser.chromium import Chrome
+from pydoll.constants import Key
 
 from src.dsar import js_utils
 from src.dsar.rights import Right
@@ -49,6 +50,15 @@ RIGHT_MAP = {
     Right.RIGHT_TO_DELETE: ["Delete My Information"],
 }
 RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
+
+PAGE_RIGHTS = {}  # TODO(health-check): run HEALTH_CHECK once live; it prints the full list
+RIGHTS_OPTIONS_CSS = ".select__option"  # only rendered while the request-type menu is open
+
+FIELD_XPATHS = {
+    "First name": "//input[@id='00000000-0000-0000-0000-000000001002fn']",
+    "Last name": "//input[@id='00000000-0000-0000-0000-000000001002ln']",
+    "Email": "//input[@id='00000000-0000-0000-0000-000000001003']",
+}
 DATA_CATEGORIES = ["Consumer Data", "Professional Contact Data"]
 
 
@@ -97,6 +107,20 @@ async def submit_request(tab, right, entry, super_scraper):
             await el.type_text(value)
 
     await _select_option(tab, RESIDENT_CONTAINER, SuperScraper.STATE)
+    if SuperScraper.HEALTH_CHECK:
+        # Options only populate after "Resident of"; open the menu, read it, close it again.
+        ctrl = await tab.find(
+            xpath=f"//div[@id='{REQUEST_TYPE_CONTAINER}']//div[contains(@class,'select__control')]",
+            raise_exc=False,
+        )
+        if ctrl:
+            await ctrl.click()
+            await asyncio.sleep(1)
+            offered = await SuperScraper.read_option_labels(tab, RIGHTS_OPTIONS_CSS)
+            SuperScraper.audit_rights(offered, PAGE_RIGHTS)
+            await tab.keyboard.press(Key.ESCAPE)
+            await asyncio.sleep(0.5)
+
     await _select_option(tab, REQUEST_TYPE_CONTAINER, entry)
 
     # accuracy attestation checkbox (custom-styled hidden input on TrustArc)
@@ -110,6 +134,9 @@ async def submit_request(tab, right, entry, super_scraper):
                 "this.dispatchEvent(new Event('click',{bubbles:true}));"
                 "this.dispatchEvent(new Event('change',{bubbles:true}));"
             )
+
+    if SuperScraper.HEALTH_CHECK:
+        await SuperScraper.assert_fields_filled(tab, FIELD_XPATHS)
 
     label = entry.lower().replace(" ", "_").replace("/", "_")
     time.sleep(0.5)

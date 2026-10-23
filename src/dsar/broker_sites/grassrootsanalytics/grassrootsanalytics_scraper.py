@@ -31,6 +31,19 @@ RIGHT_MAP = {
 }
 RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
 
+PAGE_RIGHTS = {}  # TODO(health-check): run HEALTH_CHECK once live; it prints the full list
+# (The "Do Not Sell" label is truncated on the live site, so no exact inventory is built.)
+
+FIELD_XPATHS = {
+    "First name": "//*[@name='first-name']",
+    "Last name": "//*[@name='last-name']",
+    "Email": "//*[@name='email']",
+    "Phone": "//*[@name='phone-number']",
+    "Street address": "//*[@name='street-address']",
+    "City": "//*[@name='city']",
+    "State": "//*[@name='state']",
+}
+
 
 async def main():
     super_scraper = SuperScraper()
@@ -66,6 +79,9 @@ async def main():
             if label:
                 await label.click()
                 await asyncio.sleep(0.2)
+
+        if SuperScraper.HEALTH_CHECK:
+            await SuperScraper.assert_fields_filled(tab, FIELD_XPATHS)
 
         if SuperScraper.DRY_RUN:
             print(f"DRY RUN: would submit {[r.name for r in rights]} for {SuperScraper.EMAIL}")

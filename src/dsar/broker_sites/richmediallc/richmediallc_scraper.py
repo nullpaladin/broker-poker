@@ -33,6 +33,26 @@ RIGHT_MAP = {
 }
 RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
 
+# Every option of the "Request Type" radio, as displayed -> the Right it maps to (None = not automated).
+PAGE_RIGHTS = {
+    "Right to know": Right.RIGHT_TO_ACCESS,
+    "Opt out of sale/share": Right.RIGHT_TO_OPT_OUT,
+    "Right to delete": Right.RIGHT_TO_DELETE,
+    "Limit use of sensitive personal information": None,
+    "Correct inaccurate personal information": None,
+}
+RIGHTS_OPTIONS_CSS = "label:has(input[name='requestType'])"
+
+FIELD_XPATHS = {
+    "First name": "//*[@id='firstName']",
+    "Last name": "//*[@id='lastName']",
+    "Email": "//*[@id='email']",
+    "Postal address": "//*[@id='postalAddress']",
+    "City": "//*[@id='city']",
+    "Zip": "//*[@id='zipCode']",
+    "State": "//*[@id='state']",
+}
+
 RIGHT_LABELS = {
     "opt_out_sale_share": "Opt out of sale/share",
     "access_request": "Right to know",
@@ -43,6 +63,10 @@ RIGHT_LABELS = {
 async def submit_request(tab, right, super_scraper):
     await tab.go_to(URL)
     await asyncio.sleep(5)
+
+    if SuperScraper.HEALTH_CHECK:
+        offered = await SuperScraper.read_option_labels(tab, RIGHTS_OPTIONS_CSS)
+        SuperScraper.audit_rights(offered, PAGE_RIGHTS)
 
     fields = {
         "firstName": SuperScraper.FIRST_NAME,
@@ -73,6 +97,9 @@ async def submit_request(tab, right, super_scraper):
         await radio.click()
     else:
         print(f"{super_scraper.OOPS} request type '{right}' not found")
+
+    if SuperScraper.HEALTH_CHECK:
+        await SuperScraper.assert_fields_filled(tab, FIELD_XPATHS)
 
     await asyncio.sleep(1)
     await SuperScraper.screenshot(tab, f"dry_run_{right}")

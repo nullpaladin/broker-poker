@@ -31,10 +31,22 @@ RIGHT_MAP = {
 }
 RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
 
+PAGE_RIGHTS = {}  # TODO(health-check): run HEALTH_CHECK once live; it prints the full list
+RIGHTS_OPTIONS_CSS = "li:has(input[name='input_3']) label"  # "I wish to:" radio labels
+
+FIELD_XPATHS = {
+    "Email": "//*[@id='input_5_4']",
+    "Type of ID": "//*[@id='input_5_7']",
+}
+
 
 async def submit_request(tab, right, radio_value, super_scraper):
     await tab.go_to(URL)
     await asyncio.sleep(4)
+
+    if SuperScraper.HEALTH_CHECK:
+        offered = await SuperScraper.read_option_labels(tab, RIGHTS_OPTIONS_CSS)
+        SuperScraper.audit_rights(offered, PAGE_RIGHTS)
 
     radio = await tab.find(xpath=f"//input[@name='input_3' and @value=\"{radio_value}\"]", raise_exc=False)
     if radio:
@@ -56,6 +68,9 @@ async def submit_request(tab, right, radio_value, super_scraper):
     no_agent = await tab.find(xpath="//input[@name='input_9.1']", raise_exc=False)
     if no_agent:
         await no_agent.click()
+
+    if SuperScraper.HEALTH_CHECK:
+        await SuperScraper.assert_fields_filled(tab, FIELD_XPATHS)
 
     if SuperScraper.DRY_RUN:
         await asyncio.sleep(1)

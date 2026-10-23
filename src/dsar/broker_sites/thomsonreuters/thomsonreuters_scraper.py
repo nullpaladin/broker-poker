@@ -58,6 +58,16 @@ RIGHT_MAP = {
     Right.RIGHT_TO_DELETE: ["Delete my PI"],
 }
 RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
+
+PAGE_RIGHTS = {}  # TODO(health-check): run HEALTH_CHECK once live; it prints the full list
+# (The request-type toggles are listed without a Correct / Expunge label; the fields below are common to every type.)
+
+FIELD_XPATHS = {
+    "State of residency": "//*[@id='formField36DSARElement']",
+    "First name": "//*[@id='firstNameDSARElement']",
+    "Last name": "//*[@id='lastNameDSARElement']",
+    "Contact email": "//*[@id='emailDSARElement']",
+}
 MARKETING_OPT_OUT_TYPE = "Opt Out of Marketing Communications"
 ACCESS_REQUEST_TYPE = "Data Access Request"
 
@@ -149,6 +159,9 @@ async def submit_request(tab, request_type, super_scraper):
                 await requestor_phone_field.type_text(digits_only)
             elif not requestor_phone_field:
                 print(f"{super_scraper.OOPS} Requestor Phone Number field not found")
+
+    if SuperScraper.HEALTH_CHECK:
+        await SuperScraper.assert_fields_filled(tab, FIELD_XPATHS)
 
     label = "".join(c if c.isalnum() else "_" for c in request_type.lower())[:40].strip("_")
     await asyncio.sleep(1)

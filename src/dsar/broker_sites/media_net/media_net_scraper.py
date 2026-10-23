@@ -67,6 +67,19 @@ RIGHT_MAP = {
 }
 RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
 
+PAGE_RIGHTS = {}  # TODO(health-check): run HEALTH_CHECK once live; it prints the full list
+# (Only three request types are recorded; the targeted-advertising / profiling / rectify / copy / appeal labels are not.)
+RIGHTS_OPTIONS_CSS = "label.radio-btn"  # also matches the "I am a (an)" radios
+
+FIELD_XPATHS = {
+    "Country": f"//*[@id='{COUNTRY_INPUT}']",
+    "State": f"//*[@id='{STATE_INPUT}']",
+    "First name": f"//*[@id='{FIRST_NAME_INPUT}']",
+    "Last name": f"//*[@id='{LAST_NAME_INPUT}']",
+    "Email": f"//*[@id='{EMAIL_INPUT}']",
+    "Request details": f"//*[@id='{DETAILS_INPUT}']",
+}
+
 
 async def _click_li(tab, value):
     li = await tab.find(xpath=f"//li[normalize-space()={value!r}]", raise_exc=False)
@@ -122,6 +135,10 @@ async def submit_request(tab, right, request_type, super_scraper):
     if not await _click_label(tab, "Consumer"):
         print(f"{super_scraper.OOPS} 'Consumer' option not found for '{request_type}'")
     await asyncio.sleep(1)
+    if SuperScraper.HEALTH_CHECK:
+        offered = await SuperScraper.read_option_labels(tab, RIGHTS_OPTIONS_CSS)
+        SuperScraper.audit_rights(offered, PAGE_RIGHTS)
+
     if not await _click_label(tab, request_type):
         print(f"{super_scraper.OOPS} Request type '{request_type}' not found")
     await asyncio.sleep(2)
@@ -131,6 +148,9 @@ async def submit_request(tab, right, request_type, super_scraper):
     await _type_input(tab, EMAIL_INPUT, SuperScraper.EMAIL)
     # "website" is a honeypot — leave blank.
     await _type_input(tab, DETAILS_INPUT, SuperScraper.request_statement([right], broker="Media.net"))
+
+    if SuperScraper.HEALTH_CHECK:
+        await SuperScraper.assert_fields_filled(tab, FIELD_XPATHS)
 
     await asyncio.sleep(1)
     await SuperScraper.screenshot(tab, f"dry_run_{right.value}")

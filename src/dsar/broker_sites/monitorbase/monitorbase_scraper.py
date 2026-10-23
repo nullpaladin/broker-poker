@@ -36,10 +36,34 @@ RIGHT_MAP = {
 }
 RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
 
+# Every option in the "Request Type" <select>, as displayed -> the Right it maps to.
+PAGE_RIGHTS = {
+    "What Information of Mine Do You Have?": Right.RIGHT_TO_ACCESS,
+    "Opt Me Out Of Having My Data Sold": Right.RIGHT_TO_OPT_OUT,
+    "Delete My Information": Right.RIGHT_TO_DELETE,
+}
+RIGHTS_OPTIONS_CSS = "select#type option"  # a placeholder option, if any, is unrecorded
+
+FIELD_XPATHS = {
+    "First name": "//*[@id='first_name']",
+    "Last name": "//*[@id='last_name']",
+    "Email": "//*[@id='email']",
+    "Phone": "//*[@id='phone_number']",
+    "Address": "//*[@id='address']",
+    "City": "//*[@id='city']",
+    "State": "//*[@id='state']",
+    "Zip": "//*[@id='zip']",
+    "Request type": "//*[@id='type']",
+}
+
 
 async def submit_request(tab, right, option_text, super_scraper):
     await tab.go_to(URL)
     await asyncio.sleep(5)
+
+    if SuperScraper.HEALTH_CHECK:
+        offered = await SuperScraper.read_option_labels(tab, RIGHTS_OPTIONS_CSS)
+        SuperScraper.audit_rights(offered, PAGE_RIGHTS)
 
     fields = {
         "//input[@id='first_name']": SuperScraper.FIRST_NAME,
@@ -61,6 +85,9 @@ async def submit_request(tab, right, option_text, super_scraper):
     agreement = await tab.find(id="agreement", raise_exc=False)
     if agreement:
         await js_utils.js_check(agreement)
+
+    if SuperScraper.HEALTH_CHECK:
+        await SuperScraper.assert_fields_filled(tab, FIELD_XPATHS)
 
     time.sleep(0.5)
     await SuperScraper.screenshot(tab, f"dry_run_{right.value}")

@@ -40,6 +40,21 @@ RIGHT_MAP = {
 }
 RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
 
+PAGE_RIGHTS = {}  # TODO(health-check): run HEALTH_CHECK once live; it prints the full list
+# (The request-type options live in a multi-select dropdown; only three are recorded.)
+
+FIELD_XPATHS = {
+    "First name": "//*[@id='firstNameDSARElement']",
+    "Last name": "//*[@id='lastNameDSARElement']",
+    "Country": "//*[@id='countryDSARElement']",
+    "Address": "//*[@id='addressDSARElement']",
+    "City": "//*[@id='cityDSARElement']",
+    "State": "//*[@id='stateDSARElement']",
+    "Zip": "//*[@id='zipDSARElement']",
+    "Email": "//*[@id='emailDSARElement']",
+    "Phone": "//*[@id='phoneNumberDSARElement']",
+}
+
 _CLICK_VT_OPTION_JS = """
 (function(text) {
     var opts = document.querySelectorAll('vt-option');
@@ -193,6 +208,9 @@ async def main():
             await _pick_visible_role_option(tab, "deleteRequestConfirmationDSARElement", "Yes")
 
         await asyncio.sleep(0.5)
+
+        if SuperScraper.HEALTH_CHECK:
+            await SuperScraper.assert_fields_filled(tab, FIELD_XPATHS)
 
         if SuperScraper.DRY_RUN:
             # Screenshot top of form first, then scroll to submit

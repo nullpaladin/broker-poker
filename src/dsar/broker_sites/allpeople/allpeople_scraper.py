@@ -23,6 +23,10 @@ RIGHT_MAP = {
 }
 RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
 
+PAGE_RIGHTS = {}  # TODO(health-check): run HEALTH_CHECK once live; it prints the full list
+
+EMAIL_XPATH = "//*[@id='email']"
+
 
 async def main():
     super_scraper = SuperScraper()
@@ -50,6 +54,9 @@ async def main():
             "cb.checked = true;"
             "cb.dispatchEvent(new Event('change', {bubbles: true}));"
         )
+
+        if SuperScraper.HEALTH_CHECK:
+            await SuperScraper.assert_fields_filled(tab, {"Email": EMAIL_XPATH})
 
         if SuperScraper.DRY_RUN:
             print(

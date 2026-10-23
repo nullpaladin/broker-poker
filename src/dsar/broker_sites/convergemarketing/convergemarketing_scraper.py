@@ -39,6 +39,20 @@ RIGHT_MAP = {
 }
 RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
 
+# Every request card title, as displayed -> the Right it maps to (None = not automated).
+PAGE_RIGHTS = {
+    CARD_SUMMARIZE: Right.RIGHT_TO_ACCESS,
+    CARD_TRANSFER: Right.RIGHT_TO_ACCESS,
+    CARD_DO_NOT_SELL: Right.RIGHT_TO_OPT_OUT,
+    CARD_NO_ADS: Right.RIGHT_TO_OPT_OUT,
+    CARD_NO_PROFILING: Right.RIGHT_TO_OPT_OUT,
+    CARD_THIRD_PARTIES: Right.RIGHT_TO_LIST_OF_THIRD_PARTIES,
+    CARD_DELETE: Right.RIGHT_TO_DELETE,
+    "Correct my personal information": None,
+    "Other": None,
+}
+RIGHTS_OPTIONS_CSS = "h4[data-testid='card-title']"
+
 FIELDS = {
     "given-name": "FIRST_NAME",
     "family-name": "LAST_NAME",
@@ -50,6 +64,10 @@ FIELDS = {
 async def submit_request(tab, right, card_text, super_scraper):
     await tab.go_to(URL)
     await asyncio.sleep(5)
+
+    if SuperScraper.HEALTH_CHECK:
+        offered = await SuperScraper.read_option_labels(tab, RIGHTS_OPTIONS_CSS)
+        SuperScraper.audit_rights(offered, PAGE_RIGHTS)
 
     card = await tab.find(
         xpath=f"//h4[@data-testid='card-title' and normalize-space()={card_text!r}]", raise_exc=False
@@ -68,6 +86,9 @@ async def submit_request(tab, right, card_text, super_scraper):
         if field:
             await field.type_text(value)
             await asyncio.sleep(0.2)
+
+    if SuperScraper.HEALTH_CHECK:
+        await SuperScraper.assert_fields_filled(tab, {name: f"//*[@name='{name}']" for name in FIELDS})
 
     # NOTE: name="representative-type" is the "I am submitting this request on
     # behalf of someone other than myself." CHECKBOX — left UNCHECKED (default)

@@ -46,6 +46,20 @@ RIGHT_MAP = {
 }
 RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
 
+PAGE_RIGHTS = {}  # TODO(health-check): run HEALTH_CHECK once live; it prints the full list
+
+FIELD_XPATHS = {
+    "First name": "//*[@id='input_5_12_3']",
+    "Last name": "//*[@id='input_5_12_6']",
+    "Street": "//*[@id='input_5_13_1']",
+    "City": "//*[@id='input_5_13_3']",
+    "State": "//*[@id='input_5_13_4']",
+    "Zip": "//*[@id='input_5_13_5']",
+    "Email": "//*[@id='input_5_14']",
+    "Confirm email": "//*[@id='input_5_8']",
+    "Phone": "//*[@id='input_5_15']",
+}
+
 
 async def main():
     super_scraper = SuperScraper()
@@ -109,6 +123,9 @@ async def main():
             await js_utils.js_check(cert)
         else:
             print(f"{super_scraper.OOPS} certification checkbox not found")
+
+        if SuperScraper.HEALTH_CHECK:
+            await SuperScraper.assert_fields_filled(tab, FIELD_XPATHS)
 
         await asyncio.sleep(1)
         await SuperScraper.screenshot(tab, "dry_run")

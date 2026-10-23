@@ -37,6 +37,19 @@ RIGHT_MAP = {
 }
 RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
 
+PAGE_RIGHTS = {}  # TODO(health-check): run HEALTH_CHECK once live; it prints the full list
+# (The three checkbox labels are recorded only as field names, not as displayed text.)
+
+FIELD_XPATHS = {
+    "Full name": "//*[@name='full_name']",
+    "Email": "//*[@name='email']",
+    "Address": "//*[@name='address']",
+    "City": "//*[@name='city']",
+    "State": "//*[@name='state']",
+    "Zip": "//*[@name='zip']",
+    "Arithmetic answer": "//input[@placeholder='Your answer']",
+}
+
 
 async def main():
     super_scraper = SuperScraper()
@@ -91,6 +104,9 @@ async def main():
                 print(f"{super_scraper.OOPS} math-captcha answer field not found")
         else:
             print(f"{super_scraper.OOPS} math-captcha question not found/parseable")
+
+        if SuperScraper.HEALTH_CHECK:
+            await SuperScraper.assert_fields_filled(tab, FIELD_XPATHS)
 
         await asyncio.sleep(1)
         await SuperScraper.screenshot(tab, "dry_run_" + "_".join(r.value for r in rights))

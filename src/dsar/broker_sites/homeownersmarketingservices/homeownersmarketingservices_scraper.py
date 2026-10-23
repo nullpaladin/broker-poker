@@ -25,6 +25,14 @@ URL = "https://homeownersmarketingservices.com/list-removal-request-new/"
 RIGHT_MAP = {Right.RIGHT_TO_OPT_OUT: "list removal"}
 RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
 
+PAGE_RIGHTS = {}  # TODO(health-check): run HEALTH_CHECK once live; it prints the full list
+
+FIELD_XPATHS = {
+    "Name": "//*[@id='form-field-name']",
+    "Email": "//*[@id='form-field-email']",
+    "Home address": "//*[@id='form-field-field_6d53f74']",
+}
+
 
 async def main():
     super_scraper = SuperScraper()
@@ -58,6 +66,9 @@ async def main():
                 await asyncio.sleep(0.2)
             else:
                 print(f"{super_scraper.OOPS} field '{field_id}' not found")
+
+        if SuperScraper.HEALTH_CHECK:
+            await SuperScraper.assert_fields_filled(tab, FIELD_XPATHS)
 
         await asyncio.sleep(1)
         await SuperScraper.screenshot(tab, "dry_run")

@@ -66,6 +66,28 @@ RIGHT_MAP = {
 }
 RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
 
+PAGE_RIGHTS = {}  # TODO(health-check): run HEALTH_CHECK once live; it prints the full list
+# (The "Request Type" options are recorded by value only; the removal flow is a separate page.)
+
+ADC_FIELD_XPATHS = {
+    "Request type": "//*[@id='adc-request-type']",
+    "Company interactions": "//*[@id='adc-company-interactions']",
+    "First name": "//*[@id='adc-firstname']",
+    "Last name": "//*[@id='adc-lastname']",
+    "Email": "//*[@id='adc-email']",
+    "Street address": "//*[@id='adc-streetaddress']",
+    "City": "//*[@id='adc-city']",
+    "Zip": "//*[@id='adc-zipcode']",
+    "I am": "//*[@id='adc-user-type']",
+    "State": "//*[@id='adc-state']",
+}
+REMOVAL_FIELD_XPATHS = {
+    "I am": "//*[@id='user-type']",
+    "First name": "//*[@id='subject-firstname']",
+    "Last name": "//*[@id='subject-lastname']",
+    "Email": "//*[@id='subject-email']",
+}
+
 
 async def submit_request(tab, request_type, super_scraper):
     await tab.go_to(PRIVACY_RIGHTS_URL)
@@ -143,6 +165,9 @@ async def submit_request(tab, request_type, super_scraper):
     else:
         print(f"{super_scraper.OOPS} State select not found")
 
+    if SuperScraper.HEALTH_CHECK:
+        await SuperScraper.assert_fields_filled(tab, ADC_FIELD_XPATHS)
+
     label = "".join(c if c.isalnum() else "_" for c in request_type.lower())[:40].strip("_")
     await asyncio.sleep(1)
     await SuperScraper.screenshot(tab, f"dry_run_{label}")
@@ -179,6 +204,9 @@ async def submit_removal_step1(tab, super_scraper):
         await agreement_checkbox.click()
     else:
         print(f"{super_scraper.OOPS} agreement checkbox not found")
+
+    if SuperScraper.HEALTH_CHECK:
+        await SuperScraper.assert_fields_filled(tab, REMOVAL_FIELD_XPATHS)
 
     await asyncio.sleep(1)
     await SuperScraper.screenshot(tab, "dry_run_removal_step1")

@@ -31,6 +31,8 @@ REQUEST_TYPE_XPATH = '//ta-select[@formcontrolname="requestType"]'
 COUNTRY_XPATH = '//ta-select[@formcontrolname="country"]'
 EMAIL_XPATH = '//ta-input[@formcontrolname="email"]//input'
 
+PAGE_RIGHTS = {}  # TODO(health-check): run HEALTH_CHECK once live; it prints the full list
+
 
 async def submit_request(tab, super_scraper, right, request_type: str):
     await tab.go_to(URL)
@@ -51,6 +53,9 @@ async def submit_request(tab, super_scraper, right, request_type: str):
     )
 
     await super_scraper.input_text_field(tab=tab, xpath=EMAIL_XPATH, text=SuperScraper.EMAIL)
+
+    if SuperScraper.HEALTH_CHECK:
+        await SuperScraper.assert_fields_filled(tab, {"Email": EMAIL_XPATH})
 
     if SuperScraper.DRY_RUN:
         await SuperScraper.screenshot(tab, f"dry_run_{right.value}")

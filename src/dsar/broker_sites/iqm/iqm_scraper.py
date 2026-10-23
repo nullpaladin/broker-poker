@@ -29,6 +29,16 @@ RIGHT_MAP = {
 }
 RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
 
+PAGE_RIGHTS = {}  # TODO(health-check): run HEALTH_CHECK once live; it prints the full list
+
+FIELD_XPATHS = {
+    "Country": "//*[@id='countryDSARElement']",
+    "State": "//*[@id='stateDSARElement']",
+    "First name": "//*[@id='firstNameDSARElement']",
+    "Last name": "//*[@id='lastNameDSARElement']",
+    "Email": "//*[@id='emailDSARElement']",
+}
+
 
 async def _combo(tab, super_scraper, field_id, value):
     field = await tab.find(id=field_id, raise_exc=False)
@@ -103,6 +113,9 @@ async def submit_request(tab, right_label, tag, super_scraper):
             await asyncio.sleep(0.2)
         else:
             print(f"{super_scraper.OOPS} field '{field_id}' not found")
+
+    if SuperScraper.HEALTH_CHECK:
+        await SuperScraper.assert_fields_filled(tab, FIELD_XPATHS)
 
     await asyncio.sleep(1)
     await SuperScraper.screenshot(tab, f"dry_run_{tag}")

@@ -34,6 +34,26 @@ RIGHT_MAP = {
 }
 RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
 
+# Every option in the "checkbox-datatypes[]" group, as displayed -> the Right it maps to.
+PAGE_RIGHTS = {
+    "Data Access": Right.RIGHT_TO_ACCESS,
+    "Right to Know": Right.RIGHT_TO_ACCESS,
+    "Do Not Sell My Information": Right.RIGHT_TO_OPT_OUT,
+    "Data Deletion": Right.RIGHT_TO_DELETE,
+}
+RIGHTS_OPTIONS_CSS = ".wpcf7-list-item:has(input[name='checkbox-datatypes[]'])"  # Contact Form 7 checkbox items
+
+FIELD_XPATHS = {
+    "First name": "//*[@name='fname']",
+    "Last name": "//*[@name='lname']",
+    "Property address": "//*[@name='proaddress']",
+    "City": "//*[@name='cityname']",
+    "Zip": "//*[@name='zipaddress']",
+    "Email": "//*[@name='email']",
+    "Phone": "//*[@name='phone-number']",
+    "State": "//*[@name='states-list']",
+}
+
 
 async def main():
     super_scraper = SuperScraper()
@@ -49,6 +69,10 @@ async def main():
         tab = await browser.start()
         await tab.go_to(URL)
         await asyncio.sleep(5)
+
+        if SuperScraper.HEALTH_CHECK:
+            offered = await SuperScraper.read_option_labels(tab, RIGHTS_OPTIONS_CSS)
+            SuperScraper.audit_rights(offered, PAGE_RIGHTS)
 
         values = [v for right in rights for v in RIGHT_MAP[right]]
         for value in values:
@@ -76,6 +100,9 @@ async def main():
         if state_select:
             abbr = SuperScraper.STATE_ABBREVIATED
             await js_utils.select_native_option(state_select, value=abbr, dispatch=("change",))
+
+        if SuperScraper.HEALTH_CHECK:
+            await SuperScraper.assert_fields_filled(tab, FIELD_XPATHS)
 
         time.sleep(0.5)
         await SuperScraper.screenshot(tab, "dry_run_" + "_".join(r.value for r in rights))

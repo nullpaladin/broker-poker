@@ -41,6 +41,16 @@ RIGHT_MAP = {
 }
 RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
 
+PAGE_RIGHTS = {}  # TODO(health-check): run HEALTH_CHECK once live; it prints the full list
+# (One page per ?id= value; each form's heading text is unrecorded.)
+
+FIELD_XPATHS = {
+    "First name": "//*[@id='first-name']",
+    "Last name": "//*[@id='last-name']",
+    "Email": "//*[@id='email']",
+    "State": "//*[@id='ccpa_state']",
+}
+
 
 async def submit_request(tab, mode, label, super_scraper):
     await tab.go_to(BASE + mode)
@@ -76,6 +86,9 @@ async def submit_request(tab, mode, label, super_scraper):
     consent = await tab.find(id="consent-checkbox", raise_exc=False)
     if consent:
         await js_utils.js_check(consent)
+
+    if SuperScraper.HEALTH_CHECK:
+        await SuperScraper.assert_fields_filled(tab, FIELD_XPATHS)
 
     time.sleep(0.5)
     await SuperScraper.screenshot(tab, f"dry_run_{label}")

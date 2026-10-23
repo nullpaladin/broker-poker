@@ -40,6 +40,19 @@ URL = "https://www.pacificeast.com/contact-us-privacy/"
 RIGHT_MAP = {Right.RIGHT_TO_OPT_OUT: "opt-out"}
 RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
 
+PAGE_RIGHTS = {}  # TODO(health-check): run HEALTH_CHECK once live; it prints the full list
+
+FIELD_XPATHS = {
+    "First name": "//input[@name='item_meta[95]']",
+    "Last name": "//input[@name='item_meta[96]']",
+    "Phone": "//input[@name='item_meta[97]']",
+    "Email": "//input[@name='item_meta[98]']",
+    "Street": "//input[@name='item_meta[99][line1]']",
+    "City": "//input[@name='item_meta[99][city]']",
+    "State": "//input[@name='item_meta[99][state]']",
+    "Zip": "//input[@name='item_meta[99][zip]']",
+}
+
 
 async def main():
     super_scraper = SuperScraper()
@@ -82,6 +95,9 @@ async def main():
             await identity_checkbox.click()
         else:
             print(f"{super_scraper.OOPS} Identity & Authorization Confirmation checkbox not found")
+
+        if SuperScraper.HEALTH_CHECK:
+            await SuperScraper.assert_fields_filled(tab, FIELD_XPATHS)
 
         await asyncio.sleep(1)
         await SuperScraper.screenshot(tab, "dry_run_opt_out")

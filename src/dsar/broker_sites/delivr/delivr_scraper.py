@@ -29,6 +29,15 @@ RIGHT_MAP = {
 }
 RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
 
+PAGE_RIGHTS = {}  # TODO(health-check): run HEALTH_CHECK once live; it prints the full list
+RIGHTS_OPTIONS_CSS = "label:has(input[name='requestType'])"  # request-type radios in the modal
+
+FIELD_XPATHS = {
+    "Email": "//*[@id='dsr-email']",
+    "First name": "//*[@id='dsr-first']",
+    "Last name": "//*[@id='dsr-last']",
+}
+
 
 async def submit_request(tab, right, request_type, super_scraper):
     await tab.go_to(URL)
@@ -40,6 +49,10 @@ async def submit_request(tab, right, request_type, super_scraper):
         return
     await open_btn.click()
     await asyncio.sleep(1.5)
+
+    if SuperScraper.HEALTH_CHECK:
+        offered = await SuperScraper.read_option_labels(tab, RIGHTS_OPTIONS_CSS)
+        SuperScraper.audit_rights(offered, PAGE_RIGHTS)
 
     radio_label = await tab.find(
         xpath=f"//input[@name='requestType' and @value='{request_type}']/ancestor::label",
@@ -59,6 +72,9 @@ async def submit_request(tab, right, request_type, super_scraper):
         await first_field.type_text(SuperScraper.FIRST_NAME)
     if last_field:
         await last_field.type_text(SuperScraper.LAST_NAME)
+
+    if SuperScraper.HEALTH_CHECK:
+        await SuperScraper.assert_fields_filled(tab, FIELD_XPATHS)
 
     if SuperScraper.DRY_RUN:
         await asyncio.sleep(1)

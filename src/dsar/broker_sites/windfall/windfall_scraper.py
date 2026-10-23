@@ -57,6 +57,27 @@ RIGHT_MAP = {
 }
 RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
 
+# Every request card title, as displayed -> the Right it maps to (None = not automated).
+PAGE_RIGHTS = {
+    "Access Request": Right.RIGHT_TO_ACCESS,
+    "Do Not Sell or Share to a Third Party": Right.RIGHT_TO_OPT_OUT,
+    "Don't use my personal information for advertising": Right.RIGHT_TO_OPT_OUT,
+    "Third parties your data was sold or shared with": Right.RIGHT_TO_LIST_OF_THIRD_PARTIES,
+    "Delete my personal information": Right.RIGHT_TO_DELETE,
+    "Correct my personal information": None,
+    "Other": None,
+}
+RIGHTS_OPTIONS_CSS = "h4[data-testid='card-title']"
+
+FIELD_XPATHS = {
+    "First name": "//*[@name='given-name']",
+    "Last name": "//*[@name='family-name']",
+    "Email": "//*[@name='email']",
+    "City": "//*[@name='o-city']",
+    "State": "//*[@name='o-state']",
+    "Zipcode": "//*[@name='o-zipcode']",
+}
+
 
 def _split_address(address):
     parts = address.split()
@@ -71,6 +92,10 @@ def _split_address(address):
 async def submit_request(tab, right, card_text, super_scraper):
     await tab.go_to(URL)
     await asyncio.sleep(5)
+
+    if SuperScraper.HEALTH_CHECK:
+        offered = await SuperScraper.read_option_labels(tab, RIGHTS_OPTIONS_CSS)
+        SuperScraper.audit_rights(offered, PAGE_RIGHTS)
 
     card = await tab.find(
         xpath=f"//h4[@data-testid='card-title' and normalize-space()={card_text!r}]", raise_exc=False
@@ -103,6 +128,9 @@ async def submit_request(tab, right, card_text, super_scraper):
             await asyncio.sleep(0.2)
         else:
             print(f"{super_scraper.OOPS} field '{name}' not found")
+
+    if SuperScraper.HEALTH_CHECK:
+        await SuperScraper.assert_fields_filled(tab, FIELD_XPATHS)
 
     label_suffix = (
         " (Proof of Identity file upload not automated — attach manually before submitting)"

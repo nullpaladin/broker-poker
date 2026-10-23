@@ -38,6 +38,19 @@ RIGHT_MAP = {
 }
 RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
 
+PAGE_RIGHTS = {}  # TODO(health-check): run HEALTH_CHECK once live; it prints the full list
+RIGHTS_OPTIONS_CSS = "label:has(input[type='radio'])"  # request-type radios, revealed once a country is chosen
+
+FIELD_XPATHS = {
+    "First name": "//*[@name='first']",
+    "Last name": "//*[@name='last']",
+    "Email": "//*[@name='email']",
+    "Address": "//*[@name='address']",
+    "City": "//*[@name='city']",
+    "Zip": "//*[@name='zip']",
+    "State": "//select[@name='state']",
+}
+
 
 async def submit_request(tab, right, radio_value, label, super_scraper):
     await tab.go_to(URL)
@@ -56,6 +69,10 @@ async def submit_request(tab, right, radio_value, label, super_scraper):
     if accept_btn:
         await accept_btn.click()
         await asyncio.sleep(1)
+
+    if SuperScraper.HEALTH_CHECK:
+        offered = await SuperScraper.read_option_labels(tab, RIGHTS_OPTIONS_CSS)
+        SuperScraper.audit_rights(offered, PAGE_RIGHTS)
 
     # Select request type by clicking its label (radio is opacity:0)
     radio = await tab.find(tag_name="input", value=radio_value, raise_exc=False)
@@ -111,6 +128,9 @@ async def submit_request(tab, right, radio_value, label, super_scraper):
             print(f"{super_scraper.OOPS} State '{state_abbrev}' not in dropdown")
 
     time.sleep(0.5)
+
+    if SuperScraper.HEALTH_CHECK:
+        await SuperScraper.assert_fields_filled(tab, FIELD_XPATHS)
 
     if SuperScraper.DRY_RUN:
         print(

@@ -46,6 +46,17 @@ RIGHT_MAP = {
 }
 RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
 
+PAGE_RIGHTS = {}  # TODO(health-check): run HEALTH_CHECK once live; it prints the full list
+# (Only some of the request-type options are recorded, so no inventory is built.)
+
+FIELD_XPATHS = {
+    "First name": "//*[@aria-label='First Name']",
+    "Last name": "//*[@aria-label='Last Name']",
+    "Email": "//*[@id='emailDSARElement']",
+    "Phone": "//*[@id='formField82DSARElement']",
+    "Request details": "//*[@id='requestDetailsDSARElement']",
+}
+
 
 async def _autocomplete_select(tab, field_id, search, option_text):
     field = await tab.find(id=field_id, raise_exc=False)
@@ -107,6 +118,9 @@ async def _submit_request(tab, right, req_type, label, super_scraper):
     if details_field:
         await details_field.type_text(SuperScraper.request_statement([right], broker="ICE Data Services"))
     time.sleep(0.3)
+
+    if SuperScraper.HEALTH_CHECK:
+        await SuperScraper.assert_fields_filled(tab, FIELD_XPATHS)
 
     if SuperScraper.DRY_RUN:
         print(

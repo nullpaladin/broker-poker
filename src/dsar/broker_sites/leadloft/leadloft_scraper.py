@@ -43,10 +43,25 @@ RIGHT_MAP = {
 }
 RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
 
+PAGE_RIGHTS = {}  # TODO(health-check): run HEALTH_CHECK once live; it prints the full list
+RIGHTS_OPTIONS_CSS = "#Request-2 option"  # may include a placeholder option; the first live run shows it
+
+FIELD_XPATHS = {
+    "First name": "//*[@id='First-Name-2']",
+    "Last name": "//*[@id='Last-Name-2']",
+    "Email": "//*[@id='HoneyPot']",
+    "Request": "//*[@id='Request-2']",
+    "Additional information": "//*[@id='field-2']",
+}
+
 
 async def submit_request(tab, right, request_type, super_scraper):
     await tab.go_to(URL)
     await asyncio.sleep(5)
+
+    if SuperScraper.HEALTH_CHECK:
+        offered = await SuperScraper.read_option_labels(tab, RIGHTS_OPTIONS_CSS)
+        SuperScraper.audit_rights(offered, PAGE_RIGHTS)
 
     first_field = await tab.find(id="First-Name-2", raise_exc=False)
     if first_field:
@@ -75,6 +90,9 @@ async def submit_request(tab, right, request_type, super_scraper):
         await details_field.type_text(SuperScraper.request_statement([right], broker="LeadLoft"))
 
     label = request_type.lower().replace(" ", "_")
+
+    if SuperScraper.HEALTH_CHECK:
+        await SuperScraper.assert_fields_filled(tab, FIELD_XPATHS)
 
     if SuperScraper.DRY_RUN:
         print(f"DRY RUN: would submit '{right.name}' ({request_type}) for {SuperScraper.EMAIL}")

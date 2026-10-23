@@ -41,6 +41,19 @@ RIGHT_MAP = {
 }
 RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
 
+PAGE_RIGHTS = {}  # TODO(health-check): run HEALTH_CHECK once live; it prints the full list
+# (Recorded request types are aria-labels; the visible text may differ, so they are not copied in.)
+
+FIELD_XPATHS = {
+    "First name": "//*[@id='firstNameDSARElement']",
+    "Last name": "//*[@id='lastNameDSARElement']",
+    "Email": "//*[@id='emailDSARElement']",
+    "Country": "//*[@id='countryDSARElement']",
+    "State": "//*[@id='stateDSARElement']",
+    "City": "//*[@id='cityDSARElement']",
+    "Zip": "//*[@id='zipDSARElement']",
+}
+
 
 async def fill_and_submit(tab, right, request_type_label, additional_info, super_scraper):
     await tab.go_to(URL)
@@ -130,6 +143,9 @@ async def fill_and_submit(tab, right, request_type_label, additional_info, super
             additional = await tab.find(**{"aria-label": ADDITIONAL_INFO_LABEL}, raise_exc=False)
             if additional:
                 await additional.type_text(additional_info)
+
+    if SuperScraper.HEALTH_CHECK:
+        await SuperScraper.assert_fields_filled(tab, FIELD_XPATHS)
 
     if SuperScraper.DRY_RUN:
         print(f"DRY RUN: would submit '{right.name}' for {SuperScraper.EMAIL}")

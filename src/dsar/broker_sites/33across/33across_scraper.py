@@ -27,12 +27,25 @@ RIGHT_MAP = {
 }
 RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
 
+# Every option in the #request_type <select>, as displayed -> the Right it maps to.
+PAGE_RIGHTS = {
+    "Right to Access": Right.RIGHT_TO_ACCESS,
+    "Do Not Sell / Share": Right.RIGHT_TO_OPT_OUT,
+    "Right to Delete": Right.RIGHT_TO_DELETE,
+}
+RIGHTS_OPTIONS_CSS = "#request_type option"
+
 EMAIL_XPATH = '//input[@id="email"]'
+REQUEST_TYPE_XPATH = '//select[@id="request_type"]'
 
 
 async def submit_request(tab, right, request_type, label, super_scraper):
     await tab.go_to(BASE_URL.format(request_type))
     time.sleep(3)
+
+    if SuperScraper.HEALTH_CHECK:
+        offered = await SuperScraper.read_option_labels(tab, RIGHTS_OPTIONS_CSS)
+        SuperScraper.audit_rights(offered, PAGE_RIGHTS)
 
     # Page JS (selectedType) pre-selects the right option from the URL param; set it explicitly too.
     await tab.execute_script(
@@ -48,7 +61,7 @@ async def submit_request(tab, right, request_type, label, super_scraper):
     time.sleep(0.5)
 
     if SuperScraper.HEALTH_CHECK:
-        await SuperScraper.assert_fields_filled(tab, {"Email": EMAIL_XPATH})
+        await SuperScraper.assert_fields_filled(tab, {"Request type": REQUEST_TYPE_XPATH, "Email": EMAIL_XPATH})
 
     if SuperScraper.DRY_RUN:
         await SuperScraper.screenshot(tab, f"dry_run_{right.value}")

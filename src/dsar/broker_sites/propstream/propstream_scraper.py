@@ -42,6 +42,23 @@ RIGHT_MAP = {
 }
 RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
 
+# Every option in the "Select Right to Exercise" group, as displayed -> the Right it maps to (None = not automated).
+PAGE_RIGHTS = {
+    "Request a copy of my personal information": Right.RIGHT_TO_ACCESS,
+    "Request to know about categories of information maintained by PropStream": Right.RIGHT_TO_ACCESS,
+    "Request to opt-out of sale and sharing": Right.RIGHT_TO_OPT_OUT,
+    "Request to delete": Right.RIGHT_TO_DELETE,
+    "Request to correct": None,
+}
+RIGHTS_OPTIONS_CSS = ""  # TODO(health-check): the group shares role=option with other toggles; capture a selector on a live run (no audit wired until then)
+
+FIELD_XPATHS = {
+    "Country": "//*[@id='countryDSARElement']",
+    "First name": "//*[@id='firstNameDSARElement']",
+    "Last name": "//*[@id='lastNameDSARElement']",
+    "Email": "//*[@id='emailDSARElement']",
+}
+
 IAM_CANDIDATES = ("Consumer", "Individual", "Customer", "Member of the public", "A consumer", "Other")
 
 
@@ -159,6 +176,9 @@ async def submit_request(tab, right_label, tag, super_scraper):
             await asyncio.sleep(0.2)
         else:
             print(f"{super_scraper.OOPS} field '{field_id}' not found")
+
+    if SuperScraper.HEALTH_CHECK:
+        await SuperScraper.assert_fields_filled(tab, FIELD_XPATHS)
 
     await asyncio.sleep(1)
     await SuperScraper.screenshot(tab, f"dry_run_{tag}")

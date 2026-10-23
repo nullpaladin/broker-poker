@@ -34,6 +34,26 @@ RIGHT_MAP = {
 }
 RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
 
+# Every option in the request-type group, as displayed -> the Right it maps to.
+PAGE_RIGHTS = {
+    "Access My Information": Right.RIGHT_TO_ACCESS,
+    "Do Not Sell My Information": Right.RIGHT_TO_OPT_OUT,
+    "Delete My Information": Right.RIGHT_TO_DELETE,
+}
+RIGHTS_OPTIONS_CSS = "#requestTypesDSARElement [role='option']"
+
+FIELD_XPATHS = {
+    "Email": "//*[@id='emailDSARElement']",
+    "First name": "//*[@id='firstNameDSARElement']",
+    "Last name": "//*[@id='lastNameDSARElement']",
+    "Address": "//*[@id='addressDSARElement']",
+    "City": "//*[@id='cityDSARElement']",
+    "State": "//*[@id='formField17DSARElement']",
+    "Zip": "//*[@id='zipDSARElement']",
+    "Phone": "//*[@id='phoneNumberDSARElement']",
+    "Date of birth": "//*[@id='dateOfBirthDSARElement']",
+}
+
 
 def _dob_mm_dd_yyyy():
     if not SuperScraper.DATE_OF_BIRTH:
@@ -92,6 +112,10 @@ async def submit_request(tab, right, right_label, tag, super_scraper):
     await tab.go_to(URL)
     await asyncio.sleep(7)
 
+    if SuperScraper.HEALTH_CHECK:
+        offered = await SuperScraper.read_option_labels(tab, RIGHTS_OPTIONS_CSS)
+        SuperScraper.audit_rights(offered, PAGE_RIGHTS)
+
     await _pick(tab, super_scraper, right_label)
 
     for field_id, value in (
@@ -129,6 +153,9 @@ async def submit_request(tab, right, right_label, tag, super_scraper):
         await ack.click_using_js()
     else:
         print(f"{super_scraper.OOPS} acknowledgement checkbox not found")
+
+    if SuperScraper.HEALTH_CHECK:
+        await SuperScraper.assert_fields_filled(tab, FIELD_XPATHS)
 
     await asyncio.sleep(1)
     await SuperScraper.screenshot(tab, f"dry_run_{right.value}_{tag}")

@@ -41,6 +41,20 @@ RIGHT_MAP = {
 }
 RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
 
+PAGE_RIGHTS = {}  # TODO(health-check): run HEALTH_CHECK once live; it prints the full list
+# (The three card buttons are the rights; no selector is recorded for reading them back.)
+
+KNOW_FIELD_XPATHS = {
+    "First name": "//input[@name='requestDataFirstName']",
+    "Last name": "//input[@name='requestDataLastName']",
+    "Email": "//input[@name='requestDataEmail']",
+}
+DELETE_FIELD_XPATHS = {
+    "First name": "//input[@name='deleteDataFirstName']",
+    "Last name": "//input[@name='deleteDataLastName']",
+    "Email": "//input[@name='deleteDataEmail']",
+}
+
 
 async def submit_know(tab, super_scraper):
     await tab.go_to(URL)
@@ -62,6 +76,9 @@ async def submit_know(tab, super_scraper):
         await last.type_text(SuperScraper.LAST_NAME)
     if email:
         await email.type_text(SuperScraper.EMAIL)
+
+    if SuperScraper.HEALTH_CHECK:
+        await SuperScraper.assert_fields_filled(tab, KNOW_FIELD_XPATHS)
 
     if SuperScraper.DRY_RUN:
         print(f"DRY RUN: would submit '{Right.RIGHT_TO_ACCESS.name}' for {SuperScraper.EMAIL}")
@@ -99,6 +116,9 @@ async def submit_delete(tab, super_scraper):
     if email:
         await email.type_text(SuperScraper.EMAIL)
 
+    if SuperScraper.HEALTH_CHECK:
+        await SuperScraper.assert_fields_filled(tab, DELETE_FIELD_XPATHS)
+
     if SuperScraper.DRY_RUN:
         print(f"DRY RUN: would submit '{Right.RIGHT_TO_DELETE.name}' for {SuperScraper.EMAIL}")
         await asyncio.sleep(1)
@@ -132,6 +152,9 @@ async def submit_opt_out(tab, super_scraper):
     acknowledge = await tab.find(id="acknowledge", raise_exc=False)
     if acknowledge:
         await js_utils.js_check(acknowledge)
+
+    if SuperScraper.HEALTH_CHECK:
+        await SuperScraper.assert_fields_filled(tab, {"Email": "//*[@id='requestorEmail']"})
 
     await asyncio.sleep(1)
     await SuperScraper.screenshot(tab, "dry_run_opt_out")

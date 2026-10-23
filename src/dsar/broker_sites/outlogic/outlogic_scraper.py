@@ -35,8 +35,15 @@ URL = "https://outlogic.io/opt-out-form/"
 
 RIGHT_MAP = {Right.RIGHT_TO_OPT_OUT: "opt-out"}
 RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
+
+PAGE_RIGHTS = {}  # TODO(health-check): run HEALTH_CHECK once live; it prints the full list
 DEVICE_ID_FIELD = "input_2_1"
 EMAIL_FIELD = "input_2_2"
+
+FIELD_XPATHS = {
+    "Device ID": f"//*[@id='{DEVICE_ID_FIELD}']",
+    "Email": f"//*[@id='{EMAIL_FIELD}']",
+}
 
 
 async def main():
@@ -74,6 +81,9 @@ async def main():
         # autocomplete="new-password" (a classic anti-bot trap) — left
         # deliberately BLANK, same pattern as leadloft.com/lsmapps.com/
         # m1data.com elsewhere in this repo.
+
+        if SuperScraper.HEALTH_CHECK:
+            await SuperScraper.assert_fields_filled(tab, FIELD_XPATHS)
 
         await asyncio.sleep(1)
         await SuperScraper.screenshot(tab, "dry_run_opt_out")

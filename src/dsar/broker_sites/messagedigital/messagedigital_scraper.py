@@ -49,6 +49,14 @@ RIGHT_MAP = {
 }
 RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
 
+PAGE_RIGHTS = {}  # TODO(health-check): run HEALTH_CHECK once live; it prints the full list
+# (The request-type group is abbreviated in the notes and only appears after State is chosen.)
+
+FIELD_XPATHS = {
+    "State": f"//*[@id='{STATE_FIELD}']",
+    "Email": f"//*[@id='{EMAIL_FIELD}']",
+}
+
 
 async def submit_request(tab, right, option, super_scraper):
     await tab.go_to(URL)
@@ -106,6 +114,9 @@ async def submit_request(tab, right, option, super_scraper):
     perjury_opt = await tab.find(xpath="//*[@role='option' and @aria-label='Yes']", raise_exc=False)
     if perjury_opt:
         await perjury_opt.click()
+
+    if SuperScraper.HEALTH_CHECK:
+        await SuperScraper.assert_fields_filled(tab, FIELD_XPATHS)
 
     await asyncio.sleep(1)
     await SuperScraper.screenshot(tab, f"dry_run_{right.value}")

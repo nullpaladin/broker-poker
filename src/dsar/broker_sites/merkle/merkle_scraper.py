@@ -45,10 +45,27 @@ RIGHT_MAP = {
 }
 RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
 
+PAGE_RIGHTS = {}  # TODO(health-check): run HEALTH_CHECK once live; it prints the full list
+RIGHTS_OPTIONS_CSS = "[role='option']"  # also matches the "for yourself" and brand toggles
+
+FIELD_XPATHS = {
+    "First name": "//*[@id='firstNameDSARElement']",
+    "Last name": "//*[@id='lastNameDSARElement']",
+    "Address": "//*[@id='addressDSARElement']",
+    "City": "//*[@id='cityDSARElement']",
+    "Zip": "//*[@id='zipDSARElement']",
+    "Email": "//*[@id='emailDSARElement']",
+    "State": "//*[@id='formField41DSARElement']",
+}
+
 
 async def submit_request(tab, right, option, super_scraper):
     await tab.go_to(URL)
     await asyncio.sleep(5)
+
+    if SuperScraper.HEALTH_CHECK:
+        offered = await SuperScraper.read_option_labels(tab, RIGHTS_OPTIONS_CSS)
+        SuperScraper.audit_rights(offered, PAGE_RIGHTS)
 
     right_opt = await tab.find(text=option, raise_exc=False)
     if right_opt:
@@ -104,6 +121,9 @@ async def submit_request(tab, right, option, super_scraper):
             await asyncio.sleep(0.5)
         else:
             print(f"{super_scraper.OOPS} state option '{SuperScraper.STATE}' not found")
+
+    if SuperScraper.HEALTH_CHECK:
+        await SuperScraper.assert_fields_filled(tab, FIELD_XPATHS)
 
     await asyncio.sleep(1)
     await SuperScraper.screenshot(tab, f"dry_run_{right.value}")

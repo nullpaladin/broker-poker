@@ -30,6 +30,15 @@ RIGHT_MAP = {
 }
 RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
 
+# Landing-page cards, as displayed -> the Right they map to (None = not automated). No running path
+# (NOT_AUTOMATABLE); the card selector has not been captured yet.
+PAGE_RIGHTS = {
+    "Access your data": Right.RIGHT_TO_ACCESS,
+    "Delete your data": Right.RIGHT_TO_DELETE,
+    "Opt out of data sales and sharing": None,
+}
+RIGHTS_OPTIONS_CSS = ""  # TODO(health-check): capture the card-title selector on a live run
+
 NOT_AUTOMATABLE = True
 NOT_AUTOMATABLE_REASON = (
     "the form emails a verification code that must be entered mid-run to proceed"

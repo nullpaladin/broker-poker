@@ -39,6 +39,15 @@ RIGHT_MAP = {
 }
 RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
 
+PAGE_RIGHTS = {}  # TODO(health-check): run HEALTH_CHECK once live; it prints the full list
+# (A combined form with no rights chooser: the rights are spelled out in the details textarea.)
+
+FIELD_XPATHS = {
+    "Name": "//input[@name='name']",
+    "Email": "//input[@name='email']",
+    "Request details": "//textarea[@name='detail.content']",
+}
+
 
 async def main():
     super_scraper = SuperScraper()
@@ -93,6 +102,9 @@ async def main():
                     "(l||this).click();"
                 )
                 await asyncio.sleep(0.15)
+
+        if SuperScraper.HEALTH_CHECK:
+            await SuperScraper.assert_fields_filled(tab, FIELD_XPATHS)
 
         await asyncio.sleep(0.5)
         await SuperScraper.screenshot(tab, "dry_run")

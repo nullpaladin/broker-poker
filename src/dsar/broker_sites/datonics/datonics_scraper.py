@@ -40,6 +40,15 @@ RIGHT_MAP = {
 }
 RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
 
+PAGE_RIGHTS = {}  # TODO(health-check): run HEALTH_CHECK once live; it prints the full list
+RIGHTS_OPTIONS_CSS = "select[aria-label='Type of Request'] option"
+
+FIELD_XPATHS = {
+    "Email": f"//*[@id='{EMAIL_FIELD}']",
+    "Resident of": "//select[@aria-label='Resident of']",
+    "Type of Request": "//select[@aria-label='Type of Request']",
+}
+
 
 async def _select_by_aria_label(tab, aria_label, value, super_scraper, description):
     field = await tab.find(xpath=f"//select[@aria-label='{aria_label}']", raise_exc=False)
@@ -57,6 +66,10 @@ async def submit_request(tab, right, request_type, super_scraper):
     if reject_cookies and await reject_cookies.is_visible():
         await reject_cookies.click()
         await asyncio.sleep(1)
+
+    if SuperScraper.HEALTH_CHECK:
+        offered = await SuperScraper.read_option_labels(tab, RIGHTS_OPTIONS_CSS)
+        SuperScraper.audit_rights(offered, PAGE_RIGHTS)
 
     email_field = await tab.find(id=EMAIL_FIELD, raise_exc=False)
     if email_field:
@@ -76,6 +89,9 @@ async def submit_request(tab, right, request_type, super_scraper):
     )
     if certification:
         await certification.click()
+
+    if SuperScraper.HEALTH_CHECK:
+        await SuperScraper.assert_fields_filled(tab, FIELD_XPATHS)
 
     if SuperScraper.DRY_RUN:
         await asyncio.sleep(1)

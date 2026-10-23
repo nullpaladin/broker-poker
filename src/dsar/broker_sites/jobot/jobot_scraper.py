@@ -43,10 +43,20 @@ RIGHT_MAP = {
 }
 RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
 
+PAGE_RIGHTS = {}  # TODO(health-check): run HEALTH_CHECK once live; it prints the full list
+# (Correct / Portability checkbox texts are not recorded verbatim, so no inventory is built; labels are aria-labels.)
+
 FIRST_NAME_XPATH = '(//input[@jsname="YPqjbf" and @type="text"])[3]'
 LAST_NAME_XPATH = '(//input[@jsname="YPqjbf" and @type="text"])[4]'
 EMAIL_XPATH = '(//input[@jsname="YPqjbf" and @type="text"])[5]'
 PHONE_XPATH = '(//input[@jsname="YPqjbf" and @type="text"])[6]'
+
+FIELD_XPATHS = {
+    "First name": FIRST_NAME_XPATH,
+    "Last name": LAST_NAME_XPATH,
+    "Email": EMAIL_XPATH,
+    "Phone": PHONE_XPATH,
+}
 
 
 async def check_checkbox(tab, aria_label):
@@ -86,6 +96,9 @@ async def main():
         await super_scraper.input_text_field(tab=tab, xpath=LAST_NAME_XPATH, text=SuperScraper.LAST_NAME, sleep=0.5)
         await super_scraper.input_text_field(tab=tab, xpath=EMAIL_XPATH, text=SuperScraper.EMAIL, sleep=0.5)
         await super_scraper.input_text_field(tab=tab, xpath=PHONE_XPATH, text=SuperScraper.PHONE_NUMBER, sleep=0.5)
+
+        if SuperScraper.HEALTH_CHECK:
+            await SuperScraper.assert_fields_filled(tab, FIELD_XPATHS)
 
         if SuperScraper.DRY_RUN:
             print(f"DRY RUN: would submit {[r.name for r in rights]} for {SuperScraper.EMAIL}")

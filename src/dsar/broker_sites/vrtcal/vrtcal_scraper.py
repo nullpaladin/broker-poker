@@ -26,6 +26,10 @@ RIGHT_MAP = {
 }
 RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
 
+# The page's only control, as displayed -> the Right it maps to. No selector is recorded for it, so no audit is wired.
+PAGE_RIGHTS = {"CHANGE OPT-OUT STATUS": Right.RIGHT_TO_OPT_OUT}
+RIGHTS_OPTIONS_CSS = ""  # TODO(health-check): capture the link selector on a live run
+
 
 async def main():
     super_scraper = SuperScraper()

@@ -48,6 +48,16 @@ RIGHT_MAP = {
 }
 RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
 
+PAGE_RIGHTS = {}  # TODO(health-check): run HEALTH_CHECK once live; it prints the full list
+# (The rights are positional checkboxes without recorded label text.)
+
+FIELD_XPATHS = {
+    "Email": f"//input[@placeholder='{EMAIL_PLACEHOLDER}']",
+    "MAID": f"//input[@placeholder='{MAID_PLACEHOLDER}']",
+    "Country": f"//*[@id='{COUNTRY_SELECT}']",
+    "State": f"//*[@id='{STATE_SELECT}']",
+}
+
 
 async def main():
     super_scraper = SuperScraper()
@@ -103,6 +113,9 @@ async def main():
             await resident_radios[0].click()
         else:
             print(f"{super_scraper.OOPS} verify-resident radios not found")
+
+        if SuperScraper.HEALTH_CHECK:
+            await SuperScraper.assert_fields_filled(tab, FIELD_XPATHS)
 
         await asyncio.sleep(1)
         await SuperScraper.screenshot(tab, "dry_run_" + "_".join(r.value for r in rights))

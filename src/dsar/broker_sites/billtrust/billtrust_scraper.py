@@ -43,6 +43,19 @@ RIGHT_MAP = {
 }
 RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
 
+PAGE_RIGHTS = {}  # TODO(health-check): run HEALTH_CHECK once live; it prints the full list
+# (The request-type options are div[role=option] aria-labels shared with other option groups on the page,
+# so no selector is wired yet.)
+
+FIELD_XPATHS = {
+    "Country": "//*[@id='countryDSARElement']",
+    "State": "//*[@id='stateDSARElement']",
+    "First name": "//*[@id='firstNameDSARElement']",
+    "Last name": "//*[@id='lastNameDSARElement']",
+    "Email": "//*[@id='emailDSARElement']",
+    "Request details": "//*[@id='requestDetailsDSARElement']",
+}
+
 
 async def _click_option(tab, aria_label, super_scraper, description):
     opt = await tab.find(
@@ -99,6 +112,9 @@ async def submit_request(tab, right, entry, super_scraper):
         await email.type_text(SuperScraper.EMAIL)
     if details:
         await details.type_text(SuperScraper.request_statement([right], broker="Billtrust"))
+
+    if SuperScraper.HEALTH_CHECK:
+        await SuperScraper.assert_fields_filled(tab, FIELD_XPATHS)
 
     if SuperScraper.DRY_RUN:
         print(f"DRY RUN: would submit '{right.name}' for {SuperScraper.EMAIL}")

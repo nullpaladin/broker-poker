@@ -34,6 +34,19 @@ RIGHT_MAP = {
 }
 RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
 
+PAGE_RIGHTS = {}  # TODO(health-check): run HEALTH_CHECK once live; it prints the full list
+# (Two separate forms; their headings are unrecorded and the Delete form's request type is never selected.)
+
+DELETE_FIELD_XPATHS = {
+    "First name": "//input[@id='firstNameDSARElement']",
+    "Last name": "//input[@id='lastNameDSARElement']",
+    "Email": "//input[@id='email']",
+    "Address": "//input[@id='addressDSARElement']",
+    "City": "//input[@id='cityDSARElement']",
+    "State": "//input[@id='formField79DSARElement']",
+    "Zip": "//input[@id='zipDSARElement']",
+}
+
 
 async def _fill_common_fields(tab, state_abbr):
     first = await tab.find(id="firstNameDSARElement", raise_exc=False)
@@ -120,6 +133,9 @@ async def submit_delete(tab, state_abbr, super_scraper, right):
     if auth:
         await auth.click_using_js()
     await asyncio.sleep(0.5)
+
+    if SuperScraper.HEALTH_CHECK:
+        await SuperScraper.assert_fields_filled(tab, DELETE_FIELD_XPATHS)
 
     if SuperScraper.DRY_RUN:
         print(f"DRY RUN: would submit '{right.name}' for {SuperScraper.EMAIL}")

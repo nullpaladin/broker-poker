@@ -32,10 +32,30 @@ RIGHT_MAP = {
 }
 RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
 
+# Every option in the request_type <select>, as displayed -> the Right it maps to.
+PAGE_RIGHTS = {
+    "Opt out": Right.RIGHT_TO_OPT_OUT,
+    "Disclosure": Right.RIGHT_TO_ACCESS,
+    "Deletion": Right.RIGHT_TO_DELETE,
+}
+RIGHTS_OPTIONS_CSS = "#opt_out_request_request_type option"
+
+FIELD_XPATHS = {
+    "Full name": "//*[@id='opt_out_request_name']",
+    "Street address": "//*[@id='opt_out_request_street_address']",
+    "City": "//*[@id='opt_out_request_city']",
+    "State": "//*[@id='opt_out_request_state']",
+    "Postal code": "//*[@id='opt_out_request_postal_code']",
+}
+
 
 async def submit_request(tab, right, request_type, super_scraper):
     await tab.go_to(URL)
     await asyncio.sleep(4)
+
+    if SuperScraper.HEALTH_CHECK:
+        offered = await SuperScraper.read_option_labels(tab, RIGHTS_OPTIONS_CSS)
+        SuperScraper.audit_rights(offered, PAGE_RIGHTS)
 
     rt = await tab.find(id="opt_out_request_request_type", raise_exc=False)
     if not rt:
@@ -68,6 +88,9 @@ async def submit_request(tab, right, request_type, super_scraper):
         await agent_no.click()
     else:
         print(f"{super_scraper.OOPS} authorized-agent 'No' radio not found")
+
+    if SuperScraper.HEALTH_CHECK:
+        await SuperScraper.assert_fields_filled(tab, FIELD_XPATHS)
 
     await asyncio.sleep(1)
     await SuperScraper.screenshot(tab, f"dry_run_{right.value}")

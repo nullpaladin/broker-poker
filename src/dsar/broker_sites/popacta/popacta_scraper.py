@@ -30,6 +30,16 @@ RIGHT_MAP = {
 }
 RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
 
+PAGE_RIGHTS = {}  # TODO(health-check): run HEALTH_CHECK once live; it prints the full list
+# (A general contact form with no rights chooser.)
+
+FIELD_XPATHS = {
+    "Email": "//input[@name='email']",
+    "First name": "//input[@name='fname']",
+    "Last name": "//input[@name='lname']",
+    "Message": "//textarea[@name='form_message']",
+}
+
 
 async def main():
     super_scraper = SuperScraper()
@@ -67,6 +77,9 @@ async def main():
             await msg_field.type_text(message[:250])
 
         time.sleep(1)
+
+        if SuperScraper.HEALTH_CHECK:
+            await SuperScraper.assert_fields_filled(tab, FIELD_XPATHS)
 
         if SuperScraper.DRY_RUN:
             print(

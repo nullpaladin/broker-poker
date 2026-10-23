@@ -44,6 +44,18 @@ RIGHT_MAP = {
 }
 RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
 
+# Every option in the "nature_of_request" checkbox group, as displayed -> the Right it maps to (None = not automated).
+PAGE_RIGHTS = {
+    "Access Request": Right.RIGHT_TO_ACCESS,
+    "Deletion": Right.RIGHT_TO_DELETE,
+    "Update Request": None,
+    "HEM Opt-out": Right.RIGHT_TO_OPT_OUT,
+    "Opt-out": Right.RIGHT_TO_OPT_OUT,
+    "Questions": None,
+    "Complaints": None,
+}
+RIGHTS_OPTIONS_CSS = "label:has(input[name='nature_of_request'])"
+
 
 async def _set_text(tab, xpath, value):
     """HubSpot's React fields don't reliably accept click()+type here (a D&B cookie
@@ -79,6 +91,10 @@ async def main():
                 await btn.click()
                 await asyncio.sleep(1)
                 break
+
+        if SuperScraper.HEALTH_CHECK:
+            offered = await SuperScraper.read_option_labels(tab, RIGHTS_OPTIONS_CSS)
+            SuperScraper.audit_rights(offered, PAGE_RIGHTS)
 
         for name, value in [
             ("firstname", SuperScraper.FIRST_NAME),

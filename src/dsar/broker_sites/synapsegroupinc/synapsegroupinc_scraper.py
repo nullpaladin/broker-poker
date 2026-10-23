@@ -40,6 +40,24 @@ RIGHT_MAP = {
 }
 RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
 
+# Every option in the request-type group, as displayed -> the Right it maps to.
+PAGE_RIGHTS = {
+    "Request a Copy of My Personal Information": Right.RIGHT_TO_ACCESS,
+    "Request More Information about How Synapse Processes My Personal Information": Right.RIGHT_TO_ACCESS,
+    "Request Deletion of My Personal Information": Right.RIGHT_TO_DELETE,
+}
+RIGHTS_OPTIONS_CSS = "#requestTypesDSARElement [role='option']"
+
+FIELD_XPATHS = {
+    "First name": "//*[@id='firstNameDSARElement']",
+    "Last name": "//*[@id='lastNameDSARElement']",
+    "Email": "//*[@id='emailDSARElement']",
+    "Address": "//*[@id='addressDSARElement']",
+    "City": "//*[@id='cityDSARElement']",
+    "State": "//*[@id='formField17DSARElement']",
+    "Zip": "//*[@id='zipDSARElement']",
+}
+
 
 async def _pick(tab, super_scraper, label):
     opt = await tab.find(**{"aria-label": label}, raise_exc=False)
@@ -57,6 +75,10 @@ async def _pick(tab, super_scraper, label):
 async def submit_request(tab, right_label, tag, super_scraper):
     await tab.go_to(URL)
     await asyncio.sleep(7)
+
+    if SuperScraper.HEALTH_CHECK:
+        offered = await SuperScraper.read_option_labels(tab, RIGHTS_OPTIONS_CSS)
+        SuperScraper.audit_rights(offered, PAGE_RIGHTS)
 
     await _pick(tab, super_scraper, right_label)
 
@@ -86,6 +108,9 @@ async def submit_request(tab, right_label, tag, super_scraper):
             f"{super_scraper.OOPS} 'Are you a California Resident?' left unanswered — "
             f"STATE={SuperScraper.STATE!r}; this form only accepts California residents."
         )
+
+    if SuperScraper.HEALTH_CHECK:
+        await SuperScraper.assert_fields_filled(tab, FIELD_XPATHS)
 
     await asyncio.sleep(1)
     await SuperScraper.screenshot(tab, f"dry_run_{tag}")

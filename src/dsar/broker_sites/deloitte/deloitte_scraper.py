@@ -63,6 +63,20 @@ RIGHT_MAP = {
 }
 RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
 
+PAGE_RIGHTS = {}  # TODO(health-check): run HEALTH_CHECK once live; it prints the full list
+
+FIELD_XPATHS = {
+    "First name": "//*[@id='Fname']",
+    "Last name": "//*[@id='Lname']",
+    "Email": "//*[@id='email']",
+    "Phone": "//*[@id='PhoneNumber']",
+    "Street address": "//*[@id='Currentaddress']",
+    "City": "//*[@id='City']",
+    "State": "//*[@id='State']",
+    "Postal code": "//*[@id='Postalcode']",
+    "Country": "//*[@id='Country']",
+}
+
 
 async def _check(tab, name, super_scraper, description):
     box = await tab.find(xpath=f"//input[@name='{name}']", raise_exc=False)
@@ -147,6 +161,9 @@ async def main():
 
         await _check(tab, "Confirmation", super_scraper, "Confirmation")
         await _check(tab, "terms", super_scraper, "Acceptance/terms")
+
+        if SuperScraper.HEALTH_CHECK:
+            await SuperScraper.assert_fields_filled(tab, FIELD_XPATHS)
 
         if SuperScraper.DRY_RUN:
             await asyncio.sleep(1)

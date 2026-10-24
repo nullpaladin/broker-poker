@@ -40,6 +40,28 @@ def _right_name(r):
     return r.name if r is not None else None
 
 
+def _urls(mod) -> list:
+    """Per-right URLs from RIGHT_MAP values when they hold one, else every module-level
+    http(s) string constant (keyed by its name), else the single `URL` as GENERAL."""
+    def find(v):
+        if isinstance(v, str):
+            return v if v.startswith("http") else None
+        if isinstance(v, (tuple, list)):
+            return next((u for u in map(find, v) if u), None)
+        return None
+
+    per_right = {r.name: find(v) for r, v in getattr(mod, "RIGHT_MAP", {}).items()}
+    if per_right and all(per_right.values()):
+        return [{k: v} for k, v in per_right.items()]
+    named = {
+        k: v for k, v in vars(mod).items()
+        if k.isupper() and isinstance(v, str) and v.startswith("http")
+    }
+    if getattr(mod, "URL", None):
+        return [{"GENERAL": mod.URL}]
+    return [{k: v} for k, v in named.items()]
+
+
 def main() -> int:
     info = {}
     for path in sorted(BROKER_SITES.glob("*/*_scraper.py")):
@@ -56,7 +78,7 @@ def main() -> int:
         else:
             status = "AUDITED" if page_rights else "NEEDS_LIVE_CAPTURE"
         entry = {
-            "URLS": [{"GENERAL": mod.URL}] if getattr(mod, "URL", None) else [],
+            "URLS": _urls(mod),
             "RIGHTS": [r.name for r in getattr(mod, "RIGHT_MAP", {})],
             "OPTIONS": {label: _right_name(r) for label, r in (page_rights or {}).items()},
             "HEALTH_CHECK_STATUS": status,

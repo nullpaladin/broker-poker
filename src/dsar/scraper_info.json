@@ -15,7 +15,11 @@
     "AUTOMATABLE": true
   },
   "33across": {
-    "URLS": [],
+    "URLS": [
+      {
+        "BASE_URL": "https://udp.33across.com/udp_opt_out/submit_request?type={}"
+      }
+    ],
     "RIGHTS": [
       "RIGHT_TO_ACCESS",
       "RIGHT_TO_OPT_OUT",
@@ -174,7 +178,17 @@
     "AUTOMATABLE": true
   },
   "alliantinsight": {
-    "URLS": [],
+    "URLS": [
+      {
+        "RIGHT_TO_ACCESS": "https://privacyportal-cdn.onetrust.com/dsarwebform/591ac1c1-3a1e-496f-9e43-ff4afb5fef85/ed491735-e5be-4f7b-80dd-153c159744b2.html"
+      },
+      {
+        "RIGHT_TO_OPT_OUT": "https://privacyportal-cdn.onetrust.com/dsarwebform/591ac1c1-3a1e-496f-9e43-ff4afb5fef85/2b52262e-8ada-4725-b86e-e4b960336f96.html"
+      },
+      {
+        "RIGHT_TO_DELETE": "https://privacyportal-cdn.onetrust.com/dsarwebform/591ac1c1-3a1e-496f-9e43-ff4afb5fef85/604f597f-4486-46cd-99d2-ffa1218c7d6b.html"
+      }
+    ],
     "RIGHTS": [
       "RIGHT_TO_ACCESS",
       "RIGHT_TO_OPT_OUT",
@@ -198,7 +212,17 @@
     "AUTOMATABLE": true
   },
   "alphonso": {
-    "URLS": [],
+    "URLS": [
+      {
+        "RIGHT_TO_OPT_OUT": "https://choice.alphonso.tv/donotsell"
+      },
+      {
+        "RIGHT_TO_ACCESS": "https://choice.alphonso.tv/otherconsumerrequests"
+      },
+      {
+        "RIGHT_TO_DELETE": "https://choice.alphonso.tv/otherconsumerrequests"
+      }
+    ],
     "RIGHTS": [
       "RIGHT_TO_OPT_OUT",
       "RIGHT_TO_ACCESS",
@@ -462,7 +486,17 @@
     "AUTOMATABLE": true
   },
   "belardiwong": {
-    "URLS": [],
+    "URLS": [
+      {
+        "RIGHT_TO_ACCESS": "https://privacyportal.onetrust.com/webform/3d2d5e0c-bd98-46b8-906c-ede68a6f6a80/db862165-db28-4966-885c-8ace2d0c1512"
+      },
+      {
+        "RIGHT_TO_OPT_OUT": "https://privacyportal.onetrust.com/webform/3d2d5e0c-bd98-46b8-906c-ede68a6f6a80/400f54ed-fcbb-4749-ab5b-32f491c72390"
+      },
+      {
+        "RIGHT_TO_DELETE": "https://privacyportal.onetrust.com/webform/3d2d5e0c-bd98-46b8-906c-ede68a6f6a80/dd119353-8970-4dbf-ac1d-b6406173c7bb"
+      }
+    ],
     "RIGHTS": [
       "RIGHT_TO_ACCESS",
       "RIGHT_TO_OPT_OUT",
@@ -633,7 +667,14 @@
     "AUTOMATABLE": true
   },
   "choreograph": {
-    "URLS": [],
+    "URLS": [
+      {
+        "ACCESS_URL": "https://amer-cpp.choreograph.com/data-points"
+      },
+      {
+        "MANAGE_URL": "https://amer-cpp.choreograph.com/manage-your-data/opt-out-delete"
+      }
+    ],
     "RIGHTS": [
       "RIGHT_TO_ACCESS",
       "RIGHT_TO_OPT_OUT",
@@ -730,7 +771,14 @@
     "AUTOMATABLE": true
   },
   "clickagy": {
-    "URLS": [],
+    "URLS": [
+      {
+        "RIGHT_TO_ACCESS": "https://www.clickagy.com/privacy-center/request/"
+      },
+      {
+        "RIGHT_TO_OPT_OUT": "https://www.clickagy.com/privacy-center/no-resell/"
+      }
+    ],
     "RIGHTS": [
       "RIGHT_TO_ACCESS",
       "RIGHT_TO_OPT_OUT"
@@ -927,7 +975,14 @@
     "AUTOMATABLE": true
   },
   "datapartners": {
-    "URLS": [],
+    "URLS": [
+      {
+        "RIGHT_TO_ACCESS": "https://www.datapartners.com/information-access-request/"
+      },
+      {
+        "RIGHT_TO_OPT_OUT": "https://www.datapartners.com/opt-out-request/"
+      }
+    ],
     "RIGHTS": [
       "RIGHT_TO_ACCESS",
       "RIGHT_TO_OPT_OUT"
@@ -1001,7 +1056,14 @@
     "NOT_AUTOMATABLE_REASON": "the form emails a verification code that must be entered mid-run to proceed"
   },
   "deepsync": {
-    "URLS": [],
+    "URLS": [
+      {
+        "OPT_OUT_URL": "https://privacy.deepsync.com"
+      },
+      {
+        "ACCESS_URL": "https://privacy.deepsync.com/request/data"
+      }
+    ],
     "RIGHTS": [
       "RIGHT_TO_ACCESS",
       "RIGHT_TO_OPT_OUT",
@@ -1175,7 +1237,17 @@
     "AUTOMATABLE": true
   },
   "eltoro": {
-    "URLS": [],
+    "URLS": [
+      {
+        "RIGHT_TO_ACCESS": "https://privacyportal.onetrust.com/webform/96e88ef7-218d-4979-ba92-634d98263159/0a4612df-27c0-4726-8f16-a0a5f516997e"
+      },
+      {
+        "RIGHT_TO_OPT_OUT": "https://privacyportal.onetrust.com/webform/96e88ef7-218d-4979-ba92-634d98263159/518b4a8d-97b3-4fb6-a5a7-e1a1cd8de290"
+      },
+      {
+        "RIGHT_TO_DELETE": "https://privacyportal.onetrust.com/webform/96e88ef7-218d-4979-ba92-634d98263159/9edfdd9d-053d-4e08-80af-cb72bdbf564b"
+      }
+    ],
     "RIGHTS": [
       "RIGHT_TO_ACCESS",
       "RIGHT_TO_OPT_OUT",
@@ -1300,7 +1372,11 @@
     "AUTOMATABLE": true
   },
   "factori": {
-    "URLS": [],
+    "URLS": [
+      {
+        "FORM_URL": "https://docs.google.com/forms/d/e/1FAIpQLSenQ43-rKbEqNWX8jUhKaXWpxzs4G5NLNFaU1-ML9htK-OmLQ/viewform"
+      }
+    ],
     "RIGHTS": [
       "RIGHT_TO_OPT_OUT"
     ],
@@ -1719,7 +1795,17 @@
     "AUTOMATABLE": true
   },
   "ididata": {
-    "URLS": [],
+    "URLS": [
+      {
+        "RIGHT_TO_ACCESS": "https://www.ididata.com/personal-information-request/"
+      },
+      {
+        "RIGHT_TO_OPT_OUT": "https://www.ididata.com/do-not-sell-my-personal-information/"
+      },
+      {
+        "RIGHT_TO_DELETE": "https://www.ididata.com/deletion-request/"
+      }
+    ],
     "RIGHTS": [
       "RIGHT_TO_ACCESS",
       "RIGHT_TO_OPT_OUT",
@@ -1868,7 +1954,14 @@
     "AUTOMATABLE": true
   },
   "instantly": {
-    "URLS": [],
+    "URLS": [
+      {
+        "ACCESS_URL": "https://app.instantly.ai/privacy/data-request"
+      },
+      {
+        "OPT_OUT_DELETE_URL": "https://app.instantly.ai/privacy/opt-out"
+      }
+    ],
     "RIGHTS": [
       "RIGHT_TO_ACCESS",
       "RIGHT_TO_DELETE"
@@ -2009,7 +2102,11 @@
     "AUTOMATABLE": true
   },
   "jobot": {
-    "URLS": [],
+    "URLS": [
+      {
+        "FORM_URL": "https://forms.gle/y8LzfvuoJWRAgqNL9"
+      }
+    ],
     "RIGHTS": [
       "RIGHT_TO_ACCESS",
       "RIGHT_TO_DELETE"
@@ -2019,7 +2116,11 @@
     "AUTOMATABLE": true
   },
   "jungroup": {
-    "URLS": [],
+    "URLS": [
+      {
+        "FORM_URL": "https://docs.google.com/forms/d/e/1FAIpQLSff6gJEpA6rv7dXX643lMIjzYEp4yeeD7_odWxU3HRteHVtGg/viewform"
+      }
+    ],
     "RIGHTS": [
       "RIGHT_TO_OPT_OUT",
       "RIGHT_TO_ACCESS",
@@ -2192,7 +2293,11 @@
     "AUTOMATABLE": true
   },
   "lifesight": {
-    "URLS": [],
+    "URLS": [
+      {
+        "FORM_URL": "https://docs.google.com/forms/d/e/1FAIpQLSdBAQskPxxBeztX9e2tt8U5kmLDsYIExqIVSiaxyO3QLW6Q7A/viewform"
+      }
+    ],
     "RIGHTS": [
       "RIGHT_TO_OPT_OUT"
     ],
@@ -2287,7 +2392,11 @@
     "AUTOMATABLE": true
   },
   "liveramp": {
-    "URLS": [],
+    "URLS": [
+      {
+        "TRUSTARC": "https://submit-irm.trustarc.com/services/validation/"
+      }
+    ],
     "RIGHTS": [
       "RIGHT_TO_ACCESS",
       "RIGHT_TO_OPT_OUT",
@@ -2311,7 +2420,14 @@
     "AUTOMATABLE": true
   },
   "locatesmarter": {
-    "URLS": [],
+    "URLS": [
+      {
+        "KNOW_DELETE_URL": "https://locatesmarter.com/request-to-know-or-delete-my-personal-information/"
+      },
+      {
+        "OPT_OUT_URL": "https://locatesmarter.com/request-to-opt-out-do-not-sell-my-personal-information/"
+      }
+    ],
     "RIGHTS": [
       "RIGHT_TO_ACCESS",
       "RIGHT_TO_DELETE",
@@ -3160,7 +3276,14 @@
     "AUTOMATABLE": true
   },
   "rayinsights": {
-    "URLS": [],
+    "URLS": [
+      {
+        "OPT_OUT_URL": "https://www.rayinsights.com/ray-cdp-opt-out-and-delete-request/"
+      },
+      {
+        "DATA_REQUEST_URL": "https://www.rayinsights.com/raycdp-data-request/"
+      }
+    ],
     "RIGHTS": [
       "RIGHT_TO_ACCESS",
       "RIGHT_TO_OPT_OUT",
@@ -3424,7 +3547,11 @@
     "NOT_AUTOMATABLE_REASON": "submission requires an email OTP code after the CAPTCHA"
   },
   "socialcatfish": {
-    "URLS": [],
+    "URLS": [
+      {
+        "BASE": "https://socialcatfish.com/opt-out/?id="
+      }
+    ],
     "RIGHTS": [
       "RIGHT_TO_ACCESS",
       "RIGHT_TO_OPT_OUT",
@@ -3465,7 +3592,11 @@
     "AUTOMATABLE": true
   },
   "spectrummailinglists": {
-    "URLS": [],
+    "URLS": [
+      {
+        "FORM_URL": "https://docs.google.com/forms/d/e/1FAIpQLSeOxYNRRsFd1SBrN7LZZgSNrS2YJX00VhvdiUVTcrUgmW_8Xw/viewform"
+      }
+    ],
     "RIGHTS": [
       "RIGHT_TO_OPT_OUT"
     ],
@@ -3869,7 +4000,14 @@
     "AUTOMATABLE": true
   },
   "usa_people_search": {
-    "URLS": [],
+    "URLS": [
+      {
+        "PRIVACY_RIGHTS_URL": "https://www.usa-people-search.com/privacy-rights"
+      },
+      {
+        "REMOVAL_URL": "https://www.usa-people-search.com/removal"
+      }
+    ],
     "RIGHTS": [
       "RIGHT_TO_ACCESS",
       "RIGHT_TO_DELETE"
@@ -4024,7 +4162,14 @@
     "AUTOMATABLE": true
   },
   "wiland": {
-    "URLS": [],
+    "URLS": [
+      {
+        "RIGHT_TO_ACCESS": "https://privacyportal.onetrust.com/webform/7567ece3-2d27-4ee0-a506-1153cb7a62b7/a1e6c0c7-b7ff-45f9-9c62-7f1eb47a6e77"
+      },
+      {
+        "RIGHT_TO_DELETE": "https://privacyportal.onetrust.com/webform/7567ece3-2d27-4ee0-a506-1153cb7a62b7/718ad3c3-e1f5-4463-a301-2d6f84938588"
+      }
+    ],
     "RIGHTS": [
       "RIGHT_TO_ACCESS",
       "RIGHT_TO_DELETE"

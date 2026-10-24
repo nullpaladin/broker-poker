@@ -1,7 +1,9 @@
 # spectrummailinglists.com — the Right to Opt-Out is an embedded Google Form
 # (navigated to directly). Every other request type is declined with a
-# public-records excuse, so this scraper only exercises Opt-Out.
-# Questions:
+# public-records excuse, so this scraper only exercises Opt-Out (RIGHT_MAP has a
+# single entry; the run is skipped unless an opt-out right is requested via
+# SuperScraper.rights_to_exercise).
+# Page elements (Google Form questions):
 #   [radio]    "I am submitting this request:" -> "For myself, my family member
 #              or similar"
 #   [short]    First Name, Last Name, City, Zip Code
@@ -12,11 +14,11 @@
 # Google Form text inputs have no aria-label -> reached via a role="listitem"-
 # scoped xpath. Radio uses aria-label. Dropdown is role="listbox"/"option".
 import asyncio
-import re
 
 from pydoll.browser.chromium import Chrome
-from pydoll.browser.options import ChromiumOptions
 
+from src.dsar import captcha_solutions_util, js_utils
+from src.dsar.rights import Right
 from src.dsar.super_scraper import SuperScraper
 
 FORM_URL = (
@@ -24,29 +26,20 @@ FORM_URL = (
     "1FAIpQLSeOxYNRRsFd1SBrN7LZZgSNrS2YJX00VhvdiUVTcrUgmW_8Xw/viewform"
 )
 
-_WORDS = {
-    "zero": 0, "one": 1, "two": 2, "three": 3, "four": 4, "five": 5,
-    "six": 6, "seven": 7, "eight": 8, "nine": 9, "ten": 10,
+# The only right the form honours (the Google Form has no per-right choice).
+RIGHT_MAP = {Right.RIGHT_TO_OPT_OUT: "opt-out"}
+RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
+
+PAGE_RIGHTS = {}  # TODO(health-check): run HEALTH_CHECK once live; it prints the full list
+# (A fixed-purpose opt-out Google Form; its heading selector is unrecorded.)
+
+FIELD_XPATHS = {
+    "First Name": "//div[@role='listitem'][.//span[contains(normalize-space(.), 'First Name')]]//input",
+    "Last Name": "//div[@role='listitem'][.//span[contains(normalize-space(.), 'Last Name')]]//input",
+    "Mailing Street Address": "//div[@role='listitem'][.//span[contains(normalize-space(.), 'Mailing Street Address')]]//textarea",
+    "City": "//div[@role='listitem'][.//span[contains(normalize-space(.), 'City')]]//input",
+    "Zip Code": "//div[@role='listitem'][.//span[contains(normalize-space(.), 'Zip Code')]]//input",
 }
-
-
-def _num(token):
-    token = token.strip().lower()
-    return _WORDS.get(token, int(token) if token.lstrip("-").isdigit() else None)
-
-
-def solve_arithmetic(question):
-    m = re.search(r"([\w-]+)\s*(plus|minus|\+|-|times|multiplied by|x)\s*([\w-]+)", question, re.I)
-    if not m:
-        return None
-    a, op, b = _num(m.group(1)), m.group(2).lower(), _num(m.group(3))
-    if a is None or b is None:
-        return None
-    if op in ("plus", "+"):
-        return str(a + b)
-    if op in ("minus", "-"):
-        return str(a - b)
-    return str(a * b)
 
 
 async def fill_text(tab, super_scraper, question, value, para=False):
@@ -64,11 +57,12 @@ async def fill_text(tab, super_scraper, question, value, para=False):
 
 
 async def main():
-    options = ChromiumOptions()
     super_scraper = SuperScraper()
-    options.binary_location = super_scraper.CHROMIUM_LOCATION
-    options.add_argument("--no-sandbox")
-    options.add_argument("--window-size=1280,2600")
+    rights = SuperScraper.rights_to_exercise(RIGHT_MAP)
+    if not rights:
+        print("No requested privacy rights apply to this form — nothing to do.")
+        return
+    options = SuperScraper.build_chromium_options()
 
     async with Chrome(options=options) as browser:
         tab = await browser.start()
@@ -90,7 +84,7 @@ async def main():
         await fill_text(tab, super_scraper, "City", SuperScraper.CITY)
         await fill_text(tab, super_scraper, "Zip Code", SuperScraper.ZIP_CODE)
 
-        state_abbr = await SuperScraper.state_full_name_to_abbreviated(SuperScraper.STATE)
+        state_abbr = SuperScraper.STATE_ABBREVIATED
         listbox = await tab.find(
             xpath="//div[@role='listitem'][.//span[contains(normalize-space(.), 'State')]]//div[@role='listbox']",
             raise_exc=False,
@@ -110,13 +104,13 @@ async def main():
         await asyncio.sleep(0.4)
 
         # Arithmetic anti-bot question — it is the last question on the form.
-        raw = await tab.execute_script(
+        q_text = await js_utils.js_eval(
+            tab,
             "var li=[...document.querySelectorAll('div[role=listitem]')];"
             "li=li[li.length-1];"
-            "return li ? li.innerText : '';"
+            "return li ? li.innerText : '';",
         )
-        q_text = raw.get("result", {}).get("result", {}).get("value") if isinstance(raw, dict) else raw
-        answer = solve_arithmetic(q_text or "")
+        answer = captcha_solutions_util.solve_math_captcha(q_text or "")
         if answer is not None:
             # The math answer is the last short-text input on the form. It needs
             # a scroll_into_view + settle before typing — Google Forms otherwise
@@ -137,15 +131,14 @@ async def main():
         else:
             print(f"{super_scraper.OOPS} could not parse arithmetic question: {q_text!r}")
 
-        await asyncio.sleep(1)
-        await tab.take_screenshot(
-            path="resources/screenshots/spectrummailinglists_dry_run.png", beyond_viewport=True
-        )
-        print("Screenshot saved to resources/screenshots/spectrummailinglists_dry_run.png")
+        if SuperScraper.HEALTH_CHECK:
+            await SuperScraper.assert_fields_filled(tab, FIELD_XPATHS)
 
+        await asyncio.sleep(1)
+        await SuperScraper.screenshot(tab, "dry_run_opt_out")
         if SuperScraper.DRY_RUN:
             print(
-                f"DRY RUN: would submit opt-out for "
+                f"DRY RUN: would submit '{Right.RIGHT_TO_OPT_OUT.name}' for "
                 f"{SuperScraper.FIRST_NAME} {SuperScraper.LAST_NAME}"
             )
             return
@@ -156,7 +149,10 @@ async def main():
         if submit:
             await submit.click()
             await asyncio.sleep(4)
-            print(f"Submitted opt-out for {SuperScraper.FIRST_NAME} {SuperScraper.LAST_NAME}")
+            print(
+                f"Submitted '{Right.RIGHT_TO_OPT_OUT.name}' for {SuperScraper.FIRST_NAME} "
+                f"{SuperScraper.LAST_NAME} — confirm in the browser."
+            )
 
 
 asyncio.run(main())

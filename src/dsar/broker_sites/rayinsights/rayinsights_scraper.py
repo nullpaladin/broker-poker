@@ -16,19 +16,50 @@
 # `nf-field-hp` is present on both forms — left untouched. Required
 # attestation checkbox ("I affirm I am the consumer...") is checked, since
 # it's true for a matching persona. reCAPTCHA v2 — **CAPTCHA solution
-# required**. Exercises Opt out of marketing and Access (Data Request)
-# unconditionally; Delete my data gated on REMOVE_INFORMATION (checked
-# alongside Opt out in the same combined submission when set). Correct my
-# data is left unchecked — no concrete inaccuracy to describe.
+# required**. Which rights run is decided ONLY by
+# SuperScraper.rights_to_exercise(RIGHT_MAP): Opt out of marketing and Delete my
+# data are checked in the same combined submission; Access (Data Request) is
+# its own form. Correct my data is left unchecked (not automated).
+#
+# Page elements:
+#   checkbox value="optout" / value="delete"   Opt out / Delete my data (combined form)
+#   input[name=email|fname|lname|address|city|zip|phone]   Email / First / Last name /
+#                                              Address / City / ZIP / Phone
+#   the page's only <select>                   State
+#   checkbox "I affirm I am the consumer..."  Attestation (required)
+#   reCAPTCHA v2 checkbox (manual)
 import asyncio
 
+from src.dsar import js_utils
+from src.dsar.rights import Right
 from src.dsar.super_scraper import SuperScraper
 
 from pydoll.browser.chromium import Chrome
-from pydoll.browser.options import ChromiumOptions
 
 OPT_OUT_URL = "https://www.rayinsights.com/ray-cdp-opt-out-and-delete-request/"
 DATA_REQUEST_URL = "https://www.rayinsights.com/raycdp-data-request/"
+
+# Right -> checkbox values on the combined opt-out/delete form; access is the separate
+# Data Request form (DATA_REQUEST_URL), so it has no checkbox.
+RIGHT_MAP = {
+    Right.RIGHT_TO_ACCESS: [],
+    Right.RIGHT_TO_OPT_OUT: ["optout"],
+    Right.RIGHT_TO_DELETE: ["delete"],
+}
+RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
+
+PAGE_RIGHTS = {}  # TODO(health-check): run HEALTH_CHECK once live; it prints the full list
+# (Two separate forms; only some checkbox labels are recorded verbatim.)
+
+FIELD_XPATHS = {
+    "Email": "//input[@name='email']",
+    "First name": "//input[@name='fname']",
+    "Last name": "//input[@name='lname']",
+    "Address": "//input[@name='address']",
+    "City": "//input[@name='city']",
+    "Zip": "//input[@name='zip']",
+    "State": "//select",
+}
 
 
 async def _fill_common_fields(tab, super_scraper):
@@ -52,12 +83,7 @@ async def _fill_common_fields(tab, super_scraper):
 
     state_select = await tab.find(tag_name="select", raise_exc=False)
     if state_select:
-        await state_select.execute_script(
-            "for (var i=0;i<this.options.length;i++){"
-            f"  if(this.options[i].text==={SuperScraper.STATE!r}){{ this.selectedIndex=i; }}"
-            "}"
-            "this.dispatchEvent(new Event('change', {bubbles:true}));"
-        )
+        await js_utils.select_native_option(state_select, text=SuperScraper.STATE, dispatch=("change",))
     else:
         print(f"{super_scraper.OOPS} State select not found")
 
@@ -76,14 +102,14 @@ async def _fill_common_fields(tab, super_scraper):
     else:
         print(f"{super_scraper.OOPS} affirmation checkbox not found")
 
+    if SuperScraper.HEALTH_CHECK:
+        await SuperScraper.assert_fields_filled(tab, FIELD_XPATHS)
 
-async def submit_opt_out_delete_correct(super_scraper, tab):
+
+async def submit_opt_out_delete(super_scraper, tab, checkbox_values):
     await tab.go_to(OPT_OUT_URL)
     await asyncio.sleep(5)
 
-    checkbox_values = ["optout"]
-    if SuperScraper.REMOVE_INFORMATION:
-        checkbox_values.append("delete")
     for value in checkbox_values:
         checkbox = await tab.find(xpath=f"//input[@type='checkbox' and @value='{value}']", raise_exc=False)
         if checkbox:
@@ -94,8 +120,7 @@ async def submit_opt_out_delete_correct(super_scraper, tab):
     await _fill_common_fields(tab, super_scraper)
 
     await asyncio.sleep(1)
-    await tab.take_screenshot(path="resources/screenshots/rayinsights_dry_run_opt_out_delete_correct.png")
-    print("Screenshot saved to resources/screenshots/rayinsights_dry_run_opt_out_delete_correct.png")
+    await SuperScraper.screenshot(tab, "dry_run_opt_out_delete")
 
 
 async def submit_data_request(super_scraper, tab):
@@ -105,22 +130,29 @@ async def submit_data_request(super_scraper, tab):
     await _fill_common_fields(tab, super_scraper)
 
     await asyncio.sleep(1)
-    await tab.take_screenshot(path="resources/screenshots/rayinsights_dry_run_data_request.png")
-    print("Screenshot saved to resources/screenshots/rayinsights_dry_run_data_request.png")
+    await SuperScraper.screenshot(tab, "dry_run_data_request")
 
 
 async def main():
-    options = ChromiumOptions()
     super_scraper = SuperScraper()
-    options.binary_location = super_scraper.CHROMIUM_LOCATION
-    options.add_argument("--no-sandbox")
+    if SuperScraper.bail_if_not_automatable(globals()):
+        return
+    rights = SuperScraper.rights_to_exercise(RIGHT_MAP)
+    if not rights:
+        print("No requested privacy rights apply to this form — nothing to do.")
+        return
+    checkbox_values = [cb for right in rights for cb in RIGHT_MAP[right]]
+
+    options = SuperScraper.build_chromium_options()
 
     async with Chrome(options=options) as browser:
         tab = await browser.start()
-        await submit_opt_out_delete_correct(super_scraper, tab)
-        await submit_data_request(super_scraper, tab)
+        if checkbox_values:
+            await submit_opt_out_delete(super_scraper, tab, checkbox_values)
+        if Right.RIGHT_TO_ACCESS in rights:
+            await submit_data_request(super_scraper, tab)
         print(
-            "\nBoth requests filled but NOT submitted — a reCAPTCHA v2 checkbox is present "
+            "\nRequests filled but NOT submitted — a reCAPTCHA v2 checkbox is present "
             "on each form and requires a manual solve."
         )
 

@@ -3,31 +3,64 @@
 # at fraiser.org/data-request-form only embeds this via a near-invisible
 # (height:0) iframe with no accessible text in the outer document — navigate
 # directly to the iframe URL instead. Jurisdiction auto-detects from STATE.
-# One card/right per pass, own URL flow (click card -> fill -> submit):
-# Correct, Summarize (Access), Transfer (Portability), Do Not Sell/Share,
-# Don't Use for Advertising (Opt-Out targeted ads), Third Parties Data Was
-# Sold/Shared With, Opt-Out of Profiling unconditionally; Delete gated on
-# REMOVE_INFORMATION. "I am submitting this request for" select set to
-# "Myself". Cloudflare Turnstile present — requires manual solve in live mode.
+# One card per right, each its own URL flow (click card -> fill -> submit).
+# Which cards run is decided ONLY by SuperScraper.rights_to_exercise(RIGHT_MAP).
+# "Correct my personal information" is not automated (PAGE_RIGHTS -> None).
+# Cloudflare Turnstile present — requires manual solve in live mode.
+#
+# Page elements (cards are matched by their visible text):
+#   Card "Summarize my personal information"                 -> Access
+#   Card "Transfer my personal information"                  -> Access (portability)
+#   Card "Do Not Sell or Share to a Third Party"             -> Opt-out
+#   Card "Don't use my personal information for advertising" -> Opt-out (targeted ads)
+#   Card "Opt Out of Profiling / Automated Decision-Making"  -> Opt-out
+#   Card "Third parties your data was sold or shared with"   -> List of third parties
+#   Card "Delete my personal information"                    -> Delete
+#   select[name=o-submitter]  "I am submitting this request for" -> "Myself"
+#   email / given-name / family-name       Email / First name / Last name
+#   o-address-line-1 / o-city / o-state / o-zip   Street address / City / State / ZIP
+#   phone-number                           Phone number
 import asyncio
 
-from src.dsar.super_scraper import SuperScraper
-
 from pydoll.browser.chromium import Chrome
-from pydoll.browser.options import ChromiumOptions
+
+from src.dsar import js_utils
+from src.dsar.rights import Right
+from src.dsar.super_scraper import SuperScraper
 
 URL = "https://my.datasubject.com/Azq9ITU2sQioIKhOV/44046"
 
-RIGHTS = [
-    ("Correct my personal information", "correct"),
-    ("Summarize my personal information", "access"),
-    ("Transfer my personal information", "portability"),
-    ("Do Not Sell or Share to a Third Party", "opt_out_sale"),
-    ("Don't use my personal information for advertising", "opt_out_ads"),
-    ("Third parties your data was sold or shared with", "third_parties"),
-    ("Opt Out of Profiling / Automated Decision-Making", "opt_out_profiling"),
-]
-DELETE_RIGHT = ("Delete my personal information", "delete")
+SUBMITTER_SELECT_NAME = "o-submitter"  # "I am submitting this request for"
+
+# Right -> list of (card text, screenshot label); one pass per card.
+RIGHT_MAP = {
+    Right.RIGHT_TO_ACCESS: [
+        ("Summarize my personal information", "access"),
+        ("Transfer my personal information", "portability"),
+    ],
+    Right.RIGHT_TO_OPT_OUT: [
+        ("Do Not Sell or Share to a Third Party", "opt_out_sale"),
+        ("Don't use my personal information for advertising", "opt_out_ads"),
+        ("Opt Out of Profiling / Automated Decision-Making", "profiling"),
+    ],
+    Right.RIGHT_TO_LIST_OF_THIRD_PARTIES: [
+        ("Third parties your data was sold or shared with", "third_parties"),
+    ],
+    Right.RIGHT_TO_DELETE: [("Delete my personal information", "delete")],
+}
+RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
+
+# Cards the portal offers -> the Right they map to (None = deliberately not automated).
+PAGE_RIGHTS = {
+    "Correct my personal information": None,
+    "Summarize my personal information": Right.RIGHT_TO_ACCESS,
+    "Transfer my personal information": Right.RIGHT_TO_ACCESS,
+    "Do Not Sell or Share to a Third Party": Right.RIGHT_TO_OPT_OUT,
+    "Don't use my personal information for advertising": Right.RIGHT_TO_OPT_OUT,
+    "Third parties your data was sold or shared with": Right.RIGHT_TO_LIST_OF_THIRD_PARTIES,
+    "Opt Out of Profiling / Automated Decision-Making": Right.RIGHT_TO_OPT_OUT,
+    "Delete my personal information": Right.RIGHT_TO_DELETE,
+}
 
 
 async def submit_request(tab, card_text, label, super_scraper):
@@ -41,10 +74,11 @@ async def submit_request(tab, card_text, label, super_scraper):
     await card.click()
     await asyncio.sleep(1)
 
-    await tab.execute_script(
-        'var s = document.querySelector("select[name=\\"o-submitter\\"]"); '
-        's.value = "Myself"; s.dispatchEvent(new Event("change"));'
-    )
+    submitter = await tab.find(name=SUBMITTER_SELECT_NAME, raise_exc=False)
+    if submitter:
+        await js_utils.select_native_option(submitter, value="Myself", dispatch=("change",))
+    else:
+        print(f"{super_scraper.OOPS} 'submitting this request for' select not found")
 
     for name, value in [
         ("email", SuperScraper.EMAIL),
@@ -67,35 +101,30 @@ async def submit_request(tab, card_text, label, super_scraper):
             f"{SuperScraper.FIRST_NAME} {SuperScraper.LAST_NAME} <{SuperScraper.EMAIL}>"
         )
         await asyncio.sleep(1)
-        await tab.take_screenshot(path=f"resources/screenshots/fraiser_dry_run_{label}.png")
-        print(f"Screenshot saved to resources/screenshots/fraiser_dry_run_{label}.png")
+        await SuperScraper.screenshot(tab, f"dry_run_{label}")
         return
 
     print(f"\nForm filled for '{card_text}'. Solve the Cloudflare Turnstile challenge,")
     print("click Submit, then press Enter once the confirmation appears...")
     input()
 
-    source = await tab.page_source
-    if any(w in source.lower() for w in ("thank", "success", "received", "submitted", "confirmation")):
-        print(f"Submitted '{card_text}' for {SuperScraper.FIRST_NAME} {SuperScraper.LAST_NAME}")
-    else:
-        print(f"{super_scraper.OOPS} Confirmation unclear for '{card_text}' — verify in browser")
+    print(f"Submitted '{card_text}' for {SuperScraper.EMAIL} — confirm in the browser.")
 
 
 async def main():
-    options = ChromiumOptions()
     super_scraper = SuperScraper()
-    options.binary_location = super_scraper.CHROMIUM_LOCATION
-    options.add_argument("--no-sandbox")
+    options = SuperScraper.build_chromium_options()
 
-    rights = list(RIGHTS)
-    if SuperScraper.REMOVE_INFORMATION:
-        rights.append(DELETE_RIGHT)
+    rights = SuperScraper.rights_to_exercise(RIGHT_MAP)
+    if not rights:
+        print("No requested privacy rights apply to this form — nothing to do.")
+        return
 
     async with Chrome(options=options) as browser:
         tab = await browser.start()
-        for card_text, label in rights:
-            await submit_request(tab, card_text, label, super_scraper)
+        for right in rights:
+            for card_text, label in RIGHT_MAP[right]:
+                await submit_request(tab, card_text, label, super_scraper)
 
 
 asyncio.run(main())

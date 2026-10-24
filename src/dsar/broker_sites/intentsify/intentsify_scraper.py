@@ -7,44 +7,67 @@
 # Reason options: "Do not sell or share my personal information", "Do not process
 # my information for purposes of targeted advertising", "Request to delete/erase
 # my personal information", "Request to correct/rectify my personal information",
-# "Request to know/access my personal information". One submission per reason:
-# know/access + do-not-sell + do-not-process-for-ads unconditional; delete/erase
-# gated on REMOVE_INFORMATION; correct/rectify skipped.
+# "Request to know/access my personal information". One submission per reason; which
+# run is decided only by SuperScraper.rights_to_exercise (know/access -> ACCESS,
+# do-not-sell + do-not-process-for-ads -> OPT_OUT, delete/erase -> DELETE);
+# correct/rectify is not automated.
 # Cloudflare Turnstile gates submission — form filled and left for a manual
 # solve.  **CAPTCHA solution required**
+#
+# Page elements:
+#   input[name=email]                 Email
+#   input[name=firstName] / [name=lastName]   First / Last name
+#   <select> with first option "Select country"   Country -> United States
+#   <select> with first option "Select state"     Residence - State (2-letter value)
+#   <select> with first option "Select a reason"  Reason (options in RIGHT_MAP)
 import asyncio
 import time
 
 from pydoll.browser.chromium import Chrome
-from pydoll.browser.options import ChromiumOptions
 
+from src.dsar import js_utils
+from src.dsar.rights import Right
 from src.dsar.super_scraper import SuperScraper
 
 URL = "https://app.intentsify.io/opt-out"
 
-REASONS = [
-    ("Request to know/access my personal information", "access"),
-    ("Do not sell or share my personal information", "opt_out_sale"),
-    ("Do not process my information for purposes of targeted advertising", "opt_out_ads"),
-]
-DELETE_REASON = ("Request to delete/erase my personal information", "delete")
+RIGHT_MAP = {
+    Right.RIGHT_TO_ACCESS: [("Request to know/access my personal information", "access")],
+    Right.RIGHT_TO_OPT_OUT: [
+        ("Do not sell or share my personal information", "opt_out_sale"),
+        ("Do not process my information for purposes of targeted advertising", "opt_out_ads"),
+    ],
+    Right.RIGHT_TO_DELETE: [("Request to delete/erase my personal information", "delete")],
+}
+RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
+
+# Every option in the "Select a reason" <select>, as displayed -> the Right it maps to (None = not automated).
+PAGE_RIGHTS = {
+    "Do not sell or share my personal information": Right.RIGHT_TO_OPT_OUT,
+    "Do not process my information for purposes of targeted advertising": Right.RIGHT_TO_OPT_OUT,
+    "Request to delete/erase my personal information": Right.RIGHT_TO_DELETE,
+    "Request to correct/rectify my personal information": None,
+    "Request to know/access my personal information": Right.RIGHT_TO_ACCESS,
+}
+RIGHTS_OPTIONS_CSS = ""  # TODO(health-check): the reason <select> has no name/id; capture a selector on a live run (no audit wired until then)
+
+FIELD_XPATHS = {
+    "Email": "//input[@name='email']",
+    "First name": "//input[@name='firstName']",
+    "Last name": "//input[@name='lastName']",
+    "Country": "//select[option[normalize-space()='Select country']]",
+    "State": "//select[option[normalize-space()='Select state']]",
+    "Reason": "//select[option[normalize-space()='Select a reason']]",
+}
 
 
 async def _select_by_text(tab, select_xpath, text):
     el = await tab.find(xpath=select_xpath, raise_exc=False)
-    if not el:
-        return
-    await el.execute_script(
-        f"const w={text.lower()!r};"
-        "const o=[...this.options].find(x=>x.text.trim().toLowerCase()===w);"
-        "if(o){const s=Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype,'value').set;"
-        "s.call(this,o.value);"
-        "this.dispatchEvent(new Event('input',{bubbles:true}));"
-        "this.dispatchEvent(new Event('change',{bubbles:true}));}"
-    )
+    if el:
+        await js_utils.select_native_option(el, text=text, ci=True)
 
 
-async def submit_request(tab, reason_text, label, super_scraper):
+async def submit_request(tab, right, reason_text, label, super_scraper):
     await tab.go_to(URL)
     await asyncio.sleep(6)
 
@@ -62,13 +85,15 @@ async def submit_request(tab, reason_text, label, super_scraper):
     await asyncio.sleep(1)
     # "Residence - State" <select> only renders after Country is set; its options
     # are 2-letter abbreviations, so convert "Minnesota" -> "MN".
-    state_abbr = await super_scraper.state_full_name_to_abbreviated(SuperScraper.STATE)
+    state_abbr = SuperScraper.STATE_ABBREVIATED
     await _select_by_text(tab, "//select[option[normalize-space()='Select state']]", state_abbr)
     await _select_by_text(tab, "//select[option[normalize-space()='Select a reason']]", reason_text)
 
+    if SuperScraper.HEALTH_CHECK:
+        await SuperScraper.assert_fields_filled(tab, FIELD_XPATHS)
+
     time.sleep(0.5)
-    await tab.take_screenshot(f"resources/screenshots/intentsify_dry_run_{label}.png")
-    print(f"Screenshot saved to resources/screenshots/intentsify_dry_run_{label}.png")
+    await SuperScraper.screenshot(tab, f"dry_run_{label}")
     print(
         f"'{reason_text}' filled but NOT submitted — a Cloudflare Turnstile must be "
         f"solved manually before submitting."
@@ -77,23 +102,23 @@ async def submit_request(tab, reason_text, label, super_scraper):
     if not SuperScraper.DRY_RUN:
         print("Solve the Turnstile, click Submit, then press Enter once confirmed...")
         input()
+        print(f"Submitted '{right.name}' ({reason_text}) for {SuperScraper.EMAIL} — confirm in the browser.")
 
 
 async def main():
-    options = ChromiumOptions()
     super_scraper = SuperScraper()
-    options.binary_location = super_scraper.CHROMIUM_LOCATION
-    options.add_argument("--no-sandbox")
-    options.add_argument("--window-size=1280,2200")
+    options = SuperScraper.build_chromium_options()
 
-    reasons = list(REASONS)
-    if SuperScraper.REMOVE_INFORMATION:
-        reasons.append(DELETE_REASON)
+    rights = SuperScraper.rights_to_exercise(RIGHT_MAP)
+    if not rights:
+        print("No requested privacy rights apply to this form — nothing to do.")
+        return
 
     async with Chrome(options=options) as browser:
         tab = await browser.start()
-        for reason_text, label in reasons:
-            await submit_request(tab, reason_text, label, super_scraper)
+        for right in rights:
+            for reason_text, label in RIGHT_MAP[right]:
+                await submit_request(tab, right, reason_text, label, super_scraper)
 
 
 asyncio.run(main())

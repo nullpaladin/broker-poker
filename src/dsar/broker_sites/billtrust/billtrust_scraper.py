@@ -12,21 +12,49 @@
 # know which product a given data subject actually used. Despite the
 # plural "type(s)" label, request type is actually single-select — clicking
 # a second option deselects the first (confirmed via aria-selected) — so
-# this is one submission per right: Info Request (Access) and Do Not Sell My
-# Information unconditionally; Data Deletion gated on REMOVE_INFORMATION.
+# this is one submission per right: Info Request (Access), Do Not Sell My
+# Information (Opt-out) and Data Deletion (Delete). Which of them run is decided ONLY by
+# SuperScraper.rights_to_exercise(RIGHT_MAP).
 # "Request Details" is a required free-text field describing the request.
 # reCAPTCHA v2 requires a manual solve in live mode.
+#
+# Page elements:
+#   #countryDSARElement          Country (vt-autocomplete; type, click vt-option)
+#   div[role=option][aria-label="Customer"]  "I am a(n)" choice
+#   div[role=option][aria-label="Billtrust Collections"]  "Products" choice
+#   #stateDSARElement            State (vt-autocomplete)
+#   div[role=option][aria-label=<entry>]  "Select request type(s)" choice (single-select)
+#   #firstNameDSARElement / #lastNameDSARElement   First / Last name
+#   #emailDSARElement            Email
+#   #requestDetailsDSARElement   "Request Details" free-text
 import asyncio
 
+from src.dsar.rights import Right
 from src.dsar.super_scraper import SuperScraper
 
 from pydoll.browser.chromium import Chrome
-from pydoll.browser.options import ChromiumOptions
 
 URL = "https://privacyportal.onetrust.com/webform/82a6a736-b3a7-4e87-a2fd-04a39b7d2b19/2f5dc7b8-7698-4623-82d2-b2b969ef901e"
 
-RIGHTS = ["Info Request", "Do Not Sell My Information"]
-DELETE_RIGHT = "Data Deletion"
+RIGHT_MAP = {
+    Right.RIGHT_TO_ACCESS: ["Info Request"],
+    Right.RIGHT_TO_OPT_OUT: ["Do Not Sell My Information"],
+    Right.RIGHT_TO_DELETE: ["Data Deletion"],
+}
+RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
+
+PAGE_RIGHTS = {}  # TODO(health-check): run HEALTH_CHECK once live; it prints the full list
+# (The request-type options are div[role=option] aria-labels shared with other option groups on the page,
+# so no selector is wired yet.)
+
+FIELD_XPATHS = {
+    "Country": "//*[@id='countryDSARElement']",
+    "State": "//*[@id='stateDSARElement']",
+    "First name": "//*[@id='firstNameDSARElement']",
+    "Last name": "//*[@id='lastNameDSARElement']",
+    "Email": "//*[@id='emailDSARElement']",
+    "Request details": "//*[@id='requestDetailsDSARElement']",
+}
 
 
 async def _click_option(tab, aria_label, super_scraper, description):
@@ -54,7 +82,7 @@ async def _fill_autocomplete(tab, field_id, text, super_scraper, description):
         await asyncio.sleep(0.5)
 
 
-async def submit_request(tab, right, super_scraper):
+async def submit_request(tab, right, entry, super_scraper):
     await tab.go_to(URL)
     await asyncio.sleep(6)
 
@@ -69,7 +97,7 @@ async def submit_request(tab, right, super_scraper):
     await _click_option(tab, "Billtrust Collections", super_scraper, "Products")
     await _fill_autocomplete(tab, "stateDSARElement", SuperScraper.STATE, super_scraper, "State")
 
-    await _click_option(tab, right, super_scraper, "request type")
+    await _click_option(tab, entry, super_scraper, "request type")
 
     first = await tab.find(id="firstNameDSARElement", raise_exc=False)
     last = await tab.find(id="lastNameDSARElement", raise_exc=False)
@@ -83,37 +111,36 @@ async def submit_request(tab, right, super_scraper):
     if email:
         await email.type_text(SuperScraper.EMAIL)
     if details:
-        await details.type_text(f"I am {SuperScraper.FIRST_NAME} {SuperScraper.LAST_NAME}. Please process my '{right}' request.")
+        await details.type_text(SuperScraper.request_statement([right], broker="Billtrust"))
 
-    label = right.lower().replace(" ", "_")
+    if SuperScraper.HEALTH_CHECK:
+        await SuperScraper.assert_fields_filled(tab, FIELD_XPATHS)
 
     if SuperScraper.DRY_RUN:
-        print(f"DRY RUN: would submit '{right}' request for {SuperScraper.FIRST_NAME} {SuperScraper.LAST_NAME}")
+        print(f"DRY RUN: would submit '{right.name}' for {SuperScraper.EMAIL}")
         await asyncio.sleep(1)
-        await tab.take_screenshot(path=f"resources/screenshots/billtrust_dry_run_{label}.png")
-        print(f"Screenshot saved to resources/screenshots/billtrust_dry_run_{label}.png")
+        await SuperScraper.screenshot(tab, f"dry_run_{right.value}")
         return
 
-    print(f"\nForm filled for '{right}'. Solve the reCAPTCHA v2, then click Submit.")
+    print(f"\nForm filled for '{right.name}'. Solve the reCAPTCHA v2, then click Submit.")
     print("Press Enter after the confirmation page appears...")
     input()
-    print(f"Submitted '{right}' request for {SuperScraper.FIRST_NAME} {SuperScraper.LAST_NAME}")
+    print(f"Submitted '{right.name}' for {SuperScraper.EMAIL} — confirm in the browser.")
 
 
 async def main():
-    options = ChromiumOptions()
     super_scraper = SuperScraper()
-    options.binary_location = super_scraper.CHROMIUM_LOCATION
-    options.add_argument("--no-sandbox")
+    rights = SuperScraper.rights_to_exercise(RIGHT_MAP)
+    if not rights:
+        print("No requested privacy rights apply to this form — nothing to do.")
+        return
 
-    rights = list(RIGHTS)
-    if SuperScraper.REMOVE_INFORMATION:
-        rights.append(DELETE_RIGHT)
-
+    options = SuperScraper.build_chromium_options()
     async with Chrome(options=options) as browser:
         tab = await browser.start()
         for right in rights:
-            await submit_request(tab, right, super_scraper)
+            for entry in RIGHT_MAP[right]:
+                await submit_request(tab, right, entry, super_scraper)
 
 
 asyncio.run(main())

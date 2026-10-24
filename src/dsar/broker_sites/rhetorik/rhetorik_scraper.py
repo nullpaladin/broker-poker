@@ -5,8 +5,8 @@
 # ("Right to Delete", "Right to Object / Opt out of Sales", "Right to Know /
 # Access", "Right to Rectify / Correct"), sometimes only "General User Request"
 # / "Other". So this scraper does ONE combined submission: it clicks whichever
-# granular right buttons are present (Know/Access + Object/Opt-out always, Delete
-# when REMOVE_INFORMATION), falls back to "General User Request" if the granular
+# granular right buttons are present (those selected by rights_to_exercise:
+# Know/Access, Object/Opt-out, Delete), falls back to "General User Request" if the granular
 # set isn't rendered, and ALWAYS spells the requested rights out in the
 # "Additional Request Details" textarea so intent is unambiguous either way.
 # "I am submitting this request as the" (subjectTypesDSARElement) is answered
@@ -14,27 +14,51 @@
 # autocomplete combobox. Submission is gated by a distorted-text image CAPTCHA
 # (captchaCode), NOT reCAPTCHA — filled completely, code left for manual entry.
 # **CAPTCHA solution required**
+#
+# Page elements:
+#   role=option "Right to Know / Access" / "Right to Object / Opt out of Sales" / "Right to Delete"
+#                                  request-type listbox buttons ("General User Request" is the fallback)
+#   role=option "data owner / subject"   "I am submitting this request as the" answer
+#   #countryDSARElement / #stateDSARElement   Country / State autocompletes
+#   #firstNameDSARElement / #lastNameDSARElement / #emailDSARElement / #phoneNumberDSARElement
+#   #requestDetailsDSARElement     "Additional Request Details" textarea
+#   #dsar-webform-submit-button    Submit button
+#   captchaCode                    distorted-text image CAPTCHA (manual entry)
 import asyncio
 import time
 
 from pydoll.browser.chromium import Chrome
-from pydoll.browser.options import ChromiumOptions
 from pydoll.constants import Key
 
+from src.dsar import js_utils
+from src.dsar.rights import Right
 from src.dsar.super_scraper import SuperScraper
 
 URL = "https://privacyportal.onetrust.com/webform/0f61f895-d08d-410f-b96d-ecfd34fd42e3/83acc2bf-4742-4946-8a7a-7b2a463d00a5"
 
-GRANULAR_RIGHTS = ["Right to Know / Access", "Right to Object / Opt out of Sales"]
-GRANULAR_DELETE = "Right to Delete"
+RIGHT_MAP = {
+    Right.RIGHT_TO_ACCESS: ["Right to Know / Access"],
+    Right.RIGHT_TO_OPT_OUT: ["Right to Object / Opt out of Sales"],
+    Right.RIGHT_TO_DELETE: ["Right to Delete"],
+}
+RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
+
+PAGE_RIGHTS = {}  # TODO(health-check): run HEALTH_CHECK once live; it prints the full list
+# (The request-type listbox is inconsistent between loads, so no stable inventory exists.)
+
+FIELD_XPATHS = {
+    "Country": "//*[@id='countryDSARElement']",
+    "State": "//*[@id='stateDSARElement']",
+    "First name": "//*[@id='firstNameDSARElement']",
+    "Last name": "//*[@id='lastNameDSARElement']",
+    "Email": "//*[@id='emailDSARElement']",
+    "Phone": "//*[@id='phoneNumberDSARElement']",
+    "Request details": "//*[@id='requestDetailsDSARElement']",
+}
 
 
 async def _field_value(field):
-    res = await field.execute_script("return this.value;")
-    try:
-        return (res["result"]["result"]["value"] or "").strip()
-    except (KeyError, TypeError):
-        return ""
+    return ((await js_utils.js_eval(field, "return this.value;")) or "").strip()
 
 
 async def _select_autocomplete(tab, field_id, search_text):
@@ -79,23 +103,22 @@ async def _click_listbox_option(tab, aria_label):
 
 
 async def main():
-    options = ChromiumOptions()
     super_scraper = SuperScraper()
-    options.binary_location = super_scraper.CHROMIUM_LOCATION
-    options.add_argument("--no-sandbox")
-    options.add_argument("--window-size=1280,2400")
+    rights = SuperScraper.rights_to_exercise(RIGHT_MAP)
+    if not rights:
+        print("No requested privacy rights apply to this form — nothing to do.")
+        return
+    options = SuperScraper.build_chromium_options()
 
     async with Chrome(options=options) as browser:
         tab = await browser.start()
         await tab.go_to(URL)
         await asyncio.sleep(8)
 
-        wanted = list(GRANULAR_RIGHTS)
-        if SuperScraper.REMOVE_INFORMATION:
-            wanted.append(GRANULAR_DELETE)
+        wanted = [entry for right in rights for entry in RIGHT_MAP[right]]
         picked_any = False
-        for right in wanted:
-            if await _click_listbox_option(tab, right):
+        for entry in wanted:
+            if await _click_listbox_option(tab, entry):
                 picked_any = True
         if not picked_any:
             await _click_listbox_option(tab, "General User Request")
@@ -117,27 +140,19 @@ async def main():
                 await el.type_text(value)
                 await asyncio.sleep(0.2)
 
-        rights_text = (
-            "I am a resident exercising my state privacy rights. I request: "
-            "(1) to know/access the personal information you hold about me, its "
-            "sources and the parties it has been disclosed to; (2) to opt out of "
-            "the sale and sharing of my personal information and of targeted "
-            "advertising / profiling"
-        )
-        if SuperScraper.REMOVE_INFORMATION:
-            rights_text += "; (3) deletion of all personal information you hold about me"
-        rights_text += "."
+        rights_text = SuperScraper.request_statement(rights, broker="Rhetorik")
         details = await tab.find(id="requestDetailsDSARElement", raise_exc=False)
         if details:
             await details.type_text(rights_text)
 
         time.sleep(0.5)
+        if SuperScraper.HEALTH_CHECK:
+            await SuperScraper.assert_fields_filled(tab, FIELD_XPATHS)
+
         submit_btn = await tab.find(id="dsar-webform-submit-button", raise_exc=False)
         if submit_btn:
             await submit_btn.scroll_into_view()
-        await tab.take_screenshot("resources/screenshots/rhetorik_dry_run.png")
-        print("Screenshot saved to resources/screenshots/rhetorik_dry_run.png")
-
+        await SuperScraper.screenshot(tab, "dry_run_" + "_".join(r.value for r in rights))
         if SuperScraper.DRY_RUN:
             print(
                 f"DRY RUN: would submit combined privacy request for "
@@ -148,11 +163,6 @@ async def main():
         print("\nForm filled. Type the CAPTCHA code shown in the browser, click Submit,")
         print("then press Enter once the confirmation page appears...")
         input()
-        source = await tab.page_source
-        if any(w in source.lower() for w in ("thank", "success", "received", "submitted", "confirmation")):
-            print(f"Submitted for {SuperScraper.FIRST_NAME} {SuperScraper.LAST_NAME}")
-        else:
-            print(f"{super_scraper.OOPS} Confirmation unclear — verify in browser")
-
+        print(f"Submitted {[r.name for r in rights]} for {SuperScraper.EMAIL} — confirm in the browser.")
 
 asyncio.run(main())

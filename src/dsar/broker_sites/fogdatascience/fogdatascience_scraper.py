@@ -7,30 +7,45 @@
 #   "Mobile Advertising ID" textarea (required) -> the MAID
 #   "Identifier" text -> also the MAID
 #   a Yes/No checkbox pair (residency/attestation) -> "Yes"
-#   a rights checkbox group -> "Right to Know" + "Right to Access" + "Right to
-#       Opt-out" unconditionally; "Right to Delete" gated on REMOVE_INFORMATION;
-#       "Right to Limit" skipped.
+#   a rights checkbox group -> "Right to Know" + "Right to Access" (Access),
+#       "Right to Opt-out" (Opt-Out), "Right to Delete" (Delete);
+#       "Right to Limit" is offered but not automated.
 # reCAPTCHA Enterprise gates submit — filled to that point.
 # **CAPTCHA solution required**
+#
+# Page elements:
+#   input[name=fname] / input[name=lname] / input[type=email]   First / Last name / Email
+#   textarea-f01c0ab9-...-field    "Message" textarea (fallback: first textarea)
+#   textarea-2a4cf7b5-...-field    "Mobile Advertising ID" textarea (fallback: second textarea)
+#   text-471c630a-...-field        "Identifier" text input
+#   "Yes" checkbox                 Yes/No checkbox pair
+#   rights checkboxes, by label text (see RIGHT_MAP)
+#   "Accept all" cookie button
 import asyncio
 
 from pydoll.browser.chromium import Chrome
-from pydoll.browser.options import ChromiumOptions
 
+from src.dsar.rights import Right
 from src.dsar.super_scraper import SuperScraper
 
 URL = "https://www.fogdatascience.com/opt-out"
 
-RIGHTS = ["Right to Know", "Right to Access", "Right to Opt-out"]
-DELETE_RIGHT = "Right to Delete"
+RIGHT_MAP = {
+    Right.RIGHT_TO_ACCESS: ["Right to Know", "Right to Access"],
+    Right.RIGHT_TO_OPT_OUT: ["Right to Opt-out"],
+    Right.RIGHT_TO_DELETE: ["Right to Delete"],
+}
+RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
 
-REQUEST_TEXT = (
-    "I am exercising my applicable state privacy rights with respect to the "
-    "commercially available device location data associated with the mobile "
-    "advertising ID below: the right to know/access what you have, and the "
-    "right to opt out of its sale or sharing."
-)
+PAGE_RIGHTS = {}  # TODO(health-check): run HEALTH_CHECK once live; it prints the full list
+RIGHTS_OPTIONS_CSS = "label:has(input[type='checkbox'])"  # also matches the Yes/No pair; the first live run shows which
 
+FIELD_XPATHS = {
+    "First name": "//input[@name='fname']",
+    "Last name": "//input[@name='lname']",
+    "Email": "//input[@type='email']",
+    "Message": "//textarea[@id='textarea-f01c0ab9-6bb9-48dd-bb97-f71512d2160d-field']",
+}
 
 async def _check_by_text(tab, super_scraper, text):
     for xp in (
@@ -49,11 +64,16 @@ async def _check_by_text(tab, super_scraper, text):
 
 
 async def main():
-    options = ChromiumOptions()
     super_scraper = SuperScraper()
-    options.binary_location = super_scraper.CHROMIUM_LOCATION
-    options.add_argument("--no-sandbox")
-    options.add_argument("--window-size=1280,3200")
+    if SuperScraper.bail_if_not_automatable(globals()):
+        return
+
+    rights = SuperScraper.rights_to_exercise(RIGHT_MAP)
+    if not rights:
+        print("No requested privacy rights apply to this form — nothing to do.")
+        return
+
+    options = SuperScraper.build_chromium_options()
 
     async with Chrome(options=options) as browser:
         tab = await browser.start()
@@ -66,6 +86,10 @@ async def main():
             "if(b)b.click();"
         )
         await asyncio.sleep(1)
+
+        if SuperScraper.HEALTH_CHECK:
+            offered = await SuperScraper.read_option_labels(tab, RIGHTS_OPTIONS_CSS)
+            SuperScraper.audit_rights(offered, PAGE_RIGHTS)
 
         for xp, value in (
             ("//input[@name='fname']", SuperScraper.FIRST_NAME),
@@ -83,7 +107,10 @@ async def main():
         if not msg:
             msg = await tab.find(xpath="(//textarea)[1]", raise_exc=False)
         if msg:
-            await msg.type_text(REQUEST_TEXT)
+            await msg.type_text(
+                SuperScraper.request_statement(rights, broker="Fog Data Science")
+                + " This concerns the mobile advertising ID given below."
+            )
 
         maid = await tab.find(xpath="//textarea[@id='textarea-2a4cf7b5-c8d3-40e4-96be-ead3ca4acd7e-field']", raise_exc=False)
         if not maid:
@@ -97,15 +124,15 @@ async def main():
 
         await _check_by_text(tab, super_scraper, "Yes")
 
-        rights = list(RIGHTS)
-        if SuperScraper.REMOVE_INFORMATION:
-            rights.append(DELETE_RIGHT)
-        for r in rights:
-            await _check_by_text(tab, super_scraper, r)
+        for right in rights:
+            for entry in RIGHT_MAP[right]:
+                await _check_by_text(tab, super_scraper, entry)
+
+        if SuperScraper.HEALTH_CHECK:
+            await SuperScraper.assert_fields_filled(tab, FIELD_XPATHS)
 
         await asyncio.sleep(1)
-        await tab.take_screenshot(path="resources/screenshots/fogdatascience_dry_run.png", beyond_viewport=True)
-        print("Screenshot saved to resources/screenshots/fogdatascience_dry_run.png")
+        await SuperScraper.screenshot(tab, "dry_run")
         print("Request filled but NOT submitted — solve the reCAPTCHA manually, then Submit.")
 
 

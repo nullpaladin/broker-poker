@@ -6,7 +6,8 @@
 #
 # Flow: (1) state/region radio -> (2) request-type radio, single-select (one
 # submission per right): Right to Know - Specific (Access) and Do Not Sell My
-# Data (Opt-Out) unconditionally; Delete My Data gated on REMOVE_INFORMATION
+# Data (Opt-Out) and Delete My Data; which run is decided ONLY by
+# SuperScraper.rights_to_exercise(RIGHT_MAP)
 # (other options — Correct/Port/Profiling/Targeted-Advertising/Question-
 # Profiling/Appeal — are additional granular rights not exercised here) ->
 # (2b) some rights (observed on Opt-Out, not on Access) insert an extra
@@ -19,34 +20,53 @@
 # identifier, and supplying a fake one would misrepresent the request -> (4)
 # Full Name + Email, the only point personal identity is collected at all.
 # Ends in a reCAPTCHA requiring a manual solve in live mode.
+# The state step has an "otherStateOrRegion" option, so residents of states without a
+# privacy law are accepted (default SERVES_NO_LAW_STATES).
+#
+# Page elements (keep this list current; SixFifty option keys, clicked via their <label>):
+#   label[data-testid=-<stateKey>]   State/region radio (e.g. californiaUsa / otherStateOrRegion)
+#   label[data-testid=-rightToKnowSpecific]  Request type: Right to Know - Specific
+#   label[data-testid=-doNotSellMyData]      Request type: Do Not Sell My Data
+#   label[data-testid=-deleteMyData]         Request type: Delete My Data
+#   label[data-testid=-myself]               "Yourself or an authorized agent" -> myself (when shown)
+#   label[data-testid=-iDoNotHaveThisInformationAtThisTime]  Online identifier -> do not have
+#   [data-testid=navFooterNext]      Next button
+#   #requestEasyNameInput            Full name
+#   #requestEasyEmailInput           Email
 import asyncio
 
-from src.dsar.super_scraper import SuperScraper
-
 from pydoll.browser.chromium import Chrome
-from pydoll.browser.options import ChromiumOptions
+
+from src.dsar.rights import Right
+from src.dsar.super_scraper import SuperScraper
 
 URL = "https://app.sixfifty.com/request-easy/653b-4813/questions/5359740"
 
-STATE_TO_KEY = {
-    "california": "californiaUsa",
-    "colorado": "coloradoUsa",
-    "connecticut": "connecticutUsa",
-    "indiana": "indianaUsa",
-    "kentucky": "kentuckyUsa",
-    "maryland": "marylandUsa",
-    "minnesota": "minnesotaUsa",
-    "oregon": "oregonUsa",
-    "rhode island": "rhodeIslandUsa",
-    "tennessee": "tennesseeUsa",
-    "texas": "texasUsa",
-    "utah": "utahUsa",
-    "virginia": "virginiaUsa",
-}
+# SixFifty keys its state radios as e.g. "californiaUsa" / "rhodeIslandUsa" for
+# privacy-law states, "otherStateOrRegion" for everyone else.
 FALLBACK_STATE_KEY = "otherStateOrRegion"
 
-RIGHTS = ["rightToKnowSpecific", "doNotSellMyData"]
-DELETE_RIGHT = "deleteMyData"
+
+def _state_key() -> str:
+    if not SuperScraper.state_has_privacy_law(SuperScraper.STATE):
+        return FALLBACK_STATE_KEY
+    return SuperScraper.state_camel_key(SuperScraper.STATE)
+
+
+# Right -> this form's SixFifty option key. Other granular rights
+# (Correct/Port/Profiling/Targeted-Advertising/Appeal) exist on the form but are
+# not exercised here.
+RIGHT_MAP = {
+    Right.RIGHT_TO_ACCESS: "rightToKnowSpecific",
+    Right.RIGHT_TO_OPT_OUT: "doNotSellMyData",
+    Right.RIGHT_TO_DELETE: "deleteMyData",
+}
+RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
+
+PAGE_RIGHTS = {}  # TODO(health-check): run HEALTH_CHECK once live; it prints the full list
+# Request-type radio labels (label[data-testid^='-'] on the request-type step); only three displayed
+# texts are recorded, so the inventory is left for the first live run.
+RIGHTS_OPTIONS_CSS = "label[data-testid^='-']"
 
 
 async def _click_label(tab, key, super_scraper, description):
@@ -66,16 +86,19 @@ async def _next(tab):
         await asyncio.sleep(2)
 
 
-async def submit_request(tab, right, super_scraper):
+async def submit_request(tab, right, option_key, super_scraper):
     await tab.go_to(URL)
     await asyncio.sleep(5)
 
-    state_key = STATE_TO_KEY.get(SuperScraper.STATE.strip().lower(), FALLBACK_STATE_KEY)
-    if not await _click_label(tab, state_key, super_scraper, "state"):
+    if not await _click_label(tab, _state_key(), super_scraper, "state"):
         return
     await _next(tab)
 
-    if not await _click_label(tab, right, super_scraper, "request type"):
+    if SuperScraper.HEALTH_CHECK:
+        offered = await SuperScraper.read_option_labels(tab, RIGHTS_OPTIONS_CSS)
+        SuperScraper.audit_rights(offered, PAGE_RIGHTS)
+
+    if not await _click_label(tab, option_key, super_scraper, "request type"):
         return
     await _next(tab)
 
@@ -103,40 +126,43 @@ async def submit_request(tab, right, super_scraper):
         await email_field.click()
         await email_field.type_text(SuperScraper.EMAIL)
 
-    label = right.lower()
+    label = right.value
+
+    if SuperScraper.HEALTH_CHECK:
+        await SuperScraper.assert_fields_filled(tab, {
+            "Full name": "//input[@id='requestEasyNameInput']",
+            "Email": "//input[@id='requestEasyEmailInput']",
+        })
 
     if SuperScraper.DRY_RUN:
-        print(f"DRY RUN: would submit '{right}' request for {SuperScraper.FIRST_NAME} {SuperScraper.LAST_NAME}")
+        print(f"DRY RUN: would submit '{right.name}' for {SuperScraper.EMAIL}")
         await asyncio.sleep(1)
-        await tab.take_screenshot(path=f"resources/screenshots/audigent_dry_run_{label}.png")
-        print(f"Screenshot saved to resources/screenshots/audigent_dry_run_{label}.png")
+        await SuperScraper.screenshot(tab, f"dry_run_{label}")
         return
 
-    print(f"\nForm filled for '{right}'. Solve the reCAPTCHA, click Submit,")
+    print(f"\nForm filled for '{right.name}'. Solve the reCAPTCHA, click Submit,")
     print("then press Enter once the confirmation page appears...")
     input()
 
-    source = await tab.page_source
-    if any(w in source.lower() for w in ("thank", "success", "received", "submitted", "confirmation")):
-        print(f"Submitted '{right}' request for {SuperScraper.FIRST_NAME} {SuperScraper.LAST_NAME}")
-    else:
-        print(f"{super_scraper.OOPS} Confirmation unclear for '{right}' — verify in browser")
+    print(f"Submitted '{right.name}' for {SuperScraper.EMAIL} — confirm in the browser.")
 
 
 async def main():
-    options = ChromiumOptions()
     super_scraper = SuperScraper()
-    options.binary_location = super_scraper.CHROMIUM_LOCATION
-    options.add_argument("--no-sandbox")
+    if SuperScraper.bail_if_not_automatable(globals()):
+        return
 
-    rights = list(RIGHTS)
-    if SuperScraper.REMOVE_INFORMATION:
-        rights.append(DELETE_RIGHT)
+    rights = SuperScraper.rights_to_exercise(RIGHT_MAP)
+    if not rights:
+        print("No requested privacy rights apply to this form — nothing to do.")
+        return
+
+    options = SuperScraper.build_chromium_options()
 
     async with Chrome(options=options) as browser:
         tab = await browser.start()
         for right in rights:
-            await submit_request(tab, right, super_scraper)
+            await submit_request(tab, right, RIGHT_MAP[right], super_scraper)
 
 
 asyncio.run(main())

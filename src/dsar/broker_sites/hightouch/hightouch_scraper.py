@@ -15,21 +15,45 @@
 # id. Previously logged in this repo as a hard 500 server error; that had
 # cleared by the time this scraper was written (same
 # "not-necessarily-permanent block" pattern as ariza.com/atom.com/
-# deloitte.com). Exercises Access and Opt Out unconditionally; Deletion
-# gated on REMOVE_INFORMATION. No captcha observed.
+# deloitte.com). Which requests run is decided ONLY by
+# SuperScraper.rights_to_exercise(RIGHT_MAP). No captcha observed.
+#
+# Page elements:
+#   #privacy-request-center-region-picker   Country/State region picker (option li[aria-label=STATE])
+#   Button "Start Access Request"           Access card
+#   Button "Start Deletion Request"         "Deletion or Opt Out Request" card
+#   input name=first_name / last_name / email_address   First / Last name / Email
+#   div[aria-labelledby=mui-component-select-data_subject_relationship]
+#                                           "Relationship" select -> "Other"
+#   div[aria-labelledby^=mui-component-select-] (the one that is not the relationship select)
+#                                           "Is this a deletion or an opt out request?" ->
+#                                           "Opt Out" / "Deletion"
+#   Button "Review Request" / "Submit Request"
 import asyncio
 
-from src.dsar.super_scraper import SuperScraper
-
 from pydoll.browser.chromium import Chrome
-from pydoll.browser.options import ChromiumOptions
 from pydoll.constants import Key
+
+from src.dsar.rights import Right
+from src.dsar.super_scraper import SuperScraper
 
 URL = "https://preferences.hightouch.com/"
 
-ACCESS = ("access", None)
-OPT_OUT = ("opt_out", "Opt Out")
-DELETE = ("delete", "Deletion")
+# Right -> "Is this a deletion or an opt out request?" choice (None = the Access card).
+RIGHT_MAP = {
+    Right.RIGHT_TO_ACCESS: None,
+    Right.RIGHT_TO_OPT_OUT: "Opt Out",
+    Right.RIGHT_TO_DELETE: "Deletion",
+}
+RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
+
+PAGE_RIGHTS = {}  # TODO(health-check): run HEALTH_CHECK once live; it prints the full list
+
+FIELD_XPATHS = {
+    "First name": "//input[@name='first_name']",
+    "Last name": "//input[@name='last_name']",
+    "Email": "//input[@name='email_address']",
+}
 
 
 async def _fill_common(tab, super_scraper):
@@ -56,7 +80,7 @@ async def _fill_common(tab, super_scraper):
             await asyncio.sleep(0.5)
 
 
-async def submit_request(tab, right_id, sub_choice, super_scraper):
+async def submit_request(tab, right, sub_choice, super_scraper):
     await tab.go_to(URL)
     await asyncio.sleep(5)
 
@@ -109,11 +133,13 @@ async def submit_request(tab, right_id, sub_choice, super_scraper):
         else:
             print(f"{super_scraper.OOPS} deletion/opt-out sub-select not found")
 
+    if SuperScraper.HEALTH_CHECK:
+        await SuperScraper.assert_fields_filled(tab, FIELD_XPATHS)
+
     if SuperScraper.DRY_RUN:
-        print(f"DRY RUN: would submit '{right_id}' for {SuperScraper.FIRST_NAME} {SuperScraper.LAST_NAME}")
+        print(f"DRY RUN: would submit '{right.name}' for {SuperScraper.EMAIL}")
         await asyncio.sleep(1)
-        await tab.take_screenshot(path=f"resources/screenshots/hightouch_dry_run_{right_id}.png")
-        print(f"Screenshot saved to resources/screenshots/hightouch_dry_run_{right_id}.png")
+        await SuperScraper.screenshot(tab, f"dry_run_{right.value}")
         return
 
     review_btn = await tab.find(text="Review Request", raise_exc=False)
@@ -125,25 +151,24 @@ async def submit_request(tab, right_id, sub_choice, super_scraper):
     if submit_btn:
         await submit_btn.click()
         await asyncio.sleep(2)
-        print(f"Submitted '{right_id}' for {SuperScraper.FIRST_NAME} {SuperScraper.LAST_NAME}")
+        print(f"Submitted '{right.name}' for {SuperScraper.EMAIL} — confirm in the browser.")
     else:
-        print(f"{super_scraper.OOPS} Submit Request button not found for '{right_id}'")
+        print(f"{super_scraper.OOPS} Submit Request button not found for '{right.name}'")
 
 
 async def main():
-    options = ChromiumOptions()
     super_scraper = SuperScraper()
-    options.binary_location = super_scraper.CHROMIUM_LOCATION
-    options.add_argument("--no-sandbox")
+    options = SuperScraper.build_chromium_options()
 
-    requests = [ACCESS, OPT_OUT]
-    if SuperScraper.REMOVE_INFORMATION:
-        requests.append(DELETE)
+    rights = SuperScraper.rights_to_exercise(RIGHT_MAP)
+    if not rights:
+        print("No requested privacy rights apply to this form — nothing to do.")
+        return
 
     async with Chrome(options=options) as browser:
         tab = await browser.start()
-        for right_id, sub_choice in requests:
-            await submit_request(tab, right_id, sub_choice, super_scraper)
+        for right in rights:
+            await submit_request(tab, right, RIGHT_MAP[right], super_scraper)
 
 
 asyncio.run(main())

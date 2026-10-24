@@ -2,29 +2,56 @@
 # real, populated `src` (reachable via `tab.get_frame()`, same technique as
 # realsourcedata.com's Tally.so embed elsewhere in this repo). "Type of data
 # request" is a native single-select (Access/Deletion/Rectification) — one
-# submission per right: Access unconditionally, Deletion gated on
-# REMOVE_INFORMATION; Rectification skipped (no concrete inaccuracy). No
-# CAPTCHA. IMPORTANT GAP: the form requires "at least one Twitter, Instagram,
-# or Facebook Handle/URL" to validate identity — Traackr identifies people by
-# social media presence, not name/email alone, and this repo's SuperScraper
-# has no social-handle fields (only LINKEDIN_URL, which isn't one of the
-# accepted platforms). That field is left blank; the form will likely reject
-# submission without it. Everything else is filled and, since there's no
-# CAPTCHA, DRY_RUN is otherwise respected for the parts that can be supplied.
+# submission per right (access, delete); which run is decided ONLY by
+# SuperScraper.rights_to_exercise(RIGHT_MAP). Rectification skipped (no concrete
+# inaccuracy). No CAPTCHA. The form requires "at least one Twitter, Instagram, or Facebook
+# Handle/URL" to validate identity — Traackr identifies people by social media
+# presence, not name/email alone. This is now filled from .env
+# (TWITTER_URL / INSTAGRAM_URL / FACEBOOK_URL, first available); if none are set
+# the field is left blank and the form will likely reject the submission.
+# The social field id (SOCIAL_FIELD_ID) is a best guess — verify on a live run.
+#
+# Page elements (inside the Formsite iframe):
+#   #RESULT_RadioButton-0     "Type of data request" <select> (Radio-0 = Access, Radio-1 = Deletion)
+#   #RESULT_TextField-1       First name
+#   #RESULT_TextField-2       Last name
+#   #RESULT_TextField-3 / #CONFIRM_TextField-3   Email / confirm email
+#   #RESULT_TextField-4       Twitter / Instagram / Facebook handle or URL (id unverified, see above)
+#   #FSsubmit                 Submit button
 import asyncio
 
+from src.dsar import js_utils
+from src.dsar.rights import Right
 from src.dsar.super_scraper import SuperScraper
 
 from pydoll.browser.chromium import Chrome
-from pydoll.browser.options import ChromiumOptions
 
 URL = "https://www.traackr.com/data-opt-out"
 
-RIGHTS = [("Radio-0", "access")]
-DELETE_RIGHT = ("Radio-1", "delete")
+# Right -> "Type of data request" native-select value.
+# Rectification is skipped (no concrete inaccuracy to describe).
+RIGHT_MAP = {
+    Right.RIGHT_TO_ACCESS: "Radio-0",
+    Right.RIGHT_TO_DELETE: "Radio-1",
+}
+RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
+
+PAGE_RIGHTS = {}  # TODO(health-check): run HEALTH_CHECK once live; it prints the full list
+# (The request-type <select> lives inside the Formsite iframe, which read_option_labels cannot read.)
+
+FRAME_FIELD_XPATHS = {
+    "Request type": "//*[@id='RESULT_RadioButton-0']",
+    "First name": "//*[@id='RESULT_TextField-1']",
+    "Last name": "//*[@id='RESULT_TextField-2']",
+    "Email": "//*[@id='RESULT_TextField-3']",
+    "Confirm email": "//*[@id='CONFIRM_TextField-3']",
+}
+
+# Best-guess Formsite id for the social handle/URL field (after name/email/confirm).
+SOCIAL_FIELD_ID = "RESULT_TextField-4"
 
 
-async def submit_request(tab, request_type_value, label, super_scraper):
+async def submit_request(tab, right, request_type_value, super_scraper):
     await tab.go_to(URL)
     await asyncio.sleep(6)
 
@@ -37,12 +64,7 @@ async def submit_request(tab, request_type_value, label, super_scraper):
 
     request_type_select = await frame.find(id="RESULT_RadioButton-0", raise_exc=False)
     if request_type_select:
-        await request_type_select.execute_script(
-            "for (var i=0;i<this.options.length;i++){"
-            f"  if(this.options[i].value==={request_type_value!r}){{ this.selectedIndex=i; }}"
-            "}"
-            "this.dispatchEvent(new Event('change', {bubbles:true}));"
-        )
+        await js_utils.select_native_option(request_type_select, value=request_type_value)
     else:
         print(f"{super_scraper.OOPS} Request type select not found")
 
@@ -59,43 +81,52 @@ async def submit_request(tab, request_type_value, label, super_scraper):
         else:
             print(f"{super_scraper.OOPS} field '{field_id}' not found")
 
+    social_url = SuperScraper.first_social_url()
+    if social_url:
+        social_field = await frame.find(id=SOCIAL_FIELD_ID, raise_exc=False)
+        if social_field:
+            await social_field.type_text(social_url)
+        else:
+            print(f"{super_scraper.OOPS} social handle field '{SOCIAL_FIELD_ID}' not found (verify id)")
+    else:
+        print(
+            f"{super_scraper.OOPS} no TWITTER_URL / INSTAGRAM_URL / FACEBOOK_URL set in .env — "
+            "Traackr requires one to validate identity, so submission will likely be rejected."
+        )
+
+    if SuperScraper.HEALTH_CHECK:
+        # `frame` stands in for `tab`: its find() resolves into the Formsite iframe's document.
+        await SuperScraper.assert_fields_filled(frame, FRAME_FIELD_XPATHS)
+
     await asyncio.sleep(1)
-    await tab.take_screenshot(path=f"resources/screenshots/traackr_dry_run_{label}.png")
-    print(f"Screenshot saved to resources/screenshots/traackr_dry_run_{label}.png")
-    print(
-        "\nNo Twitter/Instagram/Facebook handle was supplied (SuperScraper has no social-handle "
-        "fields) — the form requires at least one to validate identity, so submission will "
-        "likely be rejected even in live mode."
-    )
+    await SuperScraper.screenshot(tab, f"dry_run_{right.value}")
 
     if SuperScraper.DRY_RUN:
-        print(f"DRY RUN: would attempt to submit '{label}' request for {SuperScraper.EMAIL}")
+        print(f"DRY RUN: would submit '{right.name}' for {SuperScraper.EMAIL}")
         return
 
     submit_button = await frame.find(id="FSsubmit", raise_exc=False)
     if submit_button:
         await submit_button.click()
         await asyncio.sleep(3)
-        print(f"Attempted to submit '{label}' request for {SuperScraper.EMAIL}")
+        print(f"Submitted '{right.name}' for {SuperScraper.EMAIL} — confirm in the browser.")
     else:
         print(f"{super_scraper.OOPS} submit button not found")
 
 
 async def main():
-    options = ChromiumOptions()
     super_scraper = SuperScraper()
-    options.binary_location = super_scraper.CHROMIUM_LOCATION
-    options.add_argument("--no-sandbox")
-    options.add_argument("--window-size=1280,3000")
+    options = SuperScraper.build_chromium_options()
 
-    rights = list(RIGHTS)
-    if SuperScraper.REMOVE_INFORMATION:
-        rights.append(DELETE_RIGHT)
+    rights = SuperScraper.rights_to_exercise(RIGHT_MAP)
+    if not rights:
+        print("No requested privacy rights apply to this form — nothing to do.")
+        return
 
     async with Chrome(options=options) as browser:
         tab = await browser.start()
-        for request_type_value, label in rights:
-            await submit_request(tab, request_type_value, label, super_scraper)
+        for right in rights:
+            await submit_request(tab, right, RIGHT_MAP[right], super_scraper)
 
 
 asyncio.run(main())

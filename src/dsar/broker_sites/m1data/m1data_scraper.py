@@ -6,19 +6,54 @@
 # `getBoundingClientRect().height === 0` — a honeypot despite the generic
 # label, deliberately left BLANK (same pattern as leadloft.com/lsmapps.com
 # elsewhere in this repo). reCAPTCHA v2 present via standard hidden
-# g-recaptcha-response field. Exercises Access and Opt-Out unconditionally;
-# Delete gated on REMOVE_INFORMATION.
+# g-recaptcha-response field. Which rights run is decided only by
+# rights_to_exercise(RIGHT_MAP).
+#
+# Page elements:
+#   #FName / #LName      First / Last name
+#   #Address / #Apartment / #City / #State / #Zip   Address / Apartment / City / State (free text) / ZIP
+#   #EmailId / #Phone    Email / Phone
+#   #RequestType1        "Request to Know" radio
+#   #RequestType2        "Request to Delete" radio
+#   #RequestType3        "Do Not Sell My Information" radio
+#   "SUBMIT UNSUBSCRIBE" button (found by text)
 import asyncio
 
-from src.dsar.super_scraper import SuperScraper
-
 from pydoll.browser.chromium import Chrome
-from pydoll.browser.options import ChromiumOptions
+
+from src.dsar.rights import Right
+from src.dsar.super_scraper import SuperScraper
 
 URL = "https://m1-data.com/unsubscribe/"
 
-REQUEST_TYPES = ["RequestType1", "RequestType3"]
-DELETE_REQUEST_TYPE = "RequestType2"
+# Opaque RequestTypeN values — verify against the live form.
+RIGHT_MAP = {
+    Right.RIGHT_TO_ACCESS: "RequestType1",
+    Right.RIGHT_TO_OPT_OUT: "RequestType3",
+    Right.RIGHT_TO_DELETE: "RequestType2",
+}
+RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
+
+# Every request-type radio, as displayed -> the Right it maps to.
+PAGE_RIGHTS = {
+    "Request to Know": Right.RIGHT_TO_ACCESS,
+    "Request to Delete": Right.RIGHT_TO_DELETE,
+    "Do Not Sell My Information": Right.RIGHT_TO_OPT_OUT,
+}
+RIGHTS_OPTIONS_CSS = (
+    "label:has(#RequestType1), label:has(#RequestType2), label:has(#RequestType3), "
+    "label[for='RequestType1'], label[for='RequestType2'], label[for='RequestType3']"
+)  # built from the three recorded radio ids
+
+FIELD_XPATHS = {
+    "First name": "//*[@id='FName']",
+    "Last name": "//*[@id='LName']",
+    "Address": "//*[@id='Address']",
+    "City": "//*[@id='City']",
+    "State": "//*[@id='State']",
+    "Zip": "//*[@id='Zip']",
+    "Email": "//*[@id='EmailId']",
+}
 
 LABELS = {
     "RequestType1": "know",
@@ -30,6 +65,10 @@ LABELS = {
 async def submit_request(tab, request_type_id, super_scraper):
     await tab.go_to(URL)
     await asyncio.sleep(5)
+
+    if SuperScraper.HEALTH_CHECK:
+        offered = await SuperScraper.read_option_labels(tab, RIGHTS_OPTIONS_CSS)
+        SuperScraper.audit_rights(offered, PAGE_RIGHTS)
 
     fields = {
         "FName": SuperScraper.FIRST_NAME,
@@ -59,10 +98,11 @@ async def submit_request(tab, request_type_id, super_scraper):
 
     label = LABELS[request_type_id]
 
-    await asyncio.sleep(1)
-    await tab.take_screenshot(path=f"resources/screenshots/m1data_dry_run_{label}.png")
-    print(f"Screenshot saved to resources/screenshots/m1data_dry_run_{label}.png")
+    if SuperScraper.HEALTH_CHECK:
+        await SuperScraper.assert_fields_filled(tab, FIELD_XPATHS)
 
+    await asyncio.sleep(1)
+    await SuperScraper.screenshot(tab, f"dry_run_{label}")
     if SuperScraper.DRY_RUN:
         print(f"DRY RUN: would submit '{label}' request for {SuperScraper.FIRST_NAME} {SuperScraper.LAST_NAME}")
         return
@@ -71,25 +111,27 @@ async def submit_request(tab, request_type_id, super_scraper):
     if submit_btn:
         await submit_btn.click()
         await asyncio.sleep(2)
-        print(f"Submitted '{label}' request for {SuperScraper.FIRST_NAME} {SuperScraper.LAST_NAME}")
+        print(f"Submitted '{label}' request for {SuperScraper.FIRST_NAME} {SuperScraper.LAST_NAME} — confirm in the browser.")
     else:
         print(f"{super_scraper.OOPS} Submit button not found for '{label}'")
 
 
 async def main():
-    options = ChromiumOptions()
     super_scraper = SuperScraper()
-    options.binary_location = super_scraper.CHROMIUM_LOCATION
-    options.add_argument("--no-sandbox")
+    if SuperScraper.bail_if_not_automatable(globals()):
+        return
 
-    request_types = list(REQUEST_TYPES)
-    if SuperScraper.REMOVE_INFORMATION:
-        request_types.append(DELETE_REQUEST_TYPE)
+    options = SuperScraper.build_chromium_options()
+
+    rights = SuperScraper.rights_to_exercise(RIGHT_MAP)
+    if not rights:
+        print("No requested privacy rights apply to this form — nothing to do.")
+        return
 
     async with Chrome(options=options) as browser:
         tab = await browser.start()
-        for request_type_id in request_types:
-            await submit_request(tab, request_type_id, super_scraper)
+        for right in rights:
+            await submit_request(tab, RIGHT_MAP[right], super_scraper)
 
 
 asyncio.run(main())

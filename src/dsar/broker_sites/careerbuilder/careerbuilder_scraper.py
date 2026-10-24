@@ -1,23 +1,46 @@
 # careerbuilder.com — server-rendered privacy request form, no captcha. One
-# submission per request type: "access" (Access) and "dns" (Do Not Sell/Share)
-# unconditionally; "deletion" gated on REMOVE_INFORMATION. Relation defaults
+# submission per request type: "access" (Access), "dns" (Do Not Sell/Share -> Opt-out)
+# and "deletion" (Delete). Which of them run is decided ONLY by
+# SuperScraper.rights_to_exercise(RIGHT_MAP). Relation defaults
 # to "Other" since a generic data-subject request doesn't map to any of the
 # job-seeker/employee-specific options. Address is a plain textarea (single
 # free-text field, not split into street/city/state/zip).
+#
+# Page elements:
+#   input#name                 Full name (first + last)
+#   input#email                Email
+#   textarea#address           Address
+#   select#relation            Relation -> "other"
+#   select#type                Request type -> "access" / "dns" / "deletion"
+#   button#submitBtn           Submit
 import asyncio
 
+from src.dsar.rights import Right
 from src.dsar.super_scraper import SuperScraper
 
 from pydoll.browser.chromium import Chrome
-from pydoll.browser.options import ChromiumOptions
 
 URL = "https://www.careerbuilder.com/privacy/"
 
-RIGHTS = [("access", "access"), ("dns", "opt_out")]
-DELETE_RIGHT = ("deletion", "delete")
+RIGHT_MAP = {
+    Right.RIGHT_TO_ACCESS: "access",
+    Right.RIGHT_TO_OPT_OUT: "dns",
+    Right.RIGHT_TO_DELETE: "deletion",
+}
+RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
+
+PAGE_RIGHTS = {}  # TODO(health-check): run HEALTH_CHECK once live; it prints the full list
+
+FIELD_XPATHS = {
+    "Full name": "//input[@id='name']",
+    "Email": "//input[@id='email']",
+    "Address": "//textarea[@id='address']",
+    "Relation": "//select[@id='relation']",
+    "Request type": "//select[@id='type']",
+}
 
 
-async def submit_request(tab, type_value, label, super_scraper):
+async def submit_request(tab, right, type_value, super_scraper):
     await tab.go_to(URL)
     await asyncio.sleep(3)
 
@@ -32,32 +55,32 @@ async def submit_request(tab, type_value, label, super_scraper):
         f'var s = document.querySelector("select#type"); s.value = "{type_value}"; s.dispatchEvent(new Event("change"));'
     )
 
+    if SuperScraper.HEALTH_CHECK:
+        await SuperScraper.assert_fields_filled(tab, FIELD_XPATHS)
+
     if SuperScraper.DRY_RUN:
-        print(f"DRY RUN: would submit '{type_value}' for {SuperScraper.FIRST_NAME} {SuperScraper.LAST_NAME}")
+        print(f"DRY RUN: would submit '{right.name}' for {SuperScraper.EMAIL}")
         await asyncio.sleep(1)
-        await tab.take_screenshot(path=f"resources/screenshots/careerbuilder_dry_run_{label}.png")
-        print(f"Screenshot saved to resources/screenshots/careerbuilder_dry_run_{label}.png")
+        await SuperScraper.screenshot(tab, f"dry_run_{right.value}")
         return
 
     await super_scraper.click_item_by_xpath(tab=tab, xpath="//button[@id='submitBtn']", sleep=2)
     await asyncio.sleep(2)
-    print(f"Submitted '{type_value}' for {SuperScraper.FIRST_NAME} {SuperScraper.LAST_NAME}")
+    print(f"Submitted '{right.name}' for {SuperScraper.EMAIL} — confirm in the browser.")
 
 
 async def main():
-    options = ChromiumOptions()
     super_scraper = SuperScraper()
-    options.binary_location = super_scraper.CHROMIUM_LOCATION
-    options.add_argument("--no-sandbox")
+    rights = SuperScraper.rights_to_exercise(RIGHT_MAP)
+    if not rights:
+        print("No requested privacy rights apply to this form — nothing to do.")
+        return
 
-    rights = list(RIGHTS)
-    if SuperScraper.REMOVE_INFORMATION:
-        rights.append(DELETE_RIGHT)
-
+    options = SuperScraper.build_chromium_options()
     async with Chrome(options=options) as browser:
         tab = await browser.start()
-        for type_value, label in rights:
-            await submit_request(tab, type_value, label, super_scraper)
+        for right in rights:
+            await submit_request(tab, right, RIGHT_MAP[right], super_scraper)
 
 
 asyncio.run(main())

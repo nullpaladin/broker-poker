@@ -9,23 +9,43 @@
 # Fields (frame 0): 0-1/firstname, 0-1/lastname, 0-1/work_email, 0-1/company
 # (current employer name), 0-2/address / 0-2/city / 0-2/state / 0-2/zip
 # (employer address — filled from the persona's address, the best available).
+# Element notes: iframe[src*=ui-forms-embed-components-app] holding the opt-out form;
+#   0-1/firstname First name, 0-1/lastname Last name, 0-1/work_email Work email,
+#   0-1/company Current Employer, 0-2/address Address, 0-2/city City, 0-2/state State, 0-2/zip Zip.
 # Invisible reCAPTCHA Enterprise gates submit.  **CAPTCHA solution required**
+# Not submitted by the scraper (manual reCAPTCHA solve, then Submit).
 import asyncio
 
 from pydoll.browser.chromium import Chrome
-from pydoll.browser.options import ChromiumOptions
 
+from src.dsar.rights import Right
 from src.dsar.super_scraper import SuperScraper
+
+RIGHT_MAP = {Right.RIGHT_TO_OPT_OUT: "opt-out"}
+RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
+
+PAGE_RIGHTS = {}  # TODO(health-check): run HEALTH_CHECK once live; it prints the full list
+
+FIELD_NAMES = {
+    "First name": "0-1/firstname",
+    "Last name": "0-1/lastname",
+    "Work email": "0-1/work_email",
+    "Address": "0-2/address",
+    "City": "0-2/city",
+    "State": "0-2/state",
+    "Zip": "0-2/zip",
+}
 
 URL = "https://salutarydata.com/privacy-opt-out-and-disclosure-form/"
 
 
 async def main():
-    options = ChromiumOptions()
     super_scraper = SuperScraper()
-    options.binary_location = super_scraper.CHROMIUM_LOCATION
-    options.add_argument("--no-sandbox")
-    options.add_argument("--window-size=1280,2600")
+    rights = SuperScraper.rights_to_exercise(RIGHT_MAP)
+    if not rights:
+        print("No requested privacy rights apply to this form — nothing to do.")
+        return
+    options = SuperScraper.build_chromium_options()
 
     async with Chrome(options=options) as browser:
         tab = await browser.start()
@@ -67,11 +87,14 @@ async def main():
             else:
                 print(f"{super_scraper.OOPS} field name={name!r} not found in frame")
 
+        if SuperScraper.HEALTH_CHECK:
+            # `target` (the iframe element) stands in for `tab`: target.find() resolves into the frame's document.
+            await SuperScraper.assert_fields_filled(
+                target, {label: f"//input[@name={name!r}]" for label, name in FIELD_NAMES.items()}
+            )
+
         await asyncio.sleep(1)
-        await tab.take_screenshot(
-            path="resources/screenshots/salutarydata_dry_run.png", beyond_viewport=True
-        )
-        print("Screenshot saved to resources/screenshots/salutarydata_dry_run.png")
+        await SuperScraper.screenshot(tab, "dry_run_opt_out")
         print("Opt-out request filled but NOT submitted — solve the reCAPTCHA manually, then Submit.")
 
 

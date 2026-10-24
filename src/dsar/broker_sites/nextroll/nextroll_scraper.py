@@ -15,22 +15,43 @@
 #     something a generic consumer persona can provide, so this flow is
 #     not exercised.
 # There is no Access or Delete mechanism anywhere in this flow — NextRoll
-# only offers opt-out here.
+# only offers opt-out here. Whether it runs is decided ONLY by
+# SuperScraper.rights_to_exercise(RIGHT_MAP).
+#
+# Page elements (keep this list current):
+#   button "Opt-Out"          Web Browser Opt-Out toggle (button tag, not the "Opt-Out" heading)
+#   input[name=email]         Email Opt-Out (business email, B2B Contact Data)
+#   reCAPTCHA v2 checkbox     manual solve; no separate Submit button
 import asyncio
 
+from src.dsar.rights import Right
 from src.dsar.super_scraper import SuperScraper
 
 from pydoll.browser.chromium import Chrome
-from pydoll.browser.options import ChromiumOptions
 
 URL = "https://app.adroll.com/optout"
 
+RIGHT_MAP = {
+    Right.RIGHT_TO_OPT_OUT: "web browser + email opt-out",
+}
+RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
+
+PAGE_RIGHTS = {}  # TODO(health-check): run HEALTH_CHECK once live; it prints the full list
+
+EMAIL_XPATH = "//input[@name='email']"
+
 
 async def main():
-    options = ChromiumOptions()
     super_scraper = SuperScraper()
-    options.binary_location = super_scraper.CHROMIUM_LOCATION
-    options.add_argument("--no-sandbox")
+    if SuperScraper.bail_if_not_automatable(globals()):
+        return
+
+    rights = SuperScraper.rights_to_exercise(RIGHT_MAP)
+    if not rights:
+        print("No requested privacy rights apply to this form — nothing to do.")
+        return
+
+    options = SuperScraper.build_chromium_options()
 
     async with Chrome(options=options) as browser:
         tab = await browser.start()
@@ -51,9 +72,11 @@ async def main():
         if email_field:
             await email_field.type_text(SuperScraper.EMAIL)
 
+        if SuperScraper.HEALTH_CHECK:
+            await SuperScraper.assert_fields_filled(tab, {"Business email": EMAIL_XPATH})
+
         await asyncio.sleep(1)
-        await tab.take_screenshot(path="resources/screenshots/nextroll_dry_run.png")
-        print("Screenshot saved to resources/screenshots/nextroll_dry_run.png")
+        await SuperScraper.screenshot(tab, "dry_run_opt_out")
         print(
             "\nBusiness-email opt-out field filled but NOT submitted — a reCAPTCHA v2 "
             "checkbox is present with no separate Submit button (submission appears to be "

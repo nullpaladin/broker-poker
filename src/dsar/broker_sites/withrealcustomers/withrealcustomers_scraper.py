@@ -15,7 +15,8 @@
 #   enter_advertising_id_  textarea (optional) — filled with the MAID
 #   please_select_the_type_of_request_..._  checkbox group (multi-select, one
 #           combined submission): "Request Information" (Access) + "Opt Out"
-#           unconditionally; "Delete My Record" gated on REMOVE_INFORMATION.
+#           and "Delete My Record"; which are checked is decided ONLY by
+#           SuperScraper.rights_to_exercise(RIGHT_MAP).
 #   Checking a request type reveals an optional identity block — firstname,
 #           middle_name, lastname, 0-2/city, 0-2/state, 0-2/zip, birth_month,
 #           birth_year — all filled from the persona. Two file-upload fields
@@ -29,27 +30,41 @@
 import asyncio
 
 from pydoll.browser.chromium import Chrome
-from pydoll.browser.options import ChromiumOptions
 
+from src.dsar.rights import Right
 from src.dsar.super_scraper import SuperScraper
 
 URL = "https://support.withrealcustomers.com/index.php/opt-out/"
 
-REQUEST_TYPES = ["Request Information", "Opt Out"]
-DELETE_TYPE = "Delete My Record"
+RIGHT_MAP = {
+    Right.RIGHT_TO_ACCESS: "Request Information",
+    Right.RIGHT_TO_OPT_OUT: "Opt Out",
+    Right.RIGHT_TO_DELETE: "Delete My Record",
+}
+RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
+
+PAGE_RIGHTS = {}  # TODO(health-check): run HEALTH_CHECK once live; it prints the full list
+# (The request-type checkboxes live inside the HubSpot iframe, which read_option_labels cannot read.)
+
+IFRAME_FIELD_XPATHS = {
+    "State of Residency": "//select[@name='i_am_a']",
+    "Email": "//input[@name='email']",
+    "Name": "//input[@name='write_your_name_below']",
+}
 
 
 async def main():
-    options = ChromiumOptions()
     super_scraper = SuperScraper()
-    options.binary_location = super_scraper.CHROMIUM_LOCATION
-    options.add_argument("--no-sandbox")
-    options.add_argument("--window-size=1280,2600")
+    options = SuperScraper.build_chromium_options()
 
     full_name = " ".join(p for p in (SuperScraper.FIRST_NAME, SuperScraper.LAST_NAME) if p)
-    request_types = list(REQUEST_TYPES)
-    if SuperScraper.REMOVE_INFORMATION:
-        request_types.append(DELETE_TYPE)
+    if SuperScraper.bail_if_not_automatable(globals()):
+        return
+    rights = SuperScraper.rights_to_exercise(RIGHT_MAP)
+    if not rights:
+        print("No requested privacy rights apply to this form — nothing to do.")
+        return
+    request_types = [RIGHT_MAP[right] for right in rights]
 
     async with Chrome(options=options) as browser:
         tab = await browser.start()
@@ -63,10 +78,15 @@ async def main():
 
         residency = await iframe.find(xpath="//select[@name='i_am_a']", raise_exc=False)
         if residency:
-            await residency.execute_script(
-                "this.value='California Resident';"
-                "this.dispatchEvent(new Event('change',{bubbles:true}));"
-            )
+            # This shared HubSpot template's "I am a" select is CCPA-oriented.
+            # "California Resident" is selected for any privacy-law state — every
+            # such law entitles its residents to the treatment a business gives
+            # CCPA requesters. A genuine no-law state is left on the form default.
+            if SuperScraper.state_has_privacy_law(SuperScraper.STATE):
+                await residency.execute_script(
+                    "this.value='California Resident';"
+                    "this.dispatchEvent(new Event('change',{bubbles:true}));"
+                )
         else:
             print(f"{super_scraper.OOPS} 'State of Residency' select not found")
 
@@ -120,21 +140,21 @@ async def main():
         if name_field:
             await name_field.type_text(full_name)
 
-        await asyncio.sleep(1)
-        await tab.take_screenshot(
-            path="resources/screenshots/withrealcustomers_dry_run.png", beyond_viewport=True
-        )
-        print("Screenshot saved to resources/screenshots/withrealcustomers_dry_run.png")
+        if SuperScraper.HEALTH_CHECK:
+            # `iframe` stands in for `tab`: iframe.find() resolves into the frame's document.
+            await SuperScraper.assert_fields_filled(iframe, IFRAME_FIELD_XPATHS)
 
+        await asyncio.sleep(1)
+        await SuperScraper.screenshot(tab, "dry_run")
         if SuperScraper.DRY_RUN:
-            print(f"DRY RUN: would submit {request_types} for {full_name} <{SuperScraper.EMAIL}>")
+            print(f"DRY RUN: would submit {[r.name for r in rights]} for {SuperScraper.EMAIL}")
             return
 
         submit = await iframe.find(xpath="//input[@type='submit']", raise_exc=False)
         if submit:
             await submit.click()
             await asyncio.sleep(4)
-            print(f"Submitted {request_types} for {full_name}")
+            print(f"Submitted {[r.name for r in rights]} for {SuperScraper.EMAIL} — confirm in the browser.")
 
 
 asyncio.run(main())

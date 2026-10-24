@@ -12,25 +12,38 @@
 #   State/Region Code  text -> the 2-letter state abbreviation
 #   0-1/privacy_choice  checkbox group (multi-select, one combined submission):
 #       "Request A Copy of My Personal Information" (Access) + "Do Not Sell or
-#       Share My Information" unconditionally; "Delete My Personal Information"
-#       gated on REMOVE_INFORMATION; Correction / "Limit Use of Sensitive ..."
+#       Share My Information" and "Delete My Personal Information", each only if
+#       selected by SuperScraper.rights_to_exercise(RIGHT_MAP); Correction / "Limit Use of Sensitive ..."
 #       skipped.
 # reCAPTCHA Enterprise gates submit — filled to that point.
 # **CAPTCHA solution required**
+# Other elements: label "I am the individual" (radio), Country / "State/Region Code"
+# comboboxes (located by their label text).
 import asyncio
 
 from pydoll.browser.chromium import Chrome
-from pydoll.browser.options import ChromiumOptions
 
+from src.dsar.rights import Right
 from src.dsar.super_scraper import SuperScraper
 
 URL = "https://40ros1.share-na2.hsforms.com/2vQIxZUeERGOPFcRto1AFgw"
 
-CHOICES = [
-    "Request A Copy of My Personal Information",
-    "Do Not Sell or Share My Information",
-]
-DELETE_CHOICE = "Delete My Personal Information"
+RIGHT_MAP = {
+    Right.RIGHT_TO_ACCESS: ["Request A Copy of My Personal Information"],
+    Right.RIGHT_TO_OPT_OUT: ["Do Not Sell or Share My Information"],
+    Right.RIGHT_TO_DELETE: ["Delete My Personal Information"],
+}
+RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
+
+PAGE_RIGHTS = {}  # TODO(health-check): run HEALTH_CHECK once live; it prints the full list
+# (The Correction and "Limit Use of Sensitive ..." checkbox texts are truncated in the notes.)
+
+FIELD_XPATHS = {
+    "First name": "//input[@name='0-1/firstname']",
+    "Last name": "//input[@name='0-1/lastname']",
+    "Email": "//input[@name='0-1/email']",
+    "LinkedIn profile": "//input[@name='0-1/hs_linkedin_url']",
+}
 
 
 async def _type_by_name(tab, super_scraper, name, value):
@@ -60,16 +73,15 @@ async def _click_label(tab, super_scraper, text):
 
 
 async def main():
-    options = ChromiumOptions()
     super_scraper = SuperScraper()
-    options.binary_location = super_scraper.CHROMIUM_LOCATION
-    options.add_argument("--no-sandbox")
-    options.add_argument("--window-size=1280,3000")
+    options = SuperScraper.build_chromium_options()
 
-    state_abbr = await SuperScraper.state_full_name_to_abbreviated(SuperScraper.STATE)
-    choices = list(CHOICES)
-    if SuperScraper.REMOVE_INFORMATION:
-        choices.append(DELETE_CHOICE)
+    state_abbr = SuperScraper.STATE_ABBREVIATED
+    rights = SuperScraper.rights_to_exercise(RIGHT_MAP)
+    if not rights:
+        print("No requested privacy rights apply to this form — nothing to do.")
+        return
+    choices = [entry for right in rights for entry in RIGHT_MAP[right]]
 
     async with Chrome(options=options) as browser:
         tab = await browser.start()
@@ -138,9 +150,11 @@ async def main():
         for choice in choices:
             await _click_label(tab, super_scraper, choice)
 
+        if SuperScraper.HEALTH_CHECK:
+            await SuperScraper.assert_fields_filled(tab, FIELD_XPATHS)
+
         await asyncio.sleep(1)
-        await tab.take_screenshot(path="resources/screenshots/seekout_dry_run.png", beyond_viewport=True)
-        print("Screenshot saved to resources/screenshots/seekout_dry_run.png")
+        await SuperScraper.screenshot(tab, "dry_run_" + "_".join(r.value for r in rights))
         print(f"{choices} filled but NOT submitted — solve the reCAPTCHA manually, then Submit.")
 
 

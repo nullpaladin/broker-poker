@@ -9,35 +9,51 @@
 # select value is the 2-letter code ("US"). State select only lists the ~19
 # states with applicable privacy laws, keyed by lowercase full name (e.g.
 # "minnesota") — statically present regardless of country selection order.
-# One submission per right: Access, Third Parties We Share With, Opt Out of
-# Sales/Shares/Targeted Advertising unconditionally; Delete gated on
-# REMOVE_INFORMATION. Correct skipped (no concrete inaccuracy to describe).
+# One submission per right (Access, Third Parties We Share With, Opt Out of
+# Sales/Shares/Targeted Advertising, Delete), decided ONLY by
+# SuperScraper.rights_to_exercise(RIGHT_MAP). Correct is not automated.
+# The state select lists only states with a privacy law, so users in other states
+# cannot use this form (SERVES_NO_LAW_STATES = False).
 # reCAPTCHA is invisible (badge only, no challenge widget ever renders) —
 # auto-resolves, no manual solve needed.
+#
+# Page elements:
+#   request cards (clicked by text)   one per request type (see RIGHT_MAP)
+#   #text-field-firstName / #text-field-lastName / #text-field-email   First / Last name, Email
+#   #select-field-country             Country <select> (value "US")
+#   #select-field-state_              State <select> (lowercase full name)
+#   #select-field-typeCode            "I am a (an)" <select> (-> "customer")
 import asyncio
 
+from src.dsar import js_utils
+from src.dsar.rights import Right
 from src.dsar.super_scraper import SuperScraper
 
 from pydoll.browser.chromium import Chrome
-from pydoll.browser.options import ChromiumOptions
 
 URL = "https://videoamp.com/your-privacy-choices"
 
-RIGHTS = [
-    "Request to Know/Access Your Personal Information",
-    "Request to Know to Specific Third Parties We Share Your Personal Information With",
-    "Request to Opt Out of Sales/Shares/Targeted Advertising",
-]
-DELETE_RIGHT = "Request to Delete Your Personal Information"
+SERVES_NO_LAW_STATES = False
 
+RIGHT_MAP = {
+    Right.RIGHT_TO_ACCESS: "Request to Know/Access Your Personal Information",
+    Right.RIGHT_TO_LIST_OF_THIRD_PARTIES: "Request to Know to Specific Third Parties We Share Your Personal Information With",
+    Right.RIGHT_TO_OPT_OUT: "Request to Opt Out of Sales/Shares/Targeted Advertising",
+    Right.RIGHT_TO_DELETE: "Request to Delete Your Personal Information",
+}
+RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
 
-async def _select_native_option(select_element, option_value):
-    await select_element.execute_script(
-        "for (var i=0;i<this.options.length;i++){"
-        f"  if(this.options[i].value==={option_value!r}){{ this.selectedIndex=i; }}"
-        "}"
-        "this.dispatchEvent(new Event('change', {bubbles:true}));"
-    )
+PAGE_RIGHTS = {}  # TODO(health-check): run HEALTH_CHECK once live; it prints the full list
+# (The Correct card's title is not recorded, so no inventory is built.)
+
+FIELD_XPATHS = {
+    "First name": "//*[@id='text-field-firstName']",
+    "Last name": "//*[@id='text-field-lastName']",
+    "Email": "//*[@id='text-field-email']",
+    "Country": "//*[@id='select-field-country']",
+    "State": "//*[@id='select-field-state_']",
+    "I am a (an)": "//*[@id='select-field-typeCode']",
+}
 
 
 async def submit_request(tab, card_text, super_scraper):
@@ -65,44 +81,48 @@ async def submit_request(tab, card_text, super_scraper):
 
     country_select = await tab.find(id="select-field-country", raise_exc=False)
     if country_select:
-        await _select_native_option(country_select, "US")
+        await js_utils.select_native_option(country_select, value="US")
     else:
         print(f"{super_scraper.OOPS} Country select not found")
 
     state_select = await tab.find(id="select-field-state_", raise_exc=False)
     if state_select:
-        await _select_native_option(state_select, SuperScraper.STATE.lower())
+        await js_utils.select_native_option(state_select, value=SuperScraper.STATE.lower())
     else:
         print(f"{super_scraper.OOPS} State select not found")
 
     type_select = await tab.find(id="select-field-typeCode", raise_exc=False)
     if type_select:
-        await _select_native_option(type_select, "customer")
+        await js_utils.select_native_option(type_select, value="customer")
     else:
         print(f"{super_scraper.OOPS} 'I am a (an)' select not found")
 
+    if SuperScraper.HEALTH_CHECK:
+        await SuperScraper.assert_fields_filled(tab, FIELD_XPATHS)
+
     label = "".join(c if c.isalnum() else "_" for c in card_text.lower())[:40].strip("_")
     await asyncio.sleep(1)
-    await tab.take_screenshot(path=f"resources/screenshots/videoamp_dry_run_{label}.png")
-    print(f"Screenshot saved to resources/screenshots/videoamp_dry_run_{label}.png")
+    await SuperScraper.screenshot(tab, f"dry_run_{label}")
     print(f"\n'{card_text}' request filled but NOT submitted (invisible reCAPTCHA, no manual solve needed).")
 
 
 async def main():
-    options = ChromiumOptions()
     super_scraper = SuperScraper()
-    options.binary_location = super_scraper.CHROMIUM_LOCATION
-    options.add_argument("--no-sandbox")
-    options.add_argument("--window-size=1280,3000")
+    options = SuperScraper.build_chromium_options()
 
-    rights = list(RIGHTS)
-    if SuperScraper.REMOVE_INFORMATION:
-        rights.append(DELETE_RIGHT)
+    if SuperScraper.bail_if_not_automatable(globals()):
+        return
+    if SuperScraper.bail_if_state_unsupported(globals()):
+        return
+    rights = SuperScraper.rights_to_exercise(RIGHT_MAP)
+    if not rights:
+        print("No requested privacy rights apply to this form — nothing to do.")
+        return
 
     async with Chrome(options=options) as browser:
         tab = await browser.start()
-        for card_text in rights:
-            await submit_request(tab, card_text, super_scraper)
+        for right in rights:
+            await submit_request(tab, RIGHT_MAP[right], super_scraper)
 
 
 asyncio.run(main())

@@ -3,18 +3,18 @@
 #   subjectTypesDSARElement  "I am a (an)": Customer / Other -> "Customer"
 #   stateDSARElement  autocomplete combobox (renders after Country) -> STATE
 #   requestTypesDSARElement  role="option" group, treated as single-select
-#       (one submission per right): "Info Request" (Access) + "Do Not Sell My
-#       Information" unconditionally; "Data Deletion" gated on
-#       REMOVE_INFORMATION.
+#       (one submission per right): "Info Request" (Access), "Do Not Sell My
+#       Information" (Opt-out), "Data Deletion" (Delete).
 #   firstNameDSARElement / lastNameDSARElement / emailDSARElement
 #   requestDetailsDSARElement left blank.
+# Which rights run is decided ONLY by SuperScraper.rights_to_exercise(RIGHT_MAP).
 # reCAPTCHA gates submit — filled to that point.  **CAPTCHA solution required**
 import asyncio
 
 from pydoll.browser.chromium import Chrome
-from pydoll.browser.options import ChromiumOptions
 from pydoll.constants import Key
 
+from src.dsar.rights import Right
 from src.dsar.super_scraper import SuperScraper
 
 URL = (
@@ -22,11 +22,22 @@ URL = (
     "7436a756-393f-458a-a582-dca7d0d14e78/6e117877-3171-4edd-b9ef-4b42732bcace"
 )
 
-RIGHTS = [
-    ("Info Request", "access"),
-    ("Do Not Sell My Information", "do_not_sell"),
-]
-DELETE_RIGHT = ("Data Deletion", "delete")
+RIGHT_MAP = {
+    Right.RIGHT_TO_ACCESS: [("Info Request", "access")],
+    Right.RIGHT_TO_OPT_OUT: [("Do Not Sell My Information", "do_not_sell")],
+    Right.RIGHT_TO_DELETE: [("Data Deletion", "delete")],
+}
+RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
+
+PAGE_RIGHTS = {}  # TODO(health-check): run HEALTH_CHECK once live; it prints the full list
+
+FIELD_XPATHS = {
+    "Country": "//*[@id='countryDSARElement']",
+    "State": "//*[@id='stateDSARElement']",
+    "First name": "//*[@id='firstNameDSARElement']",
+    "Last name": "//*[@id='lastNameDSARElement']",
+    "Email": "//*[@id='emailDSARElement']",
+}
 
 
 async def _combo(tab, super_scraper, field_id, value):
@@ -103,29 +114,28 @@ async def submit_request(tab, right_label, tag, super_scraper):
         else:
             print(f"{super_scraper.OOPS} field '{field_id}' not found")
 
+    if SuperScraper.HEALTH_CHECK:
+        await SuperScraper.assert_fields_filled(tab, FIELD_XPATHS)
+
     await asyncio.sleep(1)
-    await tab.take_screenshot(
-        path=f"resources/screenshots/iqm_dry_run_{tag}.png", beyond_viewport=True
-    )
-    print(f"Screenshot saved to resources/screenshots/iqm_dry_run_{tag}.png")
+    await SuperScraper.screenshot(tab, f"dry_run_{tag}")
     print(f"'{right_label}' filled but NOT submitted — solve the reCAPTCHA manually, then Submit.")
 
 
 async def main():
-    options = ChromiumOptions()
     super_scraper = SuperScraper()
-    options.binary_location = super_scraper.CHROMIUM_LOCATION
-    options.add_argument("--no-sandbox")
-    options.add_argument("--window-size=1280,3000")
+    options = SuperScraper.build_chromium_options()
 
-    rights = list(RIGHTS)
-    if SuperScraper.REMOVE_INFORMATION:
-        rights.append(DELETE_RIGHT)
+    rights = SuperScraper.rights_to_exercise(RIGHT_MAP)
+    if not rights:
+        print("No requested privacy rights apply to this form — nothing to do.")
+        return
 
     async with Chrome(options=options) as browser:
         tab = await browser.start()
-        for right_label, tag in rights:
-            await submit_request(tab, right_label, tag, super_scraper)
+        for right in rights:
+            for right_label, tag in RIGHT_MAP[right]:
+                await submit_request(tab, right_label, tag, super_scraper)
 
 
 asyncio.run(main())

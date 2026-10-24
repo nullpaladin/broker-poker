@@ -17,60 +17,64 @@
 # required regardless of which right was picked.
 # reCAPTCHA v2 checkbox — manual solve required in live mode.
 # Email verification sent after each submission.
-# Exercises: Get a copy (Access), Do Not Sell, Delete (gated on REMOVE_INFORMATION).
+# Which request types run is decided ONLY by SuperScraper.rights_to_exercise(RIGHT_MAP).
+#
+# Page elements:
+#   #getcopy / #donotsell / #delete   "Request type" radios (Get a copy / Do Not Sell / Delete)
+#   #fname-field / #lname-field / #email-field   First name / Last name / Email
+#   Label "Other..."          "Relationship with GRIN" radio (UUID ids -> clicked by label text)
+#   Label "Yes, the information provided is true and I am aware of the consequences of
+#         deleting data."     first required acknowledgment radio
+#   Label "Please confirm your acknowledgment of this before submitting your request."
+#                             second required acknowledgment radio
+#   reCAPTCHA v2 checkbox, then the portal's Submit button (clicked manually)
 import asyncio
-import time
 
 from pydoll.browser.chromium import Chrome
-from pydoll.browser.options import ChromiumOptions
 
+from src.dsar import js_utils
+from src.dsar.rights import Right
 from src.dsar.super_scraper import SuperScraper
 
 URL = "https://grin.privacy.saymine.io/Grin"
 
-_FILL_JS = """
-(function(wrapperId, value) {
-    var wrapper = document.getElementById(wrapperId);
-    if (!wrapper) return 'not found: ' + wrapperId;
-    var inp = (wrapper.tagName === 'INPUT' || wrapper.tagName === 'TEXTAREA')
-        ? wrapper : wrapper.querySelector('input, textarea');
-    if (!inp) return 'no input in ' + wrapperId;
-    var proto = inp.tagName === 'TEXTAREA' ? window.HTMLTextAreaElement.prototype
-                                           : window.HTMLInputElement.prototype;
-    var setter = Object.getOwnPropertyDescriptor(proto, 'value').set;
-    setter.call(inp, value);
-    inp.dispatchEvent(new Event('input', {bubbles: true}));
-    inp.dispatchEvent(new Event('change', {bubbles: true}));
-    return 'ok';
-})('%s', '%s');
-"""
+REQ_GET_COPY = "getcopy"      # "Get a copy of my data" request-type radio
+REQ_DO_NOT_SELL = "donotsell"  # "Do Not Sell my data" request-type radio
+REQ_DELETE = "delete"          # "Delete my data" request-type radio
+FIRST_NAME_FIELD = "fname-field"
+LAST_NAME_FIELD = "lname-field"
+EMAIL_FIELD = "email-field"
 
-RIGHTS = [
-    ("getcopy", "Get a copy of my data (Access)"),
-    ("donotsell", "Do Not Sell my data"),
-]
-DELETE_RIGHT = ("delete", "Delete my data")
+RIGHT_MAP = {
+    Right.RIGHT_TO_ACCESS: (REQ_GET_COPY, "Get a copy of my data (Access)"),
+    Right.RIGHT_TO_OPT_OUT: (REQ_DO_NOT_SELL, "Do Not Sell my data"),
+    Right.RIGHT_TO_DELETE: (REQ_DELETE, "Delete my data"),
+}
+RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
 
+PAGE_RIGHTS = {}  # TODO(health-check): run HEALTH_CHECK once live; it prints the full list
 
-async def _js(tab, script):
-    r = await tab.execute_script(script)
-    if isinstance(r, dict):
-        return r.get('result', {}).get('result', {}).get('value', '')
-    return str(r)
+FIELD_XPATHS = {
+    "First name": "//*[@id='fname-field']",
+    "Last name": "//*[@id='lname-field']",
+    "Email": "//*[@id='email-field']",
+}
 
 
 async def _fill(tab, el_id, value):
-    js = _FILL_JS % (el_id, value.replace("'", "\\'"))
-    return await _js(tab, js)
+    el = await tab.find(id=el_id, raise_exc=False)
+    if not el:
+        return f"not found: {el_id}"
+    await js_utils.js_set_value(el, value)
+    return "ok"
 
 
 async def _click(tab, el_id):
-    return await _js(tab, f"""
-        var el = document.getElementById('{el_id}');
-        if (!el) return 'not found: {el_id}';
-        el.click();
-        return 'clicked';
-    """)
+    el = await tab.find(id=el_id, raise_exc=False)
+    if not el:
+        return f"not found: {el_id}"
+    await js_utils.js_click(el)
+    return "clicked"
 
 
 async def _click_by_label_text(tab, text):
@@ -81,7 +85,7 @@ async def _click_by_label_text(tab, text):
     # label itself (native wrapping semantics propagate the click to the
     # input) rather than guessing an id.
     escaped = text.replace("'", "\\'")
-    return await _js(tab, f"""
+    return await js_utils.js_eval(tab, f"""
         var labels = Array.from(document.querySelectorAll('label'));
         var label = labels.find(function(l) {{ return l.innerText.trim() === '{escaped}'; }});
         if (!label) return 'label not found: {escaped}';
@@ -100,9 +104,9 @@ async def _fill_form(tab, super_scraper, right_id):
     await asyncio.sleep(0.3)
 
     # Personal info
-    await _fill(tab, "fname-field", SuperScraper.FIRST_NAME)
-    await _fill(tab, "lname-field", SuperScraper.LAST_NAME)
-    await _fill(tab, "email-field", SuperScraper.EMAIL)
+    await _fill(tab, FIRST_NAME_FIELD, SuperScraper.FIRST_NAME)
+    await _fill(tab, LAST_NAME_FIELD, SuperScraper.LAST_NAME)
+    await _fill(tab, EMAIL_FIELD, SuperScraper.EMAIL)
 
     # Relationship with GRIN: "Other..." (closest generic fit — no option
     # here matches a plain consumer with no creator/brand relationship)
@@ -117,39 +121,39 @@ async def _fill_form(tab, super_scraper, right_id):
         tab, "Please confirm your acknowledgment of this before submitting your request."
     )
 
-    time.sleep(0.5)
+    await asyncio.sleep(0.5)
     return True
 
 
 async def main():
-    options = ChromiumOptions()
     super_scraper = SuperScraper()
-    options.binary_location = super_scraper.CHROMIUM_LOCATION
-    options.add_argument("--no-sandbox")
-    options.add_argument("--window-size=1280,3000")
+    options = SuperScraper.build_chromium_options()
 
-    rights = list(RIGHTS)
-    if SuperScraper.REMOVE_INFORMATION:
-        rights.append(DELETE_RIGHT)
+    rights = SuperScraper.rights_to_exercise(RIGHT_MAP)
+    if not rights:
+        print("No requested privacy rights apply to this form — nothing to do.")
+        return
 
     async with Chrome(options=options) as browser:
         tab = await browser.start()
 
-        for right_id, right_label in rights:
+        for right in rights:
+            right_id, right_label = RIGHT_MAP[right]
             await tab.go_to(URL)
             await asyncio.sleep(12)
 
             if not await _fill_form(tab, super_scraper, right_id):
                 continue
 
+            if SuperScraper.HEALTH_CHECK:
+                await SuperScraper.assert_fields_filled(tab, FIELD_XPATHS)
+
             if SuperScraper.DRY_RUN:
                 await asyncio.sleep(1)
-                await tab.take_screenshot(path=f"resources/screenshots/grin_dry_run_{right_id}.png")
+                await SuperScraper.screenshot(tab, f"dry_run_{right_id}")
                 print(
-                    f"DRY RUN: would submit grin '{right_label}' for "
-                    f"{SuperScraper.FIRST_NAME} {SuperScraper.LAST_NAME} <{SuperScraper.EMAIL}>"
+                    f"DRY RUN: would submit '{right.name}' ('{right_label}') for {SuperScraper.EMAIL}"
                 )
-                print(f"Screenshot saved to resources/screenshots/grin_dry_run_{right_id}.png")
                 continue
 
             print(
@@ -158,11 +162,7 @@ async def main():
             )
             input()
 
-            src = await tab.page_source
-            if any(w in src.lower() for w in ("thank", "success", "received", "submitted", "confirmation", "request")):
-                print(f"Submitted '{right_label}' DSAR for {SuperScraper.FIRST_NAME} {SuperScraper.LAST_NAME}")
-            else:
-                print(f"{super_scraper.OOPS} Confirmation unclear for '{right_label}' — verify in browser")
+            print(f"Submitted '{right.name}' for {SuperScraper.EMAIL} — confirm in the browser.")
 
 
 asyncio.run(main())

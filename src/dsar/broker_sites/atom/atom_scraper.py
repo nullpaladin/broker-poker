@@ -6,33 +6,43 @@
 # scraper, written while app.termly.io was showing a Cloudflare bot-check
 # during dev testing, missed this and fell back to a free-text detail.content
 # description instead — rewritten now that the block cleared and the actual
-# action radios could be confirmed). Exercises request_to_know (Access) and
-# request_to_opt_out unconditionally; request_to_delete gated on
-# REMOVE_INFORMATION. All three "I confirm that" attestation checkboxes are
+# action radios could be confirmed). Rights the form exposes:
+# request_to_know (Access), request_to_opt_out (Opt-out), request_to_delete (Delete);
+# which run is decided ONLY by SuperScraper.rights_to_exercise(RIGHT_MAP). All three "I confirm that" attestation checkboxes are
 # checked regardless of action. No captcha observed on a clean load.
+#
+# Page elements (keep this list current):
+#   input[name=name]            Full name (First + Last)
+#   input[name=email]           Email
+#   input[role=combobox]        Law chooser -> "CCPA"
+#   input[name=action]          Action radio group (value = request_to_know / _opt_out / _delete)
+#   "I confirm that" checkboxes  Termly attestations (checked via js_utils.check_termly_attestations)
+#   "SUBMIT" button
 import asyncio
 
-from src.dsar.super_scraper import SuperScraper
-
 from pydoll.browser.chromium import Chrome
-from pydoll.browser.options import ChromiumOptions
+
+from src.dsar import js_utils
+from src.dsar.rights import Right
+from src.dsar.super_scraper import SuperScraper
 
 URL = "https://app.termly.io/dsar/62c9d984-30c8-4068-ad84-749ed5ecb452"
 
-ACTIONS = ["request_to_know", "request_to_opt_out"]
-DELETE_ACTION = "request_to_delete"
+RIGHT_MAP = {
+    Right.RIGHT_TO_ACCESS: ["request_to_know"],
+    Right.RIGHT_TO_OPT_OUT: ["request_to_opt_out"],
+    Right.RIGHT_TO_DELETE: ["request_to_delete"],
+}
+RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
+
+PAGE_RIGHTS = {}  # TODO(health-check): run HEALTH_CHECK once live; it prints the full list
+RIGHTS_OPTIONS_CSS = "label:has(input[name='action'])"  # action radios, revealed after the law is picked
+
+NAME_XPATH = "//input[@name='name']"
+EMAIL_XPATH = "//input[@name='email']"
 
 
-async def _check_confirm_boxes(tab):
-    await tab.execute_script(
-        "document.querySelectorAll('input[name^=\"__doNotSubmit__\"]').forEach(function(cb){"
-        "  cb.checked=true; cb.dispatchEvent(new Event('click', {bubbles:true}));"
-        "  cb.dispatchEvent(new Event('change', {bubbles:true}));"
-        "});"
-    )
-
-
-async def submit_request(tab, action, super_scraper):
+async def submit_request(tab, right, action, super_scraper):
     await tab.go_to(URL)
     await asyncio.sleep(6)
 
@@ -52,44 +62,53 @@ async def submit_request(tab, action, super_scraper):
             await option.click()
             await asyncio.sleep(0.5)
 
+    if SuperScraper.HEALTH_CHECK:
+        offered = await SuperScraper.read_option_labels(tab, RIGHTS_OPTIONS_CSS)
+        SuperScraper.audit_rights(offered, PAGE_RIGHTS)
+
     radio = await tab.find(xpath=f"//input[@name='action' and @value='{action}']", raise_exc=False)
     if radio:
         await radio.click()
 
-    await _check_confirm_boxes(tab)
+    await js_utils.check_termly_attestations(tab)
+
+    if SuperScraper.HEALTH_CHECK:
+        await SuperScraper.assert_fields_filled(tab, {"Full name": NAME_XPATH, "Email": EMAIL_XPATH})
 
     label = action.replace("request_to_", "")
 
     if SuperScraper.DRY_RUN:
-        print(f"DRY RUN: would submit {label} request for {SuperScraper.FIRST_NAME} {SuperScraper.LAST_NAME}")
+        print(f"DRY RUN: would submit '{right.name}' for {SuperScraper.EMAIL}")
         await asyncio.sleep(1)
-        await tab.take_screenshot(path=f"resources/screenshots/atom_dry_run_{label}.png")
-        print(f"Screenshot saved to resources/screenshots/atom_dry_run_{label}.png")
+        await SuperScraper.screenshot(tab, f"dry_run_{label}")
         return
 
     submit = await tab.find(text="SUBMIT", raise_exc=False)
     if submit:
         await submit.click()
         await asyncio.sleep(2)
-        print(f"Submitted {label} request for {SuperScraper.FIRST_NAME} {SuperScraper.LAST_NAME}")
+        print(f"Submitted '{right.name}' for {SuperScraper.EMAIL} — confirm in the browser.")
     else:
         print(f"{super_scraper.OOPS} SUBMIT button not found for {label}")
 
 
 async def main():
-    options = ChromiumOptions()
     super_scraper = SuperScraper()
-    options.binary_location = super_scraper.CHROMIUM_LOCATION
-    options.add_argument("--no-sandbox")
+    if SuperScraper.bail_if_not_automatable(globals()):
+        return
 
-    actions = list(ACTIONS)
-    if SuperScraper.REMOVE_INFORMATION:
-        actions.append(DELETE_ACTION)
+    rights = SuperScraper.rights_to_exercise(RIGHT_MAP)
+    if not rights:
+        print("No requested privacy rights apply to this form — nothing to do.")
+        return
+
+    options = SuperScraper.build_chromium_options()
 
     async with Chrome(options=options) as browser:
         tab = await browser.start()
-        for action in actions:
-            await submit_request(tab, action, super_scraper)
+        for right in rights:
+            for action in RIGHT_MAP[right]:
+                await submit_request(tab, right, action, super_scraper)
 
 
 asyncio.run(main())

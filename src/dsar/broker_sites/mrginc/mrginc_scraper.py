@@ -1,29 +1,69 @@
 # mrginc.com — /do-not-sell-my-personal-information. Plain server-rendered
-# form beneath a long CCPA rights-notice page. Checkboxes: do_not_sell_info
-# (Opt-Out), delete_my_info (Delete, gated on REMOVE_INFORMATION),
-# request_my_data (Access) — all selectable together in one submission
-# (select-all-that-apply, not single-select). State is plain free text.
+# form beneath a long CCPA rights-notice page. Select-all-that-apply checkboxes, all
+# submitted together in ONE submission. Which of them are checked is decided ONLY by
+# SuperScraper.rights_to_exercise(RIGHT_MAP). State is plain free text.
 # The "CAPTCHA" is a simple, dynamically-generated arithmetic question
-# ("What is 4 + 10?", regenerated on every page load) — genuinely
-# solvable by parsing the two numbers and computing the sum, so this
-# scraper solves it and (in live mode) can submit for real without any
-# manual step.
+# ("What is 4 + 10?", regenerated on every page load) — solved with
+# captcha_solutions_util.solve_math_captcha, so live mode needs no manual step.
+#
+# Page elements (keep this list current):
+#   input[name=full_name]      Full name (first + last)
+#   input[name=email]          Email
+#   input[name=address] / [name=city] / [name=state] / [name=zip]   Address / City / State (free text) / Zip
+#   #checkbox                  do_not_sell_info  "Opt-Out" (Do not sell)
+#   #checkbox_delete           delete_my_info    "Delete"
+#   #checkbox_request          request_my_data   "Access"
+#   input[placeholder="Your answer"]   arithmetic CAPTCHA answer
+#   "Submit" button            found by its text
 import asyncio
-import re
 
+from src.dsar.rights import Right
 from src.dsar.super_scraper import SuperScraper
+from src.dsar import captcha_solutions_util
+from src.dsar import js_utils
 
 from pydoll.browser.chromium import Chrome
-from pydoll.browser.options import ChromiumOptions
 
 URL = "https://www.mrginc.com/do-not-sell-my-personal-information"
 
+OPT_OUT_CHECKBOX = "checkbox"  # do_not_sell_info
+DELETE_CHECKBOX = "checkbox_delete"  # delete_my_info
+ACCESS_CHECKBOX = "checkbox_request"  # request_my_data
+
+RIGHT_MAP = {
+    Right.RIGHT_TO_ACCESS: [ACCESS_CHECKBOX],
+    Right.RIGHT_TO_OPT_OUT: [OPT_OUT_CHECKBOX],
+    Right.RIGHT_TO_DELETE: [DELETE_CHECKBOX],
+}
+RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
+
+PAGE_RIGHTS = {}  # TODO(health-check): run HEALTH_CHECK once live; it prints the full list
+# (The three checkbox labels are recorded only as field names, not as displayed text.)
+
+FIELD_XPATHS = {
+    "Full name": "//*[@name='full_name']",
+    "Email": "//*[@name='email']",
+    "Address": "//*[@name='address']",
+    "City": "//*[@name='city']",
+    "State": "//*[@name='state']",
+    "Zip": "//*[@name='zip']",
+    "Arithmetic answer": "//input[@placeholder='Your answer']",
+}
+
 
 async def main():
-    options = ChromiumOptions()
     super_scraper = SuperScraper()
-    options.binary_location = super_scraper.CHROMIUM_LOCATION
-    options.add_argument("--no-sandbox")
+    if SuperScraper.bail_if_not_automatable(globals()):
+        return
+
+    rights = SuperScraper.rights_to_exercise(RIGHT_MAP)
+    if not rights:
+        print("No requested privacy rights apply to this form — nothing to do.")
+        return
+
+    checkbox_ids = [cb for right in rights for cb in RIGHT_MAP[right]]
+
+    options = SuperScraper.build_chromium_options()
 
     async with Chrome(options=options) as browser:
         tab = await browser.start()
@@ -47,9 +87,6 @@ async def main():
             else:
                 print(f"{super_scraper.OOPS} field '{field_name}' not found")
 
-        checkbox_ids = ["checkbox", "checkbox_request"]
-        if SuperScraper.REMOVE_INFORMATION:
-            checkbox_ids.append("checkbox_delete")
         for checkbox_id in checkbox_ids:
             checkbox = await tab.find(id=checkbox_id, raise_exc=False)
             if checkbox:
@@ -57,12 +94,9 @@ async def main():
             else:
                 print(f"{super_scraper.OOPS} checkbox '{checkbox_id}' not found")
 
-        page_text = await tab.execute_script("return document.body.innerText")
-        if isinstance(page_text, dict):
-            page_text = page_text.get("result", {}).get("result", {}).get("value", "")
-        match = re.search(r"What is (\d+)\s*\+\s*(\d+)\?", page_text or "")
-        if match:
-            answer = str(int(match.group(1)) + int(match.group(2)))
+        page_text = await js_utils.page_text(tab)
+        answer = captcha_solutions_util.solve_math_captcha(page_text or "")
+        if answer is not None:
             answer_field = await tab.find(xpath="//input[@placeholder='Your answer']", raise_exc=False)
             if answer_field:
                 await answer_field.type_text(answer)
@@ -71,19 +105,20 @@ async def main():
         else:
             print(f"{super_scraper.OOPS} math-captcha question not found/parseable")
 
-        await asyncio.sleep(1)
-        await tab.take_screenshot(path="resources/screenshots/mrginc_dry_run.png")
-        print("Screenshot saved to resources/screenshots/mrginc_dry_run.png")
+        if SuperScraper.HEALTH_CHECK:
+            await SuperScraper.assert_fields_filled(tab, FIELD_XPATHS)
 
+        await asyncio.sleep(1)
+        await SuperScraper.screenshot(tab, "dry_run_" + "_".join(r.value for r in rights))
         if SuperScraper.DRY_RUN:
-            print(f"DRY RUN: would submit request for {SuperScraper.FIRST_NAME} {SuperScraper.LAST_NAME}")
+            print(f"DRY RUN: would submit {'/'.join(r.name for r in rights)} for {SuperScraper.FIRST_NAME} {SuperScraper.LAST_NAME}")
             return
 
         submit_btn = await tab.find(text="Submit", raise_exc=False)
         if submit_btn:
             await submit_btn.click()
             await asyncio.sleep(2)
-            print(f"Submitted request for {SuperScraper.FIRST_NAME} {SuperScraper.LAST_NAME}")
+            print(f"Submitted {'/'.join(r.name for r in rights)} for {SuperScraper.EMAIL} — confirm in the browser.")
         else:
             print(f"{super_scraper.OOPS} Submit button not found")
 

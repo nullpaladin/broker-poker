@@ -1,22 +1,39 @@
 # anchorcomputer.com — server-rendered ASP.NET POST form, no captcha. Single
-# submission covers all selected rights via checkboxes: RequestReport (Access —
-# labeled "CA residents only" but not enforced client-side), RequestDoNotSell
-# (Opt-Out) unconditionally, RequestDelete gated on REMOVE_INFORMATION.
+# submission covers all selected rights via checkboxes. Rights the form exposes:
+# access (RequestReport — labeled "CA residents only" but not enforced client-side),
+# opt-out (RequestDoNotSell), delete (RequestDelete). Which are ticked is decided ONLY by
+# SuperScraper.rights_to_exercise(RIGHT_MAP).
 # DateOfBirth is an HTML5 date input — set via JS native setter as YYYY-MM-DD
-# (DATE_OF_BIRTH must be in that format). SsnLastFour is optional — filled only
+# (converted from the DD/MM/YYYY in DATE_OF_BIRTH). SsnLastFour is optional — filled only
 # if LAST_FOUR_SSN is set in .env.
+#
+# Page elements (keep this list current):
+#   #FirstName / #LastName   First / Last name
+#   #Address1                Address
+#   #City                    City
+#   select#State             State (abbreviation)
+#   #Zip                     Zip code
+#   #SsnLastFour             Last four of SSN (optional)
+#   #DateOfBirth             Date of birth (HTML5 date input)
+#   #PhoneNumber             Phone number
+#   #Email                   Email
+#   #RequestReport           Access checkbox
+#   #RequestDoNotSell        Opt-out (do not sell) checkbox
+#   #RequestDelete           Delete checkbox
+#   input[type=submit]       Submit button
 import asyncio
 
-from src.dsar.super_scraper import SuperScraper
-
 from pydoll.browser.chromium import Chrome
-from pydoll.browser.options import ChromiumOptions
+
+from src.dsar import js_utils
+from src.dsar.rights import Right
+from src.dsar.super_scraper import SuperScraper
 
 URL = "https://ecom2.anchorcomputer.com/privacyrequest"
 
 FIRST_NAME_XPATH = "//input[@id='FirstName']"
 LAST_NAME_XPATH = "//input[@id='LastName']"
-ADDRESS1_XPATH = "//input[@id='Address1']"
+ADDRESS_ONE_XPATH = "//input[@id='Address1']"
 CITY_XPATH = "//input[@id='City']"
 ZIP_XPATH = "//input[@id='Zip']"
 SSN_XPATH = "//input[@id='SsnLastFour']"
@@ -24,14 +41,32 @@ PHONE_XPATH = "//input[@id='PhoneNumber']"
 EMAIL_XPATH = "//input[@id='Email']"
 SUBMIT_XPATH = "//input[@type='submit']"
 
+# Right -> this form's checkbox id.
+RIGHT_MAP = {
+    Right.RIGHT_TO_ACCESS: "RequestReport",
+    Right.RIGHT_TO_OPT_OUT: "RequestDoNotSell",
+    Right.RIGHT_TO_DELETE: "RequestDelete",
+}
+RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
+
+PAGE_RIGHTS = {}  # TODO(health-check): run HEALTH_CHECK once live; it prints the full list
+
+STATE_XPATH = "//select[@id='State']"
+
 
 async def main():
-    options = ChromiumOptions()
     super_scraper = SuperScraper()
-    options.binary_location = super_scraper.CHROMIUM_LOCATION
-    options.add_argument("--no-sandbox")
+    if SuperScraper.bail_if_not_automatable(globals()):
+        return
 
-    state_abbrev = await SuperScraper.state_full_name_to_abbreviated(SuperScraper.STATE)
+    rights = SuperScraper.rights_to_exercise(RIGHT_MAP)
+    if not rights:
+        print("No requested privacy rights apply to this form — nothing to do.")
+        return
+
+    options = SuperScraper.build_chromium_options()
+
+    state_abbrev = SuperScraper.STATE_ABBREVIATED
 
     async with Chrome(options=options) as browser:
         tab = await browser.start()
@@ -40,12 +75,12 @@ async def main():
 
         await super_scraper.input_text_field(tab=tab, xpath=FIRST_NAME_XPATH, text=SuperScraper.FIRST_NAME)
         await super_scraper.input_text_field(tab=tab, xpath=LAST_NAME_XPATH, text=SuperScraper.LAST_NAME)
-        await super_scraper.input_text_field(tab=tab, xpath=ADDRESS1_XPATH, text=SuperScraper.ADDRESS)
+        await super_scraper.input_text_field(tab=tab, xpath=ADDRESS_ONE_XPATH, text=SuperScraper.ADDRESS)
         await super_scraper.input_text_field(tab=tab, xpath=CITY_XPATH, text=SuperScraper.CITY)
 
-        await tab.execute_script(
-            f'var s = document.querySelector("select#State"); s.value = "{state_abbrev}"; s.dispatchEvent(new Event("change"));'
-        )
+        state_select = await tab.find(xpath="//select[@id='State']", raise_exc=False)
+        if state_select:
+            await js_utils.select_native_option(state_select, value=state_abbrev, dispatch=("change",))
 
         await super_scraper.input_text_field(tab=tab, xpath=ZIP_XPATH, text=SuperScraper.ZIP_CODE)
 
@@ -57,31 +92,37 @@ async def main():
             # here silently rejects anything but YYYY-MM-DD, so convert first.
             day, month, year = SuperScraper.DATE_OF_BIRTH.split("/")
             iso_dob = f"{year}-{month}-{day}"
-            await tab.execute_script(
-                'var d = document.querySelector("#DateOfBirth"); '
-                f'd.value = "{iso_dob}"; '
-                'd.dispatchEvent(new Event("input", {bubbles: true})); '
-                'd.dispatchEvent(new Event("change", {bubbles: true}));'
-            )
+            dob = await tab.find(xpath="//input[@id='DateOfBirth']", raise_exc=False)
+            if dob:
+                await js_utils.js_set_value(dob, iso_dob)
 
         await super_scraper.input_text_field(tab=tab, xpath=PHONE_XPATH, text=SuperScraper.PHONE_NUMBER)
         await super_scraper.input_text_field(tab=tab, xpath=EMAIL_XPATH, text=SuperScraper.EMAIL)
 
-        await super_scraper.click_item_by_xpath(tab=tab, xpath="//input[@id='RequestReport']", sleep=0.3)
-        await super_scraper.click_item_by_xpath(tab=tab, xpath="//input[@id='RequestDoNotSell']", sleep=0.3)
-        if SuperScraper.REMOVE_INFORMATION:
-            await super_scraper.click_item_by_xpath(tab=tab, xpath="//input[@id='RequestDelete']", sleep=0.3)
+        for right in rights:
+            await super_scraper.click_item_by_xpath(tab=tab, xpath=f"//input[@id='{RIGHT_MAP[right]}']", sleep=0.3)
+
+        if SuperScraper.HEALTH_CHECK:
+            await SuperScraper.assert_fields_filled(tab, {
+                "First name": FIRST_NAME_XPATH,
+                "Last name": LAST_NAME_XPATH,
+                "Address": ADDRESS_ONE_XPATH,
+                "City": CITY_XPATH,
+                "State": STATE_XPATH,
+                "Zip": ZIP_XPATH,
+                "Phone": PHONE_XPATH,
+                "Email": EMAIL_XPATH,
+            })
 
         if SuperScraper.DRY_RUN:
-            print(f"DRY RUN: would submit removal request for {SuperScraper.FIRST_NAME} {SuperScraper.LAST_NAME}")
+            print(f"DRY RUN: would submit {[r.name for r in rights]} for {SuperScraper.EMAIL}")
             await asyncio.sleep(2)
-            await tab.take_screenshot(path="resources/screenshots/anchorcomputer_dry_run.png")
-            print("Screenshot saved to resources/screenshots/anchorcomputer_dry_run.png")
+            await SuperScraper.screenshot(tab, "dry_run")
             return
 
         await super_scraper.click_item_by_xpath(tab=tab, xpath=SUBMIT_XPATH)
         await asyncio.sleep(3)
-        print(f"Submitted removal request for {SuperScraper.FIRST_NAME} {SuperScraper.LAST_NAME}")
+        print(f"Submitted {[r.name for r in rights]} for {SuperScraper.EMAIL} — confirm in the browser.")
 
 
 asyncio.run(main())

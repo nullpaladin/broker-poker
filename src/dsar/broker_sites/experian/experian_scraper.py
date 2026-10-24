@@ -9,23 +9,53 @@
 # for the user because they require real, verifiable identity data that this
 # repo's persona does not have. NOTE: some request-type paths hand off to
 # crportal.tapad.com (Tapad is an Experian company — see the tapad.com entry).
+#
+# Page elements:
+#   //select                         Step 1 state select (matched by visible state name)
+#   "Make a new request"             Step 1 button
+#   input[type=checkbox]             Step 2 request-type checkboxes (identified by nearby label text)
+#       "Delete personal information"  the Delete checkbox
+#   "Continue"                       Step 2 button
+#   Step 3 inputs (found by label): First Name / Last Name / Date of Birth / Current Address /
+#       ZIP Code / City / Phone Number / Email Address / Confirm Email Address
 import asyncio
 import time
 
 from pydoll.browser.chromium import Chrome
-from pydoll.browser.options import ChromiumOptions
 
+from src.dsar.rights import Right
 from src.dsar.super_scraper import SuperScraper
+from src.dsar import js_utils
 
 URL = "https://consumerprivacy.experian.com/request"
 
+DELETE_CHECKBOX_TEXT = "delete personal information"  # "Delete personal information"
+OTHER_REQUESTS = "every request-type checkbox except Delete"
+
+# Step 2 offers one checkbox per request type; only the Delete one is identified by name.
+# All other checkboxes are ticked whenever the form runs.
+RIGHT_MAP = {
+    Right.RIGHT_TO_ACCESS: OTHER_REQUESTS,
+    Right.RIGHT_TO_OPT_OUT: OTHER_REQUESTS,
+    Right.RIGHT_TO_DELETE: DELETE_CHECKBOX_TEXT,
+}
+RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
+
+PAGE_RIGHTS = {}  # TODO(health-check): run HEALTH_CHECK once live; it prints the full list
+# (Step 2 offers one checkbox per request type; only the Delete label is recorded.)
+
 
 async def main():
-    options = ChromiumOptions()
     super_scraper = SuperScraper()
-    options.binary_location = super_scraper.CHROMIUM_LOCATION
-    options.add_argument("--no-sandbox")
-    options.add_argument("--window-size=1280,2400")
+    if SuperScraper.bail_if_not_automatable(globals()):
+        return
+
+    rights = SuperScraper.rights_to_exercise(RIGHT_MAP)
+    if not rights:
+        print("No requested privacy rights apply to this form — nothing to do.")
+        return
+
+    options = SuperScraper.build_chromium_options()
 
     async with Chrome(options=options) as browser:
         tab = await browser.start()
@@ -48,24 +78,22 @@ async def main():
             await asyncio.sleep(4)
 
         # Step 2: tick the request-type checkboxes — everything except the
-        # "Delete personal information" option, which is gated on REMOVE_INFORMATION
+        # "Delete personal information" option, which is only ticked when Right.RIGHT_TO_DELETE is requested
         for box in await tab.find(xpath="//input[@type='checkbox']", find_all=True, raise_exc=False) or []:
             if not await box.is_visible():
                 continue
-            nearby = await box.execute_script(
+            text = await js_utils.js_eval(
+                box,
                 "const c=this.closest('label,li,div,tr');"
-                "return c ? c.textContent.toLowerCase() : '';"
-            )
-            text = (nearby.get("result", {}).get("result", {}).get("value") or "") if isinstance(nearby, dict) else ""
-            if "delete personal information" in text and not SuperScraper.REMOVE_INFORMATION:
+                "return c ? c.textContent.toLowerCase() : '';",
+            ) or ""
+            if DELETE_CHECKBOX_TEXT in text and Right.RIGHT_TO_DELETE not in rights:
                 continue
-            await box.execute_script("if (!this.checked) this.click();")
+            await js_utils.js_check(box)
             await asyncio.sleep(0.1)
 
         time.sleep(0.5)
-        await tab.take_screenshot("resources/screenshots/experian_dry_run_step2.png")
-        print("Screenshot saved to resources/screenshots/experian_dry_run_step2.png")
-
+        await SuperScraper.screenshot(tab, "dry_run_step2")
         cont = await tab.find(text="Continue", raise_exc=False)
         if cont:
             await cont.click()
@@ -102,10 +130,17 @@ async def main():
                 await field.type_text(value)
                 await asyncio.sleep(0.2)
 
-        time.sleep(0.5)
-        await tab.take_screenshot("resources/screenshots/experian_dry_run_step3.png")
-        print("Screenshot saved to resources/screenshots/experian_dry_run_step3.png")
+        if SuperScraper.HEALTH_CHECK:
+            await SuperScraper.assert_fields_filled(tab, {
+                label: (
+                    f"//label[normalize-space()={label!r} or starts-with(normalize-space(),{label!r})]"
+                    f"/following::input[1]"
+                )
+                for label in step3
+            })
 
+        time.sleep(0.5)
+        await SuperScraper.screenshot(tab, "dry_run_step3")
         print(
             "Steps 1-3 filled (state, request types, identity details). The SSN field is "
             "left blank (optional; only a last-4 is on file) and the identity-VERIFICATION "

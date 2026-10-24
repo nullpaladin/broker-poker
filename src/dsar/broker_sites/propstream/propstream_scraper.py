@@ -7,8 +7,9 @@
 #       a" is set. Treated as single-select — one submission per right:
 #       "Request a copy of my personal information" (Access) + "Request to
 #       opt-out of sale and sharing" + "Request to know about categories of
-#       information maintained by PropStream" unconditionally; "Request to
-#       delete" gated on REMOVE_INFORMATION; "Request to correct" skipped.
+#       information maintained by PropStream" + "Request to delete";
+#       "Request to correct" is not automated. Which run is decided ONLY by
+#       SuperScraper.rights_to_exercise(RIGHT_MAP).
 #   formField78DSARElement  "Have you made a similar request to PropStream in
 #       the past 12 months?" role="listbox" -> "No"
 #   countryDSARElement  combobox -> United States; a "state of residency"
@@ -16,13 +17,14 @@
 #   firstNameDSARElement / lastNameDSARElement / emailDSARElement
 # (Public-servant "Daniel's Law" redaction requests are a separate email flow to
 #  redactionrequest@propstream.com — out of scope here.)
+#   Request-type options (role="option", matched by aria-label / text): see RIGHT_MAP.
 # reCAPTCHA gates submit — filled to that point.  **CAPTCHA solution required**
 import asyncio
 
 from pydoll.browser.chromium import Chrome
-from pydoll.browser.options import ChromiumOptions
 from pydoll.constants import Key
 
+from src.dsar.rights import Right
 from src.dsar.super_scraper import SuperScraper
 
 URL = (
@@ -30,12 +32,32 @@ URL = (
     "23dbbccc-a76c-4410-a68e-f247d70e566c/7d013624-d2db-430a-9265-3112f7c4177c"
 )
 
-RIGHTS = [
-    ("Request a copy of my personal information", "access"),
-    ("Request to opt-out of sale and sharing", "opt_out"),
-    ("Request to know about categories of information maintained by PropStream", "categories"),
-]
-DELETE_RIGHT = ("Request to delete", "delete")
+RIGHT_MAP = {
+    Right.RIGHT_TO_ACCESS: [
+        ("Request a copy of my personal information", "access"),
+        ("Request to know about categories of information maintained by PropStream", "categories"),
+    ],
+    Right.RIGHT_TO_OPT_OUT: [("Request to opt-out of sale and sharing", "opt_out")],
+    Right.RIGHT_TO_DELETE: [("Request to delete", "delete")],
+}
+RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
+
+# Every option in the "Select Right to Exercise" group, as displayed -> the Right it maps to (None = not automated).
+PAGE_RIGHTS = {
+    "Request a copy of my personal information": Right.RIGHT_TO_ACCESS,
+    "Request to know about categories of information maintained by PropStream": Right.RIGHT_TO_ACCESS,
+    "Request to opt-out of sale and sharing": Right.RIGHT_TO_OPT_OUT,
+    "Request to delete": Right.RIGHT_TO_DELETE,
+    "Request to correct": None,
+}
+RIGHTS_OPTIONS_CSS = ""  # TODO(health-check): the group shares role=option with other toggles; capture a selector on a live run (no audit wired until then)
+
+FIELD_XPATHS = {
+    "Country": "//*[@id='countryDSARElement']",
+    "First name": "//*[@id='firstNameDSARElement']",
+    "Last name": "//*[@id='lastNameDSARElement']",
+    "Email": "//*[@id='emailDSARElement']",
+}
 
 IAM_CANDIDATES = ("Consumer", "Individual", "Customer", "Member of the public", "A consumer", "Other")
 
@@ -155,26 +177,29 @@ async def submit_request(tab, right_label, tag, super_scraper):
         else:
             print(f"{super_scraper.OOPS} field '{field_id}' not found")
 
+    if SuperScraper.HEALTH_CHECK:
+        await SuperScraper.assert_fields_filled(tab, FIELD_XPATHS)
+
     await asyncio.sleep(1)
-    await tab.take_screenshot(path=f"resources/screenshots/propstream_dry_run_{tag}.png", beyond_viewport=True)
-    print(f"Screenshot saved to resources/screenshots/propstream_dry_run_{tag}.png")
+    await SuperScraper.screenshot(tab, f"dry_run_{tag}")
     print(f"'{right_label}' filled but NOT submitted — solve the reCAPTCHA manually, then Submit.")
 
 
 async def main():
-    options = ChromiumOptions()
     super_scraper = SuperScraper()
-    options.binary_location = super_scraper.CHROMIUM_LOCATION
-    options.add_argument("--no-sandbox")
-    options.add_argument("--window-size=1280,3000")
+    if SuperScraper.bail_if_not_automatable(globals()):
+        return
+    options = SuperScraper.build_chromium_options()
 
-    rights = list(RIGHTS)
-    if SuperScraper.REMOVE_INFORMATION:
-        rights.append(DELETE_RIGHT)
+    rights = SuperScraper.rights_to_exercise(RIGHT_MAP)
+    if not rights:
+        print("No requested privacy rights apply to this form — nothing to do.")
+        return
+    entries = [entry for right in rights for entry in RIGHT_MAP[right]]
 
     async with Chrome(options=options) as browser:
         tab = await browser.start()
-        for right_label, tag in rights:
+        for right_label, tag in entries:
             await submit_request(tab, right_label, tag, super_scraper)
 
 

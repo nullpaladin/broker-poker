@@ -3,53 +3,68 @@
 # iframe (a new platform for this repo); navigate directly to the
 # underlying portal: https://www.forgetmenaut.com/rtbf/unjVFFNnmFvsZ17Fnk3Tap6U
 #
-# Stable webform_* ids throughout. "Jurisdiction" (webform_jurisdiction)
-# only lists CCPA/GDPR/CACD/LGPDP/TIPA/VCDPA/OTHER — none apply directly to
-# a Minnesota resident, so "OTHER" is used (same closest-available-option
-# precedent as reonomy.com/finthrive.com elsewhere in this repo). "Request
-# Category" (webform_category) is a single-select native <select> — one
-# submission per category: "collection" (what data is collected — closest
-# equivalent to Access) and "opt_out" unconditionally; "deletion" gated on
-# REMOVE_INFORMATION. "correction" and "limit_use" skipped (no concrete
-# inaccuracy/sensitive-use to cite); "incomplete" skipped (ambiguous
-# internal-sounding category, not a clear consumer right). Native <input
-# type="date"> Date of Birth set via JS in ISO format (YYYY-MM-DD).
-# "This is a first-party request" checkbox (webform_direct) checked. MAID/
-# VIN/CTVID left blank (no equivalent persona data for those identifier
-# types). reCAPTCHA v2 — **CAPTCHA solution required**.
+# Rights the form exposes (webform_category): collection, opt_out, deletion, correction,
+# limit_use, incomplete. Which of them run is decided ONLY by
+# SuperScraper.rights_to_exercise(RIGHT_MAP). One submission per category.
+# "collection" (what data is collected) is the closest equivalent to Access.
+# Not automated: "correction" and "limit_use" (no concrete inaccuracy/sensitive-use to cite),
+# "incomplete" (ambiguous internal-sounding category, not a clear consumer right).
+# "Jurisdiction" only lists CCPA/GDPR/CACD/LGPDP/TIPA/VCDPA/OTHER; "OTHER" is used for every
+# user (same closest-available-option precedent as reonomy.com/finthrive.com).
+# Native <input type="date"> Date of Birth is set via JS in ISO format (YYYY-MM-DD).
+# MAID/VIN/CTVID left blank (no equivalent persona data). reCAPTCHA v2 — **CAPTCHA solution required**.
+#
+# Page elements:
+#   #webform_email / #webform_first_name / #webform_last_name   Email / First / Last name
+#   #webform_phone                 Phone
+#   #webform_address_1 / #webform_address_2 / #webform_city / #webform_state / #webform_zip   Address
+#   #webform_country               Country
+#   #webform_birthday              Date of Birth (<input type="date">)
+#   #webform_jurisdiction          "Jurisdiction" <select> (set to OTHER)
+#   #webform_category              "Request Category" <select>
+#   #webform_direct                "This is a first-party request" checkbox
 import asyncio
 
+from src.dsar import js_utils
+from src.dsar.rights import Right
 from src.dsar.super_scraper import SuperScraper
 
 from pydoll.browser.chromium import Chrome
-from pydoll.browser.options import ChromiumOptions
 
 URL = "https://www.forgetmenaut.com/rtbf/unjVFFNnmFvsZ17Fnk3Tap6U"
 
-REQUEST_CATEGORIES = ["collection", "opt_out"]
-DELETE_CATEGORY = "deletion"
+RIGHT_MAP = {
+    Right.RIGHT_TO_ACCESS: "collection",
+    Right.RIGHT_TO_OPT_OUT: "opt_out",
+    Right.RIGHT_TO_DELETE: "deletion",
+}
+RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
 
+PAGE_RIGHTS = {}  # TODO(health-check): run HEALTH_CHECK once live; it prints the full list
+RIGHTS_OPTIONS_CSS = "#webform_category option"  # categories are recorded by value only (collection, opt_out, deletion, ...)
 
-async def _select_native_option(select_element, option_value):
-    await select_element.execute_script(
-        "for (var i=0;i<this.options.length;i++){"
-        f"  if(this.options[i].value==={option_value!r}){{ this.selectedIndex=i; }}"
-        "}"
-        "this.dispatchEvent(new Event('change', {bubbles:true}));"
-    )
-
-
-async def _set_text_via_js(field_element, value):
-    await field_element.execute_script(
-        f"this.value = {value!r};"
-        "this.dispatchEvent(new Event('input', {bubbles:true}));"
-        "this.dispatchEvent(new Event('change', {bubbles:true}));"
-    )
+FIELD_XPATHS = {
+    "Email": "//*[@id='webform_email']",
+    "First name": "//*[@id='webform_first_name']",
+    "Last name": "//*[@id='webform_last_name']",
+    "Phone": "//*[@id='webform_phone']",
+    "Address": "//*[@id='webform_address_1']",
+    "City": "//*[@id='webform_city']",
+    "State": "//*[@id='webform_state']",
+    "Zip": "//*[@id='webform_zip']",
+    "Country": "//*[@id='webform_country']",
+    "Jurisdiction": "//*[@id='webform_jurisdiction']",
+    "Request category": "//*[@id='webform_category']",
+}
 
 
 async def submit_request(tab, category, super_scraper):
     await tab.go_to(URL)
     await asyncio.sleep(5)
+
+    if SuperScraper.HEALTH_CHECK:
+        offered = await SuperScraper.read_option_labels(tab, RIGHTS_OPTIONS_CSS)
+        SuperScraper.audit_rights(offered, PAGE_RIGHTS)
 
     fields = {
         "webform_email": SuperScraper.EMAIL,
@@ -68,7 +83,7 @@ async def submit_request(tab, category, super_scraper):
             continue
         field = await tab.find(id=field_id, raise_exc=False)
         if field:
-            await _set_text_via_js(field, value)
+            await js_utils.js_set_value(field, value)
         else:
             print(f"{super_scraper.OOPS} field '{field_id}' not found")
 
@@ -76,19 +91,20 @@ async def submit_request(tab, category, super_scraper):
         day, month, year = SuperScraper.DATE_OF_BIRTH.split("/")
         dob_field = await tab.find(id="webform_birthday", raise_exc=False)
         if dob_field:
-            await _set_text_via_js(dob_field, f"{year}-{month}-{day}")
+            await js_utils.js_set_value(dob_field, f"{year}-{month}-{day}")
         else:
             print(f"{super_scraper.OOPS} Date of Birth field not found")
 
     jurisdiction_select = await tab.find(id="webform_jurisdiction", raise_exc=False)
     if jurisdiction_select:
-        await _select_native_option(jurisdiction_select, "OTHER")
+        # The list has no entry for most states; "OTHER" is used for every user.
+        await js_utils.select_native_option(jurisdiction_select, value="OTHER")
     else:
         print(f"{super_scraper.OOPS} Jurisdiction select not found")
 
     category_select = await tab.find(id="webform_category", raise_exc=False)
     if category_select:
-        await _select_native_option(category_select, category)
+        await js_utils.select_native_option(category_select, value=category)
     else:
         print(f"{super_scraper.OOPS} Request Category select not found")
 
@@ -98,9 +114,11 @@ async def submit_request(tab, category, super_scraper):
     else:
         print(f"{super_scraper.OOPS} 'first-party request' checkbox not found")
 
+    if SuperScraper.HEALTH_CHECK:
+        await SuperScraper.assert_fields_filled(tab, FIELD_XPATHS)
+
     await asyncio.sleep(1)
-    await tab.take_screenshot(path=f"resources/screenshots/usdatacorporation_dry_run_{category}.png")
-    print(f"Screenshot saved to resources/screenshots/usdatacorporation_dry_run_{category}.png")
+    await SuperScraper.screenshot(tab, f"dry_run_{category}")
     print(
         f"\n'{category}' request filled but NOT submitted — a reCAPTCHA v2 checkbox requires "
         "a manual solve before submitting."
@@ -108,15 +126,16 @@ async def submit_request(tab, category, super_scraper):
 
 
 async def main():
-    options = ChromiumOptions()
     super_scraper = SuperScraper()
-    options.binary_location = super_scraper.CHROMIUM_LOCATION
-    options.add_argument("--no-sandbox")
-    options.add_argument("--window-size=1280,3000")
+    options = SuperScraper.build_chromium_options()
 
-    categories = list(REQUEST_CATEGORIES)
-    if SuperScraper.REMOVE_INFORMATION:
-        categories.append(DELETE_CATEGORY)
+    if SuperScraper.bail_if_not_automatable(globals()):
+        return
+    rights = SuperScraper.rights_to_exercise(RIGHT_MAP)
+    if not rights:
+        print("No requested privacy rights apply to this form — nothing to do.")
+        return
+    categories = [RIGHT_MAP[right] for right in rights]
 
     async with Chrome(options=options) as browser:
         tab = await browser.start()

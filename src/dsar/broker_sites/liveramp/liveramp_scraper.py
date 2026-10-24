@@ -14,9 +14,8 @@
 #   ac603fe1-fc25-44b9-8b84-9d87e2d426df  -> "Opt-out (Do Not Sell or Share
 #       My Personal Information)"; name + email only, no address fields.
 #
-# "I am" = "Consumer" on both. This scraper submits one request per type:
-# both Access variants + Opt-Out unconditionally, Delete gated on
-# REMOVE_INFORMATION. Correction lives on a SEPARATE Alpaca-schema form
+# "I am" = "Consumer" on both. This scraper submits one request per type; which
+# run is decided only by rights_to_exercise(RIGHT_MAP). Correction lives on a SEPARATE Alpaca-schema form
 # (bcdbaba0-9aa6-4fc5-8a1a-2fe02840b72d) with a mandatory "list the incorrect
 # information" free-text field — skipped, this repo's persona has no concrete
 # inaccuracy to assert.
@@ -31,11 +30,22 @@
 # tab.find(id=...) builds an invalid CSS selector and silently resolves to
 # the wrong (invisible) element — every field is targeted by xpath instead
 # (same workaround as ariza.com).
+#
+# Page elements (TrustArc IRM react-select scaffold):
+#   ...1001-select-container   "I am" combobox -> "Consumer"
+#   ...1002fn / ...1002ln      First / Last name inputs
+#   ...1003                    Email input
+#   ...1004-select-container   "Resident of" combobox -> user's state
+#   ...1005-select-container   "Type of Request" combobox -> see RIGHT_MAP
+#   1d2e11f2-... / 9ad3effb-... / 9e1031aa-... / b1f77941-... / 2ae02c73-...
+#                              Street Address / City / State / Zip Code / Phone Number
+#                              (only on the access/delete form, revealed after request type)
+#   ...1007                    Hidden consent checkbox
 import asyncio
 
 from pydoll.browser.chromium import Chrome
-from pydoll.browser.options import ChromiumOptions
 
+from src.dsar.rights import Right
 from src.dsar.super_scraper import SuperScraper
 
 TRUSTARC = "https://submit-irm.trustarc.com/services/validation/"
@@ -57,13 +67,27 @@ ADDRESS_FIELDS = [
     ("2ae02c73-329a-4412-804b-f6357eb01fba", "PHONE_NUMBER"),
 ]
 
-# (form id, "Type of Request" option text, gated-on-REMOVE_INFORMATION)
-REQUESTS = [
-    (ACCESS_DELETE_FORM, "Access My Information", False),
-    (ACCESS_DELETE_FORM, "Access Categories of My Information", False),
-    (OPT_OUT_FORM, "Opt-out (Do Not Sell or Share My Personal Information)", False),
-    (ACCESS_DELETE_FORM, "Delete My Information", True),
-]
+# Right -> list of (form id, "Type of Request" option text), one submission each.
+RIGHT_MAP = {
+    Right.RIGHT_TO_ACCESS: [
+        (ACCESS_DELETE_FORM, "Access My Information"),
+        (ACCESS_DELETE_FORM, "Access Categories of My Information"),
+    ],
+    Right.RIGHT_TO_OPT_OUT: [
+        (OPT_OUT_FORM, "Opt-out (Do Not Sell or Share My Personal Information)"),
+    ],
+    Right.RIGHT_TO_DELETE: [(ACCESS_DELETE_FORM, "Delete My Information")],
+}
+RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
+
+PAGE_RIGHTS = {}  # TODO(health-check): run HEALTH_CHECK once live; it prints the full list
+# (The options differ per TrustArc form, so one inventory does not fit; per-form capture is needed.)
+
+FIELD_XPATHS = {
+    "First name": "//input[@id='00000000-0000-0000-0000-000000001002fn']",
+    "Last name": "//input[@id='00000000-0000-0000-0000-000000001002ln']",
+    "Email": "//input[@id='00000000-0000-0000-0000-000000001003']",
+}
 
 
 async def _select_option(tab, container_id, text):
@@ -88,7 +112,7 @@ async def _select_option(tab, container_id, text):
     return False
 
 
-async def submit_request(tab, form_id, request_type, super_scraper):
+async def submit_request(tab, right, form_id, request_type, super_scraper):
     await tab.go_to(TRUSTARC + form_id)
     await asyncio.sleep(7)
 
@@ -131,42 +155,41 @@ async def submit_request(tab, form_id, request_type, super_scraper):
             "this.dispatchEvent(new Event('change', {bubbles:true}));"
         )
 
+    if SuperScraper.HEALTH_CHECK:
+        await SuperScraper.assert_fields_filled(tab, FIELD_XPATHS)
+
     label = request_type.lower().split("(")[0].strip().replace(" ", "_")
 
     if SuperScraper.DRY_RUN:
-        print(
-            f"DRY RUN: would submit '{request_type}' for "
-            f"{SuperScraper.FIRST_NAME} {SuperScraper.LAST_NAME} <{SuperScraper.EMAIL}>"
-        )
+        print(f"DRY RUN: would submit '{request_type}' ({right.name}) for {SuperScraper.EMAIL}")
         await asyncio.sleep(1)
-        await tab.take_screenshot(path=f"resources/screenshots/liveramp_dry_run_{label}.png")
-        print(f"Screenshot saved to resources/screenshots/liveramp_dry_run_{label}.png")
+        await SuperScraper.screenshot(tab, f"dry_run_{label}")
         return
 
     print(f"\nForm filled for '{request_type}'. Solve the reCAPTCHA if one appears,")
     print("click Submit Request, then press Enter once the confirmation page shows...")
     input()
 
-    source = await tab.page_source
-    if any(w in source.lower() for w in ("thank", "success", "received", "submitted", "confirmation")):
-        print(f"Submitted '{request_type}' for {SuperScraper.FIRST_NAME} {SuperScraper.LAST_NAME}")
-    else:
-        print(f"{super_scraper.OOPS} Confirmation unclear for '{request_type}' — verify in browser")
+    print(f"Submitted '{request_type}' ({right.name}) for {SuperScraper.EMAIL} — confirm in the browser.")
 
 
 async def main():
-    options = ChromiumOptions()
     super_scraper = SuperScraper()
-    options.binary_location = super_scraper.CHROMIUM_LOCATION
-    options.add_argument("--no-sandbox")
-    options.add_argument("--window-size=1400,3000")
+    if SuperScraper.bail_if_not_automatable(globals()):
+        return
+
+    rights = SuperScraper.rights_to_exercise(RIGHT_MAP)
+    if not rights:
+        print("No requested privacy rights apply to this form — nothing to do.")
+        return
+
+    options = SuperScraper.build_chromium_options()
 
     async with Chrome(options=options) as browser:
         tab = await browser.start()
-        for form_id, request_type, gated in REQUESTS:
-            if gated and not SuperScraper.REMOVE_INFORMATION:
-                continue
-            await submit_request(tab, form_id, request_type, super_scraper)
+        for right in rights:
+            for form_id, request_type in RIGHT_MAP[right]:
+                await submit_request(tab, right, form_id, request_type, super_scraper)
 
 
 asyncio.run(main())

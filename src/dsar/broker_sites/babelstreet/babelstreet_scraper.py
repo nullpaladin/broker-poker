@@ -5,27 +5,59 @@
 # Confirm Email must match Email.
 # formField78DSARElement = "Today's Date" — type MM/DD/YYYY.
 # captchaCode is a text input (image CAPTCHA) — manual entry required in live mode.
-# Exercises Access, Edit/Update, Object to Processing, Data Portability, Do Not Sell/Share;
-# Delete gated on REMOVE_INFORMATION (all multi-selected in one submission).
+# Rights the form exposes: Access My Data, Edit / Update My Data (correct, not automated),
+# Data Portability (RIGHT_TO_ACCESS), Do Not Sell or Share + Object to Processing
+# (RIGHT_TO_OPT_OUT), Delete My Data. All requested ones are multi-selected in ONE
+# submission; which are selected is decided ONLY by SuperScraper.rights_to_exercise(RIGHT_MAP).
+#
+# Page elements (keep this list current):
+#   role=button aria-label="Other"       Subject type
+#   role=button aria-label=<request type>  Request-type cards (see RIGHT_MAP)
+#   #firstNameDSARElement / #lastNameDSARElement   First / Last name
+#   #emailDSARElement / #confirmEmailInputDSARElement   Email / Confirm Email
+#   #vt-input-8                 Phone country code (typed "1")
+#   #phoneNumberDSARElement     Phone number
+#   #addressDSARElement         Address
+#   #cityDSARElement            City
+#   #stateDSARElement           State autocomplete
+#   #countryDSARElement         Country autocomplete -> "United States"
+#   #formField78DSARElement     "Today's Date" (MM/DD/YYYY)
+#   captchaCode                 Image CAPTCHA text input (manual entry)
+#   aria-label "Click to submit form"   Submit button
 import asyncio
 import time
 from datetime import date
 
 from pydoll.browser.chromium import Chrome
-from pydoll.browser.options import ChromiumOptions
 
+from src.dsar.rights import Right
 from src.dsar.super_scraper import SuperScraper
 
 URL = "https://privacyportal.onetrust.com/webform/43f52ed9-df36-44dc-94b6-ce2f8458ca29/2ddc0d62-7d6a-4de2-b5c4-9f9f68116970"
 
-BASE_REQUEST_TYPES = [
-    "Access My Data",
-    "Edit / Update My Data",
-    "Object to Processing",
-    "Data Portability",
-    "Do Not Sell or Share My Personal Information",
-]
-DELETE_REQUEST_TYPE = "Delete My Data"
+# "Object to Processing" has no exact canonical right — it rides along with RIGHT_TO_OPT_OUT.
+RIGHT_MAP = {
+    Right.RIGHT_TO_ACCESS: ["Access My Data", "Data Portability"],
+    Right.RIGHT_TO_OPT_OUT: ["Do Not Sell or Share My Personal Information", "Object to Processing"],
+    Right.RIGHT_TO_DELETE: ["Delete My Data"],
+}
+RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
+
+PAGE_RIGHTS = {}  # TODO(health-check): run HEALTH_CHECK once live; it prints the full list
+# (Recorded request types are aria-labels; the visible text may differ, so they are not copied in.)
+
+FIELD_XPATHS = {
+    "First name": "//*[@id='firstNameDSARElement']",
+    "Last name": "//*[@id='lastNameDSARElement']",
+    "Email": "//*[@id='emailDSARElement']",
+    "Confirm email": "//*[@id='confirmEmailInputDSARElement']",
+    "Phone": "//*[@id='phoneNumberDSARElement']",
+    "Address": "//*[@id='addressDSARElement']",
+    "City": "//*[@id='cityDSARElement']",
+    "State": "//*[@id='stateDSARElement']",
+    "Country": "//*[@id='countryDSARElement']",
+    "Today's date": "//*[@id='formField78DSARElement']",
+}
 
 
 async def _select_autocomplete(tab, field_id, search_text):
@@ -45,15 +77,17 @@ async def _select_autocomplete(tab, field_id, search_text):
 
 
 async def main():
-    options = ChromiumOptions()
     super_scraper = SuperScraper()
-    options.binary_location = super_scraper.CHROMIUM_LOCATION
-    options.add_argument("--no-sandbox")
-    options.add_argument("--window-size=1280,3000")
+    if SuperScraper.bail_if_not_automatable(globals()):
+        return
 
-    request_types = list(BASE_REQUEST_TYPES)
-    if SuperScraper.REMOVE_INFORMATION:
-        request_types.append(DELETE_REQUEST_TYPE)
+    rights = SuperScraper.rights_to_exercise(RIGHT_MAP)
+    if not rights:
+        print("No requested privacy rights apply to this form — nothing to do.")
+        return
+    request_types = list(dict.fromkeys(rt for right in rights for rt in RIGHT_MAP[right]))
+
+    options = SuperScraper.build_chromium_options()
 
     async with Chrome(options=options) as browser:
         tab = await browser.start()
@@ -119,33 +153,27 @@ async def main():
 
         time.sleep(0.5)
 
+        if SuperScraper.HEALTH_CHECK:
+            await SuperScraper.assert_fields_filled(tab, FIELD_XPATHS)
+
         if SuperScraper.DRY_RUN:
-            rights = ", ".join(request_types)
-            print(
-                f"DRY RUN: would submit [{rights}] for "
-                f"{SuperScraper.FIRST_NAME} {SuperScraper.LAST_NAME} <{SuperScraper.EMAIL}>"
-            )
+            print(f"DRY RUN: would submit {[r.name for r in rights]} ({request_types}) for {SuperScraper.EMAIL}")
             submit_btn = await tab.find(**{"aria-label": "Click to submit form"}, raise_exc=False)
             if not submit_btn:
                 submit_btn = await tab.find(**{"aria-label": "click to submit form"}, raise_exc=False)
             if submit_btn:
                 await submit_btn.scroll_into_view()
             await asyncio.sleep(2)
-            suffix = "_delete" if SuperScraper.REMOVE_INFORMATION else ""
-            await tab.take_screenshot(f"resources/screenshots/babelstreet_dry_run{suffix}.png")
-            print(f"Screenshot saved to resources/screenshots/babelstreet_dry_run{suffix}.png")
+            suffix = "_delete" if Right.RIGHT_TO_DELETE in rights else ""
+            await SuperScraper.screenshot(tab, f"dry_run{suffix}")
             return
 
-        print(f"\nForm filled for {SuperScraper.FIRST_NAME} {SuperScraper.LAST_NAME}.")
+        print(f"\nForm filled for {[r.name for r in rights]}.")
         print("Enter the image CAPTCHA value into the captchaCode field.")
         print("Then click Submit. Press Enter after submission completes...")
         input()
 
-        source = await tab.page_source
-        if any(w in source.lower() for w in ("thank", "success", "received", "submitted", "confirmation")):
-            print(f"Submitted for {SuperScraper.FIRST_NAME} {SuperScraper.LAST_NAME}")
-        else:
-            print(f"{super_scraper.OOPS} Confirmation unclear — verify in browser")
+        print(f"Submitted {[r.name for r in rights]} for {SuperScraper.EMAIL} — confirm in the browser.")
 
 
 asyncio.run(main())

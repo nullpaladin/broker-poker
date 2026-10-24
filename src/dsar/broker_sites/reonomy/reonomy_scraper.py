@@ -1,32 +1,64 @@
 # reonomy.com — California-focused DSAR form. Exercises Access My Information,
-# Do Not Sell My Information, and Delete My Information (gated on
-# REMOVE_INFORMATION). Subject "California Consumer". Delivery "Online". One
+# Do Not Sell My Information, and Delete My Information (gated only by
+# SuperScraper.rights_to_exercise(RIGHT_MAP)). Subject "California Consumer". Delivery "Online". One
 # submission per right (form accepts one at a time). State field has non-standard
 # ID formField16DSARElement (autocomplete: ArrowDown+Enter). Phone country code
 # vt-input-8 (type "1" for US +1). captchaCode image CAPTCHA requires manual
 # entry in live mode.
+#
+# Page elements:
+#   aria-label "California Consumer"       subject-type button (only subject option offered)
+#   aria-label "Access My Information " / "Do Not Sell My Information " / "Delete My Information "
+#                                          request-type buttons (trailing space is part of the label)
+#   aria-label "Online"                    delivery method button
+#   #firstNameDSARElement / #lastNameDSARElement   First / Last name
+#   #addressDSARElement / #cityDSARElement / #zipDSARElement   Address / City / Zip
+#   #formField16DSARElement                State autocomplete (ArrowDown+Enter)
+#   #vt-input-8                            Phone country code (type "1")
+#   #phoneNumberDSARElement / #emailDSARElement   Phone / Email
+#   aria-label "Request Details"           free-text details
+#   #captchaCode                           image CAPTCHA (manual entry)
 import asyncio
 
 from pydoll.browser.chromium import Chrome
-from pydoll.browser.options import ChromiumOptions
 from pydoll.constants import Key
 
+from src.dsar.rights import Right
 from src.dsar.super_scraper import SuperScraper
 
 URL = "https://privacyportal-cdn.onetrust.com/dsarwebform/ed2a4eae-cadd-4d40-9f21-cf27556d3a21/49fbe5ce-5ee2-487b-9b4f-bfdab733819b.html"
 
-# (aria-label, screenshot label) — trailing spaces are part of the actual labels
-REQUESTS = [
-    ("Access My Information ", "access"),
-    ("Do Not Sell My Information ", "optout"),
-]
-DELETE_REQUEST = ("Delete My Information ", "delete")
+# Right -> [(aria-label, screenshot label)] — trailing spaces are part of the actual labels
+RIGHT_MAP = {
+    Right.RIGHT_TO_ACCESS: [("Access My Information ", "access")],
+    Right.RIGHT_TO_OPT_OUT: [("Do Not Sell My Information ", "optout")],
+    Right.RIGHT_TO_DELETE: [("Delete My Information ", "delete")],
+}
+RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
+
+PAGE_RIGHTS = {}  # TODO(health-check): run HEALTH_CHECK once live; it prints the full list
+# (Recorded request types are aria-labels; the visible text may differ, so they are not copied in.)
+
+FIELD_XPATHS = {
+    "First name": "//*[@id='firstNameDSARElement']",
+    "Last name": "//*[@id='lastNameDSARElement']",
+    "Address": "//*[@id='addressDSARElement']",
+    "City": "//*[@id='cityDSARElement']",
+    "State": "//*[@id='formField16DSARElement']",
+    "Zip": "//*[@id='zipDSARElement']",
+    "Phone": "//*[@id='phoneNumberDSARElement']",
+    "Email": "//*[@id='emailDSARElement']",
+    "Request details": "//*[@aria-label='Request Details']",
+}
 
 
-async def fill_and_submit(tab, req_aria_label, screenshot_label, super_scraper):
+async def fill_and_submit(tab, right, req_aria_label, screenshot_label, super_scraper):
     await tab.go_to(URL)
     await asyncio.sleep(6)
 
+    # "California Consumer" is the only subject option this form offers; it is used
+    # for any privacy-law state (those laws entitle residents to CCPA-equivalent
+    # treatment). A no-law state has no applicable right here.
     consumer_btn = await tab.find(**{"aria-label": "California Consumer"}, raise_exc=False)
     if not consumer_btn:
         print(f"{super_scraper.OOPS} 'California Consumer' subject button not found")
@@ -93,11 +125,13 @@ async def fill_and_submit(tab, req_aria_label, screenshot_label, super_scraper):
 
     request_details = await tab.find(**{"aria-label": "Request Details"}, raise_exc=False)
     if request_details:
-        label = req_aria_label.strip()
         await request_details.type_text(
-            f"I am exercising my right to {label.lower()} under applicable privacy law."
+            SuperScraper.request_statement([right], broker="Reonomy")
         )
     await asyncio.sleep(0.5)
+
+    if SuperScraper.HEALTH_CHECK:
+        await SuperScraper.assert_fields_filled(tab, FIELD_XPATHS)
 
     if SuperScraper.DRY_RUN:
         print(
@@ -108,8 +142,7 @@ async def fill_and_submit(tab, req_aria_label, screenshot_label, super_scraper):
         if captcha_field:
             await captcha_field.scroll_into_view()
         await asyncio.sleep(1)
-        await tab.take_screenshot(f"resources/screenshots/reonomy_dry_run_{screenshot_label}.png")
-        print(f"Screenshot saved to resources/screenshots/reonomy_dry_run_{screenshot_label}.png")
+        await SuperScraper.screenshot(tab, f"dry_run_{screenshot_label}")
         return
 
     print(f"\nForm filled for '{req_aria_label.strip()}'.")
@@ -117,28 +150,23 @@ async def fill_and_submit(tab, req_aria_label, screenshot_label, super_scraper):
     print("then click Submit. Press Enter after the confirmation page appears...")
     input()
 
-    source = await tab.page_source
-    if any(w in source.lower() for w in ("thank", "success", "received", "submitted", "confirmation")):
-        print(f"Submitted '{req_aria_label.strip()}' for {SuperScraper.FIRST_NAME} {SuperScraper.LAST_NAME}")
-    else:
-        print(f"{super_scraper.OOPS} Confirmation unclear for '{req_aria_label.strip()}' — verify in browser")
+    print(f"Submitted '{req_aria_label.strip()}' for {SuperScraper.EMAIL} — confirm in the browser.")
 
 
 async def main():
-    options = ChromiumOptions()
     super_scraper = SuperScraper()
-    options.binary_location = super_scraper.CHROMIUM_LOCATION
-    options.add_argument("--no-sandbox")
-    options.add_argument("--window-size=1280,3000")
+    options = SuperScraper.build_chromium_options()
 
-    requests = list(REQUESTS)
-    if SuperScraper.REMOVE_INFORMATION:
-        requests.append(DELETE_REQUEST)
+    rights = SuperScraper.rights_to_exercise(RIGHT_MAP)
+    if not rights:
+        print("No requested privacy rights apply to this form — nothing to do.")
+        return
+    requests = [(right, entry) for right in rights for entry in RIGHT_MAP[right]]
 
     async with Chrome(options=options) as browser:
         tab = await browser.start()
-        for req_label, screenshot_label in requests:
-            await fill_and_submit(tab, req_label, screenshot_label, super_scraper)
+        for right, (req_label, screenshot_label) in requests:
+            await fill_and_submit(tab, right, req_label, screenshot_label, super_scraper)
 
 
 asyncio.run(main())

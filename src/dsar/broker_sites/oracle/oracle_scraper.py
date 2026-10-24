@@ -6,7 +6,7 @@
 # rather than plain "select__" — a bare ".select__option" selector matches
 # nothing, so options are matched with contains(@class,'select__option').
 #
-# Fields:
+# Page elements (ids are "00000000-0000-0000-0000-000000001XXX" + suffix):
 #   ...1004  "Resident of"   -> type a US STATE name directly ("Minnesota");
 #            there is NO separate country field, and typing "United States"
 #            hits a known site-side filter bug that only ever returns
@@ -18,12 +18,10 @@
 #   ...1002fn / ...1002ln / ...1003  First / Last / Email
 #   ...1007checkbox  accuracy/verification consent (hidden -> set via JS)
 #
-# Rights exercised, one submission each: "Access My Information",
-# "Do Not Sell My Personal Information", and "Marketing e-Mail Opt-out or
-# Unsubscribe" unconditionally; "Delete My Information" gated on
-# REMOVE_INFORMATION. "Correct or Update My Information" (no concrete
-# inaccuracy) and "Other Privacy Inquiry – Contact our DPO" (not a rights
-# request) are skipped.
+# One submission per "Type of Request" option (see RIGHT_MAP); which rights run is
+# decided ONLY by SuperScraper.rights_to_exercise(RIGHT_MAP). "Correct or Update My
+# Information" (not automated) and "Other Privacy Inquiry – Contact our DPO" (not a
+# rights request) are offered but skipped.
 #
 # Oracle sends a verification email that must be actioned before the request
 # is processed — that step is manual. An invisible reCAPTCHA v2 (site key
@@ -37,8 +35,9 @@
 import asyncio
 
 from pydoll.browser.chromium import Chrome
-from pydoll.browser.options import ChromiumOptions
+from pydoll.constants import Key
 
+from src.dsar.rights import Right
 from src.dsar.super_scraper import SuperScraper
 
 URL = "https://submit-irm.trustarc.com/services/validation/742d5422-26ad-45bc-89b1-05e40e58b59d"
@@ -47,13 +46,33 @@ RESIDENT_CONTAINER = "00000000-0000-0000-0000-000000001004-select-container"
 IAM_CONTAINER = "00000000-0000-0000-0000-000000001001-select-container"
 REQUEST_TYPE_CONTAINER = "00000000-0000-0000-0000-000000001005-select-container"
 
-# (Type of Request option, gated-on-REMOVE_INFORMATION)
-REQUESTS = [
-    ("Access My Information", False),
-    ("Do Not Sell My Personal Information", False),
-    ("Marketing e-Mail Opt-out or Unsubscribe", False),
-    ("Delete My Information", True),
-]
+# Right -> "Type of Request" option(s) in the ...1005 chooser.
+RIGHT_MAP = {
+    Right.RIGHT_TO_ACCESS: ["Access My Information"],
+    Right.RIGHT_TO_OPT_OUT: [
+        "Do Not Sell My Personal Information",
+        "Marketing e-Mail Opt-out or Unsubscribe",
+    ],
+    Right.RIGHT_TO_DELETE: ["Delete My Information"],
+}
+RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
+
+# Every option in the "Type of Request" react-select, as displayed -> the Right it maps to (None = not automated).
+PAGE_RIGHTS = {
+    "Access My Information": Right.RIGHT_TO_ACCESS,
+    "Do Not Sell My Personal Information": Right.RIGHT_TO_OPT_OUT,
+    "Marketing e-Mail Opt-out or Unsubscribe": Right.RIGHT_TO_OPT_OUT,
+    "Delete My Information": Right.RIGHT_TO_DELETE,
+    "Correct or Update My Information": None,
+    "Other Privacy Inquiry – Contact our DPO": None,
+}
+RIGHTS_OPTIONS_CSS = "[class*='select__option']"  # only rendered while the request-type menu is open (class prefix is ta-upm-select__)
+
+FIELD_XPATHS = {
+    "First name": "//input[@id='00000000-0000-0000-0000-000000001002fn']",
+    "Last name": "//input[@id='00000000-0000-0000-0000-000000001002ln']",
+    "Email": "//input[@id='00000000-0000-0000-0000-000000001003']",
+}
 
 
 async def _select_option(tab, container_id, text):
@@ -84,6 +103,20 @@ async def submit_request(tab, request_type, super_scraper):
 
     await _select_option(tab, RESIDENT_CONTAINER, SuperScraper.STATE)
     await _select_option(tab, IAM_CONTAINER, "Consumer / Customer")
+    if SuperScraper.HEALTH_CHECK:
+        # Options only populate after "Resident of"; open the menu, read it, close it again.
+        ctrl = await tab.find(
+            xpath=f"//div[@id='{REQUEST_TYPE_CONTAINER}']//div[contains(@class,'select__control')]",
+            raise_exc=False,
+        )
+        if ctrl:
+            await ctrl.click()
+            await asyncio.sleep(1)
+            offered = await SuperScraper.read_option_labels(tab, RIGHTS_OPTIONS_CSS)
+            SuperScraper.audit_rights(offered, PAGE_RIGHTS)
+            await tab.keyboard.press(Key.ESCAPE)
+            await asyncio.sleep(0.5)
+
     await _select_option(tab, REQUEST_TYPE_CONTAINER, request_type)
     await asyncio.sleep(1)
 
@@ -110,6 +143,9 @@ async def submit_request(tab, request_type, super_scraper):
             "this.dispatchEvent(new Event('change', {bubbles:true}));"
         )
 
+    if SuperScraper.HEALTH_CHECK:
+        await SuperScraper.assert_fields_filled(tab, FIELD_XPATHS)
+
     label = request_type.lower().split("–")[0].strip().replace(" ", "_").replace("/", "_")
 
     if SuperScraper.DRY_RUN:
@@ -118,34 +154,33 @@ async def submit_request(tab, request_type, super_scraper):
             f"{SuperScraper.FIRST_NAME} {SuperScraper.LAST_NAME} <{SuperScraper.EMAIL}>"
         )
         await asyncio.sleep(1)
-        await tab.take_screenshot(path=f"resources/screenshots/oracle_dry_run_{label}.png")
-        print(f"Screenshot saved to resources/screenshots/oracle_dry_run_{label}.png")
+        await SuperScraper.screenshot(tab, f"dry_run_{label}")
         return
 
     print(f"\nForm filled for '{request_type}'. Solve the reCAPTCHA if one appears,")
     print("click Submit Request, action Oracle's verification email, then press Enter...")
     input()
 
-    source = await tab.page_source
-    if any(w in source.lower() for w in ("thank", "success", "received", "submitted", "verification")):
-        print(f"Submitted '{request_type}' for {SuperScraper.FIRST_NAME} {SuperScraper.LAST_NAME}")
-    else:
-        print(f"{super_scraper.OOPS} Confirmation unclear for '{request_type}' — verify in browser")
+    print(f"Submitted '{request_type}' for {SuperScraper.EMAIL} — confirm in the browser "
+          "and action Oracle's verification email.")
 
 
 async def main():
-    options = ChromiumOptions()
     super_scraper = SuperScraper()
-    options.binary_location = super_scraper.CHROMIUM_LOCATION
-    options.add_argument("--no-sandbox")
-    options.add_argument("--window-size=1400,3000")
+    if SuperScraper.bail_if_not_automatable(globals()):
+        return
+    options = SuperScraper.build_chromium_options()
+
+    rights = SuperScraper.rights_to_exercise(RIGHT_MAP)
+    if not rights:
+        print("No requested privacy rights apply to this form — nothing to do.")
+        return
 
     async with Chrome(options=options) as browser:
         tab = await browser.start()
-        for request_type, gated in REQUESTS:
-            if gated and not SuperScraper.REMOVE_INFORMATION:
-                continue
-            await submit_request(tab, request_type, super_scraper)
+        for right in rights:
+            for request_type in RIGHT_MAP[right]:
+                await submit_request(tab, request_type, super_scraper)
 
 
 asyncio.run(main())

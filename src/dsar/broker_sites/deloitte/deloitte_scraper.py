@@ -25,19 +25,57 @@
 # without actually toggling `checked` (confirmed: out of several checkboxes
 # clicked identically, only one reliably ended up checked). Checkboxes are
 # set via JS (checked=true + click/change event dispatch) instead.
+# Which request types are checked is decided ONLY by
+# SuperScraper.rights_to_exercise(RIGHT_MAP); they all go out in ONE submission.
+#
+# Page elements:
+#   "Decline all optional cookies"   Cookie banner button
+#   "Request Form" button            Opens the form
+#   input[name=requestTypeMyself]    "Myself" radio (reveals the whole form)
+#   #Fname / #Lname / #email / #PhoneNumber   First / Last name, Email, Phone
+#   #Currentaddress / #City / #State / #Postalcode   Street address / City / State (text) / Postal code
+#   #Country                         Country <select> (populates asynchronously) -> "United States"
+#   RELATIONSHIP_NAME                "Relationship to Deloitte" checkbox (see above)
+#   REQUEST_TYPE_ACCESS / _OPT_OUT / _DELETE   "Request Type" checkboxes (see RIGHT_MAP)
+#   input[name=Confirmation]         Required "Confirmation" checkbox
+#   input[name=terms]                Required "Acceptance" (terms) checkbox
+#   "Submit Request" button          Submit
 import asyncio
 
-from src.dsar.super_scraper import SuperScraper
-
 from pydoll.browser.chromium import Chrome
-from pydoll.browser.options import ChromiumOptions
+
+from src.dsar import js_utils
+from src.dsar.rights import Right
+from src.dsar.super_scraper import SuperScraper
 
 URL = "https://datasubject.deloitte.com/"
 
 RELATIONSHIP_NAME = "SubscribertoDeloitteUSmarketplaceinformation"
 
-REQUEST_TYPE_NAMES = ["IsPersonalInformation", "Reqchkispresent1"]  # Access, Opt-Out of sale
-DELETE_REQUEST_TYPE_NAME = "IsdeleteMyPersonalInformation"
+REQUEST_TYPE_ACCESS = "IsPersonalInformation"
+REQUEST_TYPE_OPT_OUT = "Reqchkispresent1"
+REQUEST_TYPE_DELETE = "IsdeleteMyPersonalInformation"
+
+RIGHT_MAP = {
+    Right.RIGHT_TO_ACCESS: [REQUEST_TYPE_ACCESS],
+    Right.RIGHT_TO_OPT_OUT: [REQUEST_TYPE_OPT_OUT],
+    Right.RIGHT_TO_DELETE: [REQUEST_TYPE_DELETE],
+}
+RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
+
+PAGE_RIGHTS = {}  # TODO(health-check): run HEALTH_CHECK once live; it prints the full list
+
+FIELD_XPATHS = {
+    "First name": "//*[@id='Fname']",
+    "Last name": "//*[@id='Lname']",
+    "Email": "//*[@id='email']",
+    "Phone": "//*[@id='PhoneNumber']",
+    "Street address": "//*[@id='Currentaddress']",
+    "City": "//*[@id='City']",
+    "State": "//*[@id='State']",
+    "Postal code": "//*[@id='Postalcode']",
+    "Country": "//*[@id='Country']",
+}
 
 
 async def _check(tab, name, super_scraper, description):
@@ -56,10 +94,16 @@ async def _check(tab, name, super_scraper, description):
 
 
 async def main():
-    options = ChromiumOptions()
     super_scraper = SuperScraper()
-    options.binary_location = super_scraper.CHROMIUM_LOCATION
-    options.add_argument("--no-sandbox")
+    if SuperScraper.bail_if_not_automatable(globals()):
+        return
+
+    rights = SuperScraper.rights_to_exercise(RIGHT_MAP)
+    if not rights:
+        print("No requested privacy rights apply to this form — nothing to do.")
+        return
+
+    options = SuperScraper.build_chromium_options()
 
     async with Chrome(options=options) as browser:
         tab = await browser.start()
@@ -107,36 +151,31 @@ async def main():
 
         country_select = await tab.find(id="Country", raise_exc=False)
         if country_select:
-            await country_select.execute_script(
-                "for (var i=0;i<this.options.length;i++){"
-                "  if(this.options[i].text==='United States'){ this.selectedIndex=i; }"
-                "}"
-                "this.dispatchEvent(new Event('change', {bubbles:true}));"
-            )
+            await js_utils.select_native_option(country_select, text="United States")
 
         await _check(tab, RELATIONSHIP_NAME, super_scraper, "relationship")
 
-        request_type_names = list(REQUEST_TYPE_NAMES)
-        if SuperScraper.REMOVE_INFORMATION:
-            request_type_names.append(DELETE_REQUEST_TYPE_NAME)
+        request_type_names = [entry for right in rights for entry in RIGHT_MAP[right]]
         for name in request_type_names:
             await _check(tab, name, super_scraper, f"request type '{name}'")
 
         await _check(tab, "Confirmation", super_scraper, "Confirmation")
         await _check(tab, "terms", super_scraper, "Acceptance/terms")
 
+        if SuperScraper.HEALTH_CHECK:
+            await SuperScraper.assert_fields_filled(tab, FIELD_XPATHS)
+
         if SuperScraper.DRY_RUN:
-            print(f"DRY RUN: would submit removal request for {SuperScraper.FIRST_NAME} {SuperScraper.LAST_NAME}")
             await asyncio.sleep(1)
-            await tab.take_screenshot(path="resources/screenshots/deloitte_dry_run.png")
-            print("Screenshot saved to resources/screenshots/deloitte_dry_run.png")
+            await SuperScraper.screenshot(tab, "dry_run_" + "_".join(r.value for r in rights))
+            print(f"DRY RUN: would submit {', '.join(r.name for r in rights)} for {SuperScraper.EMAIL}")
             return
 
         submit_btn = await tab.find(text="Submit Request", raise_exc=False)
         if submit_btn:
             await submit_btn.click()
             await asyncio.sleep(2)
-            print(f"Submitted removal request for {SuperScraper.FIRST_NAME} {SuperScraper.LAST_NAME}")
+            print(f"Submitted {', '.join(r.name for r in rights)} for {SuperScraper.EMAIL} — confirm in the browser.")
         else:
             print(f"{super_scraper.OOPS} Submit Request button not found")
 

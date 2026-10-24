@@ -1,29 +1,50 @@
-# disqus.com — exercises Right to Access, Do Not Sell/Share, Opt-Out of Sensitive
-# Data Processing, and Right to Delete (gated on REMOVE_INFORMATION).
-# OneTrust CDN Angular DSAR form. Subject type "Disqus User" and request type
-# buttons are Angular role="button" divs — click via click_using_js().
-# Country and State are autocomplete comboboxes (type then click first visible
-# role=option). reCAPTCHA v2 requires manual solve before submit.
+# disqus.com — OneTrust CDN Angular DSAR form. Rights the form exposes (and we map):
+# access, do not sell/share, opt-out of sensitive personal information, delete. Which
+# of them run is decided ONLY by SuperScraper.rights_to_exercise(RIGHT_MAP).
+# Subject type "Disqus User" and request type buttons are Angular role="button" divs —
+# click via click_using_js(). Country and State are autocomplete comboboxes (type then
+# click the matching option). reCAPTCHA v2 requires manual solve before submit.
+#
+# Page elements:
+#   [aria-label="Disqus User"]       Subject type button
+#   [aria-label=<request type>]      Request type buttons (labels in RIGHT_MAP)
+#   #firstNameDSARElement / #lastNameDSARElement / #emailDSARElement   First / Last name, Email
+#   #countryDSARElement              Country combobox -> "United States"
+#   #stateDSARElement                State combobox (appears after country is chosen)
+#   [aria-label="click to submit form"]   Submit button
 import asyncio
-import time
 
 from pydoll.browser.chromium import Chrome
-from pydoll.browser.options import ChromiumOptions
 
+from src.dsar.rights import Right
 from src.dsar.super_scraper import SuperScraper
 
 URL = "https://privacyportal-cdn.onetrust.com/dsarwebform/bc2d3301-11a5-4de5-b15e-ce796187a352/9a049fa1-37af-4598-a87a-d0df2e2d904b.html"
 
 # (aria-label, screenshot label)
-REQUESTS = [
-    ("Request a copy of personal information", "access"),
-    ("Do not sell or share my information", "optout"),
-    ("Opt out of use of my sensitive personal information", "sensitive"),
-]
-DELETE_REQUEST = ("Delete my personal information", "delete")
+RIGHT_MAP = {
+    Right.RIGHT_TO_ACCESS: [("Request a copy of personal information", "access")],
+    Right.RIGHT_TO_OPT_OUT: [
+        ("Do not sell or share my information", "optout"),
+        ("Opt out of use of my sensitive personal information", "sensitive"),
+    ],
+    Right.RIGHT_TO_DELETE: [("Delete my personal information", "delete")],
+}
+RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
+
+PAGE_RIGHTS = {}  # TODO(health-check): run HEALTH_CHECK once live; it prints the full list
+# (Recorded request types are aria-labels; the visible text may differ, so they are not copied in.)
+
+FIELD_XPATHS = {
+    "First name": "//*[@id='firstNameDSARElement']",
+    "Last name": "//*[@id='lastNameDSARElement']",
+    "Email": "//*[@id='emailDSARElement']",
+    "Country": "//*[@id='countryDSARElement']",
+    "State": "//*[@id='stateDSARElement']",
+}
 
 
-async def submit_request(tab, aria_label, label, super_scraper):
+async def submit_request(tab, right, aria_label, label, super_scraper):
     await tab.go_to(URL)
     await asyncio.sleep(6)
 
@@ -72,17 +93,16 @@ async def submit_request(tab, aria_label, label, super_scraper):
             await state_opt.click()
     await asyncio.sleep(0.5)
 
+    if SuperScraper.HEALTH_CHECK:
+        await SuperScraper.assert_fields_filled(tab, FIELD_XPATHS)
+
     if SuperScraper.DRY_RUN:
-        print(
-            f"DRY RUN: would submit '{aria_label}' for "
-            f"{SuperScraper.FIRST_NAME} {SuperScraper.LAST_NAME} <{SuperScraper.EMAIL}>"
-        )
         submit_btn = await tab.find(**{"aria-label": "click to submit form"}, raise_exc=False)
         if submit_btn:
             await submit_btn.scroll_into_view()
         await asyncio.sleep(1)
-        await tab.take_screenshot(f"resources/screenshots/disqus_dry_run_{label}.png")
-        print(f"Screenshot saved to resources/screenshots/disqus_dry_run_{label}.png")
+        await SuperScraper.screenshot(tab, f"dry_run_{label}")
+        print(f"DRY RUN: would submit '{right.name}' ({aria_label}) for {SuperScraper.EMAIL}")
         return
 
     print(f"\nForm filled for '{aria_label}'.")
@@ -90,28 +110,25 @@ async def submit_request(tab, aria_label, label, super_scraper):
     print("Press Enter after the confirmation page appears...")
     input()
 
-    source = await tab.page_source
-    if any(w in source.lower() for w in ("thank", "success", "received", "submitted", "confirmation")):
-        print(f"Submitted '{aria_label}' for {SuperScraper.FIRST_NAME} {SuperScraper.LAST_NAME}")
-    else:
-        print(f"{super_scraper.OOPS} Confirmation unclear for '{aria_label}' — verify in browser")
+    print(f"Submitted '{right.name}' ({aria_label}) for {SuperScraper.EMAIL} — confirm in the browser.")
 
 
 async def main():
-    options = ChromiumOptions()
     super_scraper = SuperScraper()
-    options.binary_location = super_scraper.CHROMIUM_LOCATION
-    options.add_argument("--no-sandbox")
-    options.add_argument("--window-size=1280,3000")
+    if SuperScraper.bail_if_not_automatable(globals()):
+        return
 
-    requests = list(REQUESTS)
-    if SuperScraper.REMOVE_INFORMATION:
-        requests.append(DELETE_REQUEST)
+    rights = SuperScraper.rights_to_exercise(RIGHT_MAP)
+    if not rights:
+        print("No requested privacy rights apply to this form — nothing to do.")
+        return
 
+    options = SuperScraper.build_chromium_options()
     async with Chrome(options=options) as browser:
         tab = await browser.start()
-        for aria_label, label in requests:
-            await submit_request(tab, aria_label, label, super_scraper)
+        for right in rights:
+            for aria_label, label in RIGHT_MAP[right]:
+                await submit_request(tab, right, aria_label, label, super_scraper)
 
 
 asyncio.run(main())

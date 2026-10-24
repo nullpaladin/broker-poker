@@ -1,32 +1,51 @@
 # nielsen.com — OneTrust CDN DSAR webform (privacyportalde-cdn.onetrust.com),
-# same template/element ids as zetaglobal.com elsewhere in this repo
-# (firstNameDSARElement/emailDSARElement/countryDSARElement/etc.). A prior
-# manual investigation recorded this URL as redirecting to google.com — that
-# no longer reproduces; the form now loads normally. "I am a (an)"
-# (subjectTypesDSARElement) has no generic consumer option (Prospective/
-# Former Employee, Panel Member, Former Panel Member, Survey respondent,
-# Other) — "Other" used. Country must be filled first (vt-autocomplete) to
-# reveal State (also vt-autocomplete, expects the full US state name) and
-# "Select Request Type", which is genuinely SINGLE-select here (confirmed:
-# picking a second option un-highlights the first) — one submission per
-# right: Request my personal information (Access) unconditionally; Delete my
-# personal information gated on REMOVE_INFORMATION. Correct skipped (no
-# concrete inaccuracy to describe), Other skipped. BotDetect image CAPTCHA —
-# **CAPTCHA solution required**.
+# same template/element ids as zetaglobal.com elsewhere in this repo. A prior manual
+# investigation recorded this URL as redirecting to google.com — that no longer reproduces;
+# the form now loads normally. Rights the form exposes: Request my personal information
+# (Access), Delete my personal information, Correct (not automated), Other (not automated).
+# Request type is genuinely SINGLE-select (confirmed: picking a second option un-highlights
+# the first) — one submission per right. Which rights run is decided ONLY by
+# SuperScraper.rights_to_exercise(RIGHT_MAP). BotDetect image CAPTCHA —
+# **CAPTCHA solution required**, so the form is filled and never submitted.
+#
+# Page elements (keep this list current):
+#   #subjectTypesDSARElement            "I am a (an)" chooser; options are Prospective/Former Employee,
+#                                       Panel Member, Former Panel Member, Survey respondent, Other
+#                                       (no generic consumer option) -> "Other"
+#   #firstNameDSARElement / #lastNameDSARElement / #emailDSARElement   First / Last name, Email
+#   #countryDSARElement                 Country autocomplete (fill first; reveals State and request types)
+#   #stateDSARElement                   State autocomplete (expects the full US state name)
+#   "Select Request Type" option divs   -> see RIGHT_MAP
+#   #requestDetailsDSARElement          Request details textarea
 import asyncio
 
+from src.dsar.rights import Right
 from src.dsar.super_scraper import SuperScraper
 
 from pydoll.browser.chromium import Chrome
-from pydoll.browser.options import ChromiumOptions
 
 URL = (
     "https://privacyportalde-cdn.onetrust.com/dsarwebform/70b0083d-d519-4ad2-84ca-96b7c5f8e1a9/"
     "9810a8bc-e54d-4d70-bac0-5e4d781ef5b9.html"
 )
 
-RIGHTS = [("Request my personal information", "access")]
-DELETE_RIGHT = ("Delete my personal information", "delete")
+RIGHT_MAP = {
+    Right.RIGHT_TO_ACCESS: "Request my personal information",
+    Right.RIGHT_TO_DELETE: "Delete my personal information",
+}
+RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
+
+PAGE_RIGHTS = {}  # TODO(health-check): run HEALTH_CHECK once live; it prints the full list
+# (Only two request-type texts are recorded verbatim; Correct and Other are not.)
+
+FIELD_XPATHS = {
+    "First name": "//*[@id='firstNameDSARElement']",
+    "Last name": "//*[@id='lastNameDSARElement']",
+    "Email": "//*[@id='emailDSARElement']",
+    "Country": "//*[@id='countryDSARElement']",
+    "State": "//*[@id='stateDSARElement']",
+    "Request details": "//*[@id='requestDetailsDSARElement']",
+}
 
 
 async def _select_autocomplete(tab, field_id, value, super_scraper, description):
@@ -46,7 +65,7 @@ async def _select_autocomplete(tab, field_id, value, super_scraper, description)
         print(f"{super_scraper.OOPS} {description} option '{value}' not found")
 
 
-async def submit_request(tab, request_type_text, label, super_scraper):
+async def submit_request(tab, right, request_type_text, super_scraper):
     await tab.go_to(URL)
     await asyncio.sleep(5)
 
@@ -81,11 +100,13 @@ async def submit_request(tab, request_type_text, label, super_scraper):
 
     details_field = await tab.find(id="requestDetailsDSARElement", raise_exc=False)
     if details_field:
-        await details_field.type_text(f"I am requesting to {request_type_text.lower()}.")
+        await details_field.type_text(SuperScraper.request_statement([right], broker="Nielsen"))
+
+    if SuperScraper.HEALTH_CHECK:
+        await SuperScraper.assert_fields_filled(tab, FIELD_XPATHS)
 
     await asyncio.sleep(1)
-    await tab.take_screenshot(path=f"resources/screenshots/nielsen_dry_run_{label}.png")
-    print(f"Screenshot saved to resources/screenshots/nielsen_dry_run_{label}.png")
+    await SuperScraper.screenshot(tab, f"dry_run_{right.value}")
     print(
         f"\n'{request_type_text}' request filled but NOT submitted — a BotDetect image CAPTCHA "
         "requires manual entry before submitting."
@@ -93,20 +114,20 @@ async def submit_request(tab, request_type_text, label, super_scraper):
 
 
 async def main():
-    options = ChromiumOptions()
     super_scraper = SuperScraper()
-    options.binary_location = super_scraper.CHROMIUM_LOCATION
-    options.add_argument("--no-sandbox")
-    options.add_argument("--window-size=1280,3000")
+    options = SuperScraper.build_chromium_options()
 
-    rights = list(RIGHTS)
-    if SuperScraper.REMOVE_INFORMATION:
-        rights.append(DELETE_RIGHT)
+    if SuperScraper.bail_if_not_automatable(globals()):
+        return
+    rights = SuperScraper.rights_to_exercise(RIGHT_MAP)
+    if not rights:
+        print("No requested privacy rights apply to this form — nothing to do.")
+        return
 
     async with Chrome(options=options) as browser:
         tab = await browser.start()
-        for request_type_text, label in rights:
-            await submit_request(tab, request_type_text, label, super_scraper)
+        for right in rights:
+            await submit_request(tab, right, RIGHT_MAP[right], super_scraper)
 
 
 asyncio.run(main())

@@ -1,20 +1,48 @@
 # deeprootanalytics.com — Ethyca/Fides privacy portal.
 # Three cards on landing page: "Access your data", "Delete your data", "Opt out of data sales and sharing".
 # Opt-out card shows "Consent management is unavailable in your area." — skipped.
-# Access and Delete each require: email, first_name, last_name, addr1, city, state (text), zip.
-# Phone optional: phone_num (Access), phone (Delete).
-# After clicking Continue: email verification code sent to inbox.
-#   id="code" input + "Submit code" button.
-# No CAPTCHA. Live mode requires user to enter the email verification code.
+# Rights the form exposes (and we map): access, delete. Which run is decided ONLY by
+# SuperScraper.rights_to_exercise(RIGHT_MAP).
+# After clicking Continue: email verification code sent to inbox; the user must enter it
+# mid-run, hence NOT_AUTOMATABLE. No CAPTCHA.
+#
+# Page elements:
+#   "Access your data" / "Delete your data" cards    Landing-page cards (see RIGHT_MAP)
+#   #email / #first_name / #last_name                Email / First / Last name (required)
+#   #addr1 / #city / #state (text) / #zip            Address (required)
+#   #phone_num (Access) / #phone (Delete)            Phone (optional)
+#   "Continue" button                                Sends the verification code
+#   #code + "Submit code" button                     Email verification code
 import asyncio
 import time
 
 from pydoll.browser.chromium import Chrome
-from pydoll.browser.options import ChromiumOptions
 
+from src.dsar.rights import Right
 from src.dsar.super_scraper import SuperScraper
 
 URL = "https://privacy.deeprootanalytics.com/"
+
+# Right -> (landing-page card text, phone field id on that form)
+RIGHT_MAP = {
+    Right.RIGHT_TO_ACCESS: ("Access your data", "phone_num"),
+    Right.RIGHT_TO_DELETE: ("Delete your data", "phone"),
+}
+RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
+
+# Landing-page cards, as displayed -> the Right they map to (None = not automated). No running path
+# (NOT_AUTOMATABLE); the card selector has not been captured yet.
+PAGE_RIGHTS = {
+    "Access your data": Right.RIGHT_TO_ACCESS,
+    "Delete your data": Right.RIGHT_TO_DELETE,
+    "Opt out of data sales and sharing": None,
+}
+RIGHTS_OPTIONS_CSS = ""  # TODO(health-check): capture the card-title selector on a live run
+
+NOT_AUTOMATABLE = True
+NOT_AUTOMATABLE_REASON = (
+    "the form emails a verification code that must be entered mid-run to proceed"
+)
 
 
 async def _fill_form(tab, phone_field_id="phone_num"):
@@ -35,7 +63,8 @@ async def _fill_form(tab, phone_field_id="phone_num"):
         await phone.type_text(SuperScraper.PHONE_NUMBER)
 
 
-async def _submit_request(tab, card_text, label, phone_field_id, super_scraper):
+async def _submit_request(tab, right, entry, super_scraper):
+    card_text, phone_field_id = entry
     await tab.go_to(URL)
     await asyncio.sleep(6)
 
@@ -50,16 +79,12 @@ async def _submit_request(tab, card_text, label, phone_field_id, super_scraper):
     time.sleep(0.5)
 
     if SuperScraper.DRY_RUN:
-        print(
-            f"DRY RUN: would submit {label} for "
-            f"{SuperScraper.FIRST_NAME} {SuperScraper.LAST_NAME} <{SuperScraper.EMAIL}>"
-        )
         continue_btn = await tab.find(text="Continue", raise_exc=False)
         if continue_btn and await continue_btn.is_visible():
             await continue_btn.scroll_into_view()
         await asyncio.sleep(2)
-        await tab.take_screenshot(f"resources/screenshots/deeprootanalytics_dry_run_{label}.png")
-        print(f"Screenshot saved to resources/screenshots/deeprootanalytics_dry_run_{label}.png")
+        await SuperScraper.screenshot(tab, f"dry_run_{right.value}")
+        print(f"DRY RUN: would submit '{right.name}' for {SuperScraper.EMAIL}")
         return
 
     continue_btn = await tab.find(text="Continue", raise_exc=False)
@@ -67,7 +92,7 @@ async def _submit_request(tab, card_text, label, phone_field_id, super_scraper):
         await continue_btn.click()
         await asyncio.sleep(5)
 
-    print(f"\nForm submitted for {label}.")
+    print(f"\nForm submitted for {right.name}.")
     print("Check your email for a verification code, then enter it here.")
     code = input("Verification code: ").strip()
 
@@ -81,26 +106,24 @@ async def _submit_request(tab, card_text, label, phone_field_id, super_scraper):
         await submit_code_btn.click()
         await asyncio.sleep(4)
 
-    source = await tab.page_source
-    if any(w in source.lower() for w in ("thank", "success", "received", "submitted", "confirmation", "request submitted")):
-        print(f"Submitted {label} for {SuperScraper.FIRST_NAME} {SuperScraper.LAST_NAME}")
-    else:
-        print(f"{super_scraper.OOPS} Confirmation unclear for {label} — verify in browser")
+    print(f"Submitted '{right.name}' for {SuperScraper.EMAIL} — confirm in the browser.")
 
 
 async def main():
-    options = ChromiumOptions()
+    if SuperScraper.bail_if_not_automatable(globals()):
+        return
     super_scraper = SuperScraper()
-    options.binary_location = super_scraper.CHROMIUM_LOCATION
-    options.add_argument("--no-sandbox")
-    options.add_argument("--window-size=1280,3000")
 
+    rights = SuperScraper.rights_to_exercise(RIGHT_MAP)
+    if not rights:
+        print("No requested privacy rights apply to this form — nothing to do.")
+        return
+
+    options = SuperScraper.build_chromium_options()
     async with Chrome(options=options) as browser:
         tab = await browser.start()
-
-        await _submit_request(tab, "Access your data", "access", "phone_num", super_scraper)
-        if SuperScraper.REMOVE_INFORMATION:
-            await _submit_request(tab, "Delete your data", "delete", "phone", super_scraper)
+        for right in rights:
+            await _submit_request(tab, right, RIGHT_MAP[right], super_scraper)
 
 
 asyncio.run(main())

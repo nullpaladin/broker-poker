@@ -1,6 +1,6 @@
 # fideo.ai — single-select radio wizard (one right per pass): Access,
-# Correct, Do Not Sell, Limit Sharing of Sensitive Data unconditionally;
-# Delete gated on REMOVE_INFORMATION. Each right's radio is a visually-hidden
+# Correct (not automatable, not in RIGHT_MAP), Do Not Sell, Limit Sharing of
+# Sensitive Data, Delete. Each right's radio is a visually-hidden
 # input with a same-level (not ancestor) <label for="..."> — click the label
 # by xpath, not the input. Flow per right: pick radio -> Continue -> country
 # (defaults to United States) -> Continue -> choose verification method
@@ -13,22 +13,50 @@
 # hands off to the user to click Send, check their inbox, enter the code,
 # and complete whatever form follows — not observed/automatable past this
 # point.
+#
+# Page elements:
+#   label[for=radio-access-data]   "Access" radio label
+#   label[for=radio-correct-data]  "Correct" radio label (not automated)
+#   label[for=radio-dnsell-data]   "Do Not Sell" radio label
+#   label[for=radio-limit-data]    "Limit Sharing of Sensitive Data" radio label
+#   label[for=radio-delete-data]   "Delete" radio label
+#   "Continue" button, "Use My Email" button
+#   input[placeholder='Enter Your Email Address']   email field
+#   "Send Me A Code" button        never clicked (sends a real email)
 import asyncio
 
+from src.dsar.rights import Right
 from src.dsar.super_scraper import SuperScraper
 
 from pydoll.browser.chromium import Chrome
-from pydoll.browser.options import ChromiumOptions
 
 URL = "https://app.fideo.ai/your-privacy-choices"
 
-RIGHTS = [
-    ("radio-access-data", "access"),
-    ("radio-correct-data", "correct"),
-    ("radio-dnsell-data", "opt_out"),
-    ("radio-limit-data", "limit_sensitive"),
-]
-DELETE_RIGHT = ("radio-delete-data", "delete")
+NOT_AUTOMATABLE = True
+NOT_AUTOMATABLE_REASON = (
+    "every right requires an email/phone OTP before any data is submitted"
+)
+
+RIGHT_MAP = {
+    Right.RIGHT_TO_ACCESS: [("radio-access-data", "access")],
+    Right.RIGHT_TO_OPT_OUT: [
+        ("radio-dnsell-data", "opt_out"),
+        ("radio-limit-data", "limit_sensitive"),
+    ],
+    Right.RIGHT_TO_DELETE: [("radio-delete-data", "delete")],
+}
+RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
+
+# Every request radio label, as displayed -> the Right it maps to (None = not automated). No running path
+# (NOT_AUTOMATABLE); this only documents the page.
+PAGE_RIGHTS = {
+    "Access": Right.RIGHT_TO_ACCESS,
+    "Correct": None,
+    "Do Not Sell": Right.RIGHT_TO_OPT_OUT,
+    "Limit Sharing of Sensitive Data": Right.RIGHT_TO_OPT_OUT,
+    "Delete": Right.RIGHT_TO_DELETE,
+}
+RIGHTS_OPTIONS_CSS = "label[for^='radio-'][for$='-data']"
 
 
 async def _click_continue(tab):
@@ -70,8 +98,7 @@ async def submit_request(tab, radio_id, label, super_scraper):
         await email_field.type_text(SuperScraper.EMAIL)
 
     await asyncio.sleep(1)
-    await tab.take_screenshot(path=f"resources/screenshots/fideo_dry_run_{label}.png")
-    print(f"Screenshot saved to resources/screenshots/fideo_dry_run_{label}.png")
+    await SuperScraper.screenshot(tab, f"dry_run_{label}")
     print(
         f"\n'{label}' request ready but NOT sent — click 'Send Me A Code' yourself, "
         "check your email for the verification code, enter it, and complete whatever "
@@ -81,19 +108,22 @@ async def submit_request(tab, radio_id, label, super_scraper):
 
 
 async def main():
-    options = ChromiumOptions()
+    if SuperScraper.bail_if_not_automatable(globals()):
+        return
     super_scraper = SuperScraper()
-    options.binary_location = super_scraper.CHROMIUM_LOCATION
-    options.add_argument("--no-sandbox")
 
-    rights = list(RIGHTS)
-    if SuperScraper.REMOVE_INFORMATION:
-        rights.append(DELETE_RIGHT)
+    rights = SuperScraper.rights_to_exercise(RIGHT_MAP)
+    if not rights:
+        print("No requested privacy rights apply to this form — nothing to do.")
+        return
+
+    options = SuperScraper.build_chromium_options()
 
     async with Chrome(options=options) as browser:
         tab = await browser.start()
-        for radio_id, label in rights:
-            await submit_request(tab, radio_id, label, super_scraper)
+        for right in rights:
+            for radio_id, label in RIGHT_MAP[right]:
+                await submit_request(tab, radio_id, label, super_scraper)
 
 
 asyncio.run(main())

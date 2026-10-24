@@ -1,35 +1,60 @@
-# affinityanswers.com — exercises Access, Correct, Opt-Out of Sale,
-# Opt-Out of Targeted Advertising, and Delete (gated on REMOVE_INFORMATION).
-# Single Gravity Forms POST form. Residency select uses full state name.
+# affinityanswers.com — single Gravity Forms POST form (form 11) with one checkbox per
+# right: Access, Correct, Opt-Out of Sale, Opt-Out of Targeted Advertising, Delete. All
+# requested rights are ticked in ONE submission; which are ticked is decided only by
+# SuperScraper.rights_to_exercise. Correct is not automatable (not in RIGHT_MAP).
+# Residency select uses full state name.
 # reCAPTCHA v3 is invisible and auto-resolves in the browser.
-# input_13 is a honeypot field — must be left empty.
+#
+# Page elements:
+#   select[name=input_4]          Residency <select> (full state name)
+#   input[name=input_3]           Email
+#   input[name=input_13]          Honeypot field — must be left empty
+#   CHECK_ACCESS      #choice_11_5_1  Access checkbox
+#   CHECK_DELETE      #choice_11_5_2  Delete checkbox
+#   (#choice_11_5_3                   Correct checkbox — not automated)
+#   CHECK_OPT_OUT_SALE #choice_11_5_4 Opt-out of sale checkbox
+#   CHECK_OPT_OUT_ADS  #choice_11_5_5 Opt-out of targeted advertising checkbox
+#   #gform_submit_button_11        Submit button
 import asyncio
 import time
 
 from pydoll.browser.chromium import Chrome
-from pydoll.browser.options import ChromiumOptions
 
+from src.dsar.rights import Right
 from src.dsar.super_scraper import SuperScraper
 
 URL = "https://www.affinityanswers.com/your-privacy-choices/"
 
-# US rights checkboxes — always exercised
-ALWAYS_CHECK = [
-    "choice_11_5_1",  # access
-    "choice_11_5_3",  # correct
-    "choice_11_5_4",  # opt-out of sale
-    "choice_11_5_5",  # opt-out of targeted advertising
-]
-DELETE_CHECKBOX_ID = "choice_11_5_2"
+CHECK_ACCESS = "choice_11_5_1"
+CHECK_DELETE = "choice_11_5_2"
+CHECK_OPT_OUT_SALE = "choice_11_5_4"
+CHECK_OPT_OUT_ADS = "choice_11_5_5"
+
+RIGHT_MAP = {
+    Right.RIGHT_TO_ACCESS: [CHECK_ACCESS],
+    Right.RIGHT_TO_OPT_OUT: [CHECK_OPT_OUT_SALE, CHECK_OPT_OUT_ADS],
+    Right.RIGHT_TO_DELETE: [CHECK_DELETE],
+}
+RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
+
+PAGE_RIGHTS = {}  # TODO(health-check): run HEALTH_CHECK once live; it prints the full list
+
+RESIDENCY_XPATH = "//select[@name='input_4']"
+EMAIL_XPATH = "//input[@name='input_3']"
 
 
 async def main():
-    options = ChromiumOptions()
     super_scraper = SuperScraper()
-    options.binary_location = super_scraper.CHROMIUM_LOCATION
-    options.add_argument("--no-sandbox")
-    options.add_argument("--window-size=1280,3000")
+    if SuperScraper.bail_if_not_automatable(globals()):
+        return
 
+    rights = SuperScraper.rights_to_exercise(RIGHT_MAP)
+    if not rights:
+        print("No requested privacy rights apply to this form — nothing to do.")
+        return
+    checkbox_ids = [entry for right in rights for entry in RIGHT_MAP[right]]
+
+    options = SuperScraper.build_chromium_options()
     async with Chrome(options=options) as browser:
         tab = await browser.start()
         await tab.go_to(URL)
@@ -50,11 +75,7 @@ async def main():
         if email_field:
             await email_field.type_text(SuperScraper.EMAIL)
 
-        # US rights checkboxes
-        checkbox_ids = list(ALWAYS_CHECK)
-        if SuperScraper.REMOVE_INFORMATION:
-            checkbox_ids.append(DELETE_CHECKBOX_ID)
-
+        # Rights checkboxes
         for cb_id in checkbox_ids:
             cb = await tab.find(id=cb_id, raise_exc=False)
             if cb:
@@ -63,17 +84,19 @@ async def main():
 
         # Leave honeypot input_13 untouched
 
+        if SuperScraper.HEALTH_CHECK:
+            await SuperScraper.assert_fields_filled(tab, {"Residency": RESIDENCY_XPATH, "Email": EMAIL_XPATH})
+
         if SuperScraper.DRY_RUN:
             print(
-                f"DRY RUN: would submit for "
+                f"DRY RUN: would submit {[r.name for r in rights]} for "
                 f"{SuperScraper.EMAIL} / state={SuperScraper.STATE}"
             )
             submit_btn = await tab.find(id="gform_submit_button_11", raise_exc=False)
             if submit_btn:
                 await submit_btn.scroll_into_view()
             await asyncio.sleep(2)
-            await tab.take_screenshot("resources/screenshots/affinityanswers_dry_run.png")
-            print("Screenshot saved to resources/screenshots/affinityanswers_dry_run.png")
+            await SuperScraper.screenshot(tab, "dry_run_" + "_".join(r.value for r in rights))
             return
 
         submit_btn = await tab.find(id="gform_submit_button_11", raise_exc=False)
@@ -83,11 +106,7 @@ async def main():
         await submit_btn.click()
         await asyncio.sleep(5)
 
-        source = await tab.page_source
-        if any(w in source.lower() for w in ("thank", "success", "received", "submitted", "confirmation")):
-            print(f"Submitted DSAR for {SuperScraper.EMAIL}")
-        else:
-            print(f"{super_scraper.OOPS} Confirmation unclear — verify in browser")
+        print(f"Submitted {[r.name for r in rights]} for {SuperScraper.EMAIL} — confirm in the browser.")
 
 
 asyncio.run(main())

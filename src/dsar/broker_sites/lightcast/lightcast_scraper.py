@@ -11,67 +11,68 @@
 # Subject type: "data owner / subject" — clicked after request types.
 # Phone country code: vt-input-7 (element.type_text works for this combobox).
 # captchaCode: BotDetect image CAPTCHA — manual entry required in live mode.
-# Exercises: Right to Know/Access, Right to Object/Opt-out, Right to Rectify/Correct,
-#   and Right to Delete (gated on REMOVE_INFORMATION).
+# Rights offered: Right to Know / Access, Right to Object / Opt out of Sales, Right to
+# Rectify / Correct (not automatable, not mapped), Right to Delete. Which run is decided only
+# by rights_to_exercise(RIGHT_MAP); all chosen request-type buttons go in ONE submission.
+#
+# Page elements:
+#   #countryDSARElement / #stateDSARElement   Country / State comboboxes (fill first)
+#   #firstNameDSARElement / #lastNameDSARElement / #emailDSARElement   First / Last name / Email
+#   #vt-input-7                Phone country code combobox
+#   #phoneNumberDSARElement    Phone number
+#   Request-type buttons (aria-label): "Right to Know / Access",
+#                              "Right to Object / Opt out of Sales", "Right to Delete"
+#   aria-label "data owner / subject"   Subject type button
+#   #requestDetailsDSARElement Additional request details textarea
+#   #captchaCode               BotDetect image CAPTCHA code
 import asyncio
-import time
 
 from pydoll.browser.chromium import Chrome
-from pydoll.browser.options import ChromiumOptions
 from pydoll.constants import Key
 
+from src.dsar import js_utils
+from src.dsar.rights import Right
 from src.dsar.super_scraper import SuperScraper
 
 URL = "https://privacyportal.onetrust.com/webform/0f61f895-d08d-410f-b96d-ecfd34fd42e3/4b91c2db-5fdc-4f47-8523-b9f01d9e92a3"
 
-ALWAYS_RIGHTS = [
-    "Right to Know / Access",
-    "Right to Object / Opt out of Sales",
-    "Right to Rectify / Correct",
-]
-DELETE_RIGHT = "Right to Delete"
+RIGHT_MAP = {
+    Right.RIGHT_TO_ACCESS: "Right to Know / Access",
+    Right.RIGHT_TO_OPT_OUT: "Right to Object / Opt out of Sales",
+    Right.RIGHT_TO_DELETE: "Right to Delete",
+}
+RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
 
-DETAILS = (
-    "I am exercising my rights under the Minnesota Consumer Data Privacy Act "
-    "(MCDPA) and other applicable privacy laws regarding all personal data "
-    "Lightcast holds about me."
-)
+PAGE_RIGHTS = {}  # TODO(health-check): run HEALTH_CHECK once live; it prints the full list
+# (Recorded request types are aria-labels; the visible text may differ, so they are not copied in.)
 
-_FILL_JS = """
-(function(id, value) {
-    var el = document.getElementById(id);
-    if (!el) return 'not found: ' + id;
-    var inp = (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA') ? el
-              : el.querySelector('input, textarea');
-    if (!inp) return 'no input/textarea in ' + id;
-    var proto = inp.tagName === 'TEXTAREA'
-        ? window.HTMLTextAreaElement.prototype
-        : window.HTMLInputElement.prototype;
-    var setter = Object.getOwnPropertyDescriptor(proto, 'value').set;
-    setter.call(inp, value);
-    inp.dispatchEvent(new Event('input', {bubbles: true}));
-    inp.dispatchEvent(new Event('change', {bubbles: true}));
-    return 'ok';
-})('%s', '%s');
-"""
-
+FIELD_XPATHS = {
+    "Country": "//*[@id='countryDSARElement']",
+    "State": "//*[@id='stateDSARElement']",
+    "First name": "//*[@id='firstNameDSARElement']",
+    "Last name": "//*[@id='lastNameDSARElement']",
+    "Email": "//*[@id='emailDSARElement']",
+    "Phone": "//*[@id='phoneNumberDSARElement']",
+    "Request details": "//*[@id='requestDetailsDSARElement']",
+}
 
 async def _js_fill(tab, field_id, value):
-    js = _FILL_JS % (field_id, value.replace("'", "\\'"))
-    await tab.execute_script(js)
+    el = await tab.find(id=field_id, raise_exc=False)
+    if not el:
+        print(f"{SuperScraper.OOPS} {field_id} not found")
+        return
+    await js_utils.js_set_value(el, value)
     await asyncio.sleep(0.3)
 
 
 async def main():
-    options = ChromiumOptions()
     super_scraper = SuperScraper()
-    options.binary_location = super_scraper.CHROMIUM_LOCATION
-    options.add_argument("--no-sandbox")
-    options.add_argument("--window-size=1280,3000")
+    options = SuperScraper.build_chromium_options()
 
-    rights = list(ALWAYS_RIGHTS)
-    if SuperScraper.REMOVE_INFORMATION:
-        rights.append(DELETE_RIGHT)
+    rights = SuperScraper.rights_to_exercise(RIGHT_MAP)
+    if not rights:
+        print("No requested privacy rights apply to this form — nothing to do.")
+        return
 
     async with Chrome(options=options) as browser:
         tab = await browser.start()
@@ -125,12 +126,13 @@ async def main():
 
         # 4. Request type buttons — revealed only after state selection
         for right in rights:
-            btn = await tab.find(**{"aria-label": right}, raise_exc=False)
+            label = RIGHT_MAP[right]
+            btn = await tab.find(**{"aria-label": label}, raise_exc=False)
             if btn:
                 await btn.click_using_js()
                 await asyncio.sleep(0.3)
             else:
-                print(f"{super_scraper.OOPS} Right button '{right}' not found")
+                print(f"{super_scraper.OOPS} Right button '{label}' not found")
 
         # 5. Subject type
         subject_btn = await tab.find(**{"aria-label": "data owner / subject"}, raise_exc=False)
@@ -141,9 +143,13 @@ async def main():
         await asyncio.sleep(0.5)
 
         # 6. Additional request details (textarea — JS fill handles textarea too)
-        await _js_fill(tab, "requestDetailsDSARElement", DETAILS)
+        await _js_fill(tab, "requestDetailsDSARElement",
+                       SuperScraper.request_statement(rights, broker="Lightcast"))
 
-        time.sleep(0.5)
+        await asyncio.sleep(0.5)
+
+        if SuperScraper.HEALTH_CHECK:
+            await SuperScraper.assert_fields_filled(tab, FIELD_XPATHS)
 
         if SuperScraper.DRY_RUN:
             print(
@@ -154,8 +160,7 @@ async def main():
             if captcha_field:
                 await captcha_field.scroll_into_view()
             await asyncio.sleep(1)
-            await tab.take_screenshot("lightcast_dry_run.png")
-            print("Screenshot saved to lightcast_dry_run.png")
+            await SuperScraper.screenshot(tab, "dry_run")
             return
 
         print(
@@ -164,11 +169,9 @@ async def main():
         )
         input()
 
-        source = await tab.page_source
-        if any(w in source.lower() for w in ("thank", "success", "received", "submitted", "confirmation")):
-            print(f"Submitted DSAR for {SuperScraper.FIRST_NAME} {SuperScraper.LAST_NAME}")
-        else:
-            print(f"{super_scraper.OOPS} Confirmation unclear — verify in browser")
+        print(
+            f"Submitted {[r.name for r in rights]} for {SuperScraper.EMAIL} — confirm in the browser."
+        )
 
 
 asyncio.run(main())

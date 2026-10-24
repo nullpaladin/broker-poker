@@ -3,7 +3,7 @@
 # This is the FIRST step only: submitting it triggers an email that asks you to
 # fill out the rest of the request yourself (per prior investigation), so the
 # scraper just completes this initial form.
-# Fields (ids carry a per-render GUID suffix, so target by name): firstname,
+# Page elements (ids carry a per-render GUID suffix, so target by name): firstname,
 # lastname, email, and a "certification" attestation checkbox. reCAPTCHA gates
 # submission — form filled and left for a manual solve.
 # **CAPTCHA solution required**
@@ -11,19 +11,16 @@ import asyncio
 import time
 
 from pydoll.browser.chromium import Chrome
-from pydoll.browser.options import ChromiumOptions
 
 from src.dsar.super_scraper import SuperScraper
+from src.dsar import js_utils
 
 URL = "https://www.steppingblocks.com/personal-information-inquiry"
 
 
 async def main():
-    options = ChromiumOptions()
     super_scraper = SuperScraper()
-    options.binary_location = super_scraper.CHROMIUM_LOCATION
-    options.add_argument("--no-sandbox")
-    options.add_argument("--window-size=1280,1800")
+    options = SuperScraper.build_chromium_options()
 
     async with Chrome(options=options) as browser:
         tab = await browser.start()
@@ -41,11 +38,10 @@ async def main():
 
         cert = await tab.find(xpath="//input[@name='certification']", raise_exc=False)
         if cert:
-            await cert.execute_script("if (!this.checked) this.click();")
+            await js_utils.js_check(cert)
 
         time.sleep(0.5)
-        await tab.take_screenshot("resources/screenshots/steppingblocks_dry_run.png")
-        print("Screenshot saved to resources/screenshots/steppingblocks_dry_run.png")
+        await SuperScraper.screenshot(tab, "dry_run")
         print(
             "Inquiry form filled but NOT submitted — solve the reCAPTCHA and click Submit; "
             "you will then receive an email asking you to complete the rest of the request."

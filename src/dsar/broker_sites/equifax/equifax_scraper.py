@@ -16,21 +16,55 @@
 # lives beyond it) could not be observed or automated. A real user with their
 # genuine details should get through to Verify; that step onward requires
 # manual completion.
+#
+# Page elements (Info step):
+#   aria-label="close banner"                       "Your Privacy Choices" (Ketch) banner close button
+#   #firstname / #lastname                          First / Last name
+#   #address1 / #city / #zipCode                    Address / City / Zip code
+#   #email                                          Email
+#   #dateOfBirth / #mobileNumber                    Date of birth / Mobile number (optional)
+#   select#state                                    State (composite option values; matched by visible text)
+#   #touCheckbox-input                              terms-of-use checkbox (clicked via its label)
+#   "Go to next step" button
 import asyncio
 
+from src.dsar.rights import Right
 from src.dsar.super_scraper import SuperScraper
 
 from pydoll.browser.chromium import Chrome
-from pydoll.browser.options import ChromiumOptions
 
 URL = "https://myprivacy.equifax.com/opt-in-opt-out/personal-info"
 
+# The Info step is shared by every choice on the portal and the right-selection UI beyond
+# Verify was never observed, so only the opt-out entry point is mapped.
+RIGHT_MAP = {Right.RIGHT_TO_OPT_OUT: "Info step of the opt-in/opt-out wizard"}
+RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
+
+PAGE_RIGHTS = {}  # TODO(health-check): run HEALTH_CHECK once live; it prints the full list
+# (Only the Info step was observed; the right-selection UI beyond Verify is unknown.)
+
+FIELD_XPATHS = {
+    "First name": "//*[@id='firstname']",
+    "Last name": "//*[@id='lastname']",
+    "Address": "//*[@id='address1']",
+    "City": "//*[@id='city']",
+    "Zip": "//*[@id='zipCode']",
+    "Email": "//*[@id='email']",
+    "State": "//select[@id='state']",
+}
+
 
 async def main():
-    options = ChromiumOptions()
     super_scraper = SuperScraper()
-    options.binary_location = super_scraper.CHROMIUM_LOCATION
-    options.add_argument("--no-sandbox")
+    if SuperScraper.bail_if_not_automatable(globals()):
+        return
+
+    rights = SuperScraper.rights_to_exercise(RIGHT_MAP)
+    if not rights:
+        print("No requested privacy rights apply to this form — nothing to do.")
+        return
+
+    options = SuperScraper.build_chromium_options()
 
     async with Chrome(options=options) as browser:
         tab = await browser.start()
@@ -76,11 +110,13 @@ async def main():
             await tou_label.click()
         await asyncio.sleep(1)
 
+        if SuperScraper.HEALTH_CHECK:
+            await SuperScraper.assert_fields_filled(tab, FIELD_XPATHS)
+
         if SuperScraper.DRY_RUN:
-            print(f"DRY RUN: would advance to Verify step for {SuperScraper.FIRST_NAME} {SuperScraper.LAST_NAME}")
+            print(f"DRY RUN: would advance to Verify step for {SuperScraper.EMAIL}")
             await asyncio.sleep(1)
-            await tab.take_screenshot(path="resources/screenshots/equifax_dry_run.png")
-            print("Screenshot saved to resources/screenshots/equifax_dry_run.png")
+            await SuperScraper.screenshot(tab, "dry_run")
             return
 
         clicked = await tab.execute_script(

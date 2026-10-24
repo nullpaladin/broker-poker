@@ -6,43 +6,71 @@
 # select checkboxes (confirmed via markup, not just wording) — all
 # applicable rights checked in ONE combined submission: Info Request, Data
 # Access, "Do Not Sell or Share My Personal Information", "Limit the Use
-# of My Sensitive Personal Information" unconditionally; Data Deletion
-# gated on REMOVE_INFORMATION. Correct Data and File a Complaint skipped
-# (no concrete inaccuracy/complaint to describe). Matched by stable field
+# of My Sensitive Personal Information", Data Deletion. Which of them are
+# checked is decided ONLY by SuperScraper.rights_to_exercise(RIGHT_MAP).
+# Correct Data and File a Complaint are not automated. Matched by stable field
 # id (field_ebdv3-N) rather than by option value text, since one value
 # string has an odd embedded literal quote/asterisk
 # ("Limit the Use of My Sensitive Personal Information*"). Country is a
 # plain free-text field (not a dropdown) — filled "United States". reCAPTCHA
 # v2 is invisible (data-size="invisible") — auto-resolves, no manual
 # solve needed.
+#
+# Page elements:
+#   #field_u1j66-3             "I am a (an)" radio -> "End-User"
+#   #field_ebdv3-N             "Select request type(s)" checkboxes (see constants below)
+#   #field_xr2fa_first / #field_xr2fa_last   First / Last name
+#   #field_ayz61               Email
+#   #field_zf5gh               Country (free text -> "United States")
+#   #field_ck1lr               Request details textarea
 import asyncio
 
+from src.dsar.rights import Right
 from src.dsar.super_scraper import SuperScraper
 
 from pydoll.browser.chromium import Chrome
-from pydoll.browser.options import ChromiumOptions
 
 URL = "https://verve.com/data-subject-request-form/"
 
-REQUEST_TYPE_IDS = [
-    "field_ebdv3-1",  # Info Request
-    "field_ebdv3-4",  # Data Access
-    "field_ebdv3-5",  # Do Not Sell or Share My Personal Information
-    "field_ebdv3-6",  # Limit the Use of My Sensitive Personal Information
-]
-DELETE_REQUEST_TYPE_ID = "field_ebdv3-2"  # Data Deletion
+# "Info Request" and "Data Access" are field_ebdv3-1 / -4 (which is which is not recorded here).
+INFO_REQUEST_AND_DATA_ACCESS = ["field_ebdv3-1", "field_ebdv3-4"]
+DO_NOT_SELL_OR_SHARE = "field_ebdv3-5"  # "Do Not Sell or Share My Personal Information"
+LIMIT_SENSITIVE_PI = "field_ebdv3-6"  # "Limit the Use of My Sensitive Personal Information"
+DATA_DELETION = "field_ebdv3-2"  # "Data Deletion"
+
+RIGHT_MAP = {
+    Right.RIGHT_TO_ACCESS: INFO_REQUEST_AND_DATA_ACCESS,
+    Right.RIGHT_TO_OPT_OUT: [DO_NOT_SELL_OR_SHARE, LIMIT_SENSITIVE_PI],
+    Right.RIGHT_TO_DELETE: DATA_DELETION,
+}
+RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
+
+PAGE_RIGHTS = {}  # TODO(health-check): run HEALTH_CHECK once live; it prints the full list
+# (The checkbox texts are paraphrased and one value has an embedded literal quote/asterisk, so no inventory is built.)
+
+FIELD_XPATHS = {
+    "First name": "//*[@id='field_xr2fa_first']",
+    "Last name": "//*[@id='field_xr2fa_last']",
+    "Email": "//*[@id='field_ayz61']",
+    "Country": "//*[@id='field_zf5gh']",
+    "Request details": "//*[@id='field_ck1lr']",
+}
 
 
 async def main():
-    options = ChromiumOptions()
     super_scraper = SuperScraper()
-    options.binary_location = super_scraper.CHROMIUM_LOCATION
-    options.add_argument("--no-sandbox")
-    options.add_argument("--window-size=1280,3000")
+    options = SuperScraper.build_chromium_options()
 
-    request_type_ids = list(REQUEST_TYPE_IDS)
-    if SuperScraper.REMOVE_INFORMATION:
-        request_type_ids.append(DELETE_REQUEST_TYPE_ID)
+    if SuperScraper.bail_if_not_automatable(globals()):
+        return
+    rights = SuperScraper.rights_to_exercise(RIGHT_MAP)
+    if not rights:
+        print("No requested privacy rights apply to this form — nothing to do.")
+        return
+    request_type_ids = []
+    for right in rights:
+        entries = RIGHT_MAP[right]
+        request_type_ids += entries if isinstance(entries, list) else [entries]
 
     async with Chrome(options=options) as browser:
         tab = await browser.start()
@@ -88,16 +116,15 @@ async def main():
 
         details_field = await tab.find(id="field_ck1lr", raise_exc=False)
         if details_field:
-            request_text = "I am requesting access to and opting out of the sale/sharing of my personal information."
-            if SuperScraper.REMOVE_INFORMATION:
-                request_text += " I am also requesting deletion of my personal information."
-            await details_field.type_text(request_text)
+            await details_field.type_text(SuperScraper.request_statement(rights, broker="Verve"))
         else:
             print(f"{super_scraper.OOPS} Request Details field not found")
 
+        if SuperScraper.HEALTH_CHECK:
+            await SuperScraper.assert_fields_filled(tab, FIELD_XPATHS)
+
         await asyncio.sleep(1)
-        await tab.take_screenshot(path="resources/screenshots/verve_dry_run.png")
-        print("Screenshot saved to resources/screenshots/verve_dry_run.png")
+        await SuperScraper.screenshot(tab, "dry_run")
         print("\nRequest filled but NOT submitted (invisible reCAPTCHA v2, no manual solve needed).")
 
 

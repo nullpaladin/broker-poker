@@ -12,34 +12,52 @@
 # validation required) — all ticked by clicking their labels (setting .checked
 # in JS doesn't register with Termly's React). No captcha; an emailed
 # validation link is a normal post-submission step.
+#
+# Page elements:
+#   input[name=name] / input[name=email]       Name (full) / Email
+#   input[name=identity_type][value=personal]  Identity type radio
+#   input[role=combobox]                       "Applicable law" react-select -> "OTHER"
+#   textarea[name="detail.content"]            Request details
+#   input[name^="__doNotSubmit__"]             Three attestation checkboxes (ticked via their labels)
+#   "SUBMIT" button (found by text)
 import asyncio
-import time
-
-from src.dsar.super_scraper import SuperScraper
 
 from pydoll.browser.chromium import Chrome
-from pydoll.browser.options import ChromiumOptions
+
+from src.dsar import js_utils
+from src.dsar.rights import Right
+from src.dsar.super_scraper import SuperScraper
 
 URL = "https://app.termly.io/dsar/c4e44408-4a15-4dc3-9604-8cd01dd64998"
 
+# One combined submission: every requested right is spelled out in the details textarea.
+RIGHT_MAP = {
+    Right.RIGHT_TO_ACCESS: "detail.content",
+    Right.RIGHT_TO_OPT_OUT: "detail.content",
+    Right.RIGHT_TO_DELETE: "detail.content",
+    Right.RIGHT_TO_LIST_OF_THIRD_PARTIES: "detail.content",
+}
+RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
+
+PAGE_RIGHTS = {}  # TODO(health-check): run HEALTH_CHECK once live; it prints the full list
+# (A combined form with no rights chooser: the rights are spelled out in the details textarea.)
+
+FIELD_XPATHS = {
+    "Name": "//input[@name='name']",
+    "Email": "//input[@name='email']",
+    "Request details": "//textarea[@name='detail.content']",
+}
+
 
 async def main():
-    options = ChromiumOptions()
     super_scraper = SuperScraper()
-    options.binary_location = super_scraper.CHROMIUM_LOCATION
-    options.add_argument("--no-sandbox")
-    options.add_argument("--window-size=1280,2400")
+    rights = SuperScraper.rights_to_exercise(RIGHT_MAP)
+    if not rights:
+        print("No requested privacy rights apply to this form — nothing to do.")
+        return
+    message = SuperScraper.request_statement(rights, broker="ListKit")
 
-    rights = (
-        "I am a Minnesota resident exercising my rights under the Minnesota Consumer "
-        "Data Privacy Act. I request: (1) to know/access the personal information you "
-        "hold about me, its sources and the parties it has been disclosed to; (2) to "
-        "opt out of the sale and sharing of my personal information and of targeted "
-        "advertising / profiling"
-    )
-    if SuperScraper.REMOVE_INFORMATION:
-        rights += "; (3) deletion of all personal information you hold about me"
-    rights += "."
+    options = SuperScraper.build_chromium_options()
 
     async with Chrome(options=options) as browser:
         tab = await browser.start()
@@ -55,8 +73,11 @@ async def main():
 
         personal = await tab.find(xpath="//input[@name='identity_type' and @value='personal']", raise_exc=False)
         if personal:
-            await personal.execute_script("if (!this.checked) this.click();")
+            await js_utils.js_check(personal)
 
+        # "Applicable law" react-select lists GDPR/CCPA/CPA/CTDPA/UCPA/VCDPA/OTHER —
+        # no home-state option for most users, so "OTHER" is chosen regardless of
+        # state (the request statement still names the state's actual law, if any).
         combo = await tab.find(xpath="//input[@role='combobox']", raise_exc=False)
         if combo:
             await combo.click()
@@ -68,14 +89,13 @@ async def main():
 
         detail = await tab.find(xpath="//textarea[@name='detail.content']", raise_exc=False)
         if detail:
-            await detail.type_text(rights)
+            await detail.type_text(message)
 
         boxes = await tab.find(
             xpath="//input[starts-with(@name,'__doNotSubmit__')]", find_all=True, raise_exc=False
         ) or []
         for box in boxes:
-            checked = await box.execute_script("return this.checked;")
-            if not checked["result"]["result"]["value"]:
+            if not await js_utils.js_eval(box, "return this.checked;"):
                 # click the associated label (the input itself is visually hidden)
                 await box.execute_script(
                     "const l=this.closest('label')||document.querySelector('label[for=\"'+this.id+'\"]');"
@@ -83,22 +103,20 @@ async def main():
                 )
                 await asyncio.sleep(0.15)
 
-        time.sleep(0.5)
-        await tab.take_screenshot("resources/screenshots/listkit_dry_run.png")
-        print("Screenshot saved to resources/screenshots/listkit_dry_run.png")
+        if SuperScraper.HEALTH_CHECK:
+            await SuperScraper.assert_fields_filled(tab, FIELD_XPATHS)
 
+        await asyncio.sleep(0.5)
+        await SuperScraper.screenshot(tab, "dry_run")
         if SuperScraper.DRY_RUN:
-            print(
-                f"DRY RUN: would submit combined privacy request for "
-                f"{SuperScraper.FIRST_NAME} {SuperScraper.LAST_NAME} <{SuperScraper.EMAIL}>"
-            )
+            print(f"DRY RUN: would submit {[r.name for r in rights]} for {SuperScraper.EMAIL}")
             return
 
         submit = await tab.find(text="SUBMIT", raise_exc=False)
         if submit:
             await submit.click()
             await asyncio.sleep(2)
-            print(f"Submitted for {SuperScraper.FIRST_NAME} {SuperScraper.LAST_NAME}")
+            print(f"Submitted {[r.name for r in rights]} for {SuperScraper.EMAIL} — confirm in the browser.")
         else:
             print(f"{super_scraper.OOPS} SUBMIT button not found")
 

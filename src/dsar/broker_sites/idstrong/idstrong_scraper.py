@@ -8,21 +8,26 @@
 #   subjectTypesDSARElement  "I am submitting on behalf of" -> "Myself"
 #   requestTypesDSARElement   SINGLE-select role="option" group (picking a
 #       second option deselects the first), so this submits one request per
-#       right: Access + Opt-Out + Data Portability unconditionally; Delete
-#       gated on REMOVE_INFORMATION; Correct skipped.
+#       form option. Which run is decided only by SuperScraper.rights_to_exercise;
+#       Access + Data Portability map to RIGHT_TO_ACCESS, Opt-Out to
+#       RIGHT_TO_OPT_OUT, Delete to RIGHT_TO_DELETE; Correct is skipped.
 #   firstNameDSARElement / lastNameDSARElement / emailDSARElement
 #   dateOfBirthDSARElement  required date picker (MM/DD/YYYY, converted from the
 #       .env DD/MM/YYYY)
 #   An optional ID-document upload (only needed for authorised-agent requests)
 #       is left blank.
+#   Page elements (ids): #countryDSARElement (Country), #stateDSARElement (State),
+#       #cityDSARElement (City), #subjectTypesDSARElement (-> "Myself"),
+#       #requestTypesDSARElement (request type options), #firstNameDSARElement,
+#       #lastNameDSARElement, #emailDSARElement, #dateOfBirthDSARElement.
 # reCAPTCHA gates the submit — every field is filled and the form is left for a
 # manual solve.  **CAPTCHA solution required**
 import asyncio
 
 from pydoll.browser.chromium import Chrome
-from pydoll.browser.options import ChromiumOptions
 from pydoll.constants import Key
 
+from src.dsar.rights import Right
 from src.dsar.super_scraper import SuperScraper
 
 URL = (
@@ -30,12 +35,30 @@ URL = (
     "f6adb000-5a85-4ec1-a631-151c15d9d854/cbee3ef7-0c4c-44c0-b897-a08a9c4c1d62"
 )
 
-RIGHTS = [
-    ("Request Access to Personal Information", "access"),
-    ("Request to Opt-Out (Do Not Sell or Share My Personal Information)", "opt_out"),
-    ("Request to Data Portability", "portability"),
-]
-DELETE_RIGHT = ("Request to Delete Personal Information", "delete")
+RIGHT_MAP = {
+    Right.RIGHT_TO_ACCESS: [
+        ("Request Access to Personal Information", "access"),
+        ("Request to Data Portability", "portability"),
+    ],
+    Right.RIGHT_TO_OPT_OUT: [
+        ("Request to Opt-Out (Do Not Sell or Share My Personal Information)", "opt_out")
+    ],
+    Right.RIGHT_TO_DELETE: [("Request to Delete Personal Information", "delete")],
+}
+RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
+
+PAGE_RIGHTS = {}  # TODO(health-check): run HEALTH_CHECK once live; it prints the full list
+RIGHTS_OPTIONS_CSS = "#requestTypesDSARElement [role='option']"
+
+FIELD_XPATHS = {
+    "Country": "//*[@id='countryDSARElement']",
+    "State": "//*[@id='stateDSARElement']",
+    "City": "//*[@id='cityDSARElement']",
+    "First name": "//*[@id='firstNameDSARElement']",
+    "Last name": "//*[@id='lastNameDSARElement']",
+    "Email": "//*[@id='emailDSARElement']",
+    "Date of birth": "//*[@id='dateOfBirthDSARElement']",
+}
 
 
 def _dob_mm_dd_yyyy():
@@ -96,6 +119,10 @@ async def submit_request(tab, right_label, tag, super_scraper):
     await tab.go_to(URL)
     await asyncio.sleep(7)
 
+    if SuperScraper.HEALTH_CHECK:
+        offered = await SuperScraper.read_option_labels(tab, RIGHTS_OPTIONS_CSS)
+        SuperScraper.audit_rights(offered, PAGE_RIGHTS)
+
     await _combo(tab, super_scraper, "countryDSARElement", "United States")
     await _combo(tab, super_scraper, "stateDSARElement", SuperScraper.STATE)
     city = await tab.find(id="cityDSARElement", raise_exc=False)
@@ -121,29 +148,28 @@ async def submit_request(tab, right_label, tag, super_scraper):
         else:
             print(f"{super_scraper.OOPS} field '{field_id}' not found")
 
+    if SuperScraper.HEALTH_CHECK:
+        await SuperScraper.assert_fields_filled(tab, FIELD_XPATHS)
+
     await asyncio.sleep(1)
-    await tab.take_screenshot(
-        path=f"resources/screenshots/idstrong_dry_run_{tag}.png", beyond_viewport=True
-    )
-    print(f"Screenshot saved to resources/screenshots/idstrong_dry_run_{tag}.png")
+    await SuperScraper.screenshot(tab, f"dry_run_{tag}")
     print(f"'{right_label}' filled but NOT submitted — solve the reCAPTCHA manually, then Submit.")
 
 
 async def main():
-    options = ChromiumOptions()
     super_scraper = SuperScraper()
-    options.binary_location = super_scraper.CHROMIUM_LOCATION
-    options.add_argument("--no-sandbox")
-    options.add_argument("--window-size=1280,3000")
+    options = SuperScraper.build_chromium_options()
 
-    rights = list(RIGHTS)
-    if SuperScraper.REMOVE_INFORMATION:
-        rights.append(DELETE_RIGHT)
+    rights = SuperScraper.rights_to_exercise(RIGHT_MAP)
+    if not rights:
+        print("No requested privacy rights apply to this form — nothing to do.")
+        return
 
     async with Chrome(options=options) as browser:
         tab = await browser.start()
-        for right_label, tag in rights:
-            await submit_request(tab, right_label, tag, super_scraper)
+        for right in rights:
+            for right_label, tag in RIGHT_MAP[right]:
+                await submit_request(tab, right_label, tag, super_scraper)
 
 
 asyncio.run(main())

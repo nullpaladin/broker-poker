@@ -2,12 +2,14 @@
 # Navigate directly to wizards.aspx (START on /Consumers/ doesn't navigate reliably via CDP).
 # Step 1: select state (SttFltrDrpDwnLst, abbreviation via JS); reCAPTCHA v2 manual solve; CONTINUE.
 # Step 2: records list — user finds their record; modal exposes name/contact fields (obfuscated IDs).
-# Delete: ctl00_ContentPlaceHolder1_DeleteAllBottomButton → confirm ContinueConfirmButton.
+# Delete: ctl00_ContentPlaceHolder1_DeleteAllBottomButton → confirm ContinueConfirmButton
+#   (clicked by the USER, never by the scraper: it deletes whatever the record list shows).
+# NEEDS MANUAL REVIEW (PR #54): confirm the list can only contain the user's own records.
 import asyncio
 
 from pydoll.browser.chromium import Chrome
-from pydoll.browser.options import ChromiumOptions
 
+from src.dsar.rights import Right
 from src.dsar.super_scraper import SuperScraper
 
 URL = "https://www.spydialer.com/Consumers/wizards.aspx"
@@ -32,14 +34,25 @@ async def _select_option(tab, select_id, value):
     await asyncio.sleep(0.5)
 
 
-async def main():
-    options = ChromiumOptions()
-    super_scraper = SuperScraper()
-    options.binary_location = super_scraper.CHROMIUM_LOCATION
-    options.add_argument("--no-sandbox")
-    options.add_argument("--window-size=1280,3000")
+RIGHT_MAP = {Right.RIGHT_TO_DELETE: "Delete All"}
+RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
 
-    state_abbr = await SuperScraper.state_full_name_to_abbreviated(SuperScraper.STATE)
+PAGE_RIGHTS = {}  # TODO(health-check): run HEALTH_CHECK once live; it prints the full list
+# (A delete-only removal tool; no rights chooser to inventory.)
+
+STATE_FILTER_XPATH = "//*[@id='SttFltrDrpDwnLst']"
+
+
+async def main():
+    super_scraper = SuperScraper()
+    options = SuperScraper.build_chromium_options()
+
+    # Removal tool — Delete only. Skip unless the user asked for RIGHT_TO_DELETE.
+    if not SuperScraper.rights_to_exercise(RIGHT_MAP):
+        print("spydialer is delete-only; RIGHT_TO_DELETE is not in RIGHTS_TO_EXERCISE — skipping.")
+        return
+
+    state_abbr = SuperScraper.STATE_ABBREVIATED
 
     async with Chrome(options=options) as browser:
         tab = await browser.start()
@@ -56,13 +69,16 @@ async def main():
         await _select_option(tab, "SttFltrDrpDwnLst", state_abbr)
         await asyncio.sleep(1)
 
+        if SuperScraper.HEALTH_CHECK:
+            await SuperScraper.assert_fields_filled(tab, {"State filter": STATE_FILTER_XPATH})
+
         if SuperScraper.DRY_RUN:
             submit_btn = await tab.find(
                 id="ctl00_ContentPlaceHolder1_StateSubmitButton", raise_exc=False
             )
             if submit_btn:
                 await submit_btn.scroll_into_view()
-            await tab.take_screenshot("resources/screenshots/spydailer_dry_run.png")
+            await SuperScraper.screenshot(tab, "dry_run")
             print(
                 f"DRY RUN: would submit state filter for "
                 f"{SuperScraper.FIRST_NAME} {SuperScraper.LAST_NAME} <{SuperScraper.EMAIL}>"
@@ -78,27 +94,14 @@ async def main():
             await submit_btn.click()
             await asyncio.sleep(3)
 
-        print(f"\nState filter submitted. Solve the reCAPTCHA v2 if prompted.")
-        print("After records appear, find your record — the name/contact fields will appear in a modal.")
-        print("Fill in your details, then click Delete All and confirm.")
-        print("Press Enter after the confirmation page appears...")
+        print("\nState filter submitted. Solve the reCAPTCHA v2 if prompted.")
+        print("After records appear, find YOUR record — the name/contact fields appear in a modal.")
+        print("Fill in your details, review which records the page will remove, then click")
+        print("Delete All and confirm yourself. This scraper does not click Delete All: the button")
+        print("acts on whatever the list shows, and the list can include other people's records.")
+        print("Press Enter once you have finished...")
         input()
-
-        # Attempt delete if button is visible (may have been exposed by user interaction)
-        delete_btn = await tab.find(
-            id="ctl00_ContentPlaceHolder1_DeleteAllBottomButton", raise_exc=False
-        )
-        if delete_btn and await delete_btn.is_visible():
-            await delete_btn.click()
-            await asyncio.sleep(2)
-            confirm_btn = await tab.find(
-                id="ctl00_ContentPlaceHolder1_ContinueConfirmButton", raise_exc=False
-            )
-            if confirm_btn and await confirm_btn.is_visible():
-                await confirm_btn.click()
-                await asyncio.sleep(3)
-
-        print(f"Submitted deletion for {SuperScraper.FIRST_NAME} {SuperScraper.LAST_NAME}")
-
+        print(f"Handed off to the browser for {SuperScraper.FIRST_NAME} {SuperScraper.LAST_NAME} — "
+              "verify the confirmation page yourself.")
 
 asyncio.run(main())

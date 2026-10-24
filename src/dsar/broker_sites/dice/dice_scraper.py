@@ -5,35 +5,54 @@
 # single-select, so exercising more than one right needs one submission each.
 # This page is heavy (reCAPTCHA Enterprise) and a second full reload inside one
 # browser session reliably hangs pydoll's load-event wait, so the scraper does
-# ONE pass per run:
-#   REMOVE_INFORMATION off -> "radio-description-access" (Access)
-#   REMOVE_INFORMATION on  -> "radio-description-delete" (Delete)
-# To also submit the Opt-Out variant, re-run after selecting
-# "radio-description-optout" (it is the same form, one field).
+# ONE pass per run: the first right of PASS_ORDER that SuperScraper.rights_to_exercise(RIGHT_MAP)
+# allows. To submit another right, re-run with only that right requested.
 #
-# Fields: name (id "name"), email (id "email"). reCAPTCHA Enterprise gates the
-# submit — filled to that point.  **CAPTCHA solution required**
+# Page elements:
+#   #radio-description-access / #radio-description-optout / #radio-description-delete
+#                                   "Please indicate whether you wish to" radio (see RIGHT_MAP)
+#   form#form-dice-ccpa #name       Name (full name)
+#   form#form-dice-ccpa #email      Email
+# reCAPTCHA Enterprise gates the submit — filled to that point.  **CAPTCHA solution required**
 import asyncio
 
 from pydoll.browser.chromium import Chrome
-from pydoll.browser.options import ChromiumOptions
 
+from src.dsar.rights import Right
 from src.dsar.super_scraper import SuperScraper
 
 URL = "https://www.dice.com/about/ccpa#ccpa-form-anchor"
 
+RIGHT_MAP = {
+    Right.RIGHT_TO_ACCESS: "radio-description-access",
+    Right.RIGHT_TO_OPT_OUT: "radio-description-optout",
+    Right.RIGHT_TO_DELETE: "radio-description-delete",
+}
+RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
+
+PAGE_RIGHTS = {}  # TODO(health-check): run HEALTH_CHECK once live; it prints the full list
+RIGHTS_OPTIONS_CSS = "label:has(input[name='description'])"  # "Please indicate whether you wish to" radios
+
+FIELD_XPATHS = {
+    "Name": "//form[@id='form-dice-ccpa']//input[@id='name']",
+    "Email": "//form[@id='form-dice-ccpa']//input[@id='email']",
+}
+PASS_ORDER = (Right.RIGHT_TO_DELETE, Right.RIGHT_TO_ACCESS, Right.RIGHT_TO_OPT_OUT)
+
 
 async def main():
-    options = ChromiumOptions()
     super_scraper = SuperScraper()
-    options.binary_location = super_scraper.CHROMIUM_LOCATION
-    options.add_argument("--no-sandbox")
-    options.add_argument("--window-size=1280,2200")
+    if SuperScraper.bail_if_not_automatable(globals()):
+        return
 
-    if SuperScraper.REMOVE_INFORMATION:
-        radio_id, tag = "radio-description-delete", "delete"
-    else:
-        radio_id, tag = "radio-description-access", "access"
+    rights = SuperScraper.rights_to_exercise(RIGHT_MAP)
+    if not rights:
+        print("No requested privacy rights apply to this form — nothing to do.")
+        return
+    right = next(r for r in PASS_ORDER if r in rights)
+    radio_id = RIGHT_MAP[right]
+
+    options = SuperScraper.build_chromium_options()
 
     async with Chrome(options=options) as browser:
         tab = await browser.start()
@@ -42,6 +61,10 @@ async def main():
         except Exception as exc:
             print(f"(dice: go_to reported {exc!r} — continuing once DOM is ready)")
         await asyncio.sleep(8)
+
+        if SuperScraper.HEALTH_CHECK:
+            offered = await SuperScraper.read_option_labels(tab, RIGHTS_OPTIONS_CSS)
+            SuperScraper.audit_rights(offered, PAGE_RIGHTS)
 
         radio = await tab.find(id=radio_id, raise_exc=False)
         if radio:
@@ -57,12 +80,14 @@ async def main():
         if email:
             await email.type_text(SuperScraper.EMAIL)
 
+        if SuperScraper.HEALTH_CHECK:
+            await SuperScraper.assert_fields_filled(tab, FIELD_XPATHS)
+
         await asyncio.sleep(1)
-        await tab.take_screenshot(path=f"resources/screenshots/dice_dry_run_{tag}.png", beyond_viewport=True)
-        print(f"Screenshot saved to resources/screenshots/dice_dry_run_{tag}.png")
+        await SuperScraper.screenshot(tab, f"dry_run_{right.value}")
         print(
-            f"'{tag}' request filled but NOT submitted — solve the reCAPTCHA manually, then "
-            "Submit. Re-run with a different 'description' radio for the other rights."
+            f"'{right.name}' request filled but NOT submitted — solve the reCAPTCHA manually, then "
+            "Submit. One right per run: re-run to submit another."
         )
 
 

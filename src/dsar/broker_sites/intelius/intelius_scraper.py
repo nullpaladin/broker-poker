@@ -23,16 +23,48 @@
 #
 # Right to Delete: single `deletionEmail` field + "Delete My User Data" —
 # this also emails a confirmation link, a real side-effect trigger, so the
-# scraper fills the email and stops there regardless of DRY_RUN. Gated on
-# REMOVE_INFORMATION.
+# scraper fills the email and stops there regardless of DRY_RUN.
+#
+# Which of Know / Opt Out / Delete run is decided only by SuperScraper.rights_to_exercise.
+#
+# Page elements:
+#   "View User Data Tools"                       opens the User Data Tools section
+#   "Right to Know" / "Right to Opt Out" / "Right to Delete"   accordion sections
+#   input[name=retrievalEmail]                   Know: email for the data copy
+#   "Request a Copy of My Data"                  Know submit (never clicked)
+#   "Open Cookie Preferences"                    Opt Out: opens the preferences modal
+#   #ckyCCPAOptOut                               "Do Not Sell or Share My Personal Information" checkbox
+#   "Save My Preferences" / "Cancel"             modal buttons
+#   input[name=deletionEmail]                    Delete: email for the confirmation link
+#   "Delete My User Data"                        Delete submit (never clicked)
 import asyncio
 
+from src.dsar.rights import Right
 from src.dsar.super_scraper import SuperScraper
 
 from pydoll.browser.chromium import Chrome
-from pydoll.browser.options import ChromiumOptions
 
 URL = "https://app.intelius.com/privacy-center/"
+
+# Right -> which accordion section handles it.
+RIGHT_MAP = {
+    Right.RIGHT_TO_ACCESS: "access",
+    Right.RIGHT_TO_OPT_OUT: "opt_out",
+    Right.RIGHT_TO_DELETE: "delete",
+}
+RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
+
+# Every accordion section under "User Data Tools", as displayed -> the Right it maps to (None = not automated).
+PAGE_RIGHTS = {
+    "Right to Know": Right.RIGHT_TO_ACCESS,
+    "Right to Opt Out": Right.RIGHT_TO_OPT_OUT,
+    "Right to Correct": None,
+    "Right to Delete": Right.RIGHT_TO_DELETE,
+}
+RIGHTS_OPTIONS_CSS = ""  # TODO(health-check): capture the accordion-header selector on a live run (no audit wired until then)
+
+ACCESS_FIELD_XPATHS = {"Email": "//input[@name='retrievalEmail']"}
+DELETE_FIELD_XPATHS = {"Email": "//input[@name='deletionEmail']"}
 
 
 async def _open_accordion(tab, label):
@@ -50,9 +82,10 @@ async def do_access(tab, super_scraper):
         print(f"{super_scraper.OOPS} retrievalEmail field not found")
         return
     await email_field.type_text(SuperScraper.EMAIL)
+    if SuperScraper.HEALTH_CHECK:
+        await SuperScraper.assert_fields_filled(tab, ACCESS_FIELD_XPATHS)
     await asyncio.sleep(1)
-    await tab.take_screenshot(path="resources/screenshots/intelius_dry_run_access.png")
-    print("Screenshot saved to resources/screenshots/intelius_dry_run_access.png")
+    await SuperScraper.screenshot(tab, "dry_run_access")
     print(
         "\nAccess request email entered but NOT sent — click 'Request a Copy of My Data' "
         "yourself. This emails a real download link regardless of DRY_RUN, so it is never "
@@ -77,10 +110,9 @@ async def do_opt_out(tab, super_scraper):
         return
 
     if SuperScraper.DRY_RUN:
-        print(f"DRY RUN: would save opt-out cookie preference for {SuperScraper.FIRST_NAME} {SuperScraper.LAST_NAME}")
+        print(f"DRY RUN: would save opt-out cookie preference ({Right.RIGHT_TO_OPT_OUT.name})")
         await asyncio.sleep(1)
-        await tab.take_screenshot(path="resources/screenshots/intelius_dry_run_opt_out.png")
-        print("Screenshot saved to resources/screenshots/intelius_dry_run_opt_out.png")
+        await SuperScraper.screenshot(tab, "dry_run_opt_out")
         # dismiss the modal (leaving it open would block the next
         # accordion section's screenshot) — the checkbox state was already
         # captured above, nothing is lost by cancelling instead of saving
@@ -94,7 +126,7 @@ async def do_opt_out(tab, super_scraper):
     if save_btn:
         await save_btn.click()
         await asyncio.sleep(2)
-        print(f"Saved opt-out cookie preference for {SuperScraper.FIRST_NAME} {SuperScraper.LAST_NAME}")
+        print(f"Saved opt-out cookie preference ({Right.RIGHT_TO_OPT_OUT.name}) — confirm in the browser.")
     else:
         print(f"{super_scraper.OOPS} 'Save My Preferences' button not found")
 
@@ -106,9 +138,10 @@ async def do_delete(tab, super_scraper):
         print(f"{super_scraper.OOPS} deletionEmail field not found")
         return
     await email_field.type_text(SuperScraper.EMAIL)
+    if SuperScraper.HEALTH_CHECK:
+        await SuperScraper.assert_fields_filled(tab, DELETE_FIELD_XPATHS)
     await asyncio.sleep(1)
-    await tab.take_screenshot(path="resources/screenshots/intelius_dry_run_delete.png")
-    print("Screenshot saved to resources/screenshots/intelius_dry_run_delete.png")
+    await SuperScraper.screenshot(tab, "dry_run_delete")
     print(
         "\nDeletion request email entered but NOT sent — click 'Delete My User Data' "
         "yourself and confirm via the email you receive. This sends a real confirmation "
@@ -116,11 +149,17 @@ async def do_delete(tab, super_scraper):
     )
 
 
+HANDLERS = {"access": do_access, "opt_out": do_opt_out, "delete": do_delete}
+
+
 async def main():
-    options = ChromiumOptions()
     super_scraper = SuperScraper()
-    options.binary_location = super_scraper.CHROMIUM_LOCATION
-    options.add_argument("--no-sandbox")
+    options = SuperScraper.build_chromium_options()
+
+    rights = SuperScraper.rights_to_exercise(RIGHT_MAP)
+    if not rights:
+        print("No requested privacy rights apply to this form — nothing to do.")
+        return
 
     async with Chrome(options=options) as browser:
         tab = await browser.start()
@@ -132,10 +171,8 @@ async def main():
             await view_btn.click()
             await asyncio.sleep(2)
 
-        await do_access(tab, super_scraper)
-        await do_opt_out(tab, super_scraper)
-        if SuperScraper.REMOVE_INFORMATION:
-            await do_delete(tab, super_scraper)
+        for right in rights:
+            await HANDLERS[RIGHT_MAP[right]](tab, super_scraper)
 
 
 asyncio.run(main())

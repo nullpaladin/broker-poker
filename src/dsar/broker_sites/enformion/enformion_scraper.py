@@ -1,28 +1,39 @@
-# enformion.com — exercises Opt-Out, Right to Know, Right to Correct,
-# and Right to Delete (gated on REMOVE_INFORMATION).
-# All four forms live on one page. reCAPTCHA Enterprise checkbox is required;
+# enformion.com — exercises Opt-Out, Right to Know and Right to Delete.
+# All four forms (those three plus Right to Correct) live on one page. Right to Correct is
+# not automatable and is not in RIGHT_MAP; its form additionally asks phone / address / city /
+# state / zip / dob (name="phone", "address", "city", "state", "zip", "dob"). reCAPTCHA Enterprise checkbox is required;
 # checking it auto-submits the form via a JS callback — no separate submit click needed.
 # Opt-Out and Delete send a verification email the user must click to complete.
 # Know and Correct create a ticket directly.
+#
+# Page elements (each form lives in [data-value="<dropdown value>"] .enf-zendesk-form):
+#   .rightsDropdown                       "right" dropdown (values optOut / access / correct / delete)
+#   [name="firstName"] / [name="lastName"] / [name="email"]   First / Last name / Email
+#   [name="privacyAuthorization"]         privacy authorization checkbox
+#   #exerciseRights (+ #publicContent)    Delete only: select set to "public" to reveal the form
+#   reCAPTCHA Enterprise checkbox         auto-submits the form
+#   .enf-zendesk-form-cont                result container read after submit
 import asyncio
 import json
 import time
 
+from src.dsar.rights import Right
 from src.dsar.super_scraper import SuperScraper
 
 from pydoll.browser.chromium import Chrome
-from pydoll.browser.options import ChromiumOptions
 
 URL = "https://www.enformion.com/opt-out/"
 
-# (dropdown_value, label, has_extended_fields)
-# "correct" form adds phone/address/city/state/zip/dob fields.
-FORMS = [
-    ("optOut",  "Do Not Sell / Right to Opt-out", False),
-    ("access",  "Right to Know",                  False),
-    ("correct", "Right to Correct",               True),
-]
-DELETE_FORM = ("delete", "Right to Delete", False)
+# (dropdown_value, label)
+RIGHT_MAP = {
+    Right.RIGHT_TO_OPT_OUT: [("optOut", "Do Not Sell / Right to Opt-out")],
+    Right.RIGHT_TO_ACCESS: [("access", "Right to Know")],
+    Right.RIGHT_TO_DELETE: [("delete", "Right to Delete")],
+}
+RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
+
+PAGE_RIGHTS = {}  # TODO(health-check): run HEALTH_CHECK once live; it prints the full list
+RIGHTS_OPTIONS_CSS = ".rightsDropdown option"  # values optOut / access / correct / delete
 
 
 def _js_set(selector, value):
@@ -51,8 +62,13 @@ def _js_check(selector):
     )
 
 
-async def process_form(tab, dropdown_val, label, has_extended, super_scraper):
+async def process_form(tab, dropdown_val, label, right, super_scraper):
     form_sel = f'[data-value="{dropdown_val}"] .enf-zendesk-form'
+
+    if SuperScraper.HEALTH_CHECK:
+        offered = await SuperScraper.read_option_labels(tab, RIGHTS_OPTIONS_CSS)
+        SuperScraper.audit_rights(offered, PAGE_RIGHTS)
+
     section_sel = f'[data-value="{dropdown_val}"]'
 
     # Reveal the section and sync the visible dropdown.
@@ -77,27 +93,20 @@ async def process_form(tab, dropdown_val, label, has_extended, super_scraper):
     await tab.execute_script(_js_set(f'{form_sel} [name="email"]', SuperScraper.EMAIL))
     await tab.execute_script(_js_check(f'{form_sel} [name="privacyAuthorization"]'))
 
-    # Extended fields for the Correct form.
-    if has_extended:
-        state_abbrev = await SuperScraper.state_full_name_to_abbreviated(SuperScraper.STATE)
-        if SuperScraper.PHONE_NUMBER:
-            await tab.execute_script(_js_set(f'{form_sel} [name="phone"]', SuperScraper.PHONE_NUMBER))
-        else:
-            print(f"{super_scraper.OOPS} PHONE_NUMBER not set — Right to Correct form requires it")
-        await tab.execute_script(_js_set(f'{form_sel} [name="address"]', SuperScraper.ADDRESS))
-        await tab.execute_script(_js_set(f'{form_sel} [name="city"]', SuperScraper.CITY))
-        await tab.execute_script(_js_set(f'{form_sel} [name="state"]', state_abbrev))
-        await tab.execute_script(_js_set(f'{form_sel} [name="zip"]', SuperScraper.ZIP_CODE))
-        # dob is optional; format must be YYYY-MM-DD (HTML date input).
-        if SuperScraper.DATE_OF_BIRTH:
-            await tab.execute_script(_js_set(f'{form_sel} [name="dob"]', SuperScraper.DATE_OF_BIRTH))
+    if SuperScraper.HEALTH_CHECK:
+        form_xpath = f'//*[@data-value="{dropdown_val}"]//*[contains(@class, "enf-zendesk-form")]'
+        await SuperScraper.assert_fields_filled(tab, {
+            "First name": f'{form_xpath}//*[@name="firstName"]',
+            "Last name": f'{form_xpath}//*[@name="lastName"]',
+            "Email": f'{form_xpath}//*[@name="email"]',
+        })
 
     if SuperScraper.DRY_RUN:
         print(
-            f"DRY RUN: would submit '{label}' for "
-            f"{SuperScraper.FIRST_NAME} {SuperScraper.LAST_NAME} <{SuperScraper.EMAIL}>"
+            f"DRY RUN: would submit '{right.name}' ({label}) for {SuperScraper.EMAIL}"
         )
         await asyncio.sleep(2)
+        await SuperScraper.screenshot(tab, f"dry_run_{right.value}")
         return
 
     print(f"\nForm ready: {label}")
@@ -110,27 +119,30 @@ async def process_form(tab, dropdown_val, label, has_extended, super_scraper):
         "var c=document.querySelector('.enf-zendesk-form-cont'); return c ? c.innerText : '';"
     )
     if result and ("Email Sent" in result or "Submission Confirmation" in result):
-        print(f"Submitted '{label}' for {SuperScraper.FIRST_NAME} {SuperScraper.LAST_NAME}")
+        print(f"Submitted '{right.name}' for {SuperScraper.EMAIL} — confirm in the browser.")
     else:
         print(f"{super_scraper.OOPS} Confirmation not detected — verify in browser before continuing")
 
 
 async def main():
-    options = ChromiumOptions()
     super_scraper = SuperScraper()
-    options.binary_location = super_scraper.CHROMIUM_LOCATION
-    options.add_argument("--no-sandbox")
+    if SuperScraper.bail_if_not_automatable(globals()):
+        return
 
-    forms = list(FORMS)
-    if SuperScraper.REMOVE_INFORMATION:
-        forms.append(DELETE_FORM)
+    rights = SuperScraper.rights_to_exercise(RIGHT_MAP)
+    if not rights:
+        print("No requested privacy rights apply to this form — nothing to do.")
+        return
+    forms = [(right, entry) for right in rights for entry in RIGHT_MAP[right]]
+
+    options = SuperScraper.build_chromium_options()
 
     async with Chrome(options=options) as browser:
         tab = await browser.start()
-        for dropdown_val, label, has_extended in forms:
+        for right, (dropdown_val, label) in forms:
             await tab.go_to(URL)
             await asyncio.sleep(5)  # wait for reCAPTCHA Enterprise to render
-            await process_form(tab, dropdown_val, label, has_extended, super_scraper)
+            await process_form(tab, dropdown_val, label, right, super_scraper)
 
 
 asyncio.run(main())

@@ -10,23 +10,61 @@
 # the general location of your connection" for fraud prevention — worth
 # knowing if a submission is unexpectedly rejected, doesn't change what
 # gets filled here. reCAPTCHA v2 present — **CAPTCHA solution required**.
-# Exercises Opt-Out unconditionally; Delete checkbox gated on
-# REMOVE_INFORMATION.
+# Rights the form exposes: Opt-Out and Delete (checkboxes). Which of them are
+# checked is decided ONLY by SuperScraper.rights_to_exercise(RIGHT_MAP).
+# The non-CA form is used; the page itself says it compares the chosen state to the
+# connection location (fraud prevention) — no residency bail needed.
+#
+# Page elements (keep this list current):
+#   text "I am submitting this request for myself"   Requester type (vs. authorized agent)
+#   #optOut                    "Right to Opt Out" checkbox -> RIGHT_TO_OPT_OUT
+#   #deleteInfo                "Right to Delete" checkbox  -> RIGHT_TO_DELETE
+#   #firstName / #lastName / #email   First / Last name, Email
+#   #address1 / #address2 / #city / #zip   Address
+#   #state                     State <select> (2-letter abbreviation text)
+#   reCAPTCHA v2 checkbox      manual solve
 import asyncio
 
+from src.dsar.rights import Right
 from src.dsar.super_scraper import SuperScraper
 
 from pydoll.browser.chromium import Chrome
-from pydoll.browser.options import ChromiumOptions
+
+from src.dsar import js_utils
 
 URL = "https://paramountdirectmarketing.com/do-not-sell-non-ca"
 
+RIGHT_MAP = {Right.RIGHT_TO_OPT_OUT: ["optOut"], Right.RIGHT_TO_DELETE: ["deleteInfo"]}
+RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
+
+# Every checkbox on the form, as displayed -> the Right it maps to.
+PAGE_RIGHTS = {
+    "Right to Opt Out": Right.RIGHT_TO_OPT_OUT,
+    "Right to Delete": Right.RIGHT_TO_DELETE,
+}
+RIGHTS_OPTIONS_CSS = "label:has(#optOut), label:has(#deleteInfo), label[for='optOut'], label[for='deleteInfo']"  # built from the two recorded ids
+
+FIELD_XPATHS = {
+    "First name": "//*[@id='firstName']",
+    "Last name": "//*[@id='lastName']",
+    "Email": "//*[@id='email']",
+    "Address": "//*[@id='address1']",
+    "City": "//*[@id='city']",
+    "Zip": "//*[@id='zip']",
+    "State": "//*[@id='state']",
+}
+
 
 async def main():
-    options = ChromiumOptions()
     super_scraper = SuperScraper()
-    options.binary_location = super_scraper.CHROMIUM_LOCATION
-    options.add_argument("--no-sandbox")
+    if SuperScraper.bail_if_not_automatable(globals()):
+        return
+    options = SuperScraper.build_chromium_options()
+
+    rights = SuperScraper.rights_to_exercise(RIGHT_MAP)
+    if not rights:
+        print("No requested privacy rights apply to this form — nothing to do.")
+        return
 
     async with Chrome(options=options) as browser:
         tab = await browser.start()
@@ -40,9 +78,11 @@ async def main():
         else:
             print(f"{super_scraper.OOPS} 'I am submitting this request for myself' option not found")
 
-        checkbox_ids = ["optOut"]
-        if SuperScraper.REMOVE_INFORMATION:
-            checkbox_ids.append("deleteInfo")
+        if SuperScraper.HEALTH_CHECK:
+            offered = await SuperScraper.read_option_labels(tab, RIGHTS_OPTIONS_CSS)
+            SuperScraper.audit_rights(offered, PAGE_RIGHTS)
+
+        checkbox_ids = [cb for right in rights for cb in RIGHT_MAP[right]]
         for checkbox_id in checkbox_ids:
             checkbox = await tab.find(id=checkbox_id, raise_exc=False)
             if checkbox:
@@ -70,17 +110,14 @@ async def main():
 
         state_select = await tab.find(id="state", raise_exc=False)
         if state_select:
-            state_abbrev = await SuperScraper.state_full_name_to_abbreviated(SuperScraper.STATE)
-            await state_select.execute_script(
-                "for (var i=0;i<this.options.length;i++){"
-                f"  if(this.options[i].text==={state_abbrev!r}){{ this.selectedIndex=i; }}"
-                "}"
-                "this.dispatchEvent(new Event('change', {bubbles:true}));"
-            )
+            state_abbrev = SuperScraper.STATE_ABBREVIATED
+            await js_utils.select_native_option(state_select, text=state_abbrev)
+
+        if SuperScraper.HEALTH_CHECK:
+            await SuperScraper.assert_fields_filled(tab, FIELD_XPATHS)
 
         await asyncio.sleep(1)
-        await tab.take_screenshot(path="resources/screenshots/paramountdirectmarketing_dry_run.png")
-        print("Screenshot saved to resources/screenshots/paramountdirectmarketing_dry_run.png")
+        await SuperScraper.screenshot(tab, "dry_run_" + "_".join(r.value for r in rights))
         print(
             "\nForm filled but NOT submitted — a reCAPTCHA v2 checkbox is present and "
             "requires a manual solve before submitting."

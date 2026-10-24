@@ -12,22 +12,58 @@
 # consent modal ("Accept"/"Decline") covers the page on first load and must
 # be dismissed before the form is interactable. reCAPTCHA v2 checkbox
 # present — **CAPTCHA solution required** in live mode.
+#
+# Page elements (inputs located by name unless noted):
+#   firstname / lastname        First / Last name
+#   address / street_address_2  Street address / Address line 2
+#   city / country              City / Country/Region (free text -> "United States")
+#   state_                      Shipping State <select> (full state names)
+#   zip / email                 ZIP / Email
+#   input id^="phone-"          Phone number
+#   checkbox name^="i_am_requesting"   attestation checkbox
+#   Button "Decline"            cookie-consent modal
+# The one form covers both Opt-Out and Delete; it is filled whenever either right is
+# requested (SuperScraper.rights_to_exercise(RIGHT_MAP)). It is never submitted
+# automatically.
 import asyncio
 
-from src.dsar.super_scraper import SuperScraper
-
 from pydoll.browser.chromium import Chrome
-from pydoll.browser.options import ChromiumOptions
+
+from src.dsar import js_utils
+from src.dsar.rights import Right
+from src.dsar.super_scraper import SuperScraper
 
 URL = "https://growinglibraries.com/do-not-sell"
 
+ATTESTATION_CHECKBOX = "i_am_requesting"  # name prefix of the attestation checkbox
+RIGHT_MAP = {
+    Right.RIGHT_TO_OPT_OUT: ATTESTATION_CHECKBOX,
+    Right.RIGHT_TO_DELETE: ATTESTATION_CHECKBOX,
+}
+RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
+
+PAGE_RIGHTS = {}  # TODO(health-check): run HEALTH_CHECK once live; it prints the full list
+
+FIELD_XPATHS = {
+    "First name": "//input[@name='firstname']",
+    "Last name": "//input[@name='lastname']",
+    "Address": "//input[@name='address']",
+    "City": "//input[@name='city']",
+    "Country/Region": "//input[@name='country']",
+    "State": "//select[@name='state_']",
+    "Zip": "//input[@name='zip']",
+    "Email": "//input[@name='email']",
+}
+
 
 async def main():
-    options = ChromiumOptions()
     super_scraper = SuperScraper()
-    options.binary_location = super_scraper.CHROMIUM_LOCATION
-    options.add_argument("--no-sandbox")
-    options.add_argument("--window-size=1280,2400")
+    options = SuperScraper.build_chromium_options()
+
+    rights = SuperScraper.rights_to_exercise(RIGHT_MAP)
+    if not rights:
+        print("No requested privacy rights apply to this form — nothing to do.")
+        return
 
     async with Chrome(options=options) as browser:
         tab = await browser.start()
@@ -60,19 +96,14 @@ async def main():
 
         state_select = await tab.find(xpath="//select[@name='state_']", raise_exc=False)
         if state_select:
-            await state_select.execute_script(
-                "for (var i=0;i<this.options.length;i++){"
-                f"  if(this.options[i].text==={SuperScraper.STATE!r}){{ this.selectedIndex=i; }}"
-                "}"
-                "this.dispatchEvent(new Event('change', {bubbles:true}));"
-            )
+            await js_utils.select_native_option(state_select, text=SuperScraper.STATE, dispatch=("change",))
 
         phone_field = await tab.find(xpath="//input[starts-with(@id,'phone-')]", raise_exc=False)
         if phone_field and SuperScraper.PHONE_NUMBER:
             await phone_field.type_text(SuperScraper.PHONE_NUMBER)
 
         checkbox = await tab.find(
-            xpath="//input[@type='checkbox' and starts-with(@name,'i_am_requesting')]",
+            xpath=f"//input[@type='checkbox' and starts-with(@name,'{ATTESTATION_CHECKBOX}')]",
             raise_exc=False,
         )
         if checkbox:
@@ -80,11 +111,13 @@ async def main():
         else:
             print(f"{super_scraper.OOPS} attestation checkbox not found")
 
+        if SuperScraper.HEALTH_CHECK:
+            await SuperScraper.assert_fields_filled(tab, FIELD_XPATHS)
+
         await asyncio.sleep(1)
-        await tab.take_screenshot(path="resources/screenshots/growinglibraries_dry_run.png")
-        print("Screenshot saved to resources/screenshots/growinglibraries_dry_run.png")
+        await SuperScraper.screenshot(tab, "dry_run")
         print(
-            "\nForm filled but NOT submitted — a reCAPTCHA v2 checkbox is present and requires "
+            f"\n{[r.name for r in rights]} form filled but NOT submitted — a reCAPTCHA v2 checkbox is present and requires "
             "a manual solve before clicking SUBMIT."
         )
 

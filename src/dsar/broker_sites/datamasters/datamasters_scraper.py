@@ -2,33 +2,51 @@
 # form is a "GET A QUOTE" sales form; the real privacy form is a LeadConnector
 # (GoHighLevel) widget embedded in an iframe — navigate straight to it:
 #   https://api.leadconnectorhq.com/widget/form/41dpCVPDaPkQi42RkPKk
-# Fields: first_name (labelled "Name" — a full-name field), email, address,
-# city, state, postal_code; a date field (YYYY-MM-DD, filled from DATE_OF_BIRTH)
-# and a checkbox group (name="R3B5d3dOMvt84soqRzIF") — multi-select, one
-# combined submission: "Request for access to all personal information" +
-# "Opt out of the sale of personal information" unconditionally; "Request to
-# delete all personal information" gated on REMOVE_INFORMATION;
-# delete-some / categories / correct skipped.
-# "Printed Name" is filled; "Signature" is a mouse-drawn canvas pad that is NOT
-# automated (draw it manually), and "Verify Email" runs an email-verification
-# step that needs a real inbox. reCAPTCHA + Cloudflare Turnstile also gate
-# submission — form filled and left for a manual solve.
+# Rights the form exposes: access, opt-out of sale, delete (plus delete-some /
+# categories / correct, which are skipped). Which of them run is decided ONLY by
+# SuperScraper.rights_to_exercise(RIGHT_MAP). The checkbox group is multi-select, so
+# all selected rights go out in one combined submission.
+# "Signature" is a mouse-drawn canvas pad that is NOT automated (draw it manually),
+# and "Verify Email" runs an email-verification step that needs a real inbox.
+# reCAPTCHA + Cloudflare Turnstile also gate submission — form filled and left for
+# a manual solve.
+#
+# Page elements:
+#   input[name=first_name]        "Name" (full-name field)
+#   input[name=email]             Email
+#   input[name=address] / [name=city] / [name=state] / [name=postal_code]   Address fields
+#   input[placeholder='YYYY - MM - DD']   Date field (filled from DATE_OF_BIRTH)
+#   label "Printed Name" -> following input   Printed Name
+#   input[name=R3B5d3dOMvt84soqRzIF]   Checkbox group of request types (see RIGHT_MAP)
 # **CAPTCHA solution required**
 import asyncio
 import time
 
 from pydoll.browser.chromium import Chrome
-from pydoll.browser.options import ChromiumOptions
 
+from src.dsar import js_utils
+from src.dsar.rights import Right
 from src.dsar.super_scraper import SuperScraper
 
 URL = "https://api.leadconnectorhq.com/widget/form/41dpCVPDaPkQi42RkPKk"
 
-RIGHTS = [
-    "Request for access to all personal information",
-    "Opt out of the sale of personal information",
-]
-DELETE_RIGHT = "Request to delete all personal information"
+RIGHT_MAP = {
+    Right.RIGHT_TO_ACCESS: ["Request for access to all personal information"],
+    Right.RIGHT_TO_OPT_OUT: ["Opt out of the sale of personal information"],
+    Right.RIGHT_TO_DELETE: ["Request to delete all personal information"],
+}
+RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
+
+PAGE_RIGHTS = {}  # TODO(health-check): run HEALTH_CHECK once live; it prints the full list
+
+FIELD_XPATHS = {
+    "Name": "//*[@name='first_name']",
+    "Email": "//*[@name='email']",
+    "Address": "//*[@name='address']",
+    "City": "//*[@name='city']",
+    "State": "//*[@name='state']",
+    "Postal code": "//*[@name='postal_code']",
+}
 
 
 def _dob_iso():
@@ -42,11 +60,8 @@ def _dob_iso():
 
 
 async def main():
-    options = ChromiumOptions()
     super_scraper = SuperScraper()
-    options.binary_location = super_scraper.CHROMIUM_LOCATION
-    options.add_argument("--no-sandbox")
-    options.add_argument("--window-size=1280,2400")
+    options = SuperScraper.build_chromium_options()
 
     async with Chrome(options=options) as browser:
         tab = await browser.start()
@@ -76,20 +91,24 @@ async def main():
         if printed:
             await printed.type_text(f"{SuperScraper.FIRST_NAME} {SuperScraper.LAST_NAME}")
 
-        rights = list(RIGHTS)
-        if SuperScraper.REMOVE_INFORMATION:
-            rights.append(DELETE_RIGHT)
-        for value in rights:
+        rights = SuperScraper.rights_to_exercise(RIGHT_MAP)
+        if not rights:
+            print("No requested privacy rights apply to this form — nothing to do.")
+            return
+        entries = [entry for right in rights for entry in RIGHT_MAP[right]]
+        for value in entries:
             box = await tab.find(
                 xpath=f"//input[@type='checkbox' and starts-with(@value, {value[:35]!r})]", raise_exc=False
             )
             if box:
-                await box.execute_script("if (!this.checked) this.click();")
+                await js_utils.js_check(box)
                 await asyncio.sleep(0.1)
 
         time.sleep(0.5)
-        await tab.take_screenshot("resources/screenshots/datamasters_dry_run.png")
-        print("Screenshot saved to resources/screenshots/datamasters_dry_run.png")
+        if SuperScraper.HEALTH_CHECK:
+            await SuperScraper.assert_fields_filled(tab, FIELD_XPATHS)
+
+        await SuperScraper.screenshot(tab, "dry_run")
         print(
             "Request filled but NOT submitted — a reCAPTCHA / Cloudflare Turnstile must be "
             "solved manually before submitting."

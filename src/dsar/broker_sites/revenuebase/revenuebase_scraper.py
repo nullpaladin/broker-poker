@@ -1,7 +1,7 @@
 # revenuebase.ai — Google Form (forms.gle short link). This form is
 # DELETION-ONLY — its title is literally "Data Removal Request Form" and
-# there's no Access/Opt-Out option anywhere, so the whole scraper is
-# gated on REMOVE_INFORMATION (there's nothing to submit otherwise).
+# there's no Access/Opt-Out option anywhere, so RIGHT_MAP has only
+# RIGHT_TO_DELETE (there's nothing to submit otherwise).
 #
 # Google Forms quirks (same platform as jobot.com/jungroup.com elsewhere
 # in this repo, but this instance DOES expose stable `aria-label`s on its
@@ -22,12 +22,30 @@
 # state-privacy-law deletion request. Both required "Confirmation of
 # Understanding" checkboxes (Q10) are checked — true for a matching
 # persona submitting their own real request.
+#
+# Page elements (Google Form, positional text inputs via TEXT_INPUT_XPATH):
+#   text input [1]   top-level Email
+#   radio            "Data Subject (The person whose data is being requested for removal)"
+#   text input [2]   Full Legal Name
+#   text input [3]   Data Subject's Email Address
+#   role=listbox     Country combobox -> option "United States"
+#   text input [4]   State/Province (plain text)
+#   checkbox         "Complying with a legal obligation (e.g., GDPR, CCPA, etc.)" (removal reason)
+#   checkbox x2      "Confirmation of Understanding" ("I understand that once my data is permanently
+#                    removed..." / "I confirm that the information provided above is accurate...")
+#   "Submit" text    Submit button
 import asyncio
 
+from src.dsar.rights import Right
 from src.dsar.super_scraper import SuperScraper
 
 from pydoll.browser.chromium import Chrome
-from pydoll.browser.options import ChromiumOptions
+
+RIGHT_MAP = {Right.RIGHT_TO_DELETE: "Data Removal Request"}
+RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
+
+PAGE_RIGHTS = {}  # TODO(health-check): run HEALTH_CHECK once live; it prints the full list
+# (A deletion-only Google Form titled "Data Removal Request Form"; its heading selector is unrecorded.)
 
 URL = "https://forms.gle/5Cab6bJcRtqVzAJS8"
 
@@ -46,16 +64,12 @@ async def click_by_role_and_label(tab, super_scraper, role, aria_label, descript
 
 
 async def main():
-    options = ChromiumOptions()
     super_scraper = SuperScraper()
-    options.binary_location = super_scraper.CHROMIUM_LOCATION
-    options.add_argument("--no-sandbox")
+    options = SuperScraper.build_chromium_options()
 
-    if not SuperScraper.REMOVE_INFORMATION:
-        print(
-            "revenuebase.ai's form only supports data deletion — skipping since "
-            "REMOVE_INFORMATION is not set."
-        )
+    rights = SuperScraper.rights_to_exercise(RIGHT_MAP)
+    if not rights:
+        print("No requested privacy rights apply to this form (it only supports deletion) — nothing to do.")
         return
 
     async with Chrome(options=options) as browser:
@@ -117,16 +131,22 @@ async def main():
             "'confirm accurate' confirmation checkbox",
         )
 
-        await asyncio.sleep(1)
-        await tab.take_screenshot(path="resources/screenshots/revenuebase_dry_run.png")
-        print("Screenshot saved to resources/screenshots/revenuebase_dry_run.png")
+        if SuperScraper.HEALTH_CHECK:
+            await SuperScraper.assert_fields_filled(tab, {
+                "Email": TEXT_INPUT_XPATH.format(index=1),
+                "Full legal name": TEXT_INPUT_XPATH.format(index=2),
+                "Data subject's email": TEXT_INPUT_XPATH.format(index=3),
+                "State/Province": TEXT_INPUT_XPATH.format(index=4),
+            })
 
+        await asyncio.sleep(1)
+        await SuperScraper.screenshot(tab, "dry_run_delete")
         if SuperScraper.DRY_RUN:
             print("DRY RUN: would submit data removal request")
             return
 
         await super_scraper.click_item_by_text(tab=tab, text="Submit", sleep=2)
-        print("Submitted data removal request")
+        print(f"Submitted '{Right.RIGHT_TO_DELETE.name}' for {SuperScraper.EMAIL} — confirm in the browser.")
 
 
 asyncio.run(main())

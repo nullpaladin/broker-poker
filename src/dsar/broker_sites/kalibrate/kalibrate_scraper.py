@@ -4,9 +4,11 @@
 # Angular form. "Select request type(s)" (requestTypesDSARElement listbox):
 # "Right to Know/Access to Information", "Data Deletion/Opt-out/Do Not Sell"
 # (a COMBINED option), "Object to Processing", "Rectify Personal Data",
-# "Unsubscribe from Marketing" — one submission per right: Access + Object to
-# Processing unconditional; "Data Deletion/Opt-out/Do Not Sell" gated on
-# REMOVE_INFORMATION (it bundles deletion); Rectify + Unsubscribe skipped.
+# "Unsubscribe from Marketing" — one submission per choice: Access -> Access;
+# Object to Processing + the combined option -> Opt-out; the combined option ->
+# Delete as well (so requesting both Opt-out and Delete submits it twice).
+# Rectify + Unsubscribe are not automated. Which rights run is decided ONLY by
+# SuperScraper.rights_to_exercise(RIGHT_MAP).
 # "Have you read and consented to the Privacy Policy?" is a required Yes/No
 # listbox — answered "Yes" (the form blocks submit otherwise). The
 # formField80DSARElement "I am a former/potential employee/contractor/customer
@@ -20,18 +22,46 @@ import asyncio
 import time
 
 from pydoll.browser.chromium import Chrome
-from pydoll.browser.options import ChromiumOptions
 from pydoll.constants import Key
 
+from src.dsar.rights import Right
 from src.dsar.super_scraper import SuperScraper
 
 URL = "https://privacyportal-uk.onetrust.com/webform/6e95a345-1222-4957-a118-93d60494951b/390b0718-0304-49af-9629-7cb64a946019"
 
-REQUESTS = [
-    ("Right to Know/Access to Information", "access"),
-    ("Object to Processing", "object"),
-]
-DELETE_REQUEST = ("Data Deletion/Opt-out/Do Not Sell", "delete_optout")
+# "Object to Processing" and the combined delete/opt-out option both cover opt-out.
+RIGHT_MAP = {
+    Right.RIGHT_TO_ACCESS: [("Right to Know/Access to Information", "access")],
+    Right.RIGHT_TO_OPT_OUT: [
+        ("Object to Processing", "object"),
+        ("Data Deletion/Opt-out/Do Not Sell", "delete_optout"),
+    ],
+    Right.RIGHT_TO_DELETE: [("Data Deletion/Opt-out/Do Not Sell", "delete_optout")],
+}
+RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
+
+# Every option in the "Select request type(s)" listbox, as displayed -> the Right it maps to (None = not automated).
+# The combined option is mapped to RIGHT_TO_DELETE here; RIGHT_MAP also submits it for RIGHT_TO_OPT_OUT.
+PAGE_RIGHTS = {
+    "Right to Know/Access to Information": Right.RIGHT_TO_ACCESS,
+    "Data Deletion/Opt-out/Do Not Sell": Right.RIGHT_TO_DELETE,
+    "Object to Processing": Right.RIGHT_TO_OPT_OUT,
+    "Rectify Personal Data": None,
+    "Unsubscribe from Marketing": None,
+}
+RIGHTS_OPTIONS_CSS = "#requestTypesDSARElement [role='option']"
+
+FIELD_XPATHS = {
+    "Country": "//*[@id='countryDSARElement']",
+    "State": "//*[@id='stateDSARElement']",
+    "First name": "//*[@id='firstNameDSARElement']",
+    "Last name": "//*[@id='lastNameDSARElement']",
+    "Address": "//*[@id='addressDSARElement']",
+    "City": "//*[@id='cityDSARElement']",
+    "Zip": "//*[@id='zipDSARElement']",
+    "Email": "//*[@id='emailDSARElement']",
+    "Request details": "//*[@id='requestDetailsDSARElement']",
+}
 
 
 async def _field_value(field):
@@ -83,9 +113,13 @@ async def _click_listbox_option(tab, aria_label):
     return False
 
 
-async def submit_request(tab, right_label, label, super_scraper):
+async def submit_request(tab, right, right_label, label, super_scraper):
     await tab.go_to(URL)
     await asyncio.sleep(7)
+
+    if SuperScraper.HEALTH_CHECK:
+        offered = await SuperScraper.read_option_labels(tab, RIGHTS_OPTIONS_CSS)
+        SuperScraper.audit_rights(offered, PAGE_RIGHTS)
 
     if not await _click_listbox_option(tab, right_label):
         print(f"{super_scraper.OOPS} Request type '{right_label}' not found")
@@ -112,51 +146,43 @@ async def submit_request(tab, right_label, label, super_scraper):
 
     details = await tab.find(id="requestDetailsDSARElement", raise_exc=False)
     if details:
-        await details.type_text(
-            f"I am a {SuperScraper.STATE} resident exercising my privacy rights. "
-            f"Request: {right_label}."
-        )
+        await details.type_text(SuperScraper.request_statement([right], broker="Kalibrate"))
 
     time.sleep(0.5)
+    if SuperScraper.HEALTH_CHECK:
+        await SuperScraper.assert_fields_filled(tab, FIELD_XPATHS)
+
     submit_btn = await tab.find(id="dsar-webform-submit-button", raise_exc=False)
     if submit_btn:
         await submit_btn.scroll_into_view()
-    await tab.take_screenshot(f"resources/screenshots/kalibrate_dry_run_{label}.png")
-    print(f"Screenshot saved to resources/screenshots/kalibrate_dry_run_{label}.png")
-
+    await SuperScraper.screenshot(tab, f"dry_run_{label}")
     if SuperScraper.DRY_RUN:
         print(
-            f"DRY RUN: would submit '{right_label}' for "
-            f"{SuperScraper.FIRST_NAME} {SuperScraper.LAST_NAME} <{SuperScraper.EMAIL}>"
+            f"DRY RUN: would submit '{right.name}' ({right_label}) for {SuperScraper.EMAIL}"
         )
         return
 
-    print(f"\nForm filled for '{right_label}'. Solve the reCAPTCHA, click Submit,")
+    print(f"\nForm filled for '{right_label}'. Solve the CAPTCHA, click Submit,")
     print("then press Enter once the confirmation page appears...")
     input()
 
-    source = await tab.page_source
-    if any(w in source.lower() for w in ("thank", "success", "received", "submitted", "confirmation")):
-        print(f"Submitted '{right_label}' for {SuperScraper.FIRST_NAME} {SuperScraper.LAST_NAME}")
-    else:
-        print(f"{super_scraper.OOPS} Confirmation unclear for '{right_label}' — verify in browser")
+    print(f"Submitted '{right.name}' ({right_label}) for {SuperScraper.EMAIL} — confirm in the browser.")
 
 
 async def main():
-    options = ChromiumOptions()
     super_scraper = SuperScraper()
-    options.binary_location = super_scraper.CHROMIUM_LOCATION
-    options.add_argument("--no-sandbox")
-    options.add_argument("--window-size=1280,2600")
+    options = SuperScraper.build_chromium_options()
 
-    requests = list(REQUESTS)
-    if SuperScraper.REMOVE_INFORMATION:
-        requests.append(DELETE_REQUEST)
+    rights = SuperScraper.rights_to_exercise(RIGHT_MAP)
+    if not rights:
+        print("No requested privacy rights apply to this form — nothing to do.")
+        return
 
     async with Chrome(options=options) as browser:
         tab = await browser.start()
-        for right_label, label in requests:
-            await submit_request(tab, right_label, label, super_scraper)
+        for right in rights:
+            for right_label, label in RIGHT_MAP[right]:
+                await submit_request(tab, right, right_label, label, super_scraper)
 
 
 asyncio.run(main())

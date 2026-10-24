@@ -6,7 +6,10 @@
 # form (statsocial.com/optout/), which is a standard Formidable Forms
 # WordPress form with no email-verification step.
 #
-# Fields are stable HTML ids: field_optout_name_first/_last,
+# Which of Opt-Out / Delete run is decided ONLY by
+# SuperScraper.rights_to_exercise(RIGHT_MAP) (each ticks its "Preferences" checkbox).
+#
+# Page elements (stable HTML ids): field_optout_name_first/_last,
 # field_optout_email, field_optout_country (native <select>, value="United
 # States"), field_optout_state (native <select>, but starts EMPTY — its
 # option list is populated by a JS listener only after Country changes, so
@@ -16,28 +19,40 @@
 # Turnstile — **CAPTCHA solution required**.
 import asyncio
 
+from src.dsar.rights import Right
 from src.dsar.super_scraper import SuperScraper
+from src.dsar import js_utils
 
 from pydoll.browser.chromium import Chrome
-from pydoll.browser.options import ChromiumOptions
 
 URL = "https://www.statsocial.com/optout/"
 
+# Right -> "Preferences" checkbox value(s)
+RIGHT_MAP = {
+    Right.RIGHT_TO_OPT_OUT: ["optout_personal_data"],
+    Right.RIGHT_TO_DELETE: ["delete_personal_data"],
+}
+RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
 
-async def _select_native_option(select_element, option_value):
-    await select_element.execute_script(
-        "for (var i=0;i<this.options.length;i++){"
-        f"  if(this.options[i].value==={option_value!r}){{ this.selectedIndex=i; }}"
-        "}"
-        "this.dispatchEvent(new Event('change', {bubbles:true}));"
-    )
+PAGE_RIGHTS = {}  # TODO(health-check): run HEALTH_CHECK once live; it prints the full list
+# (The "Preferences" checkboxes are recorded by value only, not by displayed label.)
+
+FIELD_XPATHS = {
+    "First name": "//*[@id='field_optout_name_first']",
+    "Last name": "//*[@id='field_optout_name_last']",
+    "Email": "//*[@id='field_optout_email']",
+    "Country": "//*[@id='field_optout_country']",
+    "State": "//*[@id='field_optout_state']",
+}
 
 
 async def main():
-    options = ChromiumOptions()
     super_scraper = SuperScraper()
-    options.binary_location = super_scraper.CHROMIUM_LOCATION
-    options.add_argument("--no-sandbox")
+    rights = SuperScraper.rights_to_exercise(RIGHT_MAP)
+    if not rights:
+        print("No requested privacy rights apply to this form — nothing to do.")
+        return
+    options = SuperScraper.build_chromium_options()
 
     async with Chrome(options=options) as browser:
         tab = await browser.start()
@@ -60,7 +75,7 @@ async def main():
 
         country_select = await tab.find(id="field_optout_country", raise_exc=False)
         if country_select:
-            await _select_native_option(country_select, "United States")
+            await js_utils.select_native_option(country_select, value="United States")
             await asyncio.sleep(1.5)
         else:
             print(f"{super_scraper.OOPS} Country select not found")
@@ -69,13 +84,11 @@ async def main():
         # and their values are full state names, not abbreviations.
         state_select = await tab.find(id="field_optout_state", raise_exc=False)
         if state_select:
-            await _select_native_option(state_select, SuperScraper.STATE)
+            await js_utils.select_native_option(state_select, value=SuperScraper.STATE)
         else:
             print(f"{super_scraper.OOPS} State select not found")
 
-        preference_values = ["optout_personal_data"]
-        if SuperScraper.REMOVE_INFORMATION:
-            preference_values.append("delete_personal_data")
+        preference_values = [cb for right in rights for cb in RIGHT_MAP[right]]
         for value in preference_values:
             checkbox = await tab.find(xpath=f"//input[@value='{value}']", raise_exc=False)
             if checkbox:
@@ -83,9 +96,11 @@ async def main():
             else:
                 print(f"{super_scraper.OOPS} preference checkbox '{value}' not found")
 
+        if SuperScraper.HEALTH_CHECK:
+            await SuperScraper.assert_fields_filled(tab, FIELD_XPATHS)
+
         await asyncio.sleep(1)
-        await tab.take_screenshot(path="resources/screenshots/statsocial_dry_run.png")
-        print("Screenshot saved to resources/screenshots/statsocial_dry_run.png")
+        await SuperScraper.screenshot(tab, "dry_run_" + "_".join(r.value for r in rights))
         print(
             "\nOptout Form filled but NOT submitted — a Cloudflare Turnstile checkbox "
             "requires a manual solve before submitting. Note: statsocial.com's separate "

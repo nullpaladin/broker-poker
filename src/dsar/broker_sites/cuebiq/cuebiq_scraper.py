@@ -1,33 +1,52 @@
 # cuebiq.com — Gravity Forms MAID-based privacy request (location/mobile-ad
 # data company; no name/address fields, everything keys off the Mobile
 # Advertising ID). "I wish to:" radio is single-select (one submission per
-# right): opt-out and access unconditionally; erase/delete gated on
-# REMOVE_INFORMATION. Type of ID defaults to GAID (Android) since ADVERTISING_ID
+# right). Type of ID defaults to GAID (Android) since ADVERTISING_ID
 # format is ambiguous for iOS per the .env comment; change to IDFA manually if
-# submitting an Apple identifier. "Authorized Agent on behalf of a CA resident"
-# checkbox answered "No". To submit multiple MAIDs, use the browser's back
+# submitting an Apple identifier. To submit multiple MAIDs, use the browser's back
 # button then refresh rather than resubmitting from scratch (per prior research
 # notes) — not automated here since SuperScraper only holds one ADVERTISING_ID.
 # reCAPTCHA requires manual solve in live mode.
+#
+# Page elements:
+#   input[name=input_3] (radio, by value)   "I wish to:" request choice (see RIGHT_MAP)
+#   #input_5_4                              Email
+#   select#input_5_7                        "Type of ID" -> "GAID"
+#   #input_5_8                              Mobile Advertising ID (ADVERTISING_ID)
+#   input[name="input_9.1"]                 Authorized-agent checkbox, clicked as the "No" answer
 import asyncio
 
+from src.dsar import js_utils
+from src.dsar.rights import Right
 from src.dsar.super_scraper import SuperScraper
 
 from pydoll.browser.chromium import Chrome
-from pydoll.browser.options import ChromiumOptions
 
 URL = "https://cuebiq.com/privacy-request/"
 
-RIGHTS = [
-    ("opt-out/do not sell or share my personal information", "opt_out"),
-    ("get access to or a copy of my personal information", "access"),
-]
-DELETE_RIGHT = ("erase/delete my personal information", "delete")
+RIGHT_MAP = {
+    Right.RIGHT_TO_ACCESS: "get access to or a copy of my personal information",
+    Right.RIGHT_TO_OPT_OUT: "opt-out/do not sell or share my personal information",
+    Right.RIGHT_TO_DELETE: "erase/delete my personal information",
+}
+RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
+
+PAGE_RIGHTS = {}  # TODO(health-check): run HEALTH_CHECK once live; it prints the full list
+RIGHTS_OPTIONS_CSS = "li:has(input[name='input_3']) label"  # "I wish to:" radio labels
+
+FIELD_XPATHS = {
+    "Email": "//*[@id='input_5_4']",
+    "Type of ID": "//*[@id='input_5_7']",
+}
 
 
-async def submit_request(tab, radio_value, label, super_scraper):
+async def submit_request(tab, right, radio_value, super_scraper):
     await tab.go_to(URL)
     await asyncio.sleep(4)
+
+    if SuperScraper.HEALTH_CHECK:
+        offered = await SuperScraper.read_option_labels(tab, RIGHTS_OPTIONS_CSS)
+        SuperScraper.audit_rights(offered, PAGE_RIGHTS)
 
     radio = await tab.find(xpath=f"//input[@name='input_3' and @value=\"{radio_value}\"]", raise_exc=False)
     if radio:
@@ -37,9 +56,9 @@ async def submit_request(tab, radio_value, label, super_scraper):
     if email:
         await email.type_text(SuperScraper.EMAIL)
 
-    await tab.execute_script(
-        'var s = document.querySelector("select#input_5_7"); s.value = "GAID"; s.dispatchEvent(new Event("change"));'
-    )
+    id_type = await tab.find(id="input_5_7", raise_exc=False)
+    if id_type:
+        await js_utils.select_native_option(id_type, value="GAID")
 
     if SuperScraper.ADVERTISING_ID:
         maid = await tab.find(id="input_5_8", raise_exc=False)
@@ -50,38 +69,35 @@ async def submit_request(tab, radio_value, label, super_scraper):
     if no_agent:
         await no_agent.click()
 
+    if SuperScraper.HEALTH_CHECK:
+        await SuperScraper.assert_fields_filled(tab, FIELD_XPATHS)
+
     if SuperScraper.DRY_RUN:
-        print(f"DRY RUN: would submit '{radio_value}' for <{SuperScraper.EMAIL}>")
         await asyncio.sleep(1)
-        await tab.take_screenshot(path=f"resources/screenshots/cuebiq_dry_run_{label}.png")
-        print(f"Screenshot saved to resources/screenshots/cuebiq_dry_run_{label}.png")
+        await SuperScraper.screenshot(tab, f"dry_run_{right.value}")
+        print(f"DRY RUN: would submit '{right.name}' for {SuperScraper.EMAIL}")
         return
 
-    print(f"\nForm filled for '{radio_value}'. Solve the reCAPTCHA, click Submit My Request,")
+    print(f"\nForm filled for '{right.name}'. Solve the reCAPTCHA, click Submit My Request,")
     print("then press Enter once the confirmation appears...")
     input()
 
-    source = await tab.page_source
-    if any(w in source.lower() for w in ("thank", "success", "received", "submitted", "confirmation")):
-        print(f"Submitted '{radio_value}' for <{SuperScraper.EMAIL}>")
-    else:
-        print(f"{super_scraper.OOPS} Confirmation unclear for '{radio_value}' — verify in browser")
+    print(f"Submitted '{right.name}' for {SuperScraper.EMAIL} — confirm in the browser.")
 
 
 async def main():
-    options = ChromiumOptions()
     super_scraper = SuperScraper()
-    options.binary_location = super_scraper.CHROMIUM_LOCATION
-    options.add_argument("--no-sandbox")
+    options = SuperScraper.build_chromium_options()
 
-    rights = list(RIGHTS)
-    if SuperScraper.REMOVE_INFORMATION:
-        rights.append(DELETE_RIGHT)
+    rights = SuperScraper.rights_to_exercise(RIGHT_MAP)
+    if not rights:
+        print("No requested privacy rights apply to this form — nothing to do.")
+        return
 
     async with Chrome(options=options) as browser:
         tab = await browser.start()
-        for radio_value, label in rights:
-            await submit_request(tab, radio_value, label, super_scraper)
+        for right in rights:
+            await submit_request(tab, right, RIGHT_MAP[right], super_scraper)
 
 
 asyncio.run(main())

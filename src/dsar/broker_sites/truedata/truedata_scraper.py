@@ -3,23 +3,54 @@
 # Server-rendered React form. Request type is a set of independent checkboxes
 # (optOutRequest / deleteRequest / accessRequest), NOT a single-select — one
 # combined submission covers every checked right. optOutRequest and
-# deleteRequest are checked by default on page load; this scraper forces
-# accessRequest + optOutRequest on and leaves deleteRequest on ONLY when
-# REMOVE_INFORMATION is set.
+# deleteRequest are checked by default on page load; this scraper sets each of the
+# three checkboxes on/off according to SuperScraper.rights_to_exercise(RIGHT_MAP).
 # Country/State are native <select>s; State is disabled until Country changes.
 # "name" is a single full-name field. MAID (ADVERTISING_ID) and the OS/CTV
 # identifier fields are optional and left blank (no real device id on file).
 # reCAPTCHA v2 gates submission — form filled and left for a manual solve.
 # **CAPTCHA solution required**
+#
+# Page elements:
+#   #accessRequest / #optOutRequest / #deleteRequest   request-type checkboxes (see RIGHT_MAP)
+#   #categoriesInfo     all-categories checkbox revealed by Access
+#   #country            Country <select> -> "United States"
+#   #state              State <select> (disabled until Country changes)
+#   #formBasicEmail     Email
+#   #name               Full name (single field)
+#   [name=address1] / [name=city] / [name=zip]   Address / City / Zip
+#   #phone              Phone
 import asyncio
 import time
 
 from pydoll.browser.chromium import Chrome
-from pydoll.browser.options import ChromiumOptions
 
+from src.dsar import js_utils
+from src.dsar.rights import Right
 from src.dsar.super_scraper import SuperScraper
 
 URL = "https://info-prod.truedata.co/access-delete-request"
+
+# Right -> request-type checkbox id.
+RIGHT_MAP = {
+    Right.RIGHT_TO_ACCESS: "accessRequest",
+    Right.RIGHT_TO_OPT_OUT: "optOutRequest",
+    Right.RIGHT_TO_DELETE: "deleteRequest",
+}
+RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
+
+PAGE_RIGHTS = {}  # TODO(health-check): run HEALTH_CHECK once live; it prints the full list
+# (The request-type checkboxes are recorded by id only, not by displayed label.)
+
+FIELD_XPATHS = {
+    "Country": "//*[@id='country']",
+    "State": "//*[@id='state']",
+    "Email": "//*[@id='formBasicEmail']",
+    "Name": "//*[@id='name']",
+    "Address": "//input[@name='address1']",
+    "City": "//input[@name='city']",
+    "Zip": "//input[@name='zip']",
+}
 
 
 async def _set_checkbox(tab, element_id, desired):
@@ -27,9 +58,7 @@ async def _set_checkbox(tab, element_id, desired):
     if not el:
         print(f"checkbox #{element_id} not found")
         return
-    await el.execute_script(
-        f"if (this.checked !== {str(desired).lower()}) this.click();"
-    )
+    await js_utils.js_check(el, desired)
 
 
 async def _select_native(tab, element_id, match_text):
@@ -58,26 +87,28 @@ async def _select_native(tab, element_id, match_text):
 
 
 async def main():
-    options = ChromiumOptions()
     super_scraper = SuperScraper()
-    options.binary_location = super_scraper.CHROMIUM_LOCATION
-    options.add_argument("--no-sandbox")
-    options.add_argument("--window-size=1280,3000")
+    options = SuperScraper.build_chromium_options()
+
+    rights = SuperScraper.rights_to_exercise(RIGHT_MAP)
+    if not rights:
+        print("No requested privacy rights apply to this form — nothing to do.")
+        return
 
     async with Chrome(options=options) as browser:
         tab = await browser.start()
         await tab.go_to(URL)
         await asyncio.sleep(6)
 
-        await _set_checkbox(tab, "accessRequest", True)
-        await _set_checkbox(tab, "optOutRequest", True)
-        await _set_checkbox(tab, "deleteRequest", SuperScraper.REMOVE_INFORMATION)
+        for right, checkbox_id in RIGHT_MAP.items():
+            await _set_checkbox(tab, checkbox_id, right in rights)
         await asyncio.sleep(0.5)
 
         # "Access" reveals the category sub-checkboxes — ask for all categories.
-        cats = await tab.find(id="categoriesInfo", raise_exc=False)
-        if cats:
-            await cats.execute_script("if (!this.checked) this.click();")
+        if Right.RIGHT_TO_ACCESS in rights:
+            cats = await tab.find(id="categoriesInfo", raise_exc=False)
+            if cats:
+                await js_utils.js_check(cats)
 
         await _select_native(tab, "country", "United States")
         await asyncio.sleep(1)
@@ -97,26 +128,19 @@ async def main():
         }.items():
             await super_scraper.input_text_field(tab=tab, xpath=xpath, text=value, sleep=0.3)
 
-        time.sleep(0.5)
-        await tab.take_screenshot("resources/screenshots/truedata_dry_run.png")
-        print("Screenshot saved to resources/screenshots/truedata_dry_run.png")
+        if SuperScraper.HEALTH_CHECK:
+            await SuperScraper.assert_fields_filled(tab, FIELD_XPATHS)
 
+        time.sleep(0.5)
+        await SuperScraper.screenshot(tab, "dry_run")
         if SuperScraper.DRY_RUN:
-            print(
-                f"DRY RUN: would submit access+opt-out"
-                f"{'+delete' if SuperScraper.REMOVE_INFORMATION else ''} for "
-                f"{SuperScraper.FIRST_NAME} {SuperScraper.LAST_NAME} <{SuperScraper.EMAIL}>"
-            )
+            print(f"DRY RUN: would submit {[r.name for r in rights]} for {SuperScraper.EMAIL}")
             return
 
         print("\nForm filled. Solve the reCAPTCHA in the browser, click Submit, then press Enter...")
         input()
 
-        source = await tab.page_source
-        if any(w in source.lower() for w in ("thank", "success", "received", "submitted", "confirmation")):
-            print(f"Submitted for {SuperScraper.FIRST_NAME} {SuperScraper.LAST_NAME}")
-        else:
-            print(f"{super_scraper.OOPS} Confirmation unclear — verify in browser")
+        print(f"Submitted {[r.name for r in rights]} for {SuperScraper.EMAIL} — confirm in the browser.")
 
 
 asyncio.run(main())

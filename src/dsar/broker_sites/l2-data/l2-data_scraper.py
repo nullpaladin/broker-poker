@@ -8,24 +8,53 @@
 # Forms arithmetic CAPTCHA (e.g. "14 + 3 ="), regenerated per page load and
 # parsed/solved at runtime rather than hardcoded — no manual CAPTCHA step
 # needed, so DRY_RUN is respected and a real submission goes through when
-# DRY_RUN is False.
+# DRY_RUN is False. Whether it runs is decided ONLY by
+# SuperScraper.rights_to_exercise(RIGHT_MAP).
+#
+# Page elements (Gravity Forms form 5):
+#   #input_5_2_3 / #input_5_2_6   First / Last name
+#   #input_5_3                    Phone
+#   #input_5_4                    Email
+#   #input_5_5_1 / _3 / _4 / _5   Street address / City / State / ZIP
+#   #input_5_11_1                 Consent checkbox ("I am legally certifying that I am the
+#                                 individual whose information is being provided")
+#   label[for=input_5_16]         Arithmetic CAPTCHA question; #input_5_16 is its answer field
+#   #gform_submit_button_5        Submit button
 import asyncio
-import re
 
+from src.dsar.rights import Right
 from src.dsar.super_scraper import SuperScraper
+from src.dsar import captcha_solutions_util
+from src.dsar import js_utils
 
 from pydoll.browser.chromium import Chrome
-from pydoll.browser.options import ChromiumOptions
 
 URL = "https://l2-data.com/optout1-667457/"
 
+RIGHT_MAP = {Right.RIGHT_TO_OPT_OUT: "opt-out"}
+RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
+
+PAGE_RIGHTS = {}  # TODO(health-check): run HEALTH_CHECK once live; it prints the full list
+
+FIELD_XPATHS = {
+    "First name": "//*[@id='input_5_2_3']",
+    "Last name": "//*[@id='input_5_2_6']",
+    "Phone": "//*[@id='input_5_3']",
+    "Email": "//*[@id='input_5_4']",
+    "Address": "//*[@id='input_5_5_1']",
+    "City": "//*[@id='input_5_5_3']",
+    "State": "//*[@id='input_5_5_4']",
+    "Zip": "//*[@id='input_5_5_5']",
+    "Arithmetic answer": "//*[@id='input_5_16']",
+}
+
 
 async def main():
-    options = ChromiumOptions()
     super_scraper = SuperScraper()
-    options.binary_location = super_scraper.CHROMIUM_LOCATION
-    options.add_argument("--no-sandbox")
-    options.add_argument("--window-size=1280,3000")
+    if not SuperScraper.rights_to_exercise(RIGHT_MAP):
+        print("No requested privacy rights apply to this form — nothing to do.")
+        return
+    options = SuperScraper.build_chromium_options()
 
     async with Chrome(options=options) as browser:
         tab = await browser.start()
@@ -55,13 +84,12 @@ async def main():
         else:
             print(f"{super_scraper.OOPS} Consent checkbox not found")
 
-        math_label = await tab.execute_script(
-            "var l=document.querySelector('label[for=input_5_16]'); return l ? l.textContent.trim() : ''"
+        math_text = await js_utils.js_eval(
+            tab,
+            "var l=document.querySelector('label[for=input_5_16]'); return l ? l.textContent.trim() : ''",
         )
-        math_text = math_label["result"]["result"]["value"]
-        match = re.search(r"(\d+)\s*\+\s*(\d+)", math_text)
-        if match:
-            answer = str(int(match.group(1)) + int(match.group(2)))
+        answer = captcha_solutions_util.solve_math_captcha(math_text or "")
+        if answer is not None:
             math_field = await tab.find(id="input_5_16", raise_exc=False)
             if math_field:
                 await math_field.type_text(answer)
@@ -70,10 +98,11 @@ async def main():
         else:
             print(f"{super_scraper.OOPS} could not parse math CAPTCHA text: '{math_text}'")
 
-        await asyncio.sleep(1)
-        await tab.take_screenshot(path="resources/screenshots/l2-data_dry_run.png")
-        print("Screenshot saved to resources/screenshots/l2-data_dry_run.png")
+        if SuperScraper.HEALTH_CHECK:
+            await SuperScraper.assert_fields_filled(tab, FIELD_XPATHS)
 
+        await asyncio.sleep(1)
+        await SuperScraper.screenshot(tab, "dry_run")
         if SuperScraper.DRY_RUN:
             print(f"DRY RUN: would submit opt-out request for {SuperScraper.EMAIL}")
             return
@@ -82,7 +111,7 @@ async def main():
         if submit_button:
             await submit_button.click()
             await asyncio.sleep(3)
-            print(f"Submitted opt-out request for {SuperScraper.EMAIL}")
+            print(f"Submitted 'RIGHT_TO_OPT_OUT' for {SuperScraper.EMAIL} — confirm in the browser.")
         else:
             print(f"{super_scraper.OOPS} submit button not found")
 

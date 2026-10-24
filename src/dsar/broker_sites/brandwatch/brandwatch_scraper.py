@@ -5,13 +5,22 @@
 #       options — Customer / Current Employee / Online Author / ... — is a clean
 #       fit for a member of the public exercising privacy rights).
 #   "Type of request" (react-select-5) — single-select, so one submission per
-#       right: "Access" + "Do not Sell/Share Data" + "Portability"
-#       unconditionally; "Erasure" gated on REMOVE_INFORMATION. Rectification /
+#       entry: "Access" + "Portability" (Access), "Do not Sell/Share Data" (Opt-out),
+#       "Erasure" (Delete). Which rights run is decided ONLY by
+#       SuperScraper.rights_to_exercise(RIGHT_MAP). Rectification /
 #       Restriction / "No auto decisions" / "Object processing" / "Opt out from
 #       commercial communications" / "Limit Use of Personal Data" skipped.
 # The form can be slow/flaky to appear on a fresh load — the scraper polls for
 # it for ~20s before each pass.
 # Plus an email field (#1 / name="email") and a "Reason / Comment" textarea.
+#
+# Page elements:
+#   #dsr-form                    The React form (injected after load)
+#   #onetrust-accept-btn-handler Cookie banner accept
+#   #react-select-4-input        "Relationship to the company" combobox -> "Other"
+#   #react-select-5-input        "Type of request" combobox -> entry from RIGHT_MAP
+#   form#dsr-form input[type=email]/[name=email]   Email
+#   form#dsr-form textarea       "Reason / Comment"
 # A react-select is opened by clicking its control container
 # (//input[@id='react-select-N-input']/ancestor::div[3]), then clicking the
 # //*[@id^='react-select-N-option'] whose text matches.
@@ -19,20 +28,37 @@
 import asyncio
 
 from pydoll.browser.chromium import Chrome
-from pydoll.browser.options import ChromiumOptions
+from pydoll.constants import Key
 
+from src.dsar.rights import Right
 from src.dsar.super_scraper import SuperScraper
 
 URL = "https://www.brandwatch.com/legal/data-subject-access-request/"
 
-RIGHTS = ["Access", "Do not Sell/Share Data", "Portability"]
-DELETE_RIGHT = "Erasure"
+RIGHT_MAP = {
+    Right.RIGHT_TO_ACCESS: ["Access", "Portability"],
+    Right.RIGHT_TO_OPT_OUT: ["Do not Sell/Share Data"],
+    Right.RIGHT_TO_DELETE: ["Erasure"],
+}
+RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
 
-COMMENT = (
-    "I am a member of the public exercising my data subject rights. Please "
-    "process this request with respect to any personal information Brandwatch "
-    "holds about me (including data collected from public online sources)."
-)
+# Every option in the "Type of request" react-select, as displayed -> the Right it maps to (None = not automated).
+PAGE_RIGHTS = {
+    "Access": Right.RIGHT_TO_ACCESS,
+    "Portability": Right.RIGHT_TO_ACCESS,
+    "Do not Sell/Share Data": Right.RIGHT_TO_OPT_OUT,
+    "Erasure": Right.RIGHT_TO_DELETE,
+    "Rectification": None,
+    "Restriction": None,
+    "No auto decisions": None,
+    "Object processing": None,
+    "Opt out from commercial communications": None,
+    "Limit Use of Personal Data": None,
+}
+RIGHTS_OPTIONS_CSS = "[id^='react-select-5-option']"  # only rendered while the request-type menu is open
+
+EMAIL_XPATH = "//form[@id='dsr-form']//input[@type='email' or @name='email']"
+COMMENT_XPATH = "//form[@id='dsr-form']//textarea[not(@name='g-recaptcha-response')]"
 
 
 async def _react_select(tab, super_scraper, index, value):
@@ -60,7 +86,8 @@ async def _react_select(tab, super_scraper, index, value):
         print(f"{super_scraper.OOPS} option {value!r} not found in react-select-{index}")
 
 
-async def submit_request(tab, right, tag, super_scraper):
+async def submit_request(tab, right, entry, super_scraper):
+    tag = "".join(c if c.isalnum() else "_" for c in entry.lower()).strip("_")[:20]
     await tab.go_to(URL)
     await asyncio.sleep(9)
 
@@ -77,7 +104,17 @@ async def submit_request(tab, right, tag, super_scraper):
         await asyncio.sleep(2)
 
     await _react_select(tab, super_scraper, 4, "Other")
-    await _react_select(tab, super_scraper, 5, right)
+    if SuperScraper.HEALTH_CHECK:
+        control = await tab.find(xpath="//input[@id='react-select-5-input']/ancestor::div[3]", raise_exc=False)
+        if control:
+            await control.click()
+            await asyncio.sleep(1)
+            offered = await SuperScraper.read_option_labels(tab, RIGHTS_OPTIONS_CSS)
+            SuperScraper.audit_rights(offered, PAGE_RIGHTS)
+            await tab.keyboard.press(Key.ESCAPE)
+            await asyncio.sleep(0.5)
+
+    await _react_select(tab, super_scraper, 5, entry)
 
     email = await tab.find(xpath="//form[@id='dsr-form']//input[@type='email' or @name='email']", raise_exc=False)
     if email:
@@ -89,25 +126,24 @@ async def submit_request(tab, right, tag, super_scraper):
         xpath="//form[@id='dsr-form']//textarea[not(@name='g-recaptcha-response')]", raise_exc=False
     )
     if comment:
-        await comment.type_text(COMMENT)
+        await comment.type_text(SuperScraper.request_statement([right], broker="Brandwatch"))
+
+    if SuperScraper.HEALTH_CHECK:
+        await SuperScraper.assert_fields_filled(tab, {"Email": EMAIL_XPATH, "Reason / Comment": COMMENT_XPATH})
 
     await asyncio.sleep(1)
-    await tab.take_screenshot(path=f"resources/screenshots/brandwatch_dry_run_{tag}.png", beyond_viewport=True)
-    print(f"Screenshot saved to resources/screenshots/brandwatch_dry_run_{tag}.png")
-    print(f"'{right}' filled but NOT submitted — solve the reCAPTCHA manually, then Submit.")
+    await SuperScraper.screenshot(tab, f"dry_run_{tag}")
+    print(f"'{right.name}' ({entry}) filled but NOT submitted — solve the reCAPTCHA manually, then Submit.")
 
 
 async def main():
-    options = ChromiumOptions()
     super_scraper = SuperScraper()
-    options.binary_location = super_scraper.CHROMIUM_LOCATION
-    options.add_argument("--no-sandbox")
-    options.add_argument("--window-size=1280,2600")
+    rights = SuperScraper.rights_to_exercise(RIGHT_MAP)
+    if not rights:
+        print("No requested privacy rights apply to this form — nothing to do.")
+        return
 
-    rights = list(RIGHTS)
-    if SuperScraper.REMOVE_INFORMATION:
-        rights.append(DELETE_RIGHT)
-
+    options = SuperScraper.build_chromium_options()
     async with Chrome(options=options) as browser:
         tab = await browser.start()
         # Warm-up load: on a cold session #dsr-form frequently fails to render;
@@ -119,8 +155,8 @@ async def main():
         await asyncio.sleep(6)
 
         for right in rights:
-            tag = "".join(c if c.isalnum() else "_" for c in right.lower()).strip("_")[:20]
-            await submit_request(tab, right, tag, super_scraper)
+            for entry in RIGHT_MAP[right]:
+                await submit_request(tab, right, entry, super_scraper)
 
 
 asyncio.run(main())

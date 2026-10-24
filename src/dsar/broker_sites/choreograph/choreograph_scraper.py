@@ -18,20 +18,53 @@
 # "opt out" (id=offlineoptout), "delete and opt out" (id=offlineoptoutdelete)
 # — each reveals the *same* simple field set (no ID upload requirement,
 # since these are device-level opt-outs, not an access request). Do Not Sell
-# and Opt Out are exercised unconditionally; Delete gated on
-# REMOVE_INFORMATION. reCAPTCHA is present on both pages — may require a
-# manual solve in live mode.
+# and Opt Out map to Opt-out; "delete and opt out" maps to Delete. Which rights
+# run is decided ONLY by SuperScraper.rights_to_exercise(RIGHT_MAP). reCAPTCHA is
+# present on both pages — may require a manual solve in live mode.
+#
+# Page elements:
+#   .react-select-region-country__control   "select your country of residence" combobox
+#   .na-dropdown-state__control             "select your state" combobox
+#   #firstname / #lastname                  First / Last name
+#   #email                                  Email
+#   #address / #city / #zipcode             Address / City / ZIP
+#   #pnumber                                Phone (digits only)
+#   #offoptoutforsale                       "do not sell my personal information" button
+#   #offlineoptout                          "opt out" button
+#   #offlineoptoutdelete                    "delete and opt out" button
 import asyncio
 
+from src.dsar.rights import Right
 from src.dsar.super_scraper import SuperScraper
 
 from pydoll.browser.chromium import Chrome
-from pydoll.browser.options import ChromiumOptions
 
 ACCESS_URL = "https://amer-cpp.choreograph.com/data-points"
 MANAGE_URL = "https://amer-cpp.choreograph.com/manage-your-data/opt-out-delete"
 
-DELETE_BUTTON_ID = "offlineoptoutdelete"
+# Right -> entries. ACCESS is the /data-points page (filled, never submitted — it needs an ID
+# upload); the others are (button id, button label) on the manage page.
+RIGHT_MAP = {
+    Right.RIGHT_TO_ACCESS: [ACCESS_URL],
+    Right.RIGHT_TO_OPT_OUT: [
+        ("offoptoutforsale", "do not sell my personal information"),
+        ("offlineoptout", "opt out"),
+    ],
+    Right.RIGHT_TO_DELETE: [("offlineoptoutdelete", "delete and opt out")],
+}
+RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
+
+PAGE_RIGHTS = {}  # TODO(health-check): run HEALTH_CHECK once live; it prints the full list
+
+FIELD_XPATHS = {
+    "First name": "//*[@id='firstname']",
+    "Last name": "//*[@id='lastname']",
+    "Email": "//*[@id='email']",
+    "Address": "//*[@id='address']",
+    "City": "//*[@id='city']",
+    "Zip": "//*[@id='zipcode']",
+    "Phone": "//*[@id='pnumber']",
+}
 
 
 async def _select_country_and_state(tab, super_scraper):
@@ -95,9 +128,11 @@ async def submit_access(tab, super_scraper):
         return
     await _fill_contact_fields(tab)
 
+    if SuperScraper.HEALTH_CHECK:
+        await SuperScraper.assert_fields_filled(tab, FIELD_XPATHS)
+
     await asyncio.sleep(1)
-    await tab.take_screenshot(path="resources/screenshots/choreograph_dry_run_access.png")
-    print("Screenshot saved to resources/screenshots/choreograph_dry_run_access.png")
+    await SuperScraper.screenshot(tab, "dry_run_access")
     print(
         "\nAccess request form filled but a valid government ID upload is required to "
         "verify identity before this can be submitted — there is no legitimate document "
@@ -122,32 +157,37 @@ async def submit_manage(tab, button_id, label, super_scraper):
 
     await _fill_contact_fields(tab)
 
+    if SuperScraper.HEALTH_CHECK:
+        await SuperScraper.assert_fields_filled(tab, FIELD_XPATHS)
+
     if SuperScraper.DRY_RUN:
         print(f"DRY RUN: would submit '{label}' for {SuperScraper.FIRST_NAME} {SuperScraper.LAST_NAME}")
         await asyncio.sleep(1)
-        await tab.take_screenshot(path=f"resources/screenshots/choreograph_dry_run_{button_id}.png")
-        print(f"Screenshot saved to resources/screenshots/choreograph_dry_run_{button_id}.png")
+        await SuperScraper.screenshot(tab, f"dry_run_{button_id}")
         return
 
     print(f"\n'{label}' form filled. Solve the reCAPTCHA if prompted, click Submit,")
     print("then press Enter once the confirmation appears...")
     input()
-    print(f"Submitted '{label}' for {SuperScraper.FIRST_NAME} {SuperScraper.LAST_NAME}")
+    print(f"Submitted '{label}' for {SuperScraper.EMAIL} — confirm in the browser.")
 
 
 async def main():
-    options = ChromiumOptions()
     super_scraper = SuperScraper()
-    options.binary_location = super_scraper.CHROMIUM_LOCATION
-    options.add_argument("--no-sandbox")
+    rights = SuperScraper.rights_to_exercise(RIGHT_MAP)
+    if not rights:
+        print("No requested privacy rights apply to this form — nothing to do.")
+        return
 
+    options = SuperScraper.build_chromium_options()
     async with Chrome(options=options) as browser:
         tab = await browser.start()
-        await submit_access(tab, super_scraper)
-        await submit_manage(tab, "offoptoutforsale", "do not sell my personal information", super_scraper)
-        await submit_manage(tab, "offlineoptout", "opt out", super_scraper)
-        if SuperScraper.REMOVE_INFORMATION:
-            await submit_manage(tab, DELETE_BUTTON_ID, "delete and opt out", super_scraper)
+        for right in rights:
+            if right is Right.RIGHT_TO_ACCESS:
+                await submit_access(tab, super_scraper)
+                continue
+            for button_id, label in RIGHT_MAP[right]:
+                await submit_manage(tab, button_id, label, super_scraper)
 
 
 asyncio.run(main())

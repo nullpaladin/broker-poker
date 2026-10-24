@@ -10,22 +10,62 @@
 # Phone country code field id="vt-input-8"-style (id varies — resolved via
 # preceding-sibling structure below). captchaCode is a BotDetect image CAPTCHA —
 # requires manual entry in live mode.
+# The one combined form covers RIGHT_TO_ACCESS and RIGHT_TO_OPT_OUT, so it is submitted once
+# if either is requested (decided only by SuperScraper.rights_to_exercise).
+#
+# Page elements:
+#   #firstNameDSARElement / #lastNameDSARElement   First / Last name
+#   #emailDSARElement                              Email
+#   #countryDSARElement                            Country combobox -> "United States"
+#   #addressDSARElement                            Address
+#   #cityDSARElement                               City
+#   #stateDSARElement                              State combobox (full state name)
+#   #zipDSARElement                                Zip code
+#   #phoneNumberDSARElement                        Phone number
+#   #captchaCode                                   BotDetect image CAPTCHA code (manual entry)
 import asyncio
 
 from pydoll.browser.chromium import Chrome
-from pydoll.browser.options import ChromiumOptions
 from pydoll.constants import Key
 
+from src.dsar.rights import Right
 from src.dsar.super_scraper import SuperScraper
 
 URL = "https://privacyportal.onetrust.com/webform/3d2d5e0c-bd98-46b8-906c-ede68a6f6a80/f54a1b10-bb5d-4c99-9521-3e08dc527583"
 
+# Both rights are served by the same combined form (one submission).
+RIGHT_MAP = {
+    Right.RIGHT_TO_ACCESS: "combined access / do-not-sell form",
+    Right.RIGHT_TO_OPT_OUT: "combined access / do-not-sell form",
+}
+RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
+
+PAGE_RIGHTS = {}  # TODO(health-check): run HEALTH_CHECK once live; it prints the full list
+
+FIELD_XPATHS = {
+    "First name": "//*[@id='firstNameDSARElement']",
+    "Last name": "//*[@id='lastNameDSARElement']",
+    "Email": "//*[@id='emailDSARElement']",
+    "Country": "//*[@id='countryDSARElement']",
+    "Address": "//*[@id='addressDSARElement']",
+    "City": "//*[@id='cityDSARElement']",
+    "State": "//*[@id='stateDSARElement']",
+    "Zip": "//*[@id='zipDSARElement']",
+    "Phone": "//*[@id='phoneNumberDSARElement']",
+}
+
 
 async def main():
-    options = ChromiumOptions()
     super_scraper = SuperScraper()
-    options.binary_location = super_scraper.CHROMIUM_LOCATION
-    options.add_argument("--no-sandbox")
+    if SuperScraper.bail_if_not_automatable(globals()):
+        return
+
+    rights = SuperScraper.rights_to_exercise(RIGHT_MAP)
+    if not rights:
+        print("No requested privacy rights apply to this form — nothing to do.")
+        return
+
+    options = SuperScraper.build_chromium_options()
 
     async with Chrome(options=options) as browser:
         tab = await browser.start()
@@ -80,17 +120,19 @@ async def main():
         if phone:
             await phone.type_text(SuperScraper.PHONE_NUMBER)
 
+        if SuperScraper.HEALTH_CHECK:
+            await SuperScraper.assert_fields_filled(tab, FIELD_XPATHS)
+
         if SuperScraper.DRY_RUN:
             print(
-                f"DRY RUN: would submit Access/Do-Not-Sell request for "
-                f"{SuperScraper.FIRST_NAME} {SuperScraper.LAST_NAME} <{SuperScraper.EMAIL}>"
+                f"DRY RUN: would submit {[r.name for r in rights]} (combined form) "
+                f"for {SuperScraper.EMAIL}"
             )
             captcha_field = await tab.find(id="captchaCode", raise_exc=False)
             if captcha_field:
                 await captcha_field.scroll_into_view()
             await asyncio.sleep(1)
-            await tab.take_screenshot(path="resources/screenshots/adstradata_dry_run.png")
-            print("Screenshot saved to resources/screenshots/adstradata_dry_run.png")
+            await SuperScraper.screenshot(tab, "dry_run_" + "_".join(r.value for r in rights))
             return
 
         print("\nForm filled. Enter the CAPTCHA code shown in the image into the")
@@ -98,11 +140,7 @@ async def main():
         print("confirmation page appears...")
         input()
 
-        source = await tab.page_source
-        if any(w in source.lower() for w in ("thank", "success", "received", "submitted", "confirmation")):
-            print(f"Submitted request for {SuperScraper.FIRST_NAME} {SuperScraper.LAST_NAME}")
-        else:
-            print(f"{super_scraper.OOPS} Confirmation unclear — verify in browser")
+        print(f"Submitted {[r.name for r in rights]} (combined form) for {SuperScraper.EMAIL} — confirm in the browser.")
 
 
 asyncio.run(main())

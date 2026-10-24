@@ -9,7 +9,7 @@
 # but the exact same Opt-Out/Delete controls are reachable right here
 # after State is set). Once revealed: "opts" radio group (Full Opt-Out /
 # Partial Opt-Out / Opt-In) — Full Opt-Out used; a checkbox
-# "deleteMyPersonalInfo" (Delete, gated on REMOVE_INFORMATION); and the
+# "deleteMyPersonalInfo" (Delete); and the
 # earlier "orderConsumerDisclosureReport" checkbox (Access — the page's
 # copy confirms this single checkbox covers BOTH the FCRA Consumer
 # Disclosure Report AND the state Privacy Act Report once a state is set).
@@ -30,12 +30,49 @@
 # both also claim that id, so don't target by id="State" — use
 # name="Residence_State" instead. reCAPTCHA v2 — **CAPTCHA solution
 # required**.
+#
+# ONE combined submission: the access / opt-out / delete controls below are each clicked
+# only if the matching Right is selected by SuperScraper.rights_to_exercise(RIGHT_MAP).
+#
+# Page elements:
+#   name=FirstName / LastName                  First / Last name
+#   name=Residence_StreetAddress1 / Residence_City / Residence_Zip5   Residence address
+#   name=Residence_State                       Residence State <select> (reveals Opt-Out/Delete controls)
+#   name=Email / Phone / SSN / DOB             Email / Phone / SSN / Date of birth (MM/DD/YYYY)
+#   #orderConsumerDisclosureReport             "Request Your Consumer Disclosure Report" checkbox (Access)
+#   #globalOptoutFlag                          "Full Opt-Out" radio of the "opts" group (Opt-Out)
+#   #deleteMyPersonalInfo                      "Delete My Personal Information" checkbox (Delete)
 import asyncio
 
+from src.dsar import js_utils
+from src.dsar.rights import Right
 from src.dsar.super_scraper import SuperScraper
 
 from pydoll.browser.chromium import Chrome
-from pydoll.browser.options import ChromiumOptions
+
+# Right -> (element id, human-readable name)
+RIGHT_MAP = {
+    Right.RIGHT_TO_ACCESS: ("orderConsumerDisclosureReport", "'Request Your Consumer Disclosure Report' checkbox"),
+    Right.RIGHT_TO_OPT_OUT: ("globalOptoutFlag", "'Full Opt-Out' radio"),
+    Right.RIGHT_TO_DELETE: ("deleteMyPersonalInfo", "'Delete My Personal Information' checkbox"),
+}
+RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
+
+PAGE_RIGHTS = {}  # TODO(health-check): run HEALTH_CHECK once live; it prints the full list
+# (The opt-out / delete controls only render after a state is chosen, and their label texts are paraphrased in the notes.)
+
+FIELD_XPATHS = {
+    "First name": "//*[@name='FirstName']",
+    "Last name": "//*[@name='LastName']",
+    "Street address": "//*[@name='Residence_StreetAddress1']",
+    "City": "//*[@name='Residence_City']",
+    "Zip": "//*[@name='Residence_Zip5']",
+    "Residence state": "//*[@name='Residence_State']",
+    "Email": "//*[@name='Email']",
+    "Phone": "//*[@name='Phone']",
+    "SSN": "//*[@name='SSN']",
+    "Date of birth": "//*[@name='DOB']",
+}
 
 URL = "https://consumer.risk.lexisnexis.com/request#privacy"
 
@@ -46,10 +83,12 @@ def _to_mm_dd_yyyy(dd_mm_yyyy):
 
 
 async def main():
-    options = ChromiumOptions()
     super_scraper = SuperScraper()
-    options.binary_location = super_scraper.CHROMIUM_LOCATION
-    options.add_argument("--no-sandbox")
+    rights = SuperScraper.rights_to_exercise(RIGHT_MAP)
+    if not rights:
+        print("No requested privacy rights apply to this form — nothing to do.")
+        return
+    options = SuperScraper.build_chromium_options()
 
     async with Chrome(options=options) as browser:
         tab = await browser.start()
@@ -77,13 +116,8 @@ async def main():
 
         state_select = await tab.find(name="Residence_State", raise_exc=False)
         if state_select:
-            state_abbrev = await SuperScraper.state_full_name_to_abbreviated(SuperScraper.STATE)
-            await state_select.execute_script(
-                "for (var i=0;i<this.options.length;i++){"
-                f"  if(this.options[i].value==={state_abbrev!r}){{ this.selectedIndex=i; }}"
-                "}"
-                "this.dispatchEvent(new Event('change', {bubbles:true}));"
-            )
+            state_abbrev = SuperScraper.STATE_ABBREVIATED
+            await js_utils.select_native_option(state_select, value=state_abbrev)
         else:
             print(f"{super_scraper.OOPS} Residence_State select not found")
 
@@ -94,29 +128,20 @@ async def main():
             else:
                 print(f"{super_scraper.OOPS} DOB field not found")
 
-        disclosure_checkbox = await tab.find(id="orderConsumerDisclosureReport", raise_exc=False)
-        if disclosure_checkbox:
-            await disclosure_checkbox.click()
-        else:
-            print(f"{super_scraper.OOPS} 'Request Your Consumer Disclosure Report' checkbox not found")
-
-        # Only revealed in the DOM after Residence_State is set above.
-        full_opt_out = await tab.find(id="globalOptoutFlag", raise_exc=False)
-        if full_opt_out:
-            await full_opt_out.click()
-        else:
-            print(f"{super_scraper.OOPS} 'Full Opt-Out' radio not found")
-
-        if SuperScraper.REMOVE_INFORMATION:
-            delete_checkbox = await tab.find(id="deleteMyPersonalInfo", raise_exc=False)
-            if delete_checkbox:
-                await delete_checkbox.click()
+        # Opt-Out / Delete controls are only revealed in the DOM after Residence_State is set above.
+        for right in rights:
+            element_id, description = RIGHT_MAP[right]
+            control = await tab.find(id=element_id, raise_exc=False)
+            if control:
+                await control.click()
             else:
-                print(f"{super_scraper.OOPS} 'Delete My Personal Information' checkbox not found")
+                print(f"{super_scraper.OOPS} {description} not found")
+
+        if SuperScraper.HEALTH_CHECK:
+            await SuperScraper.assert_fields_filled(tab, FIELD_XPATHS)
 
         await asyncio.sleep(1)
-        await tab.take_screenshot(path="resources/screenshots/risk_lexisnexis_dry_run.png")
-        print("Screenshot saved to resources/screenshots/risk_lexisnexis_dry_run.png")
+        await SuperScraper.screenshot(tab, "dry_run_" + "_".join(r.value for r in rights))
         print(
             "\nConsumer Disclosure Report request filled but NOT submitted — a reCAPTCHA v2 "
             "checkbox requires a manual solve. Note: submitted SSN is only the last 4 digits "

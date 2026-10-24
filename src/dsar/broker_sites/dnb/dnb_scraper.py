@@ -10,17 +10,29 @@
 # D&B additionally has a "which data" checkbox group — "Consumer Data" and
 # "Professional Contact Data" are checked (a data-broker subject's personal
 # data); "Business Data" and the per-"Company 1" fields (D-U-N-S number, etc.)
-# are left blank. One submission per right — Access, Opt-Out, Do Not Sell/Share,
-# Correct unconditionally; Delete gated on REMOVE_INFORMATION.
+# are left blank. One submission per request type. Which rights run is decided ONLY by
+# SuperScraper.rights_to_exercise(RIGHT_MAP). "Correct or Update My Information" is not
+# automated.
 # reCAPTCHA v2 requires a manual solve. This TrustArc host can also throw a
 # PerimeterX "confirm you are human" wall after rapid repeated requests — retry
 # from a fresh session if so.  **CAPTCHA solution required**
+#
+# Page elements:
+#   IAM_CONTAINER               "I Am" react-select -> "Individual"
+#   [aria-label=<DATA_CATEGORIES>]  "Which data" checkboxes: Consumer Data, Professional Contact Data
+#   input#...1002fn / #...1002ln    First / Last name
+#   input#...1003               Email
+#   RESIDENT_CONTAINER          "Resident of" react-select -> state full name
+#   REQUEST_TYPE_CONTAINER      "Type of Request" react-select (options in RIGHT_MAP; populate after "Resident of")
+#   input[type=checkbox]        Accuracy attestation checkbox(es)
 import asyncio
 import time
 
 from pydoll.browser.chromium import Chrome
-from pydoll.browser.options import ChromiumOptions
+from pydoll.constants import Key
 
+from src.dsar import js_utils
+from src.dsar.rights import Right
 from src.dsar.super_scraper import SuperScraper
 
 URL = "https://submit-irm.trustarc.eu/services/validation/ba81b98f-997d-4216-b4cc-d64cf261b082"
@@ -29,13 +41,24 @@ IAM_CONTAINER = "00000000-0000-0000-0000-000000001001-select-container"
 RESIDENT_CONTAINER = "00000000-0000-0000-0000-000000001004-select-container"
 REQUEST_TYPE_CONTAINER = "00000000-0000-0000-0000-000000001005-select-container"
 
-RIGHTS = [
-    "Access My Information",
-    "Opt-out or Unsubscribe",
-    "Do not Sell or Share My Personal Information",
-    "Correct or Update My Information",
-]
-DELETE_RIGHT = "Delete My Information"
+RIGHT_MAP = {
+    Right.RIGHT_TO_ACCESS: ["Access My Information"],
+    Right.RIGHT_TO_OPT_OUT: [
+        "Do not Sell or Share My Personal Information",
+        "Opt-out or Unsubscribe",
+    ],
+    Right.RIGHT_TO_DELETE: ["Delete My Information"],
+}
+RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
+
+PAGE_RIGHTS = {}  # TODO(health-check): run HEALTH_CHECK once live; it prints the full list
+RIGHTS_OPTIONS_CSS = ".select__option"  # only rendered while the request-type menu is open
+
+FIELD_XPATHS = {
+    "First name": "//input[@id='00000000-0000-0000-0000-000000001002fn']",
+    "Last name": "//input[@id='00000000-0000-0000-0000-000000001002ln']",
+    "Email": "//input[@id='00000000-0000-0000-0000-000000001003']",
+}
 DATA_CATEGORIES = ["Consumer Data", "Professional Contact Data"]
 
 
@@ -61,7 +84,7 @@ async def _select_option(tab, container_id, text):
     return False
 
 
-async def submit_request(tab, right, super_scraper):
+async def submit_request(tab, right, entry, super_scraper):
     await tab.go_to(URL)
     await asyncio.sleep(6)
 
@@ -70,7 +93,7 @@ async def submit_request(tab, right, super_scraper):
     for cat in DATA_CATEGORIES:
         box = await tab.find(**{"aria-label": cat}, raise_exc=False)
         if box:
-            await box.execute_script("if (!this.checked) this.click();")
+            await js_utils.js_check(box)
             await asyncio.sleep(0.1)
 
     for xpath, value in [
@@ -84,7 +107,21 @@ async def submit_request(tab, right, super_scraper):
             await el.type_text(value)
 
     await _select_option(tab, RESIDENT_CONTAINER, SuperScraper.STATE)
-    await _select_option(tab, REQUEST_TYPE_CONTAINER, right)
+    if SuperScraper.HEALTH_CHECK:
+        # Options only populate after "Resident of"; open the menu, read it, close it again.
+        ctrl = await tab.find(
+            xpath=f"//div[@id='{REQUEST_TYPE_CONTAINER}']//div[contains(@class,'select__control')]",
+            raise_exc=False,
+        )
+        if ctrl:
+            await ctrl.click()
+            await asyncio.sleep(1)
+            offered = await SuperScraper.read_option_labels(tab, RIGHTS_OPTIONS_CSS)
+            SuperScraper.audit_rights(offered, PAGE_RIGHTS)
+            await tab.keyboard.press(Key.ESCAPE)
+            await asyncio.sleep(0.5)
+
+    await _select_option(tab, REQUEST_TYPE_CONTAINER, entry)
 
     # accuracy attestation checkbox (custom-styled hidden input on TrustArc)
     for consent in await tab.find(xpath="//input[@type='checkbox']", find_all=True, raise_exc=False) or []:
@@ -98,38 +135,37 @@ async def submit_request(tab, right, super_scraper):
                 "this.dispatchEvent(new Event('change',{bubbles:true}));"
             )
 
-    label = right.lower().replace(" ", "_").replace("/", "_")
-    time.sleep(0.5)
-    await tab.take_screenshot(f"resources/screenshots/dnb_dry_run_{label}.png")
-    print(f"Screenshot saved to resources/screenshots/dnb_dry_run_{label}.png")
+    if SuperScraper.HEALTH_CHECK:
+        await SuperScraper.assert_fields_filled(tab, FIELD_XPATHS)
 
+    label = entry.lower().replace(" ", "_").replace("/", "_")
+    time.sleep(0.5)
+    await SuperScraper.screenshot(tab, f"dry_run_{label}")
     if SuperScraper.DRY_RUN:
-        print(
-            f"DRY RUN: would submit '{right}' for "
-            f"{SuperScraper.FIRST_NAME} {SuperScraper.LAST_NAME} <{SuperScraper.EMAIL}>"
-        )
+        print(f"DRY RUN: would submit '{right.name}' ({entry}) for {SuperScraper.EMAIL}")
         return
 
-    print(f"\nForm filled for '{right}'. Solve the reCAPTCHA, click Submit,")
+    print(f"\nForm filled for '{right.name}' ({entry}). Solve the reCAPTCHA, click Submit,")
     print("then press Enter once the confirmation page appears...")
     input()
 
 
 async def main():
-    options = ChromiumOptions()
     super_scraper = SuperScraper()
-    options.binary_location = super_scraper.CHROMIUM_LOCATION
-    options.add_argument("--no-sandbox")
-    options.add_argument("--window-size=1280,2600")
+    if SuperScraper.bail_if_not_automatable(globals()):
+        return
 
-    rights = list(RIGHTS)
-    if SuperScraper.REMOVE_INFORMATION:
-        rights.append(DELETE_RIGHT)
+    rights = SuperScraper.rights_to_exercise(RIGHT_MAP)
+    if not rights:
+        print("No requested privacy rights apply to this form — nothing to do.")
+        return
 
+    options = SuperScraper.build_chromium_options()
     async with Chrome(options=options) as browser:
         tab = await browser.start()
         for right in rights:
-            await submit_request(tab, right, super_scraper)
+            for entry in RIGHT_MAP[right]:
+                await submit_request(tab, right, entry, super_scraper)
 
 
 asyncio.run(main())

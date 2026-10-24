@@ -2,27 +2,50 @@ import asyncio
 import json
 import time
 
+from src.dsar import js_utils
+from src.dsar.rights import Right
 from src.dsar.super_scraper import SuperScraper
 
 from pydoll.browser.chromium import Chrome
-from pydoll.browser.options import ChromiumOptions
 
-# Rights exercised: Right to Access, Do Not Sell/Share, Right to Delete (gated on REMOVE_INFORMATION).
-# Server-rendered POST form. No captcha. Only requires email.
+# 33across.com — server-rendered POST form at udp.33across.com. No captcha. Only requires email.
+# Rights the form exposes: Right to Access, Do Not Sell / Share, Right to Delete. Which of them
+# run is decided ONLY by SuperScraper.rights_to_exercise(RIGHT_MAP).
+#
+# Page elements:
+#   ?type=<access|donotsell|delete>  URL parameter that pre-selects the request type
+#   #request_type                    Request type <select> (also set explicitly)
+#   #email                           Email                       (required)
+#   #terms                           Terms checkbox (enables the submit button via toggleSubmit())
+#   #submit                          Submit button
 BASE_URL = "https://udp.33across.com/udp_opt_out/submit_request?type={}"
 
-REQUESTS = [
-    ("access",    "Right to Access"),
-    ("donotsell", "Do Not Sell / Share"),
-]
-DELETE_REQUEST = ("delete", "Right to Delete")
+RIGHT_MAP = {
+    Right.RIGHT_TO_ACCESS: ("access",    "Right to Access"),
+    Right.RIGHT_TO_OPT_OUT: ("donotsell", "Do Not Sell / Share"),
+    Right.RIGHT_TO_DELETE: ("delete",    "Right to Delete"),
+}
+RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
+
+# Every option in the #request_type <select>, as displayed -> the Right it maps to.
+PAGE_RIGHTS = {
+    "Right to Access": Right.RIGHT_TO_ACCESS,
+    "Do Not Sell / Share": Right.RIGHT_TO_OPT_OUT,
+    "Right to Delete": Right.RIGHT_TO_DELETE,
+}
+RIGHTS_OPTIONS_CSS = "#request_type option"
 
 EMAIL_XPATH = '//input[@id="email"]'
+REQUEST_TYPE_XPATH = '//select[@id="request_type"]'
 
 
-async def submit_request(tab, request_type, label, super_scraper):
+async def submit_request(tab, right, request_type, label, super_scraper):
     await tab.go_to(BASE_URL.format(request_type))
     time.sleep(3)
+
+    if SuperScraper.HEALTH_CHECK:
+        offered = await SuperScraper.read_option_labels(tab, RIGHTS_OPTIONS_CSS)
+        SuperScraper.audit_rights(offered, PAGE_RIGHTS)
 
     # Page JS (selectedType) pre-selects the right option from the URL param; set it explicitly too.
     await tab.execute_script(
@@ -37,33 +60,38 @@ async def submit_request(tab, request_type, label, super_scraper):
     await tab.execute_script("document.getElementById('terms').click()")
     time.sleep(0.5)
 
+    if SuperScraper.HEALTH_CHECK:
+        await SuperScraper.assert_fields_filled(tab, {"Request type": REQUEST_TYPE_XPATH, "Email": EMAIL_XPATH})
+
     if SuperScraper.DRY_RUN:
-        await tab.take_screenshot(path=f"resources/screenshots/33across_{request_type}_dry_run.png")
-        print(f"DRY RUN: would submit '{label}' for {SuperScraper.EMAIL}")
+        await SuperScraper.screenshot(tab, f"dry_run_{right.value}")
+        print(f"DRY RUN: would submit '{right.name}' for {SuperScraper.EMAIL}")
         await asyncio.sleep(2)
         return
 
     await tab.execute_script("document.getElementById('submit').click()")
     await asyncio.sleep(4)
-    result = await tab.execute_script("return document.body.innerText")
-    print(result['result']['result']['value'][:500])
-    print(f"Submitted '{label}' for {SuperScraper.EMAIL}")
+    result = await js_utils.page_text(tab)
+    print(result[:500])
+    print(f"Submitted '{right.name}' for {SuperScraper.EMAIL} — confirm in the browser.")
 
 
 async def main():
-    options = ChromiumOptions()
     super_scraper = SuperScraper()
-    options.binary_location = super_scraper.CHROMIUM_LOCATION
-    options.add_argument("--no-sandbox")
+    if SuperScraper.bail_if_not_automatable(globals()):
+        return
 
-    requests = list(REQUESTS)
-    if SuperScraper.REMOVE_INFORMATION:
-        requests.append(DELETE_REQUEST)
+    rights = SuperScraper.rights_to_exercise(RIGHT_MAP)
+    if not rights:
+        print("No requested privacy rights apply to this form — nothing to do.")
+        return
 
+    options = SuperScraper.build_chromium_options()
     async with Chrome(options=options) as browser:
         tab = await browser.start()
-        for request_type, label in requests:
-            await submit_request(tab, request_type, label, super_scraper)
+        for right in rights:
+            request_type, label = RIGHT_MAP[right]
+            await submit_request(tab, right, request_type, label, super_scraper)
 
 
 asyncio.run(main())

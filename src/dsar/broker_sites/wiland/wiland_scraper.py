@@ -4,18 +4,48 @@
 #   formField79DSARElement), zip, authorization checkbox, image CAPTCHA.
 #   File upload (Data Verification Document) is skipped.
 # Delete/Opt-Out form: same fields minus delivery, covers Delete + Opt-Out of
-#   Sensitive Data + Correct (per Wiland privacy page). Gated on REMOVE_INFORMATION.
+#   Sensitive Data + Correct (per Wiland privacy page). The scraper selects no request
+#   type on it, so it is mapped to Right.RIGHT_TO_DELETE only.
+# Which forms run is decided ONLY by SuperScraper.rights_to_exercise(RIGHT_MAP).
 # State env var is full name — converted to 2-letter abbreviation.
+#
+# Page elements (both forms):
+#   [aria-label="Electronic Delivery"]   Delivery button (Access form only)
+#   #firstNameDSARElement / #lastNameDSARElement   First / Last name
+#   #email                    Email
+#   #addressDSARElement / #cityDSARElement / #zipDSARElement   Address / City / Zip
+#   #formField79DSARElement   State (2-letter abbreviation)
+#   [aria-label="I Am Authorized to Submit This Request"]       Authorization (Access form)
+#   [aria-label="I Certify That I Am the Indicated Data Subject"]   Certification (Delete form)
+#   #captchaCode              Image CAPTCHA code (manual entry)
 import asyncio
 
 from pydoll.browser.chromium import Chrome
-from pydoll.browser.options import ChromiumOptions
 
+from src.dsar.rights import Right
 from src.dsar.super_scraper import SuperScraper
-from src.state_privacy_request_factory.state_name_abbreviation import StateAbbreviation
 
 ACCESS_URL = "https://privacyportal.onetrust.com/webform/7567ece3-2d27-4ee0-a506-1153cb7a62b7/a1e6c0c7-b7ff-45f9-9c62-7f1eb47a6e77"
 DELETE_URL = "https://privacyportal.onetrust.com/webform/7567ece3-2d27-4ee0-a506-1153cb7a62b7/718ad3c3-e1f5-4463-a301-2d6f84938588"
+
+RIGHT_MAP = {
+    Right.RIGHT_TO_ACCESS: ACCESS_URL,
+    Right.RIGHT_TO_DELETE: DELETE_URL,
+}
+RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
+
+PAGE_RIGHTS = {}  # TODO(health-check): run HEALTH_CHECK once live; it prints the full list
+# (Two separate forms; their headings are unrecorded and the Delete form's request type is never selected.)
+
+DELETE_FIELD_XPATHS = {
+    "First name": "//input[@id='firstNameDSARElement']",
+    "Last name": "//input[@id='lastNameDSARElement']",
+    "Email": "//input[@id='email']",
+    "Address": "//input[@id='addressDSARElement']",
+    "City": "//input[@id='cityDSARElement']",
+    "State": "//input[@id='formField79DSARElement']",
+    "Zip": "//input[@id='zipDSARElement']",
+}
 
 
 async def _fill_common_fields(tab, state_abbr):
@@ -48,8 +78,8 @@ async def _fill_common_fields(tab, state_abbr):
         await zip_field.type_text(SuperScraper.ZIP_CODE)
 
 
-async def submit_access(tab, state_abbr, super_scraper):
-    await tab.go_to(ACCESS_URL)
+async def submit_access(tab, state_abbr, super_scraper, right):
+    await tab.go_to(RIGHT_MAP[right])
     await asyncio.sleep(7)
 
     delivery = await tab.find(**{"aria-label": "Electronic Delivery"}, raise_exc=False)
@@ -64,17 +94,24 @@ async def submit_access(tab, state_abbr, super_scraper):
         await auth.click_using_js()
     await asyncio.sleep(0.5)
 
+    if SuperScraper.HEALTH_CHECK:
+        await SuperScraper.assert_fields_filled(tab, {
+            "First name": "//input[@id='firstNameDSARElement']",
+            "Last name": "//input[@id='lastNameDSARElement']",
+            "Email": "//input[@id='email']",
+            "Address": "//input[@id='addressDSARElement']",
+            "City": "//input[@id='cityDSARElement']",
+            "State": "//input[@id='formField79DSARElement']",
+            "Zip": "//input[@id='zipDSARElement']",
+        })
+
     if SuperScraper.DRY_RUN:
-        print(
-            f"DRY RUN: would submit Access for "
-            f"{SuperScraper.FIRST_NAME} {SuperScraper.LAST_NAME} <{SuperScraper.EMAIL}>"
-        )
+        print(f"DRY RUN: would submit '{right.name}' for {SuperScraper.EMAIL}")
         captcha_field = await tab.find(id="captchaCode", raise_exc=False)
         if captcha_field:
             await captcha_field.scroll_into_view()
         await asyncio.sleep(1)
-        await tab.take_screenshot("resources/screenshots/wiland_dry_run_access.png")
-        print("Screenshot saved to resources/screenshots/wiland_dry_run_access.png")
+        await SuperScraper.screenshot(tab, "dry_run_access")
         return
 
     print(
@@ -83,16 +120,11 @@ async def submit_access(tab, state_abbr, super_scraper):
         f"Press Enter after confirmation..."
     )
     input()
-
-    source = await tab.page_source
-    if any(w in source.lower() for w in ("thank", "success", "received", "submitted", "confirmation")):
-        print(f"Submitted Access for {SuperScraper.FIRST_NAME} {SuperScraper.LAST_NAME}")
-    else:
-        print(f"{super_scraper.OOPS} Confirmation unclear for Access — verify in browser")
+    print(f"Submitted '{right.name}' for {SuperScraper.EMAIL} — confirm in the browser.")
 
 
-async def submit_delete(tab, state_abbr, super_scraper):
-    await tab.go_to(DELETE_URL)
+async def submit_delete(tab, state_abbr, super_scraper, right):
+    await tab.go_to(RIGHT_MAP[right])
     await asyncio.sleep(7)
 
     await _fill_common_fields(tab, state_abbr)
@@ -102,17 +134,16 @@ async def submit_delete(tab, state_abbr, super_scraper):
         await auth.click_using_js()
     await asyncio.sleep(0.5)
 
+    if SuperScraper.HEALTH_CHECK:
+        await SuperScraper.assert_fields_filled(tab, DELETE_FIELD_XPATHS)
+
     if SuperScraper.DRY_RUN:
-        print(
-            f"DRY RUN: would submit Delete/Opt-Out for "
-            f"{SuperScraper.FIRST_NAME} {SuperScraper.LAST_NAME} <{SuperScraper.EMAIL}>"
-        )
+        print(f"DRY RUN: would submit '{right.name}' for {SuperScraper.EMAIL}")
         captcha_field = await tab.find(id="captchaCode", raise_exc=False)
         if captcha_field:
             await captcha_field.scroll_into_view()
         await asyncio.sleep(1)
-        await tab.take_screenshot("resources/screenshots/wiland_dry_run_delete.png")
-        print("Screenshot saved to resources/screenshots/wiland_dry_run_delete.png")
+        await SuperScraper.screenshot(tab, "dry_run_delete")
         return
 
     print(
@@ -121,28 +152,28 @@ async def submit_delete(tab, state_abbr, super_scraper):
         f"Press Enter after confirmation..."
     )
     input()
-
-    source = await tab.page_source
-    if any(w in source.lower() for w in ("thank", "success", "received", "submitted", "confirmation")):
-        print(f"Submitted Delete/Opt-Out for {SuperScraper.FIRST_NAME} {SuperScraper.LAST_NAME}")
-    else:
-        print(f"{super_scraper.OOPS} Confirmation unclear for Delete/Opt-Out — verify in browser")
+    print(f"Submitted '{right.name}' for {SuperScraper.EMAIL} — confirm in the browser.")
 
 
 async def main():
-    options = ChromiumOptions()
     super_scraper = SuperScraper()
-    options.binary_location = super_scraper.CHROMIUM_LOCATION
-    options.add_argument("--no-sandbox")
-    options.add_argument("--window-size=1280,3000")
+    if SuperScraper.bail_if_not_automatable(globals()):
+        return
+    rights = SuperScraper.rights_to_exercise(RIGHT_MAP)
+    if not rights:
+        print("No requested privacy rights apply to this form — nothing to do.")
+        return
+    options = SuperScraper.build_chromium_options()
 
-    state_abbr = StateAbbreviation[SuperScraper.STATE.upper()].value
+    state_abbr = SuperScraper.STATE_ABBREVIATED
 
     async with Chrome(options=options) as browser:
         tab = await browser.start()
-        await submit_access(tab, state_abbr, super_scraper)
-        if SuperScraper.REMOVE_INFORMATION:
-            await submit_delete(tab, state_abbr, super_scraper)
+        for right in rights:
+            if right == Right.RIGHT_TO_ACCESS:
+                await submit_access(tab, state_abbr, super_scraper, right)
+            else:
+                await submit_delete(tab, state_abbr, super_scraper, right)
 
 
 asyncio.run(main())

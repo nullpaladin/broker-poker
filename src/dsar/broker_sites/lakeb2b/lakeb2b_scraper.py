@@ -7,25 +7,52 @@
 #   acceptance2 = "Opt-out of the mailing list ..."          (checked)
 # There is no Access/Delete option on this form — the site says those go by
 # email (privacy@lakeb2b.com) — so this exercises Opt-Out only; the free-text
-# "message" field additionally states the request in words.
-# Fields: first-name, last-name, your-email, phone, address, city, state, zip,
-# message. No CAPTCHA seen.
+# "message" field additionally states the request in words. Whether it runs is
+# decided ONLY by SuperScraper.rights_to_exercise(RIGHT_MAP). No CAPTCHA seen.
+#
+# Page elements:
+#   input[name=acceptance1]  "Alter frequency of news notifications ..." (left unchecked)
+#   input[name=acceptance2]  "Opt-out of the mailing list ..."           (checked)
+#   first-name / last-name   First / Last name
+#   your-email / phone       Email / Phone
+#   address / city / state / zip   Address fields
+#   message                  Free-text message
+#   input[type=submit]       Submit (labelled "Get a Quote Now!")
 import asyncio
 
 from pydoll.browser.chromium import Chrome
-from pydoll.browser.options import ChromiumOptions
 
+from src.dsar.rights import Right
 from src.dsar.super_scraper import SuperScraper
 
 URL = "https://www.lakeb2b.com/do-not-sell-my-data"
 
+RIGHT_MAP = {Right.RIGHT_TO_OPT_OUT: "opt-out"}
+RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
+
+PAGE_RIGHTS = {}  # TODO(health-check): run HEALTH_CHECK once live; it prints the full list
+# (The two acceptance-checkbox labels are truncated in the notes, so no inventory is built.)
+
+FIELD_XPATHS = {
+    "First name": "//*[@name='first-name']",
+    "Last name": "//*[@name='last-name']",
+    "Email": "//*[@name='your-email']",
+    "Phone": "//*[@name='phone']",
+    "Address": "//*[@name='address']",
+    "City": "//*[@name='city']",
+    "State": "//*[@name='state']",
+    "Zip": "//*[@name='zip']",
+    "Message": "//*[@name='message']",
+}
+
 
 async def main():
-    options = ChromiumOptions()
     super_scraper = SuperScraper()
-    options.binary_location = super_scraper.CHROMIUM_LOCATION
-    options.add_argument("--no-sandbox")
-    options.add_argument("--window-size=1280,2600")
+    rights = SuperScraper.rights_to_exercise(RIGHT_MAP)
+    if not rights:
+        print("No requested privacy rights apply to this form — nothing to do.")
+        return
+    options = SuperScraper.build_chromium_options()
 
     async with Chrome(options=options) as browser:
         tab = await browser.start()
@@ -47,10 +74,7 @@ async def main():
             "city": SuperScraper.CITY,
             "state": SuperScraper.STATE,
             "zip": SuperScraper.ZIP_CODE,
-            "message": (
-                "I am exercising my right to opt out of the sale and sharing of my "
-                "personal information. Please also confirm removal from all marketing lists."
-            ),
+            "message": SuperScraper.request_statement(rights, broker="LakeB2B"),
         }
         for name, val in fields.items():
             if not val:
@@ -62,10 +86,11 @@ async def main():
             else:
                 print(f"{super_scraper.OOPS} field '{name}' not found")
 
-        await asyncio.sleep(1)
-        await tab.take_screenshot(path="resources/screenshots/lakeb2b_dry_run.png", beyond_viewport=True)
-        print("Screenshot saved to resources/screenshots/lakeb2b_dry_run.png")
+        if SuperScraper.HEALTH_CHECK:
+            await SuperScraper.assert_fields_filled(tab, FIELD_XPATHS)
 
+        await asyncio.sleep(1)
+        await SuperScraper.screenshot(tab, "dry_run")
         if SuperScraper.DRY_RUN:
             print(f"DRY RUN: would submit opt-out for {SuperScraper.EMAIL}")
             return
@@ -74,7 +99,7 @@ async def main():
         if submit:
             await submit.click()
             await asyncio.sleep(4)
-            print(f"Submitted opt-out for {SuperScraper.EMAIL}")
+            print(f"Submitted 'RIGHT_TO_OPT_OUT' for {SuperScraper.EMAIL} — confirm in the browser.")
 
 
 asyncio.run(main())

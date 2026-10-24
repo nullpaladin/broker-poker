@@ -1,28 +1,47 @@
-# reklaimyours.com (Reklaim) — exercises Do Not Sell/Share, Access, Delete (gated).
+# reklaimyours.com (Reklaim) — exercises Do Not Sell/Share, Access, Delete (gated only by
+# SuperScraper.rights_to_exercise(RIGHT_MAP)).
 # React form, one submission per right type. No CAPTCHA. Radio buttons are custom
 # role="radio" <button> elements — use click_using_js(). Jurisdiction set to "other"
 # (Minnesota not listed in jurisdiction dropdown).
+#
+# Page elements:
+#   #email                     Email
+#   #name                      Name (first + last)
+#   #requestType-access        "Access" request-type radio
+#   #requestType-do_not_sell   "Do not sell" request-type radio
+#   #requestType-delete        "Delete" request-type radio
+#   text "Submit Request"      Submit button
 import asyncio
 import time
 
 from pydoll.browser.chromium import Chrome
-from pydoll.browser.options import ChromiumOptions
 
+from src.dsar.rights import Right
 from src.dsar.super_scraper import SuperScraper
 
 URL = "https://www.reklaimyou.com/optout"
 
 # (radio button id, screenshot label)
-REQUESTS = [
-    ("requestType-do_not_sell", "optout"),
-    ("requestType-access",      "access"),
-]
-DELETE_REQUEST = ("requestType-delete", "delete")
+RIGHT_MAP = {
+    Right.RIGHT_TO_ACCESS: [("requestType-access", "access")],
+    Right.RIGHT_TO_OPT_OUT: [("requestType-do_not_sell", "optout")],
+    Right.RIGHT_TO_DELETE: [("requestType-delete", "delete")],
+}
+RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
+
+PAGE_RIGHTS = {}  # TODO(health-check): run HEALTH_CHECK once live; it prints the full list
+RIGHTS_OPTIONS_CSS = "[role='radio']"  # custom radio buttons; the first live run shows their text
+
+FIELD_XPATHS = {"Email": "//*[@id='email']", "Name": "//*[@id='name']"}
 
 
 async def submit_request(tab, radio_id, label, super_scraper):
     await tab.go_to(URL)
     await asyncio.sleep(5)
+
+    if SuperScraper.HEALTH_CHECK:
+        offered = await SuperScraper.read_option_labels(tab, RIGHTS_OPTIONS_CSS)
+        SuperScraper.audit_rights(offered, PAGE_RIGHTS)
 
     email = await tab.find(id="email", raise_exc=False)
     if email:
@@ -41,8 +60,11 @@ async def submit_request(tab, radio_id, label, super_scraper):
 
     time.sleep(0.5)
 
+    if SuperScraper.HEALTH_CHECK:
+        await SuperScraper.assert_fields_filled(tab, FIELD_XPATHS)
+
     if SuperScraper.DRY_RUN:
-        await tab.take_screenshot(f"resources/screenshots/reklaimyours_dry_run_{label}.png")
+        await SuperScraper.screenshot(tab, f"dry_run_{label}")
         print(
             f"DRY RUN: would submit '{label}' for "
             f"{SuperScraper.FIRST_NAME} {SuperScraper.LAST_NAME} <{SuperScraper.EMAIL}>"
@@ -54,23 +76,18 @@ async def submit_request(tab, radio_id, label, super_scraper):
         await submit.click()
     await asyncio.sleep(4)
 
-    source = await tab.page_source
-    if any(w in source.lower() for w in ("success", "thank", "confirm", "received", "submitted")):
-        print(f"Submitted '{label}' for {SuperScraper.FIRST_NAME} {SuperScraper.LAST_NAME}")
-    else:
-        print(f"{super_scraper.OOPS} Confirmation unclear for '{label}' — verify in browser")
+    print(f"Submitted '{label}' for {SuperScraper.EMAIL} — confirm in the browser.")
 
 
 async def main():
-    options = ChromiumOptions()
     super_scraper = SuperScraper()
-    options.binary_location = super_scraper.CHROMIUM_LOCATION
-    options.add_argument("--no-sandbox")
-    options.add_argument("--window-size=1280,2000")
+    options = SuperScraper.build_chromium_options()
 
-    requests = list(REQUESTS)
-    if SuperScraper.REMOVE_INFORMATION:
-        requests.append(DELETE_REQUEST)
+    rights = SuperScraper.rights_to_exercise(RIGHT_MAP)
+    if not rights:
+        print("No requested privacy rights apply to this form — nothing to do.")
+        return
+    requests = [entry for right in rights for entry in RIGHT_MAP[right]]
 
     async with Chrome(options=options) as browser:
         tab = await browser.start()

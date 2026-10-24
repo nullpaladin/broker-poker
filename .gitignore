@@ -3,4 +3,9 @@ package-lock.json
 node_modules/
 .nanocoder/
 package.json
-.claude/
+.claude/*
+!.claude/skills/
+
+__pycache__/
+*.pyc
+*.pyo

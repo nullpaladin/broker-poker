@@ -11,30 +11,51 @@
 # requestTypesDSARElement / subjectTypesDSARElement / countryDSARElement are all
 # OneTrust autocomplete comboboxes (type, then click the matching role=option).
 # The right options carry curly quotes, so they are matched by a lowercase
-# substring keyword rather than exact text. One submission per right — Access,
-# Opt-Out of Sale/Sharing, Opt-Out of Targeted Advertising and Limit Sensitive
-# PI unconditional; Delete gated on REMOVE_INFORMATION. Relationship answered
-# "None" (no Healthcare Provider / Study Participant / Employee / Agent applies).
+# substring keyword rather than exact text. One submission per form choice —
+# Access; Opt-Out (Opt-Out of Sale/Sharing, Opt-Out of Targeted Advertising and
+# Limit Sensitive PI are three separate choices); Delete. Which rights run is
+# decided ONLY by SuperScraper.rights_to_exercise(RIGHT_MAP). Relationship
+# answered "None" (no Healthcare Provider / Study Participant / Employee / Agent applies).
 # reCAPTCHA v2 requires a manual solve before submit.  **CAPTCHA solution required**
 import asyncio
 import time
 
 from pydoll.browser.chromium import Chrome
-from pydoll.browser.options import ChromiumOptions
 from pydoll.constants import Key
 
+from src.dsar.rights import Right
 from src.dsar.super_scraper import SuperScraper
 
 URL = "https://privacyportal.onetrust.com/webform/07e8dc4d-6686-403e-9b11-39fe7347d2f4/2f999bd2-c826-498c-a504-894eaf543b6f"
 
 # (substring keyword to match the option, screenshot label)
-REQUESTS = [
-    ("access my personal information", "access"),
-    ("opt-out of the sale", "optout_sale"),
-    ("targeted advertising", "optout_ads"),
-    ("limit the use of my", "limit_sensitive"),
-]
-DELETE_REQUEST = ("delete my personal information", "delete")
+RIGHT_MAP = {
+    Right.RIGHT_TO_ACCESS: [("access my personal information", "access")],
+    Right.RIGHT_TO_OPT_OUT: [
+        ("opt-out of the sale", "optout_sale"),
+        ("targeted advertising", "optout_ads"),
+        ("limit the use of my", "limit_sensitive"),
+    ],
+    Right.RIGHT_TO_DELETE: [("delete my personal information", "delete")],
+}
+RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
+
+PAGE_RIGHTS = {}  # TODO(health-check): run HEALTH_CHECK once live; it prints the full list
+# (The option texts carry curly quotes and are matched by keyword, so no inventory is built.)
+
+FIELD_XPATHS = {
+    "Right requested": "//*[@id='requestTypesDSARElement']",
+    "Relationship": "//*[@id='subjectTypesDSARElement']",
+    "Country": "//*[@id='countryDSARElement']",
+    "State": "//*[@id='stateDSARElement']",
+    "Interaction with IQVIA": "//*[@id='formField87DSARElement']",
+    "Name": "//*[@id='firstNameDSARElement']",
+    "Phone": "//*[@id='formField83DSARElement']",
+    "Email": "//*[@id='emailDSARElement']",
+    "Address": "//*[@id='formField79DSARElement']",
+    "City": "//*[@id='formField81DSARElement']",
+    "Zip": "//*[@id='formField82DSARElement']",
+}
 
 
 async def _field_value(field):
@@ -82,7 +103,7 @@ async def _select_combobox(tab, field_id, type_text, match_substr=None):
             return
 
 
-async def submit_request(tab, right_keyword, label, super_scraper):
+async def submit_request(tab, right, right_keyword, label, super_scraper):
     await tab.go_to(URL)
     await asyncio.sleep(8)
 
@@ -96,8 +117,7 @@ async def submit_request(tab, right_keyword, label, super_scraper):
     interaction = await tab.find(id="formField87DSARElement", raise_exc=False)
     if interaction:
         await interaction.type_text(
-            "I am a consumer whose personal data IQVIA Digital may have processed "
-            "through its advertising products. I have no direct account relationship."
+            SuperScraper.request_statement([right], broker="IQVIA Digital")
         )
 
     for fid, value in [
@@ -114,12 +134,13 @@ async def submit_request(tab, right_keyword, label, super_scraper):
             await asyncio.sleep(0.2)
 
     time.sleep(0.5)
+    if SuperScraper.HEALTH_CHECK:
+        await SuperScraper.assert_fields_filled(tab, FIELD_XPATHS)
+
     submit_btn = await tab.find(id="dsar-webform-submit-button", raise_exc=False)
     if submit_btn:
         await submit_btn.scroll_into_view()
-    await tab.take_screenshot(f"resources/screenshots/iqviadigital_dry_run_{label}.png")
-    print(f"Screenshot saved to resources/screenshots/iqviadigital_dry_run_{label}.png")
-
+    await SuperScraper.screenshot(tab, f"dry_run_{label}")
     if SuperScraper.DRY_RUN:
         print(
             f"DRY RUN: would submit '{right_keyword}' for "
@@ -131,28 +152,23 @@ async def submit_request(tab, right_keyword, label, super_scraper):
     print("then press Enter once the confirmation page appears...")
     input()
 
-    source = await tab.page_source
-    if any(w in source.lower() for w in ("thank", "success", "received", "submitted", "confirmation")):
-        print(f"Submitted '{right_keyword}' for {SuperScraper.FIRST_NAME} {SuperScraper.LAST_NAME}")
-    else:
-        print(f"{super_scraper.OOPS} Confirmation unclear for '{right_keyword}' — verify in browser")
+    print(f"Submitted '{right.name}' ({right_keyword}) for {SuperScraper.EMAIL} — confirm in the browser.")
 
 
 async def main():
-    options = ChromiumOptions()
     super_scraper = SuperScraper()
-    options.binary_location = super_scraper.CHROMIUM_LOCATION
-    options.add_argument("--no-sandbox")
-    options.add_argument("--window-size=1280,2600")
+    options = SuperScraper.build_chromium_options()
 
-    requests = list(REQUESTS)
-    if SuperScraper.REMOVE_INFORMATION:
-        requests.append(DELETE_REQUEST)
+    rights = SuperScraper.rights_to_exercise(RIGHT_MAP)
+    if not rights:
+        print("No requested privacy rights apply to this form — nothing to do.")
+        return
 
     async with Chrome(options=options) as browser:
         tab = await browser.start()
-        for right_keyword, label in requests:
-            await submit_request(tab, right_keyword, label, super_scraper)
+        for right in rights:
+            for right_keyword, label in RIGHT_MAP[right]:
+                await submit_request(tab, right, right_keyword, label, super_scraper)
 
 
 asyncio.run(main())

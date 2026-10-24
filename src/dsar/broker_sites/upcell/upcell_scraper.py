@@ -2,29 +2,61 @@
 # site). Fields: "First Name", "Last Name", "email", "phone number", and a
 # "Request Type" <select> with options "Opt-Out / Delete My Information",
 # "Data Access", "Other Privacy Request". One submission per request type:
-# "Data Access" (access) + "Opt-Out / Delete My Information" (a combined
-# opt-out+delete option) are both exercised. The many extra hidden text inputs
+# "Data Access" (access) and "Opt-Out / Delete My Information" (a combined
+# opt-out+delete option, so mapped to both opt-out and delete; submitted once).
+# Which run is decided ONLY by SuperScraper.rights_to_exercise(RIGHT_MAP). The many extra hidden text inputs
 # (website / company / message / subject / ...) are spam-trap fields and are
 # left blank. No CAPTCHA observed.
+#
+# Page elements:
+#   input[name="First Name"] / input[name="Last Name"]   First / Last name
+#   input[name="email"]                                  Email
+#   input[name="phone number"]                           Phone number
+#   select[name="Request Type"]                          "Request Type" (see RIGHT_MAP)
+#   "SUBMIT" button
 import asyncio
 import time
 
 from pydoll.browser.chromium import Chrome
-from pydoll.browser.options import ChromiumOptions
 
+from src.dsar.rights import Right
 from src.dsar.super_scraper import SuperScraper
 
 URL = "https://www.upcell.io/data-claim"
 
-REQUEST_TYPES = [
-    ("Data Access", "access"),
-    ("Opt-Out / Delete My Information", "optout_delete"),
-]
+# Right -> "Request Type" option. Opt-out and delete share one combined option.
+RIGHT_MAP = {
+    Right.RIGHT_TO_ACCESS: "Data Access",
+    Right.RIGHT_TO_OPT_OUT: "Opt-Out / Delete My Information",
+    Right.RIGHT_TO_DELETE: "Opt-Out / Delete My Information",
+}
+RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
+
+# Every option in the "Request Type" <select>, as displayed -> the Right it maps to (None = not automated). The combined
+# option is listed under RIGHT_TO_DELETE; RIGHT_MAP also submits it for RIGHT_TO_OPT_OUT.
+PAGE_RIGHTS = {
+    "Opt-Out / Delete My Information": Right.RIGHT_TO_DELETE,
+    "Data Access": Right.RIGHT_TO_ACCESS,
+    "Other Privacy Request": None,
+}
+RIGHTS_OPTIONS_CSS = "select[name='Request Type'] option"
+
+FIELD_XPATHS = {
+    "First Name": "//input[@name='First Name']",
+    "Last Name": "//input[@name='Last Name']",
+    "Email": "//input[@name='email']",
+    "Phone number": "//input[@name='phone number']",
+    "Request Type": "//select[@name='Request Type']",
+}
 
 
-async def submit_request(tab, request_type, label, super_scraper):
+async def submit_request(tab, right, request_type, super_scraper):
     await tab.go_to(URL)
     await asyncio.sleep(6)
+
+    if SuperScraper.HEALTH_CHECK:
+        offered = await SuperScraper.read_option_labels(tab, RIGHTS_OPTIONS_CSS)
+        SuperScraper.audit_rights(offered, PAGE_RIGHTS)
 
     for name, value in [
         ("First Name", SuperScraper.FIRST_NAME),
@@ -45,39 +77,39 @@ async def submit_request(tab, request_type, label, super_scraper):
             "s.call(this,o.value);this.dispatchEvent(new Event('change',{bubbles:true}));}"
         )
 
-    time.sleep(0.5)
-    await tab.take_screenshot(f"resources/screenshots/upcell_dry_run_{label}.png")
-    print(f"Screenshot saved to resources/screenshots/upcell_dry_run_{label}.png")
+    if SuperScraper.HEALTH_CHECK:
+        await SuperScraper.assert_fields_filled(tab, FIELD_XPATHS)
 
+    time.sleep(0.5)
+    await SuperScraper.screenshot(tab, f"dry_run_{right.value}")
     if SuperScraper.DRY_RUN:
-        print(
-            f"DRY RUN: would submit '{request_type}' for "
-            f"{SuperScraper.FIRST_NAME} {SuperScraper.LAST_NAME} <{SuperScraper.EMAIL}>"
-        )
+        print(f"DRY RUN: would submit '{request_type}' ({right.name}) for {SuperScraper.EMAIL}")
         return
 
     submit = await tab.find(text="SUBMIT", raise_exc=False)
     if submit:
         await submit.click()
         await asyncio.sleep(3)
-    source = await tab.page_source
-    if any(w in source.lower() for w in ("thank", "success", "received", "submitted")):
-        print(f"Submitted '{request_type}' for {SuperScraper.FIRST_NAME} {SuperScraper.LAST_NAME}")
-    else:
-        print(f"{super_scraper.OOPS} Confirmation unclear for '{request_type}' — verify in browser")
+    print(f"Submitted '{request_type}' ({right.name}) for {SuperScraper.EMAIL} — confirm in the browser.")
 
 
 async def main():
-    options = ChromiumOptions()
     super_scraper = SuperScraper()
-    options.binary_location = super_scraper.CHROMIUM_LOCATION
-    options.add_argument("--no-sandbox")
-    options.add_argument("--window-size=1280,2000")
+    options = SuperScraper.build_chromium_options()
+
+    rights = SuperScraper.rights_to_exercise(RIGHT_MAP)
+    if not rights:
+        print("No requested privacy rights apply to this form — nothing to do.")
+        return
+    # Opt-out and delete share one option: submit each distinct request type once.
+    seen = {}
+    for right in rights:
+        seen.setdefault(RIGHT_MAP[right], right)
 
     async with Chrome(options=options) as browser:
         tab = await browser.start()
-        for request_type, label in REQUEST_TYPES:
-            await submit_request(tab, request_type, label, super_scraper)
+        for request_type, right in seen.items():
+            await submit_request(tab, right, request_type, super_scraper)
 
 
 asyncio.run(main())

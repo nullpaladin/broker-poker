@@ -7,22 +7,33 @@
 # Employee/User — VentiveIQ is a mobile ad SDK company, "User" is the
 # closest generic fit). "Select request type(s)" is, DESPITE the plural
 # wording, actual radio inputs sharing name="requesttype" — single-select,
-# confirmed by markup (not just by testing) — one submission per right:
-# Data Processing, Data Portability, Opt out, Info Request unconditionally;
-# Data Deletion gated on REMOVE_INFORMATION. Update Data skipped (no
-# concrete correction to describe). Country/State DO have stable
+# confirmed by markup (not just by testing) — one submission per request
+# type: Info Request, Data Portability, Opt out, Data Processing, Data Deletion.
+# Which of them run is decided ONLY by SuperScraper.rights_to_exercise(RIGHT_MAP).
+# "Update Data" is not automated (no concrete correction to describe). Country/State DO have stable
 # name="country"/"state" attributes and are ngx-bootstrap typeahead
 # comboboxes — click, type, then click the matching typeahead option.
 # State is disabled until Country is set. MAID/Mobile ID/IP-address fields
 # left blank (optional, no equivalent persona data). Captcha is a 6-digit
 # distorted-text code requiring manual entry — **CAPTCHA solution
 # required**.
+#
+# Page elements:
+#   #User                      "I am a (an)" radio -> "User"
+#   #<request type>            Request-type radios (ids: Info Request, Data Portability, Opt out,
+#                              Data Processing, Data Deletion)
+#   label "Email" / "First Name" / "Last Name"   text inputs (matched by label)
+#   label "Address1" / "Address2" / "City" / "Zipcode"   text inputs (matched by label)
+#   [name=country]             Country typeahead combobox (-> "United States")
+#   [name=state]               State typeahead combobox (disabled until Country is set)
+#   label "Request Details"    Free-text textarea
+#   6-digit distorted-text CAPTCHA (manual entry)
 import asyncio
 
+from src.dsar.rights import Right
 from src.dsar.super_scraper import SuperScraper
 
 from pydoll.browser.chromium import Chrome
-from pydoll.browser.options import ChromiumOptions
 
 URL = (
     "https://privacyportal.privacypillar.com/dsar/form?"
@@ -30,8 +41,25 @@ URL = (
     "&formid=4348f332-6917-4566-8c56-6fc9eb57097f&status=publish"
 )
 
-REQUEST_TYPES = ["Data Processing", "Data Portability", "Opt out", "Info Request"]
-DELETE_REQUEST_TYPE = "Data Deletion"
+RIGHT_MAP = {
+    Right.RIGHT_TO_ACCESS: ["Info Request", "Data Portability"],
+    Right.RIGHT_TO_OPT_OUT: ["Opt out", "Data Processing"],
+    Right.RIGHT_TO_DELETE: "Data Deletion",
+}
+RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
+
+# Every option of the request-type radios (their ids are the option texts), as displayed -> the Right it maps to (None = not automated).
+PAGE_RIGHTS = {
+    "Info Request": Right.RIGHT_TO_ACCESS,
+    "Data Portability": Right.RIGHT_TO_ACCESS,
+    "Opt out": Right.RIGHT_TO_OPT_OUT,
+    "Data Processing": Right.RIGHT_TO_OPT_OUT,
+    "Data Deletion": Right.RIGHT_TO_DELETE,
+    "Update Data": None,
+}
+RIGHTS_OPTIONS_CSS = "label:has(input[name='requesttype'])"
+
+FIELD_LABELS = ["Email", "First Name", "Last Name", "Address1", "City", "Zipcode"]
 
 
 def _field_by_label_xpath(label_text, tag="input"):
@@ -51,9 +79,13 @@ async def _fill_labeled_field(tab, super_scraper, label_text, value, tag="input"
         print(f"{super_scraper.OOPS} '{label_text}' field not found")
 
 
-async def submit_request(tab, request_type, super_scraper):
+async def submit_request(tab, right, request_type, super_scraper):
     await tab.go_to(URL)
     await asyncio.sleep(5)
+
+    if SuperScraper.HEALTH_CHECK:
+        offered = await SuperScraper.read_option_labels(tab, RIGHTS_OPTIONS_CSS)
+        SuperScraper.audit_rights(offered, PAGE_RIGHTS)
 
     user_type_radio = await tab.find(id="User", raise_exc=False)
     if user_type_radio:
@@ -111,14 +143,16 @@ async def submit_request(tab, request_type, super_scraper):
         tab,
         super_scraper,
         "Request Details",
-        f"I am submitting a '{request_type}' request under applicable state privacy law.",
+        SuperScraper.request_statement([right], broker="VentiveIQ"),
         tag="textarea",
     )
 
+    if SuperScraper.HEALTH_CHECK:
+        await SuperScraper.assert_fields_filled(tab, {text: _field_by_label_xpath(text) for text in FIELD_LABELS})
+
     label = "".join(c if c.isalnum() else "_" for c in request_type.lower())[:40].strip("_")
     await asyncio.sleep(1)
-    await tab.take_screenshot(path=f"resources/screenshots/ventiveiq_dry_run_{label}.png")
-    print(f"Screenshot saved to resources/screenshots/ventiveiq_dry_run_{label}.png")
+    await SuperScraper.screenshot(tab, f"dry_run_{label}")
     print(
         f"\n'{request_type}' request filled but NOT submitted — a 6-digit distorted-text "
         "CAPTCHA requires manual entry before submitting."
@@ -126,20 +160,22 @@ async def submit_request(tab, request_type, super_scraper):
 
 
 async def main():
-    options = ChromiumOptions()
     super_scraper = SuperScraper()
-    options.binary_location = super_scraper.CHROMIUM_LOCATION
-    options.add_argument("--no-sandbox")
-    options.add_argument("--window-size=1280,3000")
+    options = SuperScraper.build_chromium_options()
 
-    request_types = list(REQUEST_TYPES)
-    if SuperScraper.REMOVE_INFORMATION:
-        request_types.append(DELETE_REQUEST_TYPE)
+    if SuperScraper.bail_if_not_automatable(globals()):
+        return
+    rights = SuperScraper.rights_to_exercise(RIGHT_MAP)
+    if not rights:
+        print("No requested privacy rights apply to this form — nothing to do.")
+        return
 
     async with Chrome(options=options) as browser:
         tab = await browser.start()
-        for request_type in request_types:
-            await submit_request(tab, request_type, super_scraper)
+        for right in rights:
+            entries = RIGHT_MAP[right]
+            for request_type in (entries if isinstance(entries, list) else [entries]):
+                await submit_request(tab, right, request_type, super_scraper)
 
 
 asyncio.run(main())

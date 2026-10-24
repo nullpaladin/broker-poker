@@ -3,11 +3,15 @@
 # straight to it. ClickUp Forms is a new platform for this repo — fields use
 # stable `cu-form-control-N` ids and `cu3-checkbox-N-input` ids.
 #
+# Which rights run is decided ONLY by SuperScraper.rights_to_exercise(RIGHT_MAP);
+# all selected rights go in ONE submission.
+#
+# Page elements:
 #   cu3-checkbox-1  "Right to Access / Portability"          -> Access
-#   cu3-checkbox-2  "Right to Know"                          -> (with Access)
-#   cu3-checkbox-3  "Right to Correction"                    -> skipped
-#   cu3-checkbox-4  "Right to Deletion"                      -> gated on REMOVE_INFORMATION
-#   cu3-checkbox-5  "Right to Opt Out of Sales"              -> Opt-Out
+#   cu3-checkbox-2  "Right to Know"
+#   cu3-checkbox-3  "Right to Correction"                    -> not automated
+#   cu3-checkbox-4  "Right to Deletion"                      -> Delete
+#   cu3-checkbox-5  "Right to Opt Out of Sales"
 #   cu-form-control-6  First and Last Name (required)
 #   cu-form-control-7  Company Name (required) -> COMPANY_NAME
 #   cu-form-control-8  Job Title -> JOB_TITLE
@@ -24,32 +28,70 @@
 import asyncio
 
 from pydoll.browser.chromium import Chrome
-from pydoll.browser.options import ChromiumOptions
 
+from src.dsar.rights import Right
 from src.dsar.super_scraper import SuperScraper
 
 URL = "https://forms.clickup.com/14183078/f/dgun6-8690/XIZIQMFCDPWFOG8PKO"
 
-RIGHT_CHECKBOXES = ["cu3-checkbox-1-input", "cu3-checkbox-2-input", "cu3-checkbox-5-input"]
-DELETE_CHECKBOX = "cu3-checkbox-4-input"
+CHECK_ACCESS_PORTABILITY = "cu3-checkbox-1-input"  # "Right to Access / Portability"
+CHECK_KNOW = "cu3-checkbox-2-input"  # "Right to Know"
+CHECK_DELETION = "cu3-checkbox-4-input"  # "Right to Deletion"
+
+# MANUAL REVIEW: the old code clicked checkbox-2 ("Right to Know") for opt-out and
+# checkbox-5 ("Right to Opt Out of Sales") only under the dropped "correct" right.
+# Kept as-is; verify against the live form.
+RIGHT_MAP = {
+    Right.RIGHT_TO_ACCESS: [CHECK_ACCESS_PORTABILITY],
+    Right.RIGHT_TO_OPT_OUT: [CHECK_KNOW],
+    Right.RIGHT_TO_DELETE: [CHECK_DELETION],
+}
+RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
+
+# Every checkbox in the rights group, as displayed -> the Right it maps to (None = not automated). "Right to Know" is
+# mapped to RIGHT_TO_OPT_OUT because RIGHT_MAP currently does so (see its MANUAL REVIEW note); "Right to Opt Out of
+# Sales" is not used by RIGHT_MAP.
+PAGE_RIGHTS = {
+    "Right to Access / Portability": Right.RIGHT_TO_ACCESS,
+    "Right to Know": Right.RIGHT_TO_OPT_OUT,
+    "Right to Correction": None,
+    "Right to Deletion": Right.RIGHT_TO_DELETE,
+    "Right to Opt Out of Sales": None,
+}
+RIGHTS_OPTIONS_CSS = "label[for^='cu3-checkbox-']"
+
+FIELD_XPATHS = {
+    "Full name": "//*[@id='cu-form-control-6']",
+    "Company name": "//*[@id='cu-form-control-7']",
+    "Email": "//*[@id='cu-form-control-9']",
+    "Street address": "//*[@id='cu-form-control-11']",
+    "City": "//*[@id='cu-form-control-13']",
+    "State": "//*[@id='cu-form-control-14']",
+    "Zip": "//*[@id='cu-form-control-15']",
+}
 
 
 async def main():
-    options = ChromiumOptions()
     super_scraper = SuperScraper()
-    options.binary_location = super_scraper.CHROMIUM_LOCATION
-    options.add_argument("--no-sandbox")
-    options.add_argument("--window-size=1280,3200")
+    if SuperScraper.bail_if_not_automatable(globals()):
+        return
+    options = SuperScraper.build_chromium_options()
 
     full_name = " ".join(p for p in (SuperScraper.FIRST_NAME, SuperScraper.LAST_NAME) if p)
-    boxes = list(RIGHT_CHECKBOXES)
-    if SuperScraper.REMOVE_INFORMATION:
-        boxes.append(DELETE_CHECKBOX)
+    rights = SuperScraper.rights_to_exercise(RIGHT_MAP)
+    if not rights:
+        print("No requested privacy rights apply to this form — nothing to do.")
+        return
+    boxes = [entry for right in rights for entry in RIGHT_MAP[right]]
 
     async with Chrome(options=options) as browser:
         tab = await browser.start()
         await tab.go_to(URL)
         await asyncio.sleep(8)
+
+        if SuperScraper.HEALTH_CHECK:
+            offered = await SuperScraper.read_option_labels(tab, RIGHTS_OPTIONS_CSS)
+            SuperScraper.audit_rights(offered, PAGE_RIGHTS)
 
         # Required "relationship with PostPilot" ClickUp dropdown -> Consumer
         toggle = await tab.find(
@@ -103,10 +145,11 @@ async def main():
             else:
                 print(f"{super_scraper.OOPS} field '{field_id}' not found")
 
-        await asyncio.sleep(1)
-        await tab.take_screenshot(path="resources/screenshots/postpilot_dry_run.png", beyond_viewport=True)
-        print("Screenshot saved to resources/screenshots/postpilot_dry_run.png")
+        if SuperScraper.HEALTH_CHECK:
+            await SuperScraper.assert_fields_filled(tab, FIELD_XPATHS)
 
+        await asyncio.sleep(1)
+        await SuperScraper.screenshot(tab, "dry_run")
         if SuperScraper.DRY_RUN:
             print(f"DRY RUN: would submit rights request for {full_name} <{SuperScraper.EMAIL}>")
             return
@@ -115,7 +158,9 @@ async def main():
         if submit:
             await submit.click()
             await asyncio.sleep(4)
-            print(f"Submitted rights request for {full_name}")
+            print(f"Submitted rights request for {SuperScraper.EMAIL} — confirm in the browser.")
+        else:
+            print(f"{super_scraper.OOPS} Submit button not found")
 
 
 asyncio.run(main())

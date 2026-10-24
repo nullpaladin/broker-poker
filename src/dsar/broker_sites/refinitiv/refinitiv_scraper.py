@@ -13,19 +13,48 @@
 # formField23DSARElement) is unrelated — answered "No". No discrete
 # right-type picker at all — a required free-text "Please provide
 # specific information on the data subject rights that you wish to
-# exercise" field states which right(s) (deletion only mentioned when
-# REMOVE_INFORMATION is set), same pattern as groundtruth.com/pulsepoint.com
-# elsewhere in this repo. Optional Middle Name/Personal Email/Additional
+# exercise" field states which right(s) (SuperScraper.request_statement over the
+# rights selected by rights_to_exercise), same pattern as groundtruth.com/pulsepoint.com
+# elsewhere in this repo. The whole run is ONE form fill covering all selected rights.
+# Optional Middle Name/Personal Email/Additional
 # Info fields left blank. captchaCode is a BotDetect image CAPTCHA —
 # **CAPTCHA solution required**.
+#
+# Page elements:
+#   stateDSARElement            "State" vt-autocomplete (optional)
+#   role=option grid            "I am" subject type -> SUBJECT_TYPE; "Does your request relate to TORA?" -> "No"
+#   firstNameDSARElement        First name
+#   lastNameDSARElement         Last name
+#   emailDSARElement            Email
+#   cityDSARElement             City
+#   requestDetailsDSARElement   "Please provide specific information on the data subject rights that you wish to exercise"
+#   captchaCode                 BotDetect image CAPTCHA (manual entry)
 import asyncio
 
+from src.dsar.rights import Right
 from src.dsar.super_scraper import SuperScraper
 
 from pydoll.browser.chromium import Chrome
-from pydoll.browser.options import ChromiumOptions
 
 URL = "https://privacyportal-de.onetrust.com/webform/5f7a2da0-bed0-45e8-ac2c-c1f297e2efdc/4ae30ef5-8107-4353-a0b5-1bf34dd647f6"
+
+# The form has no right picker; the chosen rights are described in the free-text field.
+RIGHT_MAP = {
+    Right.RIGHT_TO_ACCESS: "access",
+    Right.RIGHT_TO_DELETE: "delete",
+}
+RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
+
+PAGE_RIGHTS = {}  # TODO(health-check): run HEALTH_CHECK once live; it prints the full list
+# (The form has no rights chooser: the rights are stated in the free-text field.)
+
+FIELD_XPATHS = {
+    "First name": "//*[@id='firstNameDSARElement']",
+    "Last name": "//*[@id='lastNameDSARElement']",
+    "Email": "//*[@id='emailDSARElement']",
+    "City": "//*[@id='cityDSARElement']",
+    "Request details": "//*[@id='requestDetailsDSARElement']",
+}
 
 SUBJECT_TYPE = "a person whose personal information is part of the content of our products and services"
 
@@ -56,10 +85,12 @@ async def _autocomplete_select(tab, field_id, text, super_scraper, description):
 
 
 async def main():
-    options = ChromiumOptions()
     super_scraper = SuperScraper()
-    options.binary_location = super_scraper.CHROMIUM_LOCATION
-    options.add_argument("--no-sandbox")
+    rights = SuperScraper.rights_to_exercise(RIGHT_MAP)
+    if not rights:
+        print("No requested privacy rights apply to this form — nothing to do.")
+        return
+    options = SuperScraper.build_chromium_options()
 
     async with Chrome(options=options) as browser:
         tab = await browser.start()
@@ -83,17 +114,16 @@ async def main():
         if city_field:
             await city_field.type_text(SuperScraper.CITY)
 
-        if SuperScraper.REMOVE_INFORMATION:
-            request_text = "I am requesting access to and deletion of my personal information."
-        else:
-            request_text = "I am requesting access to my personal information."
+        request_text = SuperScraper.request_statement(rights, broker="LSEG")
         details_field = await tab.find(id="requestDetailsDSARElement", raise_exc=False)
         if details_field:
             await details_field.type_text(request_text)
 
+        if SuperScraper.HEALTH_CHECK:
+            await SuperScraper.assert_fields_filled(tab, FIELD_XPATHS)
+
         await asyncio.sleep(1)
-        await tab.take_screenshot(path="resources/screenshots/refinitiv_dry_run.png")
-        print("Screenshot saved to resources/screenshots/refinitiv_dry_run.png")
+        await SuperScraper.screenshot(tab, "dry_run_" + "_".join(r.value for r in rights))
         print(
             "\nRequest filled but NOT submitted — a BotDetect image CAPTCHA requires "
             "manual entry before submitting."

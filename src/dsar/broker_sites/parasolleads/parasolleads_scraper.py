@@ -1,14 +1,32 @@
 import asyncio
 import time
 
+from src.dsar.rights import Right
 from src.dsar.super_scraper import SuperScraper
+from src.dsar import js_utils
 
 from pydoll.browser.chromium import Chrome
-from pydoll.browser.options import ChromiumOptions
 
-# Rights exercised: Do Not Sell My Information (opt-out only).
-# Server-rendered POST form. No captcha.
+# parasolleads.com — /ccpa-opt-out-form.php, server-rendered POST form. No captcha.
+# Rights the form exposes: Do Not Sell My Information (opt-out only); whether it runs is
+# decided ONLY by SuperScraper.rights_to_exercise(RIGHT_MAP).
+#
+# Page elements (keep this list current; the form reuses generic field names):
+#   input[name=FirstName]     "Name" (full name: first + last)
+#   input[name=EmailID]       Email
+#   input[name=LastName] #1   Street address  (mislabeled field name)
+#   input[name=LastName] #2   City            (mislabeled field name)
+#   input[name=LastName] #3   State           (mislabeled field name)
+#   input[name=pin]           ZIP code
+#   input[name=gender]        "Do Not Sell My Information" checkbox (mislabeled field name)
+#   "Send" button             Submit
 URL = "https://www.parasolleads.com/ccpa-opt-out-form.php"
+
+RIGHT_MAP = {Right.RIGHT_TO_OPT_OUT: "Do Not Sell My Information"}
+RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
+
+PAGE_RIGHTS = {}  # TODO(health-check): run HEALTH_CHECK once live; it prints the full list
+# (The only checkbox is the mislabeled name="gender" input; its label element is unrecorded.)
 
 NAME_XPATH = '//input[@name="FirstName"]'
 EMAIL_XPATH = '//input[@name="EmailID"]'
@@ -18,12 +36,26 @@ STATE_XPATH = '(//input[@name="LastName"])[3]'
 ZIP_XPATH = '//input[@name="pin"]'
 DO_NOT_SELL_CHECKBOX_XPATH = '//input[@name="gender"]'
 
+FIELD_XPATHS = {
+    "Name": NAME_XPATH,
+    "Email": EMAIL_XPATH,
+    "Street address": ADDRESS_XPATH,
+    "City": CITY_XPATH,
+    "State": STATE_XPATH,
+    "Zip": ZIP_XPATH,
+}
+
 
 async def main():
-    options = ChromiumOptions()
     super_scraper = SuperScraper()
-    options.binary_location = super_scraper.CHROMIUM_LOCATION
-    options.add_argument("--no-sandbox")
+    if SuperScraper.bail_if_not_automatable(globals()):
+        return
+    options = SuperScraper.build_chromium_options()
+
+    rights = SuperScraper.rights_to_exercise(RIGHT_MAP)
+    if not rights:
+        print("No requested privacy rights apply to this form — nothing to do.")
+        return
 
     async with Chrome(options=options) as browser:
         tab = await browser.start()
@@ -38,13 +70,14 @@ async def main():
         await super_scraper.input_text_field(tab=tab, xpath=STATE_XPATH, text=SuperScraper.STATE, sleep=1)
         await super_scraper.input_text_field(tab=tab, xpath=ZIP_XPATH, text=SuperScraper.ZIP_CODE, sleep=1)
 
-        await tab.execute_script(
-            "document.querySelector('input[name=\"gender\"]').click()"
-        )
+        await js_utils.js_click(await tab.find(xpath=DO_NOT_SELL_CHECKBOX_XPATH))
         time.sleep(0.5)
 
+        if SuperScraper.HEALTH_CHECK:
+            await SuperScraper.assert_fields_filled(tab, FIELD_XPATHS)
+
         if SuperScraper.DRY_RUN:
-            await tab.take_screenshot(path="resources/screenshots/parasolleads_dry_run.png")
+            await SuperScraper.screenshot(tab, "dry_run_opt_out")
             print(f"DRY RUN: would submit opt-out for {SuperScraper.EMAIL}")
             await asyncio.sleep(3)
             return
@@ -52,9 +85,7 @@ async def main():
         await super_scraper.click_item_by_text(tab=tab, text="Send", sleep=3)
         await asyncio.sleep(4)
 
-        result = await tab.execute_script("return document.body.innerText")
-        print(result['result']['result']['value'][:500])
-        print(f"Submitted opt-out for {SuperScraper.EMAIL}")
+        print(f"Submitted 'RIGHT_TO_OPT_OUT' for {SuperScraper.EMAIL} — confirm in the browser.")
 
 
 asyncio.run(main())

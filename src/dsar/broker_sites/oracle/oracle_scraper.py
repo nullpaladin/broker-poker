@@ -39,6 +39,7 @@ from pydoll.constants import Key
 
 from src.dsar.rights import Right
 from src.dsar.super_scraper import SuperScraper
+from src.dsar import js_utils
 
 URL = "https://submit-irm.trustarc.com/services/validation/742d5422-26ad-45bc-89b1-05e40e58b59d"
 
@@ -137,11 +138,7 @@ async def submit_request(tab, request_type, super_scraper):
         xpath="//input[@id='00000000-0000-0000-0000-000000001007checkbox']", raise_exc=False
     )
     if consent:
-        await consent.execute_script(
-            "this.checked=true;"
-            "this.dispatchEvent(new Event('click', {bubbles:true}));"
-            "this.dispatchEvent(new Event('change', {bubbles:true}));"
-        )
+        await js_utils.js_check(consent)
 
     if SuperScraper.HEALTH_CHECK:
         await SuperScraper.assert_fields_filled(tab, FIELD_XPATHS)

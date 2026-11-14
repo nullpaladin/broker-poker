@@ -29,6 +29,7 @@ from pydoll.constants import Key
 
 from src.dsar.rights import Right
 from src.dsar.super_scraper import SuperScraper
+from src.dsar import js_utils
 
 URL = (
     "https://privacyportal-eu.onetrust.com/webform/"
@@ -96,8 +97,7 @@ async def _combo(tab, super_scraper, field_id, value):
         await asyncio.sleep(0.3)
         await tab.keyboard.press(Key.ENTER)
     await asyncio.sleep(0.5)
-    current = await field.execute_script("return this.value")
-    cur = current.get("result", {}).get("result", {}).get("value") if isinstance(current, dict) else current
+    cur = await js_utils.js_eval(field, "return this.value")
     if cur and value.lower() not in str(cur).lower():
         print(f"{super_scraper.OOPS} combobox '{field_id}' value looks wrong: {cur!r}")
 

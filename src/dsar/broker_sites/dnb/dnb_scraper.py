@@ -129,11 +129,7 @@ async def submit_request(tab, right, entry, super_scraper):
         if aria in ("", "i attest", "consent") or "accurate" in aria or "attest" in aria:
             if aria in [c.lower() for c in DATA_CATEGORIES]:
                 continue
-            await consent.execute_script(
-                "this.checked=true;"
-                "this.dispatchEvent(new Event('click',{bubbles:true}));"
-                "this.dispatchEvent(new Event('change',{bubbles:true}));"
-            )
+            await js_utils.js_check(consent)
 
     if SuperScraper.HEALTH_CHECK:
         await SuperScraper.assert_fields_filled(tab, FIELD_XPATHS)

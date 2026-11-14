@@ -26,6 +26,7 @@ from pydoll.constants import Key
 
 from src.dsar.rights import Right
 from src.dsar.super_scraper import SuperScraper
+from src.dsar import js_utils
 
 URL = "https://privacyportal-uk.onetrust.com/webform/6e95a345-1222-4957-a118-93d60494951b/390b0718-0304-49af-9629-7cb64a946019"
 
@@ -65,11 +66,7 @@ FIELD_XPATHS = {
 
 
 async def _field_value(field):
-    res = await field.execute_script("return this.value;")
-    try:
-        return (res["result"]["result"]["value"] or "").strip()
-    except (KeyError, TypeError):
-        return ""
+    return str(await js_utils.js_eval(field, "return this.value;") or "").strip()
 
 
 async def _select_autocomplete(tab, field_id, search_text):
@@ -80,9 +77,7 @@ async def _select_autocomplete(tab, field_id, search_text):
         if (await _field_value(field)).lower() == search_text.lower():
             return
         await field.click()
-        await field.execute_script(
-            "this.value=''; this.dispatchEvent(new Event('input',{bubbles:true}));"
-        )
+        await js_utils.js_set_value(field, "")
         await tab.keyboard.type_text(search_text)
         await asyncio.sleep(2.5)
         clicked = False

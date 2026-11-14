@@ -31,6 +31,10 @@ from src.dsar import js_utils
 from src.dsar.rights import Right
 from src.dsar.super_scraper import SuperScraper
 
+# Residency: the form is California-framed (attests California residency / only a
+# "California Consumer" subject), so it is only run for users whose state has a privacy law.
+SERVES_NO_LAW_STATES = False
+
 URL = "https://www.iss-stoxx.com/legal/ccpa/"
 
 # The form has no right picker: every right is stated in the #right_to_limit textarea.
@@ -62,6 +66,8 @@ async def _set(tab, field_id, value):
 
 async def main():
     super_scraper = SuperScraper()
+    if SuperScraper.bail_if_state_unsupported(globals()):
+        return
     if SuperScraper.bail_if_not_automatable(globals()):
         return
 

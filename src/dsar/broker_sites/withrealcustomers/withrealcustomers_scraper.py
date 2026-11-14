@@ -33,6 +33,7 @@ from pydoll.browser.chromium import Chrome
 
 from src.dsar.rights import Right
 from src.dsar.super_scraper import SuperScraper
+from src.dsar import js_utils
 
 URL = "https://support.withrealcustomers.com/index.php/opt-out/"
 
@@ -83,10 +84,7 @@ async def main():
             # such law entitles its residents to the treatment a business gives
             # CCPA requesters. A genuine no-law state is left on the form default.
             if SuperScraper.state_has_privacy_law(SuperScraper.STATE):
-                await residency.execute_script(
-                    "this.value='California Resident';"
-                    "this.dispatchEvent(new Event('change',{bubbles:true}));"
-                )
+                await js_utils.select_native_option(residency, value="California Resident", dispatch=("change",))
         else:
             print(f"{super_scraper.OOPS} 'State of Residency' select not found")
 

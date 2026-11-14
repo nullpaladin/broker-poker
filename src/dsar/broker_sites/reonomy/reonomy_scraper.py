@@ -26,6 +26,10 @@ from pydoll.constants import Key
 from src.dsar.rights import Right
 from src.dsar.super_scraper import SuperScraper
 
+# Residency: the form is California-framed (attests California residency / only a
+# "California Consumer" subject), so it is only run for users whose state has a privacy law.
+SERVES_NO_LAW_STATES = False
+
 URL = "https://privacyportal-cdn.onetrust.com/dsarwebform/ed2a4eae-cadd-4d40-9f21-cf27556d3a21/49fbe5ce-5ee2-487b-9b4f-bfdab733819b.html"
 
 # Right -> [(aria-label, screenshot label)] — trailing spaces are part of the actual labels
@@ -155,6 +159,8 @@ async def fill_and_submit(tab, right, req_aria_label, screenshot_label, super_sc
 
 async def main():
     super_scraper = SuperScraper()
+    if SuperScraper.bail_if_state_unsupported(globals()):
+        return
     options = SuperScraper.build_chromium_options()
 
     rights = SuperScraper.rights_to_exercise(RIGHT_MAP)

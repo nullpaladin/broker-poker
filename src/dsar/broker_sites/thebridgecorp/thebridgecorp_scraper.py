@@ -20,6 +20,7 @@ from pydoll.browser.chromium import Chrome
 
 from src.dsar.rights import Right
 from src.dsar.super_scraper import SuperScraper
+from src.dsar import js_utils
 
 URL = "https://www.thebridgecorp.com/opt-out/"
 
@@ -76,10 +77,7 @@ async def main():
             # "California Resident" is selected for any privacy-law state (whose
             # law grants CCPA-equivalent rights); a no-law state keeps the default.
             if SuperScraper.state_has_privacy_law(SuperScraper.STATE):
-                await residency.execute_script(
-                    "this.value='California Resident';"
-                    "this.dispatchEvent(new Event('change',{bubbles:true}));"
-                )
+                await js_utils.select_native_option(residency, value="California Resident", dispatch=("change",))
         else:
             print(f"{super_scraper.OOPS} 'State of Residency' select not found")
 

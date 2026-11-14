@@ -111,7 +111,7 @@ async def submit_request(tab, choice_id, label, super_scraper):
     if not radio:
         print(f"{super_scraper.OOPS} Page-2 radio '{choice_id}' not found")
         return
-    await radio.execute_script("this.checked = true; this.dispatchEvent(new Event('change',{bubbles:true}));")
+    await js_utils.js_check(radio, dispatch=("change",))
 
     time.sleep(0.5)
     await SuperScraper.screenshot(tab, f"dry_run_{label}")

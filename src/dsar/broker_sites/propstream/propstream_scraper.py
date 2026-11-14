@@ -26,6 +26,7 @@ from pydoll.constants import Key
 
 from src.dsar.rights import Right
 from src.dsar.super_scraper import SuperScraper
+from src.dsar import js_utils
 
 URL = (
     "https://privacyportal.onetrust.com/webform/"
@@ -69,11 +70,7 @@ async def _combo(tab, super_scraper, field_id, value):
         return
     await field.click()
     await asyncio.sleep(0.3)
-    await field.execute_script(
-        "var s=Object.getOwnPropertyDescriptor(Object.getPrototypeOf(this),'value').set;"
-        f"s.call(this,{value!r});"
-        "this.dispatchEvent(new Event('input',{bubbles:true}));"
-    )
+    await js_utils.js_set_value(field, value)
     await asyncio.sleep(1.3)
     opt = await tab.find(xpath=f"//*[@role='option' and normalize-space()={value!r}]", raise_exc=False)
     if opt:
@@ -81,16 +78,9 @@ async def _combo(tab, super_scraper, field_id, value):
     else:
         await tab.keyboard.press(Key.ENTER)
     await asyncio.sleep(0.4)
-    current = await field.execute_script("return this.value")
-    cur = current.get("result", {}).get("result", {}).get("value") if isinstance(current, dict) else current
+    cur = await js_utils.js_eval(field, "return this.value")
     if str(cur or "").strip().lower() != value.lower():
-        await field.execute_script(
-            "var s=Object.getOwnPropertyDescriptor(Object.getPrototypeOf(this),'value').set;"
-            f"s.call(this,{value!r});"
-            "this.dispatchEvent(new Event('input',{bubbles:true}));"
-            "this.dispatchEvent(new Event('change',{bubbles:true}));"
-            "this.dispatchEvent(new Event('blur',{bubbles:true}));"
-        )
+        await js_utils.js_set_value(field, value, blur=True)
 
 
 async def _pick(tab, super_scraper, label):
@@ -112,11 +102,7 @@ async def _pick_iam(tab, super_scraper):
     for cand in IAM_CANDIDATES:
         await iam.click()
         await asyncio.sleep(0.3)
-        await iam.execute_script(
-            "var s=Object.getOwnPropertyDescriptor(Object.getPrototypeOf(this),'value').set;"
-            f"s.call(this,{cand!r});"
-            "this.dispatchEvent(new Event('input',{bubbles:true}));"
-        )
+        await js_utils.js_set_value(iam, cand)
         await asyncio.sleep(1)
         opt = await tab.find(xpath=f"//*[@role='option' and normalize-space()={cand!r}]", raise_exc=False)
         if opt:

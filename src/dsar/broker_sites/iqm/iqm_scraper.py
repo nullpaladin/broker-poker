@@ -16,6 +16,7 @@ from pydoll.constants import Key
 
 from src.dsar.rights import Right
 from src.dsar.super_scraper import SuperScraper
+from src.dsar import js_utils
 
 URL = (
     "https://privacyportal-de.onetrust.com/webform/"
@@ -52,11 +53,7 @@ async def _combo(tab, super_scraper, field_id, value):
     # Set the value once via the native setter + input event so the option list
     # filters to the single match, then commit that match with the keyboard;
     # finally hard-correct the field if it still came out doubled/wrong.
-    await field.execute_script(
-        "var s=Object.getOwnPropertyDescriptor(Object.getPrototypeOf(this),'value').set;"
-        f"s.call(this,{value!r});"
-        "this.dispatchEvent(new Event('input',{bubbles:true}));"
-    )
+    await js_utils.js_set_value(field, value)
     await asyncio.sleep(1.4)
     option = await tab.find(
         xpath=f"//*[@role='option' and normalize-space()={value!r}]", raise_exc=False
@@ -66,16 +63,9 @@ async def _combo(tab, super_scraper, field_id, value):
     else:
         await tab.keyboard.press(Key.ENTER)
     await asyncio.sleep(0.5)
-    current = await field.execute_script("return this.value")
-    cur = current.get("result", {}).get("result", {}).get("value") if isinstance(current, dict) else current
+    cur = await js_utils.js_eval(field, "return this.value")
     if str(cur or "").strip().lower() != value.lower():
-        await field.execute_script(
-            "var s=Object.getOwnPropertyDescriptor(Object.getPrototypeOf(this),'value').set;"
-            f"s.call(this,{value!r});"
-            "this.dispatchEvent(new Event('input',{bubbles:true}));"
-            "this.dispatchEvent(new Event('change',{bubbles:true}));"
-            "this.dispatchEvent(new Event('blur',{bubbles:true}));"
-        )
+        await js_utils.js_set_value(field, value, blur=True)
         await asyncio.sleep(0.3)
 
 

@@ -27,6 +27,7 @@ from pydoll.constants import Key
 
 from src.dsar.rights import Right
 from src.dsar.super_scraper import SuperScraper
+from src.dsar import js_utils
 
 URL = "https://privacyportal.onetrust.com/webform/87c0b060-447b-4c56-a99e-6fc89bd3c7e4/c5ce1867-0472-4257-953c-7ed388ede130"
 REQUEST_TYPE_SEARCH = "access"  # requestTypes: picks the access/know option (falls back to first)
@@ -66,7 +67,7 @@ async def _combobox(tab, field_id, search_text=None):
     await field.click()
     await asyncio.sleep(0.5)
     if search_text:
-        await field.execute_script("this.value=''; this.dispatchEvent(new Event('input',{bubbles:true}));")
+        await js_utils.js_set_value(field, "")
         await tab.keyboard.type_text(search_text)
         await asyncio.sleep(2)
         for opt in await tab.find(**{"role": "option"}, find_all=True, raise_exc=False) or []:

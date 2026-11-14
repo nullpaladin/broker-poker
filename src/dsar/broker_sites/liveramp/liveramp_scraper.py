@@ -47,6 +47,7 @@ from pydoll.browser.chromium import Chrome
 
 from src.dsar.rights import Right
 from src.dsar.super_scraper import SuperScraper
+from src.dsar import js_utils
 
 TRUSTARC = "https://submit-irm.trustarc.com/services/validation/"
 
@@ -149,11 +150,7 @@ async def submit_request(tab, right, form_id, request_type, super_scraper):
 
     consent = await tab.find(xpath="//input[@id='00000000-0000-0000-0000-000000001007']", raise_exc=False)
     if consent:
-        await consent.execute_script(
-            "this.checked=true;"
-            "this.dispatchEvent(new Event('click', {bubbles:true}));"
-            "this.dispatchEvent(new Event('change', {bubbles:true}));"
-        )
+        await js_utils.js_check(consent)
 
     if SuperScraper.HEALTH_CHECK:
         await SuperScraper.assert_fields_filled(tab, FIELD_XPATHS)

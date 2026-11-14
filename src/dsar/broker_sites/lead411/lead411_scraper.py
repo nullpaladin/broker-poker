@@ -79,11 +79,7 @@ async def submit_request(tab, right, request_type, super_scraper):
         # native .click() raises ElementNotVisible — the real <input> is
         # visually replaced by custom checkbox styling; set + dispatch via
         # JS instead
-        await agree_checkbox.execute_script(
-            "this.checked=true;"
-            "this.dispatchEvent(new Event('click', {bubbles:true}));"
-            "this.dispatchEvent(new Event('change', {bubbles:true}));"
-        )
+        await js_utils.js_check(agree_checkbox)
 
     label = request_type.lower().replace(" ", "_").replace("-", "_")
 

@@ -69,9 +69,7 @@ async def _select_autocomplete(tab, field_id, search_text):
         if (await _field_value(field)).lower() == search_text.lower():
             return
         await field.click()
-        await field.execute_script(
-            "this.value=''; this.dispatchEvent(new Event('input',{bubbles:true}));"
-        )
+        await js_utils.js_set_value(field, "")
         await tab.keyboard.type_text(search_text)
         await asyncio.sleep(2.5)
         clicked = False

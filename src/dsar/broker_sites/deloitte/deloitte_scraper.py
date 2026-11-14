@@ -86,11 +86,7 @@ async def _check(tab, name, super_scraper, description):
     # native .click() is unreliable on these Angular custom checkboxes (the
     # real <input> is visually replaced by a sibling icon span and doesn't
     # always register a real click) — set + dispatch via JS instead
-    await box.execute_script(
-        "this.checked=true;"
-        "this.dispatchEvent(new Event('click', {bubbles:true}));"
-        "this.dispatchEvent(new Event('change', {bubbles:true}));"
-    )
+    await js_utils.js_check(box)
 
 
 async def main():

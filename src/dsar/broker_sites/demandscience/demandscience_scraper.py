@@ -61,11 +61,7 @@ async def _check_radio(tab, name, value, super_scraper, description):
     if not radio:
         print(f"{super_scraper.OOPS} {description} option not found")
         return
-    await radio.execute_script(
-        "this.checked=true;"
-        "this.dispatchEvent(new Event('click', {bubbles:true}));"
-        "this.dispatchEvent(new Event('change', {bubbles:true}));"
-    )
+    await js_utils.js_check(radio)
 
 
 async def submit_request(tab, right, request_type, super_scraper):

@@ -16,12 +16,17 @@
 # limitation of the form (it doesn't functionally solicit an actionable
 # request from residents of uncovered states), not something this scraper
 # works around. Google Forms radios/checkboxes carry aria-label directly.
+#
+# Page elements:
+#   radio[aria-label="None of the above."]   Residency question
+#   "Next" button                            Advance past residency
+#   checkbox[aria-label=ATTESTATION_LABEL]   "I declare, under the penalty of perjury ..." attestation
+#   "Submit" button
 import asyncio
 
 from src.dsar.super_scraper import SuperScraper
 
 from pydoll.browser.chromium import Chrome
-from pydoll.browser.options import ChromiumOptions
 
 URL = "https://docs.google.com/forms/d/e/1FAIpQLSfvUYww9wEK9Y4F6VY3nQtm0bBS8QTdcDthet6WAKDYqnnwHA/viewform"
 
@@ -34,10 +39,8 @@ ATTESTATION_LABEL = (
 
 
 async def main():
-    options = ChromiumOptions()
     super_scraper = SuperScraper()
-    options.binary_location = super_scraper.CHROMIUM_LOCATION
-    options.add_argument("--no-sandbox")
+    options = SuperScraper.build_chromium_options()
 
     async with Chrome(options=options) as browser:
         tab = await browser.start()
@@ -71,13 +74,12 @@ async def main():
                 "are collected for non-covered-state residents)"
             )
             await asyncio.sleep(1)
-            await tab.take_screenshot(path="resources/screenshots/civisanalytics_dry_run.png")
-            print("Screenshot saved to resources/screenshots/civisanalytics_dry_run.png")
+            await SuperScraper.screenshot(tab, "dry_run")
             return
 
         await super_scraper.click_item_by_text(tab=tab, text="Submit", sleep=2)
         await asyncio.sleep(2)
-        print(f"Submitted attestation-only request for {SuperScraper.FIRST_NAME} {SuperScraper.LAST_NAME}")
+        print(f"Submitted attestation-only request for {SuperScraper.EMAIL} — confirm in the browser.")
 
 
 asyncio.run(main())

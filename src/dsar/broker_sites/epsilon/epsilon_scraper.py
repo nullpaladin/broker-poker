@@ -1,32 +1,58 @@
-# epsilon.com — exercises Do Not Sell, Do Not Share, Access, Correct,
-# Delete (gated), Opt-Out of Profiling, and Opt-Out of Sensitive Data.
+# epsilon.com — exercises Do Not Sell, Do Not Share, Access, Delete,
+# Opt-Out of Profiling, and Opt-Out of Sensitive Data (the form also offers Correct,
+# which is not automatable and not in RIGHT_MAP).
 # Custom React form at legal.epsilon.com/dsr. Country select reveals
 # request-type radios and personal info fields. Radio inputs are opacity:0
 # behind custom spans — click via parent label. reCAPTCHA v2 invisible
 # requires manual solve before submit. Submits once per request type.
+#
+# Page elements:
+#   <option value="US">                       Country select -> United States
+#   #onetrust-accept-btn-handler              cookie banner accept button
+#   <input value=...>                         request-type radios (values in RIGHT_MAP; click parent label)
+#   select[name=user] / option consumer       "Consumer" user-type select
+#   input[name=first] / [name=last] / [name=email]   First / Last name / Email
+#   input[name=address] / [name=city] / [name=zip]   Address / City / Zip
+#   select[name=state]                        State select (abbreviation values)
+#   "Submit request" button
 import asyncio
 import time
 
 from pydoll.browser.chromium import Chrome
-from pydoll.browser.options import ChromiumOptions
 
+from src.dsar.rights import Right
 from src.dsar.super_scraper import SuperScraper
 
 URL = "https://legal.epsilon.com/dsr"
 
 # (radio value, screenshot label)
-REQUESTS = [
-    ("sales",      "sell"),
-    ("share",      "share"),
-    ("access",     "access"),
-    ("correct",    "correct"),
-    ("profile",    "profile"),
-    ("sensitive",  "sensitive"),
-]
-DELETE_REQUEST = ("delete", "delete")
+RIGHT_MAP = {
+    Right.RIGHT_TO_ACCESS: [("access", "access")],
+    Right.RIGHT_TO_OPT_OUT: [
+        ("sales", "sell"),
+        ("share", "share"),
+        ("profile", "profile"),
+        ("sensitive", "sensitive"),
+    ],
+    Right.RIGHT_TO_DELETE: [("delete", "delete")],
+}
+RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
+
+PAGE_RIGHTS = {}  # TODO(health-check): run HEALTH_CHECK once live; it prints the full list
+RIGHTS_OPTIONS_CSS = "label:has(input[type='radio'])"  # request-type radios, revealed once a country is chosen
+
+FIELD_XPATHS = {
+    "First name": "//*[@name='first']",
+    "Last name": "//*[@name='last']",
+    "Email": "//*[@name='email']",
+    "Address": "//*[@name='address']",
+    "City": "//*[@name='city']",
+    "Zip": "//*[@name='zip']",
+    "State": "//select[@name='state']",
+}
 
 
-async def submit_request(tab, radio_value, label, super_scraper):
+async def submit_request(tab, right, radio_value, label, super_scraper):
     await tab.go_to(URL)
     await asyncio.sleep(5)
 
@@ -43,6 +69,10 @@ async def submit_request(tab, radio_value, label, super_scraper):
     if accept_btn:
         await accept_btn.click()
         await asyncio.sleep(1)
+
+    if SuperScraper.HEALTH_CHECK:
+        offered = await SuperScraper.read_option_labels(tab, RIGHTS_OPTIONS_CSS)
+        SuperScraper.audit_rights(offered, PAGE_RIGHTS)
 
     # Select request type by clicking its label (radio is opacity:0)
     radio = await tab.find(tag_name="input", value=radio_value, raise_exc=False)
@@ -88,58 +118,55 @@ async def submit_request(tab, radio_value, label, super_scraper):
         await zip_field.type_text(SuperScraper.ZIP_CODE)
 
     # State select — scope to state select to avoid country select collisions
-    state_abbrev = await SuperScraper.state_full_name_to_abbreviated(SuperScraper.STATE)
+    state_abbrev = SuperScraper.STATE_ABBREVIATED
     state_select = await tab.find(tag_name="select", name="state", raise_exc=False)
     if state_select:
         state_opt = await state_select.find(tag_name="option", value=state_abbrev, raise_exc=False)
         if state_opt:
             await state_opt.click()
         else:
-            print(f"{super_scraper.OOPS} State '{state_abbrev}' not in dropdown — may not be a covered state")
+            print(f"{super_scraper.OOPS} State '{state_abbrev}' not in dropdown")
 
     time.sleep(0.5)
 
+    if SuperScraper.HEALTH_CHECK:
+        await SuperScraper.assert_fields_filled(tab, FIELD_XPATHS)
+
     if SuperScraper.DRY_RUN:
         print(
-            f"DRY RUN: would submit '{radio_value}' for "
-            f"{SuperScraper.FIRST_NAME} {SuperScraper.LAST_NAME} <{SuperScraper.EMAIL}>"
+            f"DRY RUN: would submit '{right.name}' ({radio_value}) for {SuperScraper.EMAIL}"
         )
         submit_btn = await tab.find(tag_name="button", text="Submit request", raise_exc=False)
         if submit_btn:
             await submit_btn.scroll_into_view()
         await asyncio.sleep(2)
-        await tab.take_screenshot(f"resources/screenshots/epsilon_dry_run_{label}.png")
-        print(f"Screenshot saved to resources/screenshots/epsilon_dry_run_{label}.png")
+        await SuperScraper.screenshot(tab, f"dry_run_{right.value}_{label}")
         return
 
-    print(f"\nForm filled for '{radio_value}'.")
+    print(f"\nForm filled for '{right.name}' ({radio_value}).")
     print("Solve the reCAPTCHA in the browser, then click Submit.")
     print("Press Enter after the confirmation page appears...")
     input()
 
-    source = await tab.page_source
-    source_lower = source.lower()
-    if any(w in source_lower for w in ("thank", "success", "received", "submitted", "confirmation")):
-        print(f"Submitted '{radio_value}' for {SuperScraper.FIRST_NAME} {SuperScraper.LAST_NAME}")
-    else:
-        print(f"{super_scraper.OOPS} Confirmation unclear for '{radio_value}' — verify in browser")
+    print(f"Submitted '{right.name}' ({radio_value}) for {SuperScraper.EMAIL} — confirm in the browser.")
 
 
 async def main():
-    options = ChromiumOptions()
     super_scraper = SuperScraper()
-    options.binary_location = super_scraper.CHROMIUM_LOCATION
-    options.add_argument("--no-sandbox")
-    options.add_argument("--window-size=1280,5000")
+    if SuperScraper.bail_if_not_automatable(globals()):
+        return
 
-    requests = list(REQUESTS)
-    if SuperScraper.REMOVE_INFORMATION:
-        requests.append(DELETE_REQUEST)
+    rights = SuperScraper.rights_to_exercise(RIGHT_MAP)
+    if not rights:
+        print("No requested privacy rights apply to this form — nothing to do.")
+        return
 
+    options = SuperScraper.build_chromium_options()
     async with Chrome(options=options) as browser:
         tab = await browser.start()
-        for radio_value, label in requests:
-            await submit_request(tab, radio_value, label, super_scraper)
+        for right in rights:
+            for radio_value, label in RIGHT_MAP[right]:
+                await submit_request(tab, right, radio_value, label, super_scraper)
 
 
 asyncio.run(main())

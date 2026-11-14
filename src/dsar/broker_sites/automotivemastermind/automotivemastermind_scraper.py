@@ -1,5 +1,5 @@
 # automotivemastermind.com (S&P Global) — Two OneTrust Angular forms:
-# MAIN form (URL): Access, Correct, Portability, Profiling Opt-Out, Delete (gated).
+# MAIN form (URL): Access, Correct (not automated), Portability, Profiling Opt-Out, Delete.
 #   - Requesting Party, subject type ("Customer"), and request type buttons use click_using_js().
 #   - Country + State autocomplete: click + keyboard.type_text + find(text=, visible).
 #   - State appears after Country is selected; request type buttons appear after Subject Type selected.
@@ -7,32 +7,67 @@
 # DNS form (DNS_URL): Do Not Sell / Opt-Out of Targeted Advertising.
 #   - Country pre-set to "United States"; State is the only autocomplete.
 #   - No CAPTCHA — fully automated.
+# Which rights run is decided ONLY by SuperScraper.rights_to_exercise(RIGHT_MAP). RIGHT_TO_OPT_OUT
+# goes to BOTH forms (the DNS form, plus the profiling button on the main form); access
+# (incl. portability) + opt-out share one main-form submission; delete is its own submission.
+#
+# Page elements (both OneTrust Angular forms; keep this list current):
+#   role=button aria-label="I am making a request for myself"   Requesting party (main)
+#   role=button aria-label="Customer"                           Subject type (main)
+#   role=button aria-label=<request type>                       Request-type buttons (see RIGHT_MAP)
+#   #countryDSARElement         Country autocomplete -> "United States" (main)
+#   #stateDSARElement           State autocomplete
+#   #emailDSARElement           Email
+#   #firstNameDSARElement / #lastNameDSARElement   First / Last name
+#   #addressDSARElement         Address (DNS form)
+#   #formField49DSARElement     Address (main)
+#   #formField50DSARElement     City (main)
+#   #formField51DSARElement     Zip code (main)
+#   #formField29DSARElement     autocomplete answered "Not Sure" (main; label not recorded)
+#   #requestDetailsDSARElement  Request details textarea (main)
+#   aria-label "Click to submit form"   Submit button
 import asyncio
 import time
 
 from pydoll.browser.chromium import Chrome
-from pydoll.browser.options import ChromiumOptions
 
+from src.dsar.rights import Right
 from src.dsar.super_scraper import SuperScraper
 
 URL = "https://privacyportal.onetrust.com/webform/5cb57702-8ef7-437e-a62b-408fe78cd310/93391c3d-d6c8-45b1-a169-39a0b7f9fb74"
 DNS_URL = "https://privacyportal.onetrust.com/webform/5cb57702-8ef7-437e-a62b-408fe78cd310/e5f5cb47-9b36-4ba9-920b-fe50ef4dc0c5"
 
-MAIN_REQUEST_TYPES = [
-    "Confirm processing/Access",
-    "Correction",
-    "Obtain a copy of my Data (Portability)",
-    "Opt-Out of profiling in furtherance of decisions that produce legal / similarly significant effects",
-]
-MAIN_REQUEST_DETAILS = (
-    "I am exercising my rights under applicable state privacy law: "
-    "Right to Know/Access, Right to Correct inaccurate information, "
-    "Right to Data Portability, and Right to Opt-Out of Profiling."
-)
-DELETE_REQUEST_TYPE = "Delete my data"
-DELETE_REQUEST_DETAILS = (
-    "I am exercising my Right to Delete all personal information under applicable state privacy law."
-)
+# Right -> main-form request-type buttons. "Correction" is also offered but is not automatable.
+# RIGHT_TO_OPT_OUT additionally submits the separate DNS form (see submit_dns).
+RIGHT_MAP = {
+    Right.RIGHT_TO_ACCESS: ["Confirm processing/Access", "Obtain a copy of my Data (Portability)"],
+    Right.RIGHT_TO_OPT_OUT: [
+        "Opt-Out of profiling in furtherance of decisions that produce legal / similarly significant effects",
+    ],
+    Right.RIGHT_TO_DELETE: ["Delete my data"],
+}
+RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
+
+PAGE_RIGHTS = {}  # TODO(health-check): run HEALTH_CHECK once live; it prints the full list
+
+DNS_FIELD_XPATHS = {
+    "Email": "//*[@id='emailDSARElement']",
+    "First name": "//*[@id='firstNameDSARElement']",
+    "Last name": "//*[@id='lastNameDSARElement']",
+    "Address": "//*[@id='addressDSARElement']",
+    "State": "//*[@id='stateDSARElement']",
+}
+MAIN_FIELD_XPATHS = {
+    "Country": "//*[@id='countryDSARElement']",
+    "State": "//*[@id='stateDSARElement']",
+    "Email": "//*[@id='emailDSARElement']",
+    "First name": "//*[@id='firstNameDSARElement']",
+    "Last name": "//*[@id='lastNameDSARElement']",
+    "Address": "//*[@id='formField49DSARElement']",
+    "City": "//*[@id='formField50DSARElement']",
+    "Zip": "//*[@id='formField51DSARElement']",
+    "Request details": "//*[@id='requestDetailsDSARElement']",
+}
 
 
 async def _select_autocomplete(tab, field_id, search_text):
@@ -76,10 +111,12 @@ async def submit_dns(tab, super_scraper):
 
     time.sleep(0.5)
 
+    if SuperScraper.HEALTH_CHECK:
+        await SuperScraper.assert_fields_filled(tab, DNS_FIELD_XPATHS)
+
     if SuperScraper.DRY_RUN:
         print(
-            f"DRY RUN: would submit DNS/Opt-Out for "
-            f"{SuperScraper.FIRST_NAME} {SuperScraper.LAST_NAME} <{SuperScraper.EMAIL}>"
+            f"DRY RUN: would submit '{Right.RIGHT_TO_OPT_OUT.name}' (DNS form) for {SuperScraper.EMAIL}"
         )
         submit_btn = await tab.find(**{"aria-label": "Click to submit form"}, raise_exc=False)
         if not submit_btn:
@@ -87,8 +124,7 @@ async def submit_dns(tab, super_scraper):
         if submit_btn:
             await submit_btn.scroll_into_view()
         await asyncio.sleep(2)
-        await tab.take_screenshot("resources/screenshots/automotivemastermind_dry_run_dns.png")
-        print("Screenshot saved to resources/screenshots/automotivemastermind_dry_run_dns.png")
+        await SuperScraper.screenshot(tab, "dry_run_dns")
         return
 
     submit_btn = await tab.find(**{"aria-label": "Click to submit form"}, raise_exc=False)
@@ -98,15 +134,14 @@ async def submit_dns(tab, super_scraper):
         await submit_btn.click()
         await asyncio.sleep(3)
 
-    source = await tab.page_source
-    if any(w in source.lower() for w in ("thank", "success", "received", "submitted", "confirmation")):
-        print(f"Submitted DNS/Opt-Out for {SuperScraper.FIRST_NAME} {SuperScraper.LAST_NAME}")
-    else:
-        print(f"{super_scraper.OOPS} DNS confirmation unclear — verify in browser")
+    print(f"Submitted '{Right.RIGHT_TO_OPT_OUT.name}' (DNS form) for {SuperScraper.EMAIL} — confirm in the browser.")
 
 
-async def submit_main(tab, request_types, label, details_text, super_scraper):
-    """Submit a main-form request selecting the given request type buttons."""
+async def submit_main(tab, rights, super_scraper):
+    """Submit one main-form request selecting the request type buttons of the given rights."""
+    request_types = [rt for right in rights for rt in RIGHT_MAP[right]]
+    label = "_".join(right.value for right in rights)
+    details_text = SuperScraper.request_statement(rights, broker="Automotive Mastermind")
     await tab.go_to(URL)
     await asyncio.sleep(7)
 
@@ -162,10 +197,12 @@ async def submit_main(tab, request_types, label, details_text, super_scraper):
 
     time.sleep(0.5)
 
+    if SuperScraper.HEALTH_CHECK:
+        await SuperScraper.assert_fields_filled(tab, MAIN_FIELD_XPATHS)
+
     if SuperScraper.DRY_RUN:
         print(
-            f"DRY RUN: would submit '{label}' for "
-            f"{SuperScraper.FIRST_NAME} {SuperScraper.LAST_NAME} <{SuperScraper.EMAIL}>"
+            f"DRY RUN: would submit {[r.name for r in rights]} for {SuperScraper.EMAIL}"
         )
         submit_btn = await tab.find(**{"aria-label": "Click to submit form"}, raise_exc=False)
         if not submit_btn:
@@ -173,36 +210,39 @@ async def submit_main(tab, request_types, label, details_text, super_scraper):
         if submit_btn:
             await submit_btn.scroll_into_view()
         await asyncio.sleep(2)
-        await tab.take_screenshot(f"resources/screenshots/automotivemastermind_dry_run_{label}.png")
-        print(f"Screenshot saved to resources/screenshots/automotivemastermind_dry_run_{label}.png")
+        await SuperScraper.screenshot(tab, f"dry_run_{label}")
         return
 
-    print(f"\nForm filled for '{label}'.")
+    print(f"\nForm filled for {[r.name for r in rights]}.")
     print("Solve the reCAPTCHA in the browser, then click Submit.")
     print("Press Enter after submission completes...")
     input()
 
-    source = await tab.page_source
-    if any(w in source.lower() for w in ("thank", "success", "received", "submitted", "confirmation")):
-        print(f"Submitted '{label}' for {SuperScraper.FIRST_NAME} {SuperScraper.LAST_NAME}")
-    else:
-        print(f"{super_scraper.OOPS} Confirmation unclear for '{label}' — verify in browser")
+    print(f"Submitted {[r.name for r in rights]} for {SuperScraper.EMAIL} — confirm in the browser.")
 
 
 async def main():
-    options = ChromiumOptions()
     super_scraper = SuperScraper()
-    options.binary_location = super_scraper.CHROMIUM_LOCATION
-    options.add_argument("--no-sandbox")
-    options.add_argument("--window-size=1280,3000")
+    if SuperScraper.bail_if_not_automatable(globals()):
+        return
+
+    rights = SuperScraper.rights_to_exercise(RIGHT_MAP)
+    if not rights:
+        print("No requested privacy rights apply to this form — nothing to do.")
+        return
+
+    options = SuperScraper.build_chromium_options()
 
     async with Chrome(options=options) as browser:
         tab = await browser.start()
 
-        await submit_dns(tab, super_scraper)
-        await submit_main(tab, MAIN_REQUEST_TYPES, "access_correct_portability", MAIN_REQUEST_DETAILS, super_scraper)
-        if SuperScraper.REMOVE_INFORMATION:
-            await submit_main(tab, [DELETE_REQUEST_TYPE], "delete", DELETE_REQUEST_DETAILS, super_scraper)
+        if Right.RIGHT_TO_OPT_OUT in rights:
+            await submit_dns(tab, super_scraper)
+        shared = [r for r in rights if r != Right.RIGHT_TO_DELETE]
+        if shared:
+            await submit_main(tab, shared, super_scraper)
+        if Right.RIGHT_TO_DELETE in rights:
+            await submit_main(tab, [Right.RIGHT_TO_DELETE], super_scraper)
 
 
 asyncio.run(main())

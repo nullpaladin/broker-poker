@@ -2,46 +2,85 @@
 # Contact Form 7 form. Real-estate lead data keyed on a PROPERTY address.
 # Server-rendered. "checkbox-datatypes[]" is a multi-select checkbox group
 # (one combined submission): "Data Access", "Right to Know", "Do Not Sell My
-# Information" unconditionally; "Data Deletion" gated on REMOVE_INFORMATION.
+# Information", "Data Deletion". Which boxes get ticked is decided only by
+# SuperScraper.rights_to_exercise.
 # Fields: fname, lname, proaddress (Property Address), states-list (native
 # <select>, 2-letter values), cityname, zipaddress, email, phone-number.
 # A Cloudflare Turnstile gates submission — the form is filled and left for a
 # manual solve.  **CAPTCHA solution required**
+#
+# Page elements:
+#   input[name='checkbox-datatypes[]']  request-type checkboxes (values in RIGHT_MAP)
+#   fname / lname                       First / Last name
+#   proaddress                          Property Address
+#   states-list                         State (native <select>, 2-letter values)
+#   cityname / zipaddress               City / ZIP
+#   email / phone-number                Email / Phone
 import asyncio
 import time
 
 from pydoll.browser.chromium import Chrome
-from pydoll.browser.options import ChromiumOptions
 
+from src.dsar.rights import Right
 from src.dsar.super_scraper import SuperScraper
+from src.dsar import js_utils
 
 URL = "https://ileads.com/submitrequest/"
 
-RIGHTS = ["Data Access", "Right to Know", "Do Not Sell My Information"]
-DELETE_RIGHT = "Data Deletion"
+RIGHT_MAP = {
+    Right.RIGHT_TO_ACCESS: ["Data Access", "Right to Know"],
+    Right.RIGHT_TO_OPT_OUT: ["Do Not Sell My Information"],
+    Right.RIGHT_TO_DELETE: ["Data Deletion"],
+}
+RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
+
+# Every option in the "checkbox-datatypes[]" group, as displayed -> the Right it maps to.
+PAGE_RIGHTS = {
+    "Data Access": Right.RIGHT_TO_ACCESS,
+    "Right to Know": Right.RIGHT_TO_ACCESS,
+    "Do Not Sell My Information": Right.RIGHT_TO_OPT_OUT,
+    "Data Deletion": Right.RIGHT_TO_DELETE,
+}
+RIGHTS_OPTIONS_CSS = ".wpcf7-list-item:has(input[name='checkbox-datatypes[]'])"  # Contact Form 7 checkbox items
+
+FIELD_XPATHS = {
+    "First name": "//*[@name='fname']",
+    "Last name": "//*[@name='lname']",
+    "Property address": "//*[@name='proaddress']",
+    "City": "//*[@name='cityname']",
+    "Zip": "//*[@name='zipaddress']",
+    "Email": "//*[@name='email']",
+    "Phone": "//*[@name='phone-number']",
+    "State": "//*[@name='states-list']",
+}
 
 
 async def main():
-    options = ChromiumOptions()
     super_scraper = SuperScraper()
-    options.binary_location = super_scraper.CHROMIUM_LOCATION
-    options.add_argument("--no-sandbox")
-    options.add_argument("--window-size=1280,2400")
+
+    rights = SuperScraper.rights_to_exercise(RIGHT_MAP)
+    if not rights:
+        print("No requested privacy rights apply to this form — nothing to do.")
+        return
+
+    options = SuperScraper.build_chromium_options()
 
     async with Chrome(options=options) as browser:
         tab = await browser.start()
         await tab.go_to(URL)
         await asyncio.sleep(5)
 
-        rights = list(RIGHTS)
-        if SuperScraper.REMOVE_INFORMATION:
-            rights.append(DELETE_RIGHT)
-        for value in rights:
+        if SuperScraper.HEALTH_CHECK:
+            offered = await SuperScraper.read_option_labels(tab, RIGHTS_OPTIONS_CSS)
+            SuperScraper.audit_rights(offered, PAGE_RIGHTS)
+
+        values = [v for right in rights for v in RIGHT_MAP[right]]
+        for value in values:
             box = await tab.find(
                 xpath=f"//input[@name='checkbox-datatypes[]' and @value={value!r}]", raise_exc=False
             )
             if box:
-                await box.execute_script("if (!this.checked) this.click();")
+                await js_utils.js_check(box)
                 await asyncio.sleep(0.1)
 
         for name, value in [
@@ -59,15 +98,14 @@ async def main():
 
         state_select = await tab.find(name="states-list", raise_exc=False)
         if state_select:
-            abbr = await super_scraper.state_full_name_to_abbreviated(SuperScraper.STATE)
-            await state_select.execute_script(
-                f"const s=Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype,'value').set;"
-                f"s.call(this,{abbr!r});this.dispatchEvent(new Event('change',{{bubbles:true}}));"
-            )
+            abbr = SuperScraper.STATE_ABBREVIATED
+            await js_utils.select_native_option(state_select, value=abbr, dispatch=("change",))
+
+        if SuperScraper.HEALTH_CHECK:
+            await SuperScraper.assert_fields_filled(tab, FIELD_XPATHS)
 
         time.sleep(0.5)
-        await tab.take_screenshot("resources/screenshots/ileads_dry_run.png")
-        print("Screenshot saved to resources/screenshots/ileads_dry_run.png")
+        await SuperScraper.screenshot(tab, "dry_run_" + "_".join(r.value for r in rights))
         print(
             "Request filled but NOT submitted — a Cloudflare Turnstile must be solved "
             "manually before submitting."
@@ -76,6 +114,7 @@ async def main():
         if not SuperScraper.DRY_RUN:
             print("Solve the Turnstile, click Submit Request, then press Enter once confirmed...")
             input()
+            print(f"Submitted {', '.join(r.name for r in rights)} for {SuperScraper.EMAIL} — confirm in the browser.")
 
 
 asyncio.run(main())

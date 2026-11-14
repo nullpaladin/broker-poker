@@ -10,21 +10,42 @@
 # comboboxes (type then click the matching role="option"). "Mobile
 # Advertiser ID or Cookie" (formField78DSARElement) required. captchaCode
 # is a BotDetect image CAPTCHA — **CAPTCHA solution required**. Exercises
-# "Request to Access or Know" unconditionally; "Request to Delete Personal
-# Information" gated on REMOVE_INFORMATION. ("Request to Correct
-# Inaccurate Personal Information" skipped — no concrete inaccuracy to
-# describe.)
+# "Request to Access or Know" and "Request to Delete Personal Information",
+# as decided ONLY by SuperScraper.rights_to_exercise(RIGHT_MAP). ("Request to
+# Correct Inaccurate Personal Information" is not automated.)
+#
+# Page elements:
+#   role=option aria-label="Consumer"   "I am a (an)" -> Consumer
+#   role=option request types           see RIGHT_MAP
+#   #countryDSARElement                 Country (autocomplete) -> "United States"
+#   #stateDSARElement                   State (autocomplete)
+#   #emailDSARElement                   Email
+#   #formField78DSARElement             "Mobile Advertiser ID or Cookie" (required)
+#   #captchaCode                        BotDetect image CAPTCHA (manual)
 import asyncio
 
+from src.dsar.rights import Right
 from src.dsar.super_scraper import SuperScraper
 
 from pydoll.browser.chromium import Chrome
-from pydoll.browser.options import ChromiumOptions
 
 URL = "https://mynt-test-privacy.my.onetrust.com/webform/ebe19500-bc8d-487f-9d89-98fde8b270e2/bac5d2a2-fd3e-4830-99b6-bd2a69fec1c9"
 
-RIGHTS = ["Request to Access or Know"]
-DELETE_RIGHT = "Request to Delete Personal Information"
+RIGHT_MAP = {
+    Right.RIGHT_TO_ACCESS: ["Request to Access or Know"],
+    Right.RIGHT_TO_DELETE: ["Request to Delete Personal Information"],
+}
+RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
+
+PAGE_RIGHTS = {}  # TODO(health-check): run HEALTH_CHECK once live; it prints the full list
+# ("I am a (an)" options other than Consumer are unrecorded and share role=option with the request types.)
+
+FIELD_XPATHS = {
+    "Country": "//*[@id='countryDSARElement']",
+    "State": "//*[@id='stateDSARElement']",
+    "Email": "//*[@id='emailDSARElement']",
+    "Mobile Advertiser ID or Cookie": "//*[@id='formField78DSARElement']",
+}
 
 
 async def _autocomplete_select(tab, field_id, text, super_scraper, description):
@@ -77,10 +98,12 @@ async def submit_request(tab, right, super_scraper):
     if maid_field:
         await maid_field.type_text(SuperScraper.ADVERTISING_ID)
 
+    if SuperScraper.HEALTH_CHECK:
+        await SuperScraper.assert_fields_filled(tab, FIELD_XPATHS)
+
     label = "".join(c if c.isalnum() else "_" for c in right.lower())[:40].strip("_")
     await asyncio.sleep(1)
-    await tab.take_screenshot(path=f"resources/screenshots/pulsepoint_dry_run_{label}.png")
-    print(f"Screenshot saved to resources/screenshots/pulsepoint_dry_run_{label}.png")
+    await SuperScraper.screenshot(tab, f"dry_run_{label}")
     print(
         f"\n'{right}' request filled but NOT submitted — a BotDetect image CAPTCHA "
         "requires manual entry before submitting."
@@ -88,19 +111,21 @@ async def submit_request(tab, right, super_scraper):
 
 
 async def main():
-    options = ChromiumOptions()
     super_scraper = SuperScraper()
-    options.binary_location = super_scraper.CHROMIUM_LOCATION
-    options.add_argument("--no-sandbox")
+    if SuperScraper.bail_if_not_automatable(globals()):
+        return
+    options = SuperScraper.build_chromium_options()
 
-    rights = list(RIGHTS)
-    if SuperScraper.REMOVE_INFORMATION:
-        rights.append(DELETE_RIGHT)
+    rights = SuperScraper.rights_to_exercise(RIGHT_MAP)
+    if not rights:
+        print("No requested privacy rights apply to this form — nothing to do.")
+        return
+    entries = [entry for right in rights for entry in RIGHT_MAP[right]]
 
     async with Chrome(options=options) as browser:
         tab = await browser.start()
-        for right in rights:
-            await submit_request(tab, right, super_scraper)
+        for entry in entries:
+            await submit_request(tab, entry, super_scraper)
 
 
 asyncio.run(main())

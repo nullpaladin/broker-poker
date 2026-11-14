@@ -5,17 +5,25 @@
 # Checkbox: name="data_ownership" (sole-user confirmation).
 # reCAPTCHA v2 checkbox — manual solve required in live mode.
 # Submit: id="data_request_submit".
-# One submission per right (ACCESS always; DELETION gated on REMOVE_INFORMATION).
+# One submission per right. The form only exposes retrieval/deletion (no opt-out);
+# which of them run is decided ONLY by SuperScraper.rights_to_exercise(RIGHT_MAP).
 # Elements found via tab.find() by name/value attributes (querySelectorAll fails
 # on this domain for unknown reasons; pydoll CDP-level find works fine).
 import asyncio
 
 from pydoll.browser.chromium import Chrome
-from pydoll.browser.options import ChromiumOptions
 
+from src.dsar.rights import Right
 from src.dsar.super_scraper import SuperScraper
 
 URL = "https://data-access.quantserve.com/gdpr/"
+
+# Right -> this form's request_type radio value.
+RIGHT_MAP = {Right.RIGHT_TO_ACCESS: "retrieval", Right.RIGHT_TO_DELETE: "deletion"}
+RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
+
+PAGE_RIGHTS = {}  # TODO(health-check): run HEALTH_CHECK once live; it prints the full list
+# (No audit wired: the radio labels are unrecorded and read_option_labels' querySelectorAll is noted as failing on this domain.)
 
 
 async def _submit_right(tab, super_scraper, radio_value, label):
@@ -34,13 +42,21 @@ async def _submit_right(tab, super_scraper, radio_value, label):
     if confirm:
         await confirm.click()
 
+    if SuperScraper.HEALTH_CHECK:
+        await SuperScraper.assert_fields_filled(
+            tab,
+            {
+                f"{label} request_type radio": f"//input[@name='request_type' and @value='{radio_value}']",
+                "sole-user confirmation": "//input[@name='data_ownership']",
+            },
+        )
+
     if SuperScraper.DRY_RUN:
         await asyncio.sleep(1)
-        await tab.take_screenshot(path=f"resources/screenshots/quantcast_dry_run_{radio_value}.png")
+        await SuperScraper.screenshot(tab, f"dry_run_{radio_value}")
         print(
             f"DRY RUN: would submit quantcast '{label}' (cookie-based, no personal info)"
         )
-        print(f"Screenshot saved to resources/screenshots/quantcast_dry_run_{radio_value}.png")
         return
 
     print(
@@ -49,33 +65,26 @@ async def _submit_right(tab, super_scraper, radio_value, label):
     )
     input()
 
-    src = await tab.page_source
-    if any(w in src.lower() for w in ("thank", "success", "received", "submitted", "request")):
-        print(f"Submitted '{label}' DSAR (cookie-based)")
-    else:
-        print(f"{super_scraper.OOPS} Confirmation unclear for '{label}' — verify in browser")
+    print(f"Submitted '{label}' DSAR (cookie-based) — confirm in the browser.")
 
 
 async def main():
-    options = ChromiumOptions()
     super_scraper = SuperScraper()
-    options.binary_location = super_scraper.CHROMIUM_LOCATION
-    options.add_argument("--no-sandbox")
-    options.add_argument("--window-size=1280,3000")
+    if SuperScraper.bail_if_not_automatable(globals()):
+        return
+    options = SuperScraper.build_chromium_options()
+
+    rights = SuperScraper.rights_to_exercise(RIGHT_MAP)
+    if not rights:
+        print("No requested privacy rights apply to this form — nothing to do.")
+        return
 
     async with Chrome(options=options) as browser:
         tab = await browser.start()
-
-        # ACCESS (always)
-        await tab.go_to(URL)
-        await asyncio.sleep(5)
-        await _submit_right(tab, super_scraper, "retrieval", "Access")
-
-        # DELETION (gated)
-        if SuperScraper.REMOVE_INFORMATION:
+        for right in rights:
             await tab.go_to(URL)
             await asyncio.sleep(5)
-            await _submit_right(tab, super_scraper, "deletion", "Delete")
+            await _submit_right(tab, super_scraper, RIGHT_MAP[right], right.name)
 
 
 asyncio.run(main())

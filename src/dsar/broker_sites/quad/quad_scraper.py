@@ -4,27 +4,54 @@
 # Sharing, and Targeted Advertising" and "Right to Limit the Use of
 # Sensitive Personal Information" simultaneously; no Access or Delete
 # option is offered at all. So this is a single, always-submitted
-# combined request — no REMOVE_INFORMATION gating applies (there's no
-# Delete right to gate). State is a vt-autocomplete combobox (type then
+# combined request, gated only by SuperScraper.rights_to_exercise(RIGHT_MAP)
+# (RIGHT_TO_OPT_OUT; no Access or Delete exists). State is a vt-autocomplete combobox (type then
 # click the matching role="option"); Address/Address Line 2/City/Zip are
 # optional. captchaCode is a BotDetect image CAPTCHA — **CAPTCHA solution
 # required**. Optional file upload for supporting documentation, left
 # unfilled.
+#
+# Page elements:
+#   #stateDSARElement      State (autocomplete; type then click matching role="option")
+#   #firstNameDSARElement / #lastNameDSARElement   First / Last name
+#   #emailDSARElement      Email
+#   #addressDSARElement / #address2DSARElement     Address / Address Line 2 (optional)
+#   #cityDSARElement / #zipDSARElement             City / ZIP (optional)
+#   #captchaCode           BotDetect image CAPTCHA (manual)
 import asyncio
 
+from src.dsar.rights import Right
 from src.dsar.super_scraper import SuperScraper
 
 from pydoll.browser.chromium import Chrome
-from pydoll.browser.options import ChromiumOptions
 
 URL = "https://privacyportal.onetrust.com/webform/9bbdeb31-9ca4-4397-b421-b165438ad177/1ca01042-21a7-4307-8b42-a6c7439c9685"
 
+# One combined form: opt out of sale/sharing/targeted ads + limit use of sensitive PI.
+RIGHT_MAP = {Right.RIGHT_TO_OPT_OUT: "combined opt-out / limit sensitive PI"}
+RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
+
+PAGE_RIGHTS = {}  # TODO(health-check): run HEALTH_CHECK once live; it prints the full list
+# (One combined opt-out / limit-sensitive-PI form: there is no rights chooser to inventory.)
+
+FIELD_XPATHS = {
+    "State": "//*[@id='stateDSARElement']",
+    "First name": "//*[@id='firstNameDSARElement']",
+    "Last name": "//*[@id='lastNameDSARElement']",
+    "Email": "//*[@id='emailDSARElement']",
+}
+
 
 async def main():
-    options = ChromiumOptions()
     super_scraper = SuperScraper()
-    options.binary_location = super_scraper.CHROMIUM_LOCATION
-    options.add_argument("--no-sandbox")
+    if SuperScraper.bail_if_not_automatable(globals()):
+        return
+
+    if not SuperScraper.rights_to_exercise(RIGHT_MAP):
+        print("No requested privacy rights apply to this form — nothing to do.")
+        return
+
+    options = SuperScraper.build_chromium_options()
 
     async with Chrome(options=options) as browser:
         tab = await browser.start()
@@ -66,9 +93,11 @@ async def main():
             else:
                 print(f"{super_scraper.OOPS} field '{field_id}' not found")
 
+        if SuperScraper.HEALTH_CHECK:
+            await SuperScraper.assert_fields_filled(tab, FIELD_XPATHS)
+
         await asyncio.sleep(1)
-        await tab.take_screenshot(path="resources/screenshots/quad_dry_run.png")
-        print("Screenshot saved to resources/screenshots/quad_dry_run.png")
+        await SuperScraper.screenshot(tab, "dry_run")
         print(
             "\nCombined Opt-Out of Sale/Sharing/Targeted Advertising + Limit Use of "
             "Sensitive PI request filled but NOT submitted — a BotDetect image CAPTCHA "

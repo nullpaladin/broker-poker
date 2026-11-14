@@ -1,37 +1,60 @@
 # brooksim.com (Brooks Integrated Marketing) — Trust Superset DSR platform
 # (dsr.trustsuperset.com). The page embedded at /privacy-form doesn't reliably
 # render in headless Chrome — navigate directly to the underlying form URL
-# instead. Request Type is a single-select dropdown (one submission per
-# right): Right to Rectification (Correct), Right to Restrict Processing,
-# Right to Data Portability, Right to Not be Subject to Automated
+# instead. Request Type is a single-select dropdown (one submission per entry):
+# Right to Rectification (not automated), Right to Restrict Processing,
+# Right to Data Portability (Access), Right to Not be Subject to Automated
 # Decision-Making, Right to Opt-out of Sales, Right to Limit Sensitive
-# Personal Information unconditionally; Right to Erasure (Delete) gated on
-# REMOVE_INFORMATION. No dedicated "Access" option is offered by this form.
+# Personal Information (all Opt-out), Right to Erasure (Delete). No dedicated "Access"
+# option is offered by this form. Which rights run is decided ONLY by
+# SuperScraper.rights_to_exercise(RIGHT_MAP).
 # Cloudflare Turnstile ("Please verify you're human") requires manual solve
-# in live mode. Selecting Rectification reveals an additional required
-# "Information to Rectify" textarea (name="rectification_info") — no other
-# right adds a conditional field.
+# in live mode.
+#
+# Page elements:
+#   "Select request type" dropdown   Request Type -> entry from RIGHT_MAP
+#   [name=first_name] / [name=last_name]   First / Last name
+#   [name=email] / [name=phone]      Email / Phone
+#   [name=country] / [name=region]   Country ("United States") / State
+#   [name=address_1] / [name=city] / [name=zip_code]   Address / City / ZIP
+#   "Submit Request" button          Submit (clicked manually in live mode)
 import asyncio
 
+from src.dsar.rights import Right
 from src.dsar.super_scraper import SuperScraper
 
 from pydoll.browser.chromium import Chrome
-from pydoll.browser.options import ChromiumOptions
 
 URL = "https://dsr.trustsuperset.com/?orgId=2dc76d0a-78d2-4492-9fc1-39da892fc0d5"
 
-RIGHTS = [
-    "Right to Rectification",
-    "Right to Restrict Processing",
-    "Right to Data Portability",
-    "Right to Not be Subject to Automated Decision-Making",
-    "Right to Opt-out of Sales",
-    "Right to Limit Sensitive Personal Information",
-]
-DELETE_RIGHT = "Right to Erasure"
+RIGHT_MAP = {
+    Right.RIGHT_TO_ACCESS: ["Right to Data Portability"],
+    Right.RIGHT_TO_OPT_OUT: [
+        "Right to Not be Subject to Automated Decision-Making",
+        "Right to Opt-out of Sales",
+        "Right to Restrict Processing",
+        "Right to Limit Sensitive Personal Information",
+    ],
+    Right.RIGHT_TO_DELETE: ["Right to Erasure"],
+}
+RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
+
+PAGE_RIGHTS = {}  # TODO(health-check): run HEALTH_CHECK once live; it prints the full list
+
+FIELD_XPATHS = {
+    "First name": "//*[@name='first_name']",
+    "Last name": "//*[@name='last_name']",
+    "Email": "//*[@name='email']",
+    "Phone": "//*[@name='phone']",
+    "Country": "//*[@name='country']",
+    "Address": "//*[@name='address_1']",
+    "City": "//*[@name='city']",
+    "State": "//*[@name='region']",
+    "Zip": "//*[@name='zip_code']",
+}
 
 
-async def submit_request(tab, right, super_scraper):
+async def submit_request(tab, right, entry, super_scraper):
     await tab.go_to(URL)
     await asyncio.sleep(5)
 
@@ -39,18 +62,10 @@ async def submit_request(tab, right, super_scraper):
     if request_type:
         await request_type.click()
         await asyncio.sleep(1)
-        option = await tab.find(text=right, raise_exc=False)
+        option = await tab.find(text=entry, raise_exc=False)
         if option:
             await option.click()
     await asyncio.sleep(1)
-
-    if right == "Right to Rectification":
-        rectify_field = await tab.find(name="rectification_info", raise_exc=False)
-        if rectify_field:
-            await rectify_field.type_text(
-                "Please correct any inaccurate personal information you hold about me "
-                "to match the details provided in this request."
-            )
 
     for name, value in [
         ("first_name", SuperScraper.FIRST_NAME),
@@ -68,43 +83,41 @@ async def submit_request(tab, right, super_scraper):
             await field.type_text(value)
             await asyncio.sleep(0.2)
 
-    label = right.lower().replace(" ", "_")
+    label = "".join(c if c.isalnum() else "_" for c in entry.lower()).strip("_")
+
+    if SuperScraper.HEALTH_CHECK:
+        await SuperScraper.assert_fields_filled(tab, FIELD_XPATHS)
 
     if SuperScraper.DRY_RUN:
         print(
-            f"DRY RUN: would submit '{right}' for "
+            f"DRY RUN: would submit '{right.name}' ({entry}) for "
             f"{SuperScraper.FIRST_NAME} {SuperScraper.LAST_NAME} <{SuperScraper.EMAIL}>"
         )
         await asyncio.sleep(1)
-        await tab.take_screenshot(path=f"resources/screenshots/brooksim_dry_run_{label}.png")
-        print(f"Screenshot saved to resources/screenshots/brooksim_dry_run_{label}.png")
+        await SuperScraper.screenshot(tab, f"dry_run_{label}")
         return
 
-    print(f"\nForm filled for '{right}'. Solve the Cloudflare Turnstile challenge,")
+    print(f"\nForm filled for '{right.name}' ({entry}). Solve the Cloudflare Turnstile challenge,")
     print("click Submit Request, then press Enter once the confirmation appears...")
     input()
 
-    source = await tab.page_source
-    if any(w in source.lower() for w in ("thank", "success", "received", "submitted", "confirmation")):
-        print(f"Submitted '{right}' for {SuperScraper.FIRST_NAME} {SuperScraper.LAST_NAME}")
-    else:
-        print(f"{super_scraper.OOPS} Confirmation unclear for '{right}' — verify in browser")
+    print(f"Submitted '{right.name}' ({entry}) for {SuperScraper.EMAIL} — confirm in the browser.")
 
 
 async def main():
-    options = ChromiumOptions()
     super_scraper = SuperScraper()
-    options.binary_location = super_scraper.CHROMIUM_LOCATION
-    options.add_argument("--no-sandbox")
+    rights = SuperScraper.rights_to_exercise(RIGHT_MAP)
+    if not rights:
+        print("No requested privacy rights apply to this form — nothing to do.")
+        return
 
-    rights = list(RIGHTS)
-    if SuperScraper.REMOVE_INFORMATION:
-        rights.append(DELETE_RIGHT)
-
+    options = SuperScraper.build_chromium_options()
     async with Chrome(options=options) as browser:
         tab = await browser.start()
+
         for right in rights:
-            await submit_request(tab, right, super_scraper)
+            for entry in RIGHT_MAP[right]:
+                await submit_request(tab, right, entry, super_scraper)
 
 
 asyncio.run(main())

@@ -5,19 +5,44 @@
 # the same "We need to verify your identity" screen: "Use My Email" reveals
 # an email field and a "Send Me A Code" button — a real OTP email send, so
 # this scraper fills the email and stops there regardless of DRY_RUN;
-# entering the code and continuing must be done manually. Exercises Access
-# and Do Not Sell/Share unconditionally; Delete gated on REMOVE_INFORMATION.
+# entering the code and continuing must be done manually. Which cards run is
+# decided ONLY by SuperScraper.rights_to_exercise(RIGHT_MAP).
+#
+# Page elements:
+#   Card "Access My Data" / "Do Not Sell or Share My Data" / "Delete My Data"
+#   Button "Continue"            (country step of "Access My Data"; default United States)
+#   Button "Use My Email"        reveals the email field
+#   input placeholder "Enter Your Email Address"   Email
+#   Button "Send Me A Code"      (never clicked by this scraper — sends a real OTP)
 import asyncio
 
-from src.dsar.super_scraper import SuperScraper
-
 from pydoll.browser.chromium import Chrome
-from pydoll.browser.options import ChromiumOptions
+
+from src.dsar.rights import Right
+from src.dsar.super_scraper import SuperScraper
 
 URL = "https://platform.fullcontact.com/your-privacy-choices"
 
-CARDS = ["Access My Data", "Do Not Sell or Share My Data"]
-DELETE_CARD = "Delete My Data"
+NOT_AUTOMATABLE = True
+NOT_AUTOMATABLE_REASON = (
+    "identity verification sends a real email OTP that must be entered to continue"
+)
+
+RIGHT_MAP = {
+    Right.RIGHT_TO_ACCESS: "Access My Data",
+    Right.RIGHT_TO_OPT_OUT: "Do Not Sell or Share My Data",
+    Right.RIGHT_TO_DELETE: "Delete My Data",
+}
+RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
+
+# Every card on the landing page, as displayed -> the Right it maps to. No running path (NOT_AUTOMATABLE);
+# this only documents the page. The card selector has not been captured yet.
+PAGE_RIGHTS = {
+    "Access My Data": Right.RIGHT_TO_ACCESS,
+    "Do Not Sell or Share My Data": Right.RIGHT_TO_OPT_OUT,
+    "Delete My Data": Right.RIGHT_TO_DELETE,
+}
+RIGHTS_OPTIONS_CSS = ""  # TODO(health-check): capture the card-title selector on a live run
 
 
 async def submit_request(tab, card_text, super_scraper):
@@ -52,8 +77,7 @@ async def submit_request(tab, card_text, super_scraper):
     label = "".join(c if c.isalnum() else "_" for c in card_text.lower())[:40].strip("_")
 
     await asyncio.sleep(1)
-    await tab.take_screenshot(path=f"resources/screenshots/fullcontact_dry_run_{label}.png")
-    print(f"Screenshot saved to resources/screenshots/fullcontact_dry_run_{label}.png")
+    await SuperScraper.screenshot(tab, f"dry_run_{label}")
     print(
         f"\n'{card_text}' email entered but NOT sent — click 'Send Me A Code' yourself, "
         "enter the code you receive, and continue. This sends a real verification code "
@@ -62,19 +86,20 @@ async def submit_request(tab, card_text, super_scraper):
 
 
 async def main():
-    options = ChromiumOptions()
+    if SuperScraper.bail_if_not_automatable(globals()):
+        return
     super_scraper = SuperScraper()
-    options.binary_location = super_scraper.CHROMIUM_LOCATION
-    options.add_argument("--no-sandbox")
+    options = SuperScraper.build_chromium_options()
 
-    cards = list(CARDS)
-    if SuperScraper.REMOVE_INFORMATION:
-        cards.append(DELETE_CARD)
+    rights = SuperScraper.rights_to_exercise(RIGHT_MAP)
+    if not rights:
+        print("No requested privacy rights apply to this form — nothing to do.")
+        return
 
     async with Chrome(options=options) as browser:
         tab = await browser.start()
-        for card_text in cards:
-            await submit_request(tab, card_text, super_scraper)
+        for right in rights:
+            await submit_request(tab, RIGHT_MAP[right], super_scraper)
 
 
 asyncio.run(main())

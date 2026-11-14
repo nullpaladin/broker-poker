@@ -3,33 +3,53 @@
 # "name" field, "email", and a free-text "purpose" field ("What action would
 # you like us to take on your data?"). No request-type picker and no CAPTCHA
 # observed — one submission. The purpose text states the rights being
-# exercised (deletion included only when REMOVE_INFORMATION is set).
+# exercised. Which rights are stated is decided ONLY by
+# SuperScraper.rights_to_exercise(RIGHT_MAP).
+#
+# Page elements:
+#   input[name=name]                         Full name (first + last)
+#   input[name=email]                        Email
+#   input[name=purpose]                      "What action would you like us to take on your data?"
+#   form#opt-out-form button[type=submit]    Submit button
 import asyncio
 import time
 
 from pydoll.browser.chromium import Chrome
-from pydoll.browser.options import ChromiumOptions
 
+from src.dsar.rights import Right
 from src.dsar.super_scraper import SuperScraper
 
 URL = "https://www.vector.co/opt-out"
 
+# The form is a single free-text box, so every right is expressed in that text.
+RIGHT_MAP = {
+    Right.RIGHT_TO_ACCESS: "access",
+    Right.RIGHT_TO_OPT_OUT: "opt_out",
+    Right.RIGHT_TO_DELETE: "delete",
+}
+RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
+
+PAGE_RIGHTS = {}  # TODO(health-check): run HEALTH_CHECK once live; it prints the full list
+# (A free-text opt-out form with no rights chooser.)
+
+FIELD_XPATHS = {
+    "Name": "//input[@name='name']",
+    "Email": "//input[@name='email']",
+    "Purpose": "//input[@name='purpose']",
+}
+
 
 async def main():
-    options = ChromiumOptions()
     super_scraper = SuperScraper()
-    options.binary_location = super_scraper.CHROMIUM_LOCATION
-    options.add_argument("--no-sandbox")
-    options.add_argument("--window-size=1280,2000")
+    options = SuperScraper.build_chromium_options()
 
-    purpose = (
-        "I am a resident exercising my privacy rights: please opt me out of the "
-        "sale/sharing of my personal information and of targeted advertising, and "
-        "provide me access to the personal information you hold about me"
-    )
-    if SuperScraper.REMOVE_INFORMATION:
-        purpose += ", and delete all personal information you hold about me"
-    purpose += "."
+    if SuperScraper.bail_if_not_automatable(globals()):
+        return
+    rights = SuperScraper.rights_to_exercise(RIGHT_MAP)
+    if not rights:
+        print("No requested privacy rights apply to this form — nothing to do.")
+        return
+    purpose = SuperScraper.request_statement(rights, broker="Vector")
 
     async with Chrome(options=options) as browser:
         tab = await browser.start()
@@ -48,15 +68,16 @@ async def main():
         )
 
         time.sleep(0.5)
+        if SuperScraper.HEALTH_CHECK:
+            await SuperScraper.assert_fields_filled(tab, FIELD_XPATHS)
+
         submit = await tab.find(xpath="//form[@id='opt-out-form']//button[@type='submit']", raise_exc=False)
         if submit:
             await submit.scroll_into_view()
-        await tab.take_screenshot("resources/screenshots/vector_dry_run.png")
-        print("Screenshot saved to resources/screenshots/vector_dry_run.png")
-
+        await SuperScraper.screenshot(tab, "dry_run")
         if SuperScraper.DRY_RUN:
             print(
-                f"DRY RUN: would submit opt-out for "
+                f"DRY RUN: would submit {', '.join(r.name for r in rights)} for "
                 f"{SuperScraper.FIRST_NAME} {SuperScraper.LAST_NAME} <{SuperScraper.EMAIL}>"
             )
             return
@@ -64,11 +85,7 @@ async def main():
         if submit:
             await submit.click()
             await asyncio.sleep(3)
-        source = await tab.page_source
-        if any(w in source.lower() for w in ("thank", "success", "received", "submitted", "confirmation")):
-            print(f"Submitted opt-out for {SuperScraper.FIRST_NAME} {SuperScraper.LAST_NAME}")
-        else:
-            print(f"{super_scraper.OOPS} Confirmation unclear — verify in browser")
+        print(f"Submitted '{', '.join(r.name for r in rights)}' for {SuperScraper.EMAIL} — confirm in the browser.")
 
 
 asyncio.run(main())

@@ -7,31 +7,60 @@
 # "Personalized Content" — each requires a separate submission.
 # If "Data Deletion" is selected, a Yes/No confirmation appears; click "Yes".
 # Phone country code vt-input-7 (optional). Image CAPTCHA (captchaCode).
-# Rights exercised: Opt out (2 sub-options), Info Request (Access), Correct Data,
-# Object to Processing, Data Portability, Restrict Processing,
-# Do Not Sell My Information.
-# Data Deletion gated on REMOVE_INFORMATION.
+# Rights offered: Opt out (2 sub-options), Info Request (Access), Correct Data (not
+# automatable, not mapped), Object to Processing, Data Portability, Restrict Processing,
+# Do Not Sell My Information, Data Deletion. Which run is decided only by
+# rights_to_exercise(RIGHT_MAP).
+#
+# Page elements:
+#   #countryDSARElement / #stateDSARElement   Country / State autocompletes (country first)
+#   aria-label "Data Subject"       Subject type button
+#   aria-label of each request type button: see RIGHT_MAP ("Info Request", "Data Portability",
+#                                   "Opt out", "Do Not Sell My Information", "Object to Processing",
+#                                   "Restrict Processing", "Data Deletion")
+#   aria-label "Partner Services Marketing" / "Personalized Content"   "Opt out" sub-options
+#   aria-label "Yes"                Data Deletion confirmation
+#   #firstNameDSARElement / #lastNameDSARElement / #emailDSARElement   First / Last name / Email
+#   #requestDetailsDSARElement      Request details textarea (required)
+#   #vt-input-7 / #phoneNumberDSARElement   Phone country code (optional) / Phone number
+#   #captchaCode                    Image CAPTCHA code
 import asyncio
 
 from pydoll.browser.chromium import Chrome
-from pydoll.browser.options import ChromiumOptions
 
+from src.dsar.rights import Right
 from src.dsar.super_scraper import SuperScraper
 
 URL = "https://madisonlogic-privacy.my.onetrust.com/webform/b7449bea-44c6-4823-a2ac-30a8f33047d0/9a375b0c-9030-44ce-bfd3-217fd7a71993"
 
 # (req_aria, label, sub_option_aria_or_None)
-ALWAYS_REQUESTS = [
-    ("Opt out",                    "optout_marketing",    "Partner Services Marketing"),
-    ("Opt out",                    "optout_content",      "Personalized Content"),
-    ("Info Request",               "access",              None),
-    ("Correct Data",               "correct",             None),
-    ("Object to Processing",       "object",              None),
-    ("Data Portability",           "portability",         None),
-    ("Restrict Processing",        "restrict",            None),
-    ("Do Not Sell My Information", "dns",                 None),
-]
-DELETE_REQUEST = ("Data Deletion", "delete", None)
+RIGHT_MAP = {
+    Right.RIGHT_TO_ACCESS: [
+        ("Info Request", "access", None),
+        ("Data Portability", "portability", None),
+    ],
+    Right.RIGHT_TO_OPT_OUT: [
+        ("Opt out", "optout_content", "Personalized Content"),
+        ("Opt out", "optout_marketing", "Partner Services Marketing"),
+        ("Do Not Sell My Information", "dns", None),
+        ("Object to Processing", "object", None),
+        ("Restrict Processing", "restrict", None),
+    ],
+    Right.RIGHT_TO_DELETE: [("Data Deletion", "delete", None)],
+}
+RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
+
+PAGE_RIGHTS = {}  # TODO(health-check): run HEALTH_CHECK once live; it prints the full list
+# (Recorded request types are aria-labels; the visible text may differ, so they are not copied in.)
+
+FIELD_XPATHS = {
+    "Country": "//*[@id='countryDSARElement']",
+    "State": "//*[@id='stateDSARElement']",
+    "First name": "//*[@id='firstNameDSARElement']",
+    "Last name": "//*[@id='lastNameDSARElement']",
+    "Email": "//*[@id='emailDSARElement']",
+    "Request details": "//*[@id='requestDetailsDSARElement']",
+}
 
 
 async def _autocomplete(tab, field_id, text):
@@ -51,7 +80,7 @@ async def _autocomplete(tab, field_id, text):
                 return
 
 
-async def _submit_request(tab, req_aria, label, sub_option, super_scraper):
+async def _submit_request(tab, right, req_aria, label, sub_option, super_scraper):
     await tab.go_to(URL)
     await asyncio.sleep(7)
 
@@ -91,7 +120,7 @@ async def _submit_request(tab, req_aria, label, sub_option, super_scraper):
         await asyncio.sleep(0.3)
 
     # Deletion confirmation dialog (appears when Data Deletion is selected)
-    if label == "delete":
+    if right is Right.RIGHT_TO_DELETE:
         yes_btn = await tab.find(**{"aria-label": "Yes"}, raise_exc=False)
         if yes_btn:
             await yes_btn.click_using_js()
@@ -114,7 +143,7 @@ async def _submit_request(tab, req_aria, label, sub_option, super_scraper):
     request_details = await tab.find(id="requestDetailsDSARElement", raise_exc=False)
     if request_details:
         await request_details.type_text(
-            f"I am exercising my privacy rights under applicable law ({label})."
+            SuperScraper.request_statement([right], broker="Madison Logic")
         )
 
     # Phone country code (optional)
@@ -128,6 +157,9 @@ async def _submit_request(tab, req_aria, label, sub_option, super_scraper):
     if phone:
         await phone.type_text(SuperScraper.PHONE_NUMBER)
 
+    if SuperScraper.HEALTH_CHECK:
+        await SuperScraper.assert_fields_filled(tab, FIELD_XPATHS)
+
     if SuperScraper.DRY_RUN:
         sub_desc = f" ({sub_option})" if sub_option else ""
         print(
@@ -138,8 +170,7 @@ async def _submit_request(tab, req_aria, label, sub_option, super_scraper):
         if captcha_field:
             await captcha_field.scroll_into_view()
         await asyncio.sleep(1)
-        await tab.take_screenshot(f"resources/screenshots/madisonlogic_dry_run_{label}.png")
-        print(f"Screenshot saved to resources/screenshots/madisonlogic_dry_run_{label}.png")
+        await SuperScraper.screenshot(tab, f"dry_run_{label}")
         return
 
     sub_desc = f" ({sub_option})" if sub_option else ""
@@ -150,28 +181,26 @@ async def _submit_request(tab, req_aria, label, sub_option, super_scraper):
     )
     input()
 
-    source = await tab.page_source
-    if any(w in source.lower() for w in ("thank", "success", "received", "submitted", "confirmation")):
-        print(f"Submitted '{label}'{sub_desc} for {SuperScraper.FIRST_NAME} {SuperScraper.LAST_NAME}")
-    else:
-        print(f"{super_scraper.OOPS} Confirmation unclear for '{label}'{sub_desc} — verify in browser")
+    print(f"Submitted '{label}'{sub_desc} ({right.name}) for {SuperScraper.EMAIL} — confirm in the browser.")
 
 
 async def main():
-    options = ChromiumOptions()
     super_scraper = SuperScraper()
-    options.binary_location = super_scraper.CHROMIUM_LOCATION
-    options.add_argument("--no-sandbox")
-    options.add_argument("--window-size=1280,3000")
+    if SuperScraper.bail_if_not_automatable(globals()):
+        return
 
-    requests = list(ALWAYS_REQUESTS)
-    if SuperScraper.REMOVE_INFORMATION:
-        requests.append(DELETE_REQUEST)
+    options = SuperScraper.build_chromium_options()
+
+    rights = SuperScraper.rights_to_exercise(RIGHT_MAP)
+    if not rights:
+        print("No requested privacy rights apply to this form — nothing to do.")
+        return
 
     async with Chrome(options=options) as browser:
         tab = await browser.start()
-        for req_aria, label, sub_option in requests:
-            await _submit_request(tab, req_aria, label, sub_option, super_scraper)
+        for right in rights:
+            for req_aria, label, sub_option in RIGHT_MAP[right]:
+                await _submit_request(tab, right, req_aria, label, sub_option, super_scraper)
 
 
 asyncio.run(main())

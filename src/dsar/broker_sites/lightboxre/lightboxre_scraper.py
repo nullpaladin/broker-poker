@@ -3,33 +3,59 @@
 # (a "datasubject.com"-hosted portal, navigated to directly rather than
 # through the wrapper). No explicit Opt-Out-of-Sale card exists — cards are
 # Correct/Access/Delete/"Third parties your data was sold or shared with".
-# The last one is used as the closest available analog to Opt-Out (it's
-# the CA "Shine the Light"-style sharing-disclosure right, same idea used
-# on liftbasedata.com elsewhere in this repo where no explicit opt-out
-# toggle existed either). Correct is skipped as auxiliary. Every card
+# The last one is mapped to Right.RIGHT_TO_LIST_OF_THIRD_PARTIES. Correct
+# is not automatable and not mapped. Every card
 # shares the same field set: email/given-name/family-name/phone-number
 # (all stable ids) plus an address block (o-Address/o-City/o-State/
 # o-ZipCode) whose ids are random per-field UUIDs — targeted by `name`
 # instead. State is a plain text field expecting the 2-letter abbreviation
 # (SuperScraper.state_full_name_to_abbreviated). No CAPTCHA observed on
-# this vendor. Exercises Access and the third-party-sharing disclosure
-# unconditionally; Delete gated on REMOVE_INFORMATION.
+# this vendor. Which rights run is decided only by rights_to_exercise(RIGHT_MAP).
+#
+# Page elements:
+#   Request cards (clicked by text)  "Access my personal information",
+#                            "Third parties your data was sold or shared with",
+#                            "Delete my personal information"
+#   #email / #given-name / #family-name / #phone-number   Email / First / Last name / Phone
+#   name=o-Address / o-City / o-State / o-ZipCode   Address / City / State (2-letter) / ZIP
+#   "Submit" button (found by text)
 import asyncio
 
-from src.dsar.super_scraper import SuperScraper
-
 from pydoll.browser.chromium import Chrome
-from pydoll.browser.options import ChromiumOptions
+
+from src.dsar.rights import Right
+from src.dsar.super_scraper import SuperScraper
 
 URL = "https://my.datasubject.com/16BXQXSvkBnuN4W2w/51306"
 
-CARDS = ["Access my personal information", "Third parties your data was sold or shared with"]
-DELETE_CARD = "Delete my personal information"
+RIGHT_MAP = {
+    Right.RIGHT_TO_ACCESS: "Access my personal information",
+    Right.RIGHT_TO_LIST_OF_THIRD_PARTIES: "Third parties your data was sold or shared with",
+    Right.RIGHT_TO_DELETE: "Delete my personal information",
+}
+RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
+
+PAGE_RIGHTS = {}  # TODO(health-check): run HEALTH_CHECK once live; it prints the full list
+RIGHTS_OPTIONS_CSS = "h4[data-testid='card-title']"  # datasubject.com card titles (selector not recorded for this site)
+
+FIELD_XPATHS = {
+    "Email": "//*[@id='email']",
+    "First name": "//*[@id='given-name']",
+    "Last name": "//*[@id='family-name']",
+    "Address": "//*[@name='o-Address']",
+    "City": "//*[@name='o-City']",
+    "State": "//*[@name='o-State']",
+    "Zip": "//*[@name='o-ZipCode']",
+}
 
 
 async def submit_request(tab, card_text, super_scraper):
     await tab.go_to(URL)
     await asyncio.sleep(5)
+
+    if SuperScraper.HEALTH_CHECK:
+        offered = await SuperScraper.read_option_labels(tab, RIGHTS_OPTIONS_CSS)
+        SuperScraper.audit_rights(offered, PAGE_RIGHTS)
 
     card_btn = await tab.find(text=card_text, raise_exc=False)
     if not card_btn:
@@ -68,15 +94,16 @@ async def submit_request(tab, card_text, super_scraper):
 
     state_field = await tab.find(xpath="//input[@name='o-State']", raise_exc=False)
     if state_field:
-        state_abbrev = await SuperScraper.state_full_name_to_abbreviated(SuperScraper.STATE)
+        state_abbrev = SuperScraper.STATE_ABBREVIATED
         await state_field.type_text(state_abbrev)
 
     label = "".join(c if c.isalnum() else "_" for c in card_text.lower())[:40].strip("_")
 
-    await asyncio.sleep(1)
-    await tab.take_screenshot(path=f"resources/screenshots/lightboxre_dry_run_{label}.png")
-    print(f"Screenshot saved to resources/screenshots/lightboxre_dry_run_{label}.png")
+    if SuperScraper.HEALTH_CHECK:
+        await SuperScraper.assert_fields_filled(tab, FIELD_XPATHS)
 
+    await asyncio.sleep(1)
+    await SuperScraper.screenshot(tab, f"dry_run_{label}")
     if SuperScraper.DRY_RUN:
         print(f"DRY RUN: would submit '{card_text}' for {SuperScraper.FIRST_NAME} {SuperScraper.LAST_NAME}")
         return
@@ -85,25 +112,24 @@ async def submit_request(tab, card_text, super_scraper):
     if submit_btn:
         await submit_btn.click()
         await asyncio.sleep(2)
-        print(f"Submitted '{card_text}' for {SuperScraper.FIRST_NAME} {SuperScraper.LAST_NAME}")
+        print(f"Submitted '{card_text}' for {SuperScraper.FIRST_NAME} {SuperScraper.LAST_NAME} — confirm in the browser.")
     else:
         print(f"{super_scraper.OOPS} Submit button not found for '{card_text}'")
 
 
 async def main():
-    options = ChromiumOptions()
     super_scraper = SuperScraper()
-    options.binary_location = super_scraper.CHROMIUM_LOCATION
-    options.add_argument("--no-sandbox")
+    options = SuperScraper.build_chromium_options()
 
-    cards = list(CARDS)
-    if SuperScraper.REMOVE_INFORMATION:
-        cards.append(DELETE_CARD)
+    rights = SuperScraper.rights_to_exercise(RIGHT_MAP)
+    if not rights:
+        print("No requested privacy rights apply to this form — nothing to do.")
+        return
 
     async with Chrome(options=options) as browser:
         tab = await browser.start()
-        for card_text in cards:
-            await submit_request(tab, card_text, super_scraper)
+        for right in rights:
+            await submit_request(tab, RIGHT_MAP[right], super_scraper)
 
 
 asyncio.run(main())

@@ -5,31 +5,61 @@
 # "Healthcare Professional" / "Consumer" / "Agent for Data Subject", set to
 # "Consumer"), given-name, family-name, email, and a representative-type
 # "on behalf of someone else" checkbox (left UNCHECKED for a self-submission).
-# Cards found by their h4[data-testid="card-title"] text. One card/right per
-# pass: "Access or Request to Know" (Access), "Opt-Out Request", "Transfer my
-# personal information" (portability), "Third parties your data was sold or
-# shared with", "Automated Decision-Making" unconditionally; "Delete my
-# personal information" gated on REMOVE_INFORMATION. "Correct my personal
-# information" and "Employee Request" skipped.
+# Cards found by their h4[data-testid="card-title"] text. One card per pass (see
+# RIGHT_MAP): "Access or Request to Know" + "Transfer my personal information"
+# (Access), "Opt-Out Request" + "Automated Decision-Making" (Opt-Out), "Third
+# parties your data was sold or shared with", "Delete my personal information".
+# "Correct my personal information" and "Employee Request" are not automated.
+# Which run is decided ONLY by SuperScraper.rights_to_exercise(RIGHT_MAP).
+# Page elements: select[name=requestor-type], given-name, family-name, email,
+# phone-number (inputs by name), representative-type checkbox (left unchecked).
 # Cloudflare Turnstile gates the submit — form filled and left for a manual
 # solve.  **CAPTCHA solution required**
 import asyncio
 
 from pydoll.browser.chromium import Chrome
-from pydoll.browser.options import ChromiumOptions
 
+from src.dsar import js_utils
+from src.dsar.rights import Right
 from src.dsar.super_scraper import SuperScraper
 
 URL = "https://my.datasubject.com/16A0AaT1hE8CL2xPu/19933"
 
-RIGHTS = [
-    ("Access or Request to Know", "access"),
-    ("Opt-Out Request", "opt_out"),
-    ("Transfer my personal information", "portability"),
-    ("Third parties your data was sold or shared with", "third_parties"),
-    ("Automated Decision-Making", "adm"),
-]
-DELETE_RIGHT = ("Delete my personal information", "delete")
+RIGHT_MAP = {
+    Right.RIGHT_TO_ACCESS: [
+        ("Access or Request to Know", "access"),
+        ("Transfer my personal information", "transfer"),
+    ],
+    Right.RIGHT_TO_OPT_OUT: [
+        ("Opt-Out Request", "opt_out"),
+        ("Automated Decision-Making", "adm"),
+    ],
+    Right.RIGHT_TO_LIST_OF_THIRD_PARTIES: [
+        ("Third parties your data was sold or shared with", "third_parties"),
+    ],
+    Right.RIGHT_TO_DELETE: [("Delete my personal information", "delete")],
+}
+RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
+
+# Every request card title, as displayed -> the Right it maps to (None = not automated).
+PAGE_RIGHTS = {
+    "Access or Request to Know": Right.RIGHT_TO_ACCESS,
+    "Transfer my personal information": Right.RIGHT_TO_ACCESS,
+    "Opt-Out Request": Right.RIGHT_TO_OPT_OUT,
+    "Automated Decision-Making": Right.RIGHT_TO_OPT_OUT,
+    "Third parties your data was sold or shared with": Right.RIGHT_TO_LIST_OF_THIRD_PARTIES,
+    "Delete my personal information": Right.RIGHT_TO_DELETE,
+    "Correct my personal information": None,
+    "Employee Request": None,
+}
+RIGHTS_OPTIONS_CSS = "h4[data-testid='card-title']"
+
+FIELD_XPATHS = {
+    "Requestor type": "//*[@name='requestor-type']",
+    "First name": "//*[@name='given-name']",
+    "Last name": "//*[@name='family-name']",
+    "Email": "//*[@name='email']",
+}
 
 FIELDS = {
     "given-name": "FIRST_NAME",
@@ -42,6 +72,10 @@ FIELDS = {
 async def submit_request(tab, card_text, label, super_scraper):
     await tab.go_to(URL)
     await asyncio.sleep(5)
+
+    if SuperScraper.HEALTH_CHECK:
+        offered = await SuperScraper.read_option_labels(tab, RIGHTS_OPTIONS_CSS)
+        SuperScraper.audit_rights(offered, PAGE_RIGHTS)
 
     card = await tab.find(
         xpath=f"//h4[@data-testid='card-title' and normalize-space()={card_text!r}]", raise_exc=False
@@ -57,11 +91,7 @@ async def submit_request(tab, card_text, label, super_scraper):
     # subject exercising their own rights.
     rt = await tab.find(name="requestor-type", timeout=4, raise_exc=False)
     if rt:
-        await rt.execute_script(
-            "const o=[...this.options].find(x=>/^consumer$/i.test(x.text.trim()));"
-            "if(o){const s=Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype,'value').set;"
-            "s.call(this,o.value);this.dispatchEvent(new Event('change',{bubbles:true}));}"
-        )
+        await js_utils.select_native_option(rt, text="Consumer", ci=True)
 
     for name, attr in FIELDS.items():
         value = getattr(SuperScraper, attr, None)
@@ -75,9 +105,11 @@ async def submit_request(tab, card_text, label, super_scraper):
     # name="representative-type" is the "on behalf of someone else" checkbox —
     # left UNCHECKED for a self-submission.
 
+    if SuperScraper.HEALTH_CHECK:
+        await SuperScraper.assert_fields_filled(tab, FIELD_XPATHS)
+
     await asyncio.sleep(1)
-    await tab.take_screenshot(path=f"resources/screenshots/swoop_dry_run_{label}.png")
-    print(f"Screenshot saved to resources/screenshots/swoop_dry_run_{label}.png")
+    await SuperScraper.screenshot(tab, f"dry_run_{label}")
     print(
         f"'{card_text}' request filled but NOT submitted — a Cloudflare Turnstile "
         f"checkbox must be solved manually before submitting."
@@ -85,19 +117,18 @@ async def submit_request(tab, card_text, label, super_scraper):
 
 
 async def main():
-    options = ChromiumOptions()
     super_scraper = SuperScraper()
-    options.binary_location = super_scraper.CHROMIUM_LOCATION
-    options.add_argument("--no-sandbox")
-    options.add_argument("--window-size=1280,3000")
+    options = SuperScraper.build_chromium_options()
 
-    rights = list(RIGHTS)
-    if SuperScraper.REMOVE_INFORMATION:
-        rights.append(DELETE_RIGHT)
+    rights = SuperScraper.rights_to_exercise(RIGHT_MAP)
+    if not rights:
+        print("No requested privacy rights apply to this form — nothing to do.")
+        return
+    requests = [entry for right in rights for entry in RIGHT_MAP[right]]
 
     async with Chrome(options=options) as browser:
         tab = await browser.start()
-        for card_text, label in rights:
+        for card_text, label in requests:
             await submit_request(tab, card_text, label, super_scraper)
 
 

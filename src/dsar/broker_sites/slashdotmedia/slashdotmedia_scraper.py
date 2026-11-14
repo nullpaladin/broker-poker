@@ -2,8 +2,8 @@
 # (Customer/Employee/Prospective Employee, no generic-visitor option) —
 # "Customer" used as the closest fit. "Select request type" is
 # single-select (confirmed: picking a second option deselects the first)
-# — one submission per right: Info Request (Access) unconditionally;
-# Data Deletion gated on REMOVE_INFORMATION. No Opt-Out option exists on
+# — one submission per right: Info Request (Access) and
+# Data Deletion, each only if selected by rights_to_exercise. No Opt-Out option exists on
 # this form. Data Correction skipped (no concrete inaccuracy to describe).
 # Selecting Data Deletion reveals a required cascading confirmation
 # ("...you will lose all account information. Do you wish to proceed?")
@@ -11,17 +11,40 @@
 # present in the DOM until Country is filled in.
 # Country is a vt-autocomplete combobox. Optional free-text "Request
 # Details". BotDetect image CAPTCHA — **CAPTCHA solution required**.
+#
+# Page elements:
+#   role=option "Customer"                 "I am a (an)"
+#   role=option "Info Request" / "Data Deletion"   "Select request type"
+#   role=option "Yes"                      deletion confirmation (only after Data Deletion)
+#   #firstNameDSARElement / #lastNameDSARElement / #emailDSARElement
+#   #countryDSARElement / #stateDSARElement   Country / State autocompletes (State appears after Country)
+#   captchaCode                            BotDetect image CAPTCHA (manual entry)
 import asyncio
 
+from src.dsar.rights import Right
 from src.dsar.super_scraper import SuperScraper
 
 from pydoll.browser.chromium import Chrome
-from pydoll.browser.options import ChromiumOptions
 
 URL = "https://privacyportal.onetrust.com/webform/611e70e2-1994-43ff-b07b-646df870db4b/f4165d65-f39c-4ea5-8628-163090b74137"
 
-RIGHTS = ["Info Request"]
-DELETE_RIGHT = "Data Deletion"
+RIGHT_MAP = {
+    Right.RIGHT_TO_ACCESS: ["Info Request"],
+    Right.RIGHT_TO_DELETE: ["Data Deletion"],
+}
+RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
+
+PAGE_RIGHTS = {}  # TODO(health-check): run HEALTH_CHECK once live; it prints the full list
+RIGHTS_OPTIONS_CSS = "[role='option']"  # also matches the "I am a (an)" toggles
+
+FIELD_XPATHS = {
+    "First name": "//*[@id='firstNameDSARElement']",
+    "Last name": "//*[@id='lastNameDSARElement']",
+    "Email": "//*[@id='emailDSARElement']",
+    "Country": "//*[@id='countryDSARElement']",
+    "State": "//*[@id='stateDSARElement']",
+}
+DELETE_ENTRY = RIGHT_MAP[Right.RIGHT_TO_DELETE][0]
 
 
 async def submit_request(tab, right, super_scraper):
@@ -35,6 +58,10 @@ async def submit_request(tab, right, super_scraper):
     else:
         print(f"{super_scraper.OOPS} 'Customer' option not found")
 
+    if SuperScraper.HEALTH_CHECK:
+        offered = await SuperScraper.read_option_labels(tab, RIGHTS_OPTIONS_CSS)
+        SuperScraper.audit_rights(offered, PAGE_RIGHTS)
+
     right_option = await tab.find(xpath=f"//*[@role='option' and normalize-space()='{right}']", raise_exc=False)
     if right_option:
         await right_option.click()
@@ -42,7 +69,7 @@ async def submit_request(tab, right, super_scraper):
     else:
         print(f"{super_scraper.OOPS} request type '{right}' not found")
 
-    if right == DELETE_RIGHT:
+    if right == DELETE_ENTRY:
         # Cascading confirmation only revealed after picking Data Deletion.
         proceed_option = await tab.find(xpath="//*[@role='option' and normalize-space()='Yes']", raise_exc=False)
         if proceed_option:
@@ -92,10 +119,12 @@ async def submit_request(tab, right, super_scraper):
     else:
         print(f"{super_scraper.OOPS} State field not found")
 
+    if SuperScraper.HEALTH_CHECK:
+        await SuperScraper.assert_fields_filled(tab, FIELD_XPATHS)
+
     label = "".join(c if c.isalnum() else "_" for c in right.lower())[:40].strip("_")
     await asyncio.sleep(1)
-    await tab.take_screenshot(path=f"resources/screenshots/slashdotmedia_dry_run_{label}.png")
-    print(f"Screenshot saved to resources/screenshots/slashdotmedia_dry_run_{label}.png")
+    await SuperScraper.screenshot(tab, f"dry_run_{label}")
     print(
         f"\n'{right}' request filled but NOT submitted — a BotDetect image CAPTCHA "
         "requires manual entry before submitting."
@@ -103,18 +132,18 @@ async def submit_request(tab, right, super_scraper):
 
 
 async def main():
-    options = ChromiumOptions()
     super_scraper = SuperScraper()
-    options.binary_location = super_scraper.CHROMIUM_LOCATION
-    options.add_argument("--no-sandbox")
+    options = SuperScraper.build_chromium_options()
 
-    rights = list(RIGHTS)
-    if SuperScraper.REMOVE_INFORMATION:
-        rights.append(DELETE_RIGHT)
+    rights = SuperScraper.rights_to_exercise(RIGHT_MAP)
+    if not rights:
+        print("No requested privacy rights apply to this form — nothing to do.")
+        return
+    request_types = [entry for right in rights for entry in RIGHT_MAP[right]]
 
     async with Chrome(options=options) as browser:
         tab = await browser.start()
-        for right in rights:
+        for right in request_types:
             await submit_request(tab, right, super_scraper)
 
 

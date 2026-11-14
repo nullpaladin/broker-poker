@@ -1,19 +1,53 @@
+# jungroup — embedded Google Form, navigated to directly. ONE submission: the
+# checkboxes for every selected right are ticked together (Access -> "View My Data";
+# Opt-out -> "Don't Sell/Share"; Delete -> "Delete My Data"). The form also offers
+# "Edit My Data" (Correct) — not automated. Which rights run is decided ONLY by
+# SuperScraper.rights_to_exercise(RIGHT_MAP).
+#
+# Page elements:
+#   //input[@aria-label="Your email"]                  Email
+#   checkbox aria-label "Don't Sell/Share" / "View My Data" / "Delete My Data"   (see RIGHT_MAP)
+#   NAME_XPATH            first text input: name
+#   ADVERTISING_ID_XPATH  second text input: advertising ID
+#   "Submit" button
 import asyncio
 import json
 import time
 
+from src.dsar.rights import Right
 from src.dsar.super_scraper import SuperScraper
+from src.dsar import js_utils
 
 from pydoll.browser.chromium import Chrome
-from pydoll.browser.options import ChromiumOptions
 
-# Rights exercised: Don't Sell/Share, View My Data, Edit My Data, Delete My Data (if REMOVE_INFORMATION).
-# Form is an embedded Google Form — navigated to directly.
 FORM_URL = "https://docs.google.com/forms/d/e/1FAIpQLSff6gJEpA6rv7dXX643lMIjzYEp4yeeD7_odWxU3HRteHVtGg/viewform"
+
+# Right -> aria-labels of the checkboxes to tick.
+RIGHT_MAP = {
+    Right.RIGHT_TO_OPT_OUT: ["Don't Sell/Share"],
+    Right.RIGHT_TO_ACCESS: ["View My Data"],
+    Right.RIGHT_TO_DELETE: ["Delete My Data"],
+}
+RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
+
+# Every checkbox on the form (aria-labels) -> the Right it maps to (None = not automated).
+PAGE_RIGHTS = {
+    "Don't Sell/Share": Right.RIGHT_TO_OPT_OUT,
+    "View My Data": Right.RIGHT_TO_ACCESS,
+    "Edit My Data": None,
+    "Delete My Data": Right.RIGHT_TO_DELETE,
+}
+RIGHTS_OPTIONS_CSS = ""  # TODO(health-check): Google Forms checkbox labels are aria-labels, not element text; capture a selector on a live run (no audit wired until then)
 
 EMAIL_XPATH = '//input[@aria-label="Your email"]'
 NAME_XPATH = '(//input[@jsname="YPqjbf" and @type="text"])[1]'
 ADVERTISING_ID_XPATH = '(//input[@jsname="YPqjbf" and @type="text"])[2]'
+
+FIELD_XPATHS = {
+    "Email": EMAIL_XPATH,
+    "Name": NAME_XPATH,
+    "Advertising ID": ADVERTISING_ID_XPATH,
+}
 
 
 async def check_checkbox(tab, aria_label):
@@ -25,10 +59,12 @@ async def check_checkbox(tab, aria_label):
 
 
 async def main():
-    options = ChromiumOptions()
     super_scraper = SuperScraper()
-    options.binary_location = super_scraper.CHROMIUM_LOCATION
-    options.add_argument("--no-sandbox")
+    rights = SuperScraper.rights_to_exercise(RIGHT_MAP)
+    if not rights:
+        print("No requested privacy rights apply to this form — nothing to do.")
+        return
+    options = SuperScraper.build_chromium_options()
 
     async with Chrome(options=options) as browser:
         tab = await browser.start()
@@ -37,28 +73,30 @@ async def main():
 
         await super_scraper.input_text_field(tab=tab, xpath=EMAIL_XPATH, text=SuperScraper.EMAIL, sleep=1)
 
-        await check_checkbox(tab, "Don't Sell/Share")
-        await check_checkbox(tab, "View My Data")
-        await check_checkbox(tab, "Edit My Data")
-        if SuperScraper.REMOVE_INFORMATION:
-            await check_checkbox(tab, "Delete My Data")
+        for right in rights:
+            for aria_label in RIGHT_MAP[right]:
+                await check_checkbox(tab, aria_label)
 
         await super_scraper.input_text_field(tab=tab, xpath=NAME_XPATH,
                                              text=f"{SuperScraper.FIRST_NAME} {SuperScraper.LAST_NAME}", sleep=1)
         await super_scraper.input_text_field(tab=tab, xpath=ADVERTISING_ID_XPATH,
                                              text=SuperScraper.ADVERTISING_ID, sleep=1)
 
+        if SuperScraper.HEALTH_CHECK:
+            await SuperScraper.assert_fields_filled(tab, FIELD_XPATHS)
+
         if SuperScraper.DRY_RUN:
-            print(f"DRY RUN: would submit privacy request for {SuperScraper.EMAIL} (ad ID: {SuperScraper.ADVERTISING_ID})")
+            print(f"DRY RUN: would submit {[r.name for r in rights]} for {SuperScraper.EMAIL} (ad ID: {SuperScraper.ADVERTISING_ID})")
+            await SuperScraper.screenshot(tab, "dry_run")
             await asyncio.sleep(3)
             return
 
         await super_scraper.click_item_by_text(tab=tab, text="Submit", sleep=2)
         await asyncio.sleep(4)
 
-        result = await tab.execute_script("return document.body.innerText")
-        print(result['result']['result']['value'][:500])
-        print(f"Submitted privacy request for {SuperScraper.EMAIL}")
+        result = await js_utils.page_text(tab)
+        print(result[:500])
+        print(f"Submitted {[r.name for r in rights]} for {SuperScraper.EMAIL} — confirm in the browser.")
 
 
 asyncio.run(main())

@@ -10,34 +10,68 @@
 # custom autocomplete combobox — typing alone leaves it empty/invalid, so
 # the matching role="option" dropdown entry is clicked instead (same trap
 # as mediawallah.com's OneTrust dsarwebform elsewhere in this repo).
-# BotDetect image CAPTCHA (`captchaCode`) requires manual entry. The
-# page also states email confirmation is required within 3 days before any
-# request is actually processed. Exercises Access and Do Not Share or Sell
-# unconditionally; Delete gated on REMOVE_INFORMATION. Correct/Limit
-# Sensitive/Opt-Out Targeted Advertising/Opt-Out Profiling skipped as
-# auxiliary.
+# BotDetect image CAPTCHA (`captchaCode`) requires manual entry — the form is filled and
+# left unsubmitted. The page also states email confirmation is required within 3 days
+# before any request is actually processed. Rights the form exposes: Access, Do Not Share
+# or Sell (opt-out), Delete; Correct / Limit Sensitive / Opt-Out Targeted Advertising /
+# Opt-Out Profiling are skipped as auxiliary. Which rights run is decided ONLY by
+# SuperScraper.rights_to_exercise(RIGHT_MAP).
+#
+# Page elements (keep this list current):
+#   <request option>           "Select Request Type" option (see RIGHT_MAP)
+#   "Yes, myself"              "Are you submitting this request for yourself?"
+#   role=option aria-label="Merkle"   "Which dentsu brands relate to your request"
+#   #firstNameDSARElement / #lastNameDSARElement   First / Last name
+#   #addressDSARElement / #address2DSARElement     Address / Address line 2
+#   #cityDSARElement / #zipDSARElement             City / Zip
+#   #emailDSARElement          Email
+#   #formField41DSARElement    State autocomplete combobox (click the matching role=option)
+#   BotDetect image CAPTCHA    manual (captchaCode)
 import asyncio
 
+from src.dsar.rights import Right
 from src.dsar.super_scraper import SuperScraper
 
 from pydoll.browser.chromium import Chrome
-from pydoll.browser.options import ChromiumOptions
 
 URL = "https://privacyportal-de.onetrust.com/webform/79bad1a6-7964-4224-be55-bb1da49b8d2d/3e467ef9-b66a-49d8-bc62-40943a80745c"
 
-RIGHTS = ["Access My Information", "Do Not Share or Sell My Information"]
-DELETE_RIGHT = "Delete My Information"
+STATE_FIELD = "formField41DSARElement"  # State autocomplete combobox
+
+RIGHT_MAP = {
+    Right.RIGHT_TO_ACCESS: "Access My Information",
+    Right.RIGHT_TO_OPT_OUT: "Do Not Share or Sell My Information",
+    Right.RIGHT_TO_DELETE: "Delete My Information",
+}
+RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
+
+PAGE_RIGHTS = {}  # TODO(health-check): run HEALTH_CHECK once live; it prints the full list
+RIGHTS_OPTIONS_CSS = "[role='option']"  # also matches the "for yourself" and brand toggles
+
+FIELD_XPATHS = {
+    "First name": "//*[@id='firstNameDSARElement']",
+    "Last name": "//*[@id='lastNameDSARElement']",
+    "Address": "//*[@id='addressDSARElement']",
+    "City": "//*[@id='cityDSARElement']",
+    "Zip": "//*[@id='zipDSARElement']",
+    "Email": "//*[@id='emailDSARElement']",
+    "State": "//*[@id='formField41DSARElement']",
+}
 
 
-async def submit_request(tab, right, super_scraper):
+async def submit_request(tab, right, option, super_scraper):
     await tab.go_to(URL)
     await asyncio.sleep(5)
 
-    right_opt = await tab.find(text=right, raise_exc=False)
+    if SuperScraper.HEALTH_CHECK:
+        offered = await SuperScraper.read_option_labels(tab, RIGHTS_OPTIONS_CSS)
+        SuperScraper.audit_rights(offered, PAGE_RIGHTS)
+
+    right_opt = await tab.find(text=option, raise_exc=False)
     if right_opt:
         await right_opt.click()
     else:
-        print(f"{super_scraper.OOPS} '{right}' option not found")
+        print(f"{super_scraper.OOPS} '{option}' option not found")
 
     myself_opt = await tab.find(text="Yes, myself", raise_exc=False)
     if myself_opt:
@@ -73,7 +107,7 @@ async def submit_request(tab, right, super_scraper):
     # a plain text field — same trap as mediawallah.com's OneTrust
     # dsarwebform elsewhere in this repo. Click the matching dropdown
     # option instead of trusting type_text to land correctly.
-    state_field = await tab.find(id="formField41DSARElement", raise_exc=False)
+    state_field = await tab.find(id=STATE_FIELD, raise_exc=False)
     if state_field:
         await state_field.click()
         await asyncio.sleep(0.3)
@@ -88,32 +122,34 @@ async def submit_request(tab, right, super_scraper):
         else:
             print(f"{super_scraper.OOPS} state option '{SuperScraper.STATE}' not found")
 
-    label = right.lower().replace(" ", "_")
+    if SuperScraper.HEALTH_CHECK:
+        await SuperScraper.assert_fields_filled(tab, FIELD_XPATHS)
 
     await asyncio.sleep(1)
-    await tab.take_screenshot(path=f"resources/screenshots/merkle_dry_run_{label}.png")
-    print(f"Screenshot saved to resources/screenshots/merkle_dry_run_{label}.png")
+    await SuperScraper.screenshot(tab, f"dry_run_{right.value}")
     print(
-        f"\n'{right}' request filled but NOT submitted — a BotDetect image CAPTCHA is "
+        f"\n'{right.name}' request filled but NOT submitted — a BotDetect image CAPTCHA is "
         "present and requires manual entry. Submitting also sends a confirmation email "
         "that must be clicked within 3 days before the request is processed."
     )
 
 
 async def main():
-    options = ChromiumOptions()
     super_scraper = SuperScraper()
-    options.binary_location = super_scraper.CHROMIUM_LOCATION
-    options.add_argument("--no-sandbox")
+    if SuperScraper.bail_if_not_automatable(globals()):
+        return
 
-    rights = list(RIGHTS)
-    if SuperScraper.REMOVE_INFORMATION:
-        rights.append(DELETE_RIGHT)
+    rights = SuperScraper.rights_to_exercise(RIGHT_MAP)
+    if not rights:
+        print("No requested privacy rights apply to this form — nothing to do.")
+        return
+
+    options = SuperScraper.build_chromium_options()
 
     async with Chrome(options=options) as browser:
         tab = await browser.start()
         for right in rights:
-            await submit_request(tab, right, super_scraper)
+            await submit_request(tab, right, RIGHT_MAP[right], super_scraper)
 
 
 asyncio.run(main())

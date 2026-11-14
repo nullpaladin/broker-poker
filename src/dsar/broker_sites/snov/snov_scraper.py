@@ -9,22 +9,41 @@
 # emailed to the supplied address that must be entered to complete the
 # request, which this repo has no way to read from a real inbox; form filled
 # and left at the CAPTCHA gate regardless.
+#
+# Page elements (by id): name First name, lastname Last name, email Email, address Address,
+#   city City, state State (free text), pcode Postal code, country Country (free text),
+#   requested "Do not sell my personal information" checkbox, otpInput / otpSubmitBtn (OTP step).
 import asyncio
 
+from src.dsar.rights import Right
 from src.dsar.super_scraper import SuperScraper
 
 from pydoll.browser.chromium import Chrome
-from pydoll.browser.options import ChromiumOptions
+
+RIGHT_MAP = {Right.RIGHT_TO_OPT_OUT: "requested"}  # checkbox id
+RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
+
+# The page's only option (a checkbox), as displayed -> the Right it maps to. No running path (NOT_AUTOMATABLE).
+PAGE_RIGHTS = {"Do not sell my personal information": Right.RIGHT_TO_OPT_OUT}
+RIGHTS_OPTIONS_CSS = "label[for='requested']"  # assumes the checkbox has a for-linked label; unverified
 
 URL = "https://snov.io/do-not-sell-my-personal-information"
 
+NOT_AUTOMATABLE = True
+NOT_AUTOMATABLE_REASON = (
+    "submission requires an email OTP code after the CAPTCHA"
+)
+
 
 async def main():
-    options = ChromiumOptions()
+    if SuperScraper.bail_if_not_automatable(globals()):
+        return
+    rights = SuperScraper.rights_to_exercise(RIGHT_MAP)
+    if not rights:
+        print("No requested privacy rights apply to this form — nothing to do.")
+        return
     super_scraper = SuperScraper()
-    options.binary_location = super_scraper.CHROMIUM_LOCATION
-    options.add_argument("--no-sandbox")
-    options.add_argument("--window-size=1280,3000")
+    options = SuperScraper.build_chromium_options()
 
     async with Chrome(options=options) as browser:
         tab = await browser.start()
@@ -55,8 +74,7 @@ async def main():
             print(f"{super_scraper.OOPS} 'Do not sell my personal information' checkbox not found")
 
         await asyncio.sleep(1)
-        await tab.take_screenshot(path="resources/screenshots/snov_dry_run.png")
-        print("Screenshot saved to resources/screenshots/snov_dry_run.png")
+        await SuperScraper.screenshot(tab, "dry_run_opt_out")
         print(
             "\nOpt-out request filled but NOT submitted — a reCAPTCHA v2 checkbox requires a "
             "manual solve before submitting, and a follow-up email OTP code (not readable by "

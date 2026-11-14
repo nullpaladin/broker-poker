@@ -12,42 +12,86 @@
 # role="option" dropdown — typing alone lets the widget auto-complete to
 # the wrong entry and steal the next field's focus, so the matching
 # dropdown option is clicked instead of just typing and moving on.
-# reCAPTCHA v2 present — **CAPTCHA solution required**. Exercises Info
-# Request (Access) and Do Not Sell unconditionally; Data Deletion gated on
-# REMOVE_INFORMATION.
+# reCAPTCHA v2 present — **CAPTCHA solution required**; the form is filled and left
+# unsubmitted. Rights the form exposes: Info Request (access), Data Deletion, Do Not Sell
+# My Information (opt-out). Which of them run is decided ONLY by
+# SuperScraper.rights_to_exercise(RIGHT_MAP).
+#
+# Page elements (keep this list current):
+#   "Customer"                 "I am a (an)" option (div role=option)
+#   <request option>           "Select request type(s)" option (div role=option), see RIGHT_MAP
+#   #firstNameDSARElement / #lastNameDSARElement   First / Last name
+#   #emailDSARElement          Email
+#   #countryDSARElement        Country autocomplete -> "United States" (click the role=option)
+#   #stateDSARElement          State autocomplete -> STATE (click the role=option)
+#   reCAPTCHA v2 checkbox      manual solve
 import asyncio
 
+from src.dsar.rights import Right
 from src.dsar.super_scraper import SuperScraper
 
 from pydoll.browser.chromium import Chrome
-from pydoll.browser.options import ChromiumOptions
 
 URL = "https://privacyportal-eu-cdn.onetrust.com/dsarwebform/e3df3040-c675-462f-99c4-15c05ac3bf5c/545897d5-7793-4317-921b-4efe187a2c02.html"
 
-RIGHTS = ["Info Request", "Do Not Sell My Information"]
-DELETE_RIGHT = "Data Deletion"
+I_AM_A_OPTION = "Customer"  # "I am a (an)"
+FIRST_NAME_FIELD = "firstNameDSARElement"  # First name
+LAST_NAME_FIELD = "lastNameDSARElement"  # Last name
+EMAIL_FIELD = "emailDSARElement"  # Email
+COUNTRY_FIELD = "countryDSARElement"  # Country autocomplete
+STATE_FIELD = "stateDSARElement"  # State autocomplete
+
+RIGHT_MAP = {
+    Right.RIGHT_TO_ACCESS: "Info Request",
+    Right.RIGHT_TO_OPT_OUT: "Do Not Sell My Information",
+    Right.RIGHT_TO_DELETE: "Data Deletion",
+}
+RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
+
+# Every role=option toggle visible on load ("I am a (an)" + "Select request type(s)"), as displayed -> the Right it maps to.
+PAGE_RIGHTS = {
+    "Customer": None,
+    "Partner": None,
+    "Employee": None,
+    "Info Request": Right.RIGHT_TO_ACCESS,
+    "Do Not Sell My Information": Right.RIGHT_TO_OPT_OUT,
+    "Data Deletion": Right.RIGHT_TO_DELETE,
+}
+RIGHTS_OPTIONS_CSS = "div[role='option']"
+
+FIELD_XPATHS = {
+    "First name": f"//*[@id='{FIRST_NAME_FIELD}']",
+    "Last name": f"//*[@id='{LAST_NAME_FIELD}']",
+    "Email": f"//*[@id='{EMAIL_FIELD}']",
+    "Country": f"//*[@id='{COUNTRY_FIELD}']",
+    "State": f"//*[@id='{STATE_FIELD}']",
+}
 
 
-async def submit_request(tab, right, super_scraper):
+async def submit_request(tab, right, option, super_scraper):
     await tab.go_to(URL)
     await asyncio.sleep(5)
 
-    i_am_a = await tab.find(text="Customer", raise_exc=False)
+    if SuperScraper.HEALTH_CHECK:
+        offered = await SuperScraper.read_option_labels(tab, RIGHTS_OPTIONS_CSS)
+        SuperScraper.audit_rights(offered, PAGE_RIGHTS)
+
+    i_am_a = await tab.find(text=I_AM_A_OPTION, raise_exc=False)
     if i_am_a:
         await i_am_a.click()
     else:
         print(f"{super_scraper.OOPS} 'Customer' option not found")
 
-    right_opt = await tab.find(text=right, raise_exc=False)
+    right_opt = await tab.find(text=option, raise_exc=False)
     if right_opt:
         await right_opt.click()
     else:
-        print(f"{super_scraper.OOPS} '{right}' option not found")
+        print(f"{super_scraper.OOPS} '{option}' option not found")
 
     fields = {
-        "firstNameDSARElement": SuperScraper.FIRST_NAME,
-        "lastNameDSARElement": SuperScraper.LAST_NAME,
-        "emailDSARElement": SuperScraper.EMAIL,
+        FIRST_NAME_FIELD: SuperScraper.FIRST_NAME,
+        LAST_NAME_FIELD: SuperScraper.LAST_NAME,
+        EMAIL_FIELD: SuperScraper.EMAIL,
     }
     for field_id, value in fields.items():
         if not value:
@@ -62,7 +106,7 @@ async def submit_request(tab, right, super_scraper):
     # plain text inputs) — typing alone lets the widget auto-complete to
     # the wrong entry (e.g. "United States Minor Outlying Islands") and
     # steal focus, so the matching dropdown option must be clicked instead.
-    country_field = await tab.find(id="countryDSARElement", raise_exc=False)
+    country_field = await tab.find(id=COUNTRY_FIELD, raise_exc=False)
     if country_field:
         await country_field.click()
         await asyncio.sleep(0.3)
@@ -73,7 +117,7 @@ async def submit_request(tab, right, super_scraper):
             await country_opt.click()
             await asyncio.sleep(0.5)
 
-    state_field = await tab.find(id="stateDSARElement", raise_exc=False)
+    state_field = await tab.find(id=STATE_FIELD, raise_exc=False)
     if state_field:
         await state_field.click()
         await asyncio.sleep(0.3)
@@ -86,31 +130,33 @@ async def submit_request(tab, right, super_scraper):
             await state_opt.click()
             await asyncio.sleep(0.5)
 
-    label = right.lower().replace(" ", "_")
+    if SuperScraper.HEALTH_CHECK:
+        await SuperScraper.assert_fields_filled(tab, FIELD_XPATHS)
 
     await asyncio.sleep(1)
-    await tab.take_screenshot(path=f"resources/screenshots/mediawallah_dry_run_{label}.png")
-    print(f"Screenshot saved to resources/screenshots/mediawallah_dry_run_{label}.png")
+    await SuperScraper.screenshot(tab, f"dry_run_{right.value}")
     print(
-        f"\n'{right}' request filled but NOT submitted — a reCAPTCHA v2 checkbox is present "
+        f"\n'{right.name}' request filled but NOT submitted — a reCAPTCHA v2 checkbox is present "
         "and requires a manual solve before submitting."
     )
 
 
 async def main():
-    options = ChromiumOptions()
     super_scraper = SuperScraper()
-    options.binary_location = super_scraper.CHROMIUM_LOCATION
-    options.add_argument("--no-sandbox")
+    if SuperScraper.bail_if_not_automatable(globals()):
+        return
 
-    rights = list(RIGHTS)
-    if SuperScraper.REMOVE_INFORMATION:
-        rights.append(DELETE_RIGHT)
+    rights = SuperScraper.rights_to_exercise(RIGHT_MAP)
+    if not rights:
+        print("No requested privacy rights apply to this form — nothing to do.")
+        return
+
+    options = SuperScraper.build_chromium_options()
 
     async with Chrome(options=options) as browser:
         tab = await browser.start()
         for right in rights:
-            await submit_request(tab, right, super_scraper)
+            await submit_request(tab, right, RIGHT_MAP[right], super_scraper)
 
 
 asyncio.run(main())

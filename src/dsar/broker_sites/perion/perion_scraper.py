@@ -19,20 +19,51 @@
 # question. Plain text fields (Name/Email/MAID/Country) also silently
 # drop their first couple of keystrokes if typed immediately (e.g. "John
 # Doe" landed as "n Doe") — a click + ~0.4s pause before typing fixes it.
-# Exercises Access ("Right to Know or Access my Personal Data") and
-# Opt-out of Sale unconditionally; Delete gated on REMOVE_INFORMATION. No
-# CAPTCHA observed.
+# Rights the form exposes: Access ("Right to Know or Access my Personal Data"),
+# Opt-out ("Right to opt-out of Sale"), Delete ("Right to Delete my Personal Data").
+# Which of them run is decided ONLY by SuperScraper.rights_to_exercise(RIGHT_MAP).
+# No CAPTCHA observed.
+#
+# Page elements:
+#   #name-input                    Name (first + last)
+#   #text_mkym7vyt-input           Email
+#   #downshift-:r0:-input          "ARE YOU THE INDIVIDUAL OR A REPRESENTATIVE..." combobox
+#                                  -> "I am the individual requesting action"
+#   #long_text9__1-input           "Identification" long text (MAID / ADVERTISING_ID)
+#   #text__1-input                 Country -> "United States"
+#   #downshift-:r1:-input          "Request" combobox (single-select) -> RIGHT_MAP entries
+#   "Submit" button
 import asyncio
 
+from src.dsar.rights import Right
 from src.dsar.super_scraper import SuperScraper
 
 from pydoll.browser.chromium import Chrome
-from pydoll.browser.options import ChromiumOptions
+from pydoll.constants import Key
 
 URL = "https://forms.monday.com/forms/2e643e95786ac0c2cdf2dca015d20c68?r=use1"
 
-RIGHTS = ["Right to Know or Access my Personal Data", "Right to opt-out of Sale"]
-DELETE_RIGHT = "Right to Delete my Personal Data"
+RIGHT_MAP = {
+    Right.RIGHT_TO_ACCESS: ["Right to Know or Access my Personal Data"],
+    Right.RIGHT_TO_OPT_OUT: ["Right to opt-out of Sale"],
+    Right.RIGHT_TO_DELETE: ["Right to Delete my Personal Data"],
+}
+RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
+
+# Every option in the "Request" Downshift combobox, as displayed -> the Right it maps to.
+PAGE_RIGHTS = {
+    "Right to Know or Access my Personal Data": Right.RIGHT_TO_ACCESS,
+    "Right to opt-out of Sale": Right.RIGHT_TO_OPT_OUT,
+    "Right to Delete my Personal Data": Right.RIGHT_TO_DELETE,
+}
+RIGHTS_OPTIONS_CSS = "[role='option']"  # only rendered while the "Request" menu is open
+REQUEST_TRIGGER_XPATH = "//input[@id='downshift-:r1:-input']/ancestor::div[contains(@class,'triggerWrapper')]"
+
+FIELD_XPATHS = {
+    "Name": "//*[@id='name-input']",
+    "Email": "//*[@id='text_mkym7vyt-input']",
+    "Country": "//*[@id='text__1-input']",
+}
 
 
 async def _open_and_select(tab, input_id, option_text, super_scraper, description):
@@ -88,14 +119,26 @@ async def submit_request(tab, right, super_scraper):
     if country_field:
         await _type_with_settle(country_field, "United States")
 
+    if SuperScraper.HEALTH_CHECK:
+        trigger = await tab.find(xpath=REQUEST_TRIGGER_XPATH, raise_exc=False)
+        if trigger:
+            await trigger.scroll_into_view()
+            await trigger.click()
+            await asyncio.sleep(1)
+            offered = await SuperScraper.read_option_labels(tab, RIGHTS_OPTIONS_CSS)
+            SuperScraper.audit_rights(offered, PAGE_RIGHTS)
+            await tab.keyboard.press(Key.ESCAPE)
+            await asyncio.sleep(0.5)
+
     await _open_and_select(tab, "downshift-:r1:-input", right, super_scraper, "request type")
+
+    if SuperScraper.HEALTH_CHECK:
+        await SuperScraper.assert_fields_filled(tab, FIELD_XPATHS)
 
     label = "".join(c if c.isalnum() else "_" for c in right.lower())[:40].strip("_")
 
     await asyncio.sleep(1)
-    await tab.take_screenshot(path=f"resources/screenshots/perion_dry_run_{label}.png")
-    print(f"Screenshot saved to resources/screenshots/perion_dry_run_{label}.png")
-
+    await SuperScraper.screenshot(tab, f"dry_run_{label}")
     if SuperScraper.DRY_RUN:
         print(f"DRY RUN: would submit '{right}' for {SuperScraper.FIRST_NAME} {SuperScraper.LAST_NAME}")
         return
@@ -104,25 +147,27 @@ async def submit_request(tab, right, super_scraper):
     if submit_btn:
         await submit_btn.click()
         await asyncio.sleep(2)
-        print(f"Submitted '{right}' for {SuperScraper.FIRST_NAME} {SuperScraper.LAST_NAME}")
+        print(f"Submitted '{right}' for {SuperScraper.FIRST_NAME} {SuperScraper.LAST_NAME} — confirm in the browser.")
     else:
         print(f"{super_scraper.OOPS} Submit button not found for '{right}'")
 
 
 async def main():
-    options = ChromiumOptions()
     super_scraper = SuperScraper()
-    options.binary_location = super_scraper.CHROMIUM_LOCATION
-    options.add_argument("--no-sandbox")
+    if SuperScraper.bail_if_not_automatable(globals()):
+        return
+    options = SuperScraper.build_chromium_options()
 
-    rights = list(RIGHTS)
-    if SuperScraper.REMOVE_INFORMATION:
-        rights.append(DELETE_RIGHT)
+    rights = SuperScraper.rights_to_exercise(RIGHT_MAP)
+    if not rights:
+        print("No requested privacy rights apply to this form — nothing to do.")
+        return
+    entries = [entry for right in rights for entry in RIGHT_MAP[right]]
 
     async with Chrome(options=options) as browser:
         tab = await browser.start()
-        for right in rights:
-            await submit_request(tab, right, super_scraper)
+        for entry in entries:
+            await submit_request(tab, entry, super_scraper)
 
 
 asyncio.run(main())

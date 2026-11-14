@@ -1,0 +1,23 @@
+name: scrapers
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - run: pip install -r requirements.txt
+      # Every scraper must at least compile and import (no browser, no .env needed).
+      - run: python -m compileall -q src
+      - run: python scripts/smoke_import.py
+      # scraper_info.json is generated from the scrapers; fail if it is stale.
+      - run: python scripts/build_scraper_info.py
+      - run: git diff --exit-code -- src/dsar/scraper_info.json

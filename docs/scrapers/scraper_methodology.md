@@ -28,9 +28,9 @@ The goal is to replace brittle, static selectors (e.g., fixed XPaths) and fixed 
 
 ## Rights Coverage
 
-The goal is to exercise **as many privacy rights as possible** for each broker — not just opt-out. Where a site offers separate forms for Right to Access, Right to Delete, and Right to Opt-Out, the scraper should handle all of them (typically gated behind `REMOVE_INFORMATION` for deletion).
+The goal is to exercise **as many privacy rights as possible** for each broker — not just opt-out. Where a site offers separate forms for Right to Access, Right to Delete, and Right to Opt-Out, the scraper should handle all of them (gated only by `SuperScraper.rights_to_exercise(RIGHT_MAP)`).
 
-When a site only exposes a subset of rights, note it explicitly in the README and in the scraper with a comment explaining what is missing and why (e.g., no form exists, email-only, requires account login). This makes it easy to revisit as sites update their privacy portals.
+When a site only exposes a subset of rights, note it explicitly in SITES.md and in the scraper with a comment explaining what is missing and why (e.g., no form exists, email-only, requires account login). This makes it easy to revisit as sites update their privacy portals.
 
 ## Summary
 The process is iterative: **Observe $\rightarrow$ Map $\rightarrow$ Script $\rightarrow$ Validate $\rightarrow$ Refine.** By prioritizing dynamic element detection over fixed paths, the scraper achieves a high degree of automation capability without constant manual intervention.

@@ -1,25 +1,44 @@
-# techtarget.com — exercises Access, Opt-Out of Sale/Sharing, Delete (gated).
-# Zendesk ticket form (ticket_form_id=360004852434, CCPA Privacy Rights Request Form).
-# Uses CCPA form (covers equivalent MCDPA rights for MN residents). One submission per right.
-# Fields: email, First Name, Last Name, Request Type (Zendesk nesty tagger widget).
+# techtarget.com — Zendesk ticket form (ticket_form_id=360004852434, CCPA Privacy Rights Request Form).
+# Rights the form exposes: access, opt-out of sale, delete. Which of them run is decided ONLY by
+# SuperScraper.rights_to_exercise(RIGHT_MAP). Uses the CCPA form (covers equivalent rights for
+# other states' residents). One submission per right.
 # No CAPTCHA detected. Delete uses sub-option "Remove me from ALL databases".
 # Tagger widget: hidden input + a.nesty-input trigger; li items use tagger value as id.
+#
+# Page elements:
+#   #request_issue_type_select                 Issue type <select> -> option value 360004852434 (CCPA form)
+#   #request_anonymous_requester_email         Email
+#   #request_custom_fields_360055089353        First Name
+#   #request_custom_fields_360055089373        Last Name
+#   #request_custom_fields_360047462713        Request Type (nesty tagger; its next sibling is the trigger)
+#   li.nesty-expand "Right to be DELETED"      expands the delete sub-options
+#   input[name=commit]                         Submit button
 import asyncio
 import time
 
 from pydoll.browser.chromium import Chrome
-from pydoll.browser.options import ChromiumOptions
 
+from src.dsar.rights import Right
 from src.dsar.super_scraper import SuperScraper
 
 URL = "https://techtarget.zendesk.com/hc/en-us/requests/new?ticket_form_id=360004852434"
 
-# (tagger value, is_delete_sub_option, screenshot label)
-REQUESTS = [
-    ("ccpa__right_to_access",           False, "access"),
-    ("ccpa__right_to_opt-out_of_sale",  False, "optout"),
-]
-DELETE_REQUEST = ("ccpa__right_to_be_deleted__all_databases", True, "delete")
+# Right -> (tagger value, is_delete_sub_option)
+RIGHT_MAP = {
+    Right.RIGHT_TO_ACCESS: ("ccpa__right_to_access", False),
+    Right.RIGHT_TO_OPT_OUT: ("ccpa__right_to_opt-out_of_sale", False),
+    Right.RIGHT_TO_DELETE: ("ccpa__right_to_be_deleted__all_databases", True),
+}
+RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
+
+PAGE_RIGHTS = {}  # TODO(health-check): run HEALTH_CHECK once live; it prints the full list
+# (The Request Type tagger lists options by id only; display texts other than "Right to be DELETED" are unrecorded.)
+
+FIELD_XPATHS = {
+    "Email": "//*[@id='request_anonymous_requester_email']",
+    "First name": "//*[@id='request_custom_fields_360055089353']",
+    "Last name": "//*[@id='request_custom_fields_360055089373']",
+}
 
 
 async def _open_tagger(tab):
@@ -62,7 +81,8 @@ async def _select_tagger_delete(tab, child_value):
     await asyncio.sleep(0.5)
 
 
-async def submit_request(tab, tagger_value, is_delete, label, super_scraper):
+async def submit_request(tab, right, entry, super_scraper):
+    tagger_value, is_delete = entry
     await tab.go_to(URL)
     await asyncio.sleep(6)
 
@@ -93,15 +113,15 @@ async def submit_request(tab, tagger_value, is_delete, label, super_scraper):
 
     time.sleep(0.5)
 
+    if SuperScraper.HEALTH_CHECK:
+        await SuperScraper.assert_fields_filled(tab, FIELD_XPATHS)
+
     if SuperScraper.DRY_RUN:
         submit_btn = await tab.find(tag_name="input", **{"name": "commit"}, raise_exc=False)
         if submit_btn:
             await submit_btn.scroll_into_view()
-        await tab.take_screenshot(f"resources/screenshots/techtarget_dry_run_{label}.png")
-        print(
-            f"DRY RUN: would submit '{label}' for "
-            f"{SuperScraper.FIRST_NAME} {SuperScraper.LAST_NAME} <{SuperScraper.EMAIL}>"
-        )
+        await SuperScraper.screenshot(tab, f"dry_run_{right.value}")
+        print(f"DRY RUN: would submit '{right.name}' for {SuperScraper.EMAIL}")
         return
 
     submit_btn = await tab.find(tag_name="input", **{"name": "commit"}, raise_exc=False)
@@ -109,28 +129,22 @@ async def submit_request(tab, tagger_value, is_delete, label, super_scraper):
         await submit_btn.click()
     await asyncio.sleep(5)
 
-    source = await tab.page_source
-    if any(w in source.lower() for w in ("thank", "submitted", "received", "ticket", "confirmation")):
-        print(f"Submitted '{label}' for {SuperScraper.FIRST_NAME} {SuperScraper.LAST_NAME}")
-    else:
-        print(f"{super_scraper.OOPS} Confirmation unclear for '{label}' — verify in browser")
+    print(f"Submitted '{right.name}' for {SuperScraper.EMAIL} — confirm in the browser.")
 
 
 async def main():
-    options = ChromiumOptions()
     super_scraper = SuperScraper()
-    options.binary_location = super_scraper.CHROMIUM_LOCATION
-    options.add_argument("--no-sandbox")
-    options.add_argument("--window-size=1280,2000")
+    options = SuperScraper.build_chromium_options()
 
-    requests = list(REQUESTS)
-    if SuperScraper.REMOVE_INFORMATION:
-        requests.append(DELETE_REQUEST)
+    rights = SuperScraper.rights_to_exercise(RIGHT_MAP)
+    if not rights:
+        print("No requested privacy rights apply to this form — nothing to do.")
+        return
 
     async with Chrome(options=options) as browser:
         tab = await browser.start()
-        for tagger_value, is_delete, label in requests:
-            await submit_request(tab, tagger_value, is_delete, label, super_scraper)
+        for right in rights:
+            await submit_request(tab, right, RIGHT_MAP[right], super_scraper)
 
 
 asyncio.run(main())

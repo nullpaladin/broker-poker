@@ -10,15 +10,23 @@
 # <select>) and is left blank — it has no required marker. reCAPTCHA v2 gates
 # submission — the form is filled and left for a manual solve.
 # **CAPTCHA solution required**
+#
+# Page elements (inputs by name): first-name / last-name / email / phone / street-address /
+#   city / region/state/province / postal-/ zip code; reCAPTCHA v2 checkbox, Submit button.
 import asyncio
 import time
 
 from pydoll.browser.chromium import Chrome
-from pydoll.browser.options import ChromiumOptions
 
+from src.dsar.rights import Right
 from src.dsar.super_scraper import SuperScraper
 
 URL = "https://www.fourthwall.tv/donotsellorshare-fourthwall"
+
+RIGHT_MAP = {Right.RIGHT_TO_OPT_OUT: "opt-out"}
+RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
+
+PAGE_RIGHTS = {}  # TODO(health-check): run HEALTH_CHECK once live; it prints the full list
 
 FIELDS = [
     ("first-name", "FIRST_NAME"),
@@ -33,11 +41,16 @@ FIELDS = [
 
 
 async def main():
-    options = ChromiumOptions()
     super_scraper = SuperScraper()
-    options.binary_location = super_scraper.CHROMIUM_LOCATION
-    options.add_argument("--no-sandbox")
-    options.add_argument("--window-size=1280,2600")
+    if SuperScraper.bail_if_not_automatable(globals()):
+        return
+
+    rights = SuperScraper.rights_to_exercise(RIGHT_MAP)
+    if not rights:
+        print("No requested privacy rights apply to this form — nothing to do.")
+        return
+
+    options = SuperScraper.build_chromium_options()
 
     async with Chrome(options=options) as browser:
         tab = await browser.start()
@@ -56,9 +69,15 @@ async def main():
             else:
                 print(f"{super_scraper.OOPS} field '{name}' not found")
 
+        if SuperScraper.HEALTH_CHECK:
+            await SuperScraper.assert_fields_filled(tab, {
+                name: f"(//input[@name={name!r}])[1]"
+                for name, _attr in FIELDS
+                if name != "phone"  # optional
+            })
+
         time.sleep(0.5)
-        await tab.take_screenshot("resources/screenshots/fourthwall_dry_run.png")
-        print("Screenshot saved to resources/screenshots/fourthwall_dry_run.png")
+        await SuperScraper.screenshot(tab, "dry_run")
         print(
             "Opt-out request filled but NOT submitted — a reCAPTCHA v2 checkbox "
             "must be solved manually before submitting."
@@ -67,11 +86,7 @@ async def main():
         if not SuperScraper.DRY_RUN:
             print("Solve the reCAPTCHA, click Submit, then press Enter once confirmed...")
             input()
-            source = await tab.page_source
-            if any(w in source.lower() for w in ("thank", "success", "received", "submitted")):
-                print(f"Submitted opt-out for {SuperScraper.FIRST_NAME} {SuperScraper.LAST_NAME}")
-            else:
-                print(f"{super_scraper.OOPS} Confirmation unclear — verify in browser")
+            print(f"Submitted opt-out for {SuperScraper.EMAIL} — confirm in the browser.")
 
 
 asyncio.run(main())

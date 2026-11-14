@@ -1,53 +1,85 @@
 # speedeondata.com — optout.speedeondata.com is a simple custom form. Only
 # Opt-Out/Delete/Sensitive-Data exist (no Right to Access anywhere on the
-# site — confirmed by prior manual investigation). "Opt-out" and "Sensitive
+# site — confirmed by prior manual investigation). The "Opt-out" and "Sensitive
 # Data" (limit use of religious-affiliation/ethnicity/ailment data) checkboxes
-# are exercised unconditionally; "Deletion" gated on REMOVE_INFORMATION — at
-# least one of the three is required by the form. State is a Bootstrap
+# both belong to RIGHT_TO_OPT_OUT; "Deletion" is RIGHT_TO_DELETE. At least one
+# of the three is required by the form. Which run is decided ONLY by
+# SuperScraper.rights_to_exercise(RIGHT_MAP); all ticked boxes go in one form.
+# Page elements:
+#   #optOut / #sensitiveData / #deletion   request-type checkboxes
+#   firstName, lastName, email, phone, address1, address2, city, zip   text inputs (by name)
+#   button.dropdown-toggle                 State dropdown toggle
+#   button[role=menuitem][title=<State>]   State option
+# State is a Bootstrap
 # dropdown of `<button role="menuitem" title="<Full Name>" value="<Abbrev>">`
 # items rather than a native <select> — matched by `title` and clicked
 # directly (items exist in the DOM whether or not the toggle button has been
 # opened). reCAPTCHA v2 checkbox present — **CAPTCHA solution required**.
 import asyncio
 
+from src.dsar.rights import Right
 from src.dsar.super_scraper import SuperScraper
 
 from pydoll.browser.chromium import Chrome
-from pydoll.browser.options import ChromiumOptions
 
 URL = "https://optout.speedeondata.com/"
 
+# Right -> ids of the checkbox(es) the form uses for it.
+OPT_OUT_CHECKBOX = "optOut"  # "Opt-out"
+SENSITIVE_DATA_CHECKBOX = "sensitiveData"  # "Sensitive Data"
+DELETION_CHECKBOX = "deletion"  # "Deletion"
+RIGHT_MAP = {
+    Right.RIGHT_TO_OPT_OUT: [OPT_OUT_CHECKBOX, SENSITIVE_DATA_CHECKBOX],
+    Right.RIGHT_TO_DELETE: [DELETION_CHECKBOX],
+}
+RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
+
+# Every checkbox on the form, as displayed -> the Right it maps to.
+PAGE_RIGHTS = {
+    "Opt-out": Right.RIGHT_TO_OPT_OUT,
+    "Sensitive Data": Right.RIGHT_TO_OPT_OUT,
+    "Deletion": Right.RIGHT_TO_DELETE,
+}
+RIGHTS_OPTIONS_CSS = (
+    "label:has(#optOut), label:has(#sensitiveData), label:has(#deletion), "
+    "label[for='optOut'], label[for='sensitiveData'], label[for='deletion']"
+)  # built from the three recorded checkbox ids
+
+FIELD_XPATHS = {
+    "First name": "//*[@name='firstName']",
+    "Last name": "//*[@name='lastName']",
+    "Email": "//*[@name='email']",
+    "Phone": "//*[@name='phone']",
+    "Address": "//*[@name='address1']",
+    "City": "//*[@name='city']",
+    "Zip": "//*[@name='zip']",
+}
+
 
 async def main():
-    options = ChromiumOptions()
     super_scraper = SuperScraper()
-    options.binary_location = super_scraper.CHROMIUM_LOCATION
-    options.add_argument("--no-sandbox")
-    options.add_argument("--window-size=1280,3000")
+    rights = SuperScraper.rights_to_exercise(RIGHT_MAP)
+    if not rights:
+        print("No requested privacy rights apply to this form — nothing to do.")
+        return
+    options = SuperScraper.build_chromium_options()
 
     async with Chrome(options=options) as browser:
         tab = await browser.start()
         await tab.go_to(URL)
         await asyncio.sleep(4)
 
-        opt_out_checkbox = await tab.find(id="optOut", raise_exc=False)
-        if opt_out_checkbox:
-            await opt_out_checkbox.click()
-        else:
-            print(f"{super_scraper.OOPS} 'Opt-out' checkbox not found")
+        if SuperScraper.HEALTH_CHECK:
+            offered = await SuperScraper.read_option_labels(tab, RIGHTS_OPTIONS_CSS)
+            SuperScraper.audit_rights(offered, PAGE_RIGHTS)
 
-        sensitive_checkbox = await tab.find(id="sensitiveData", raise_exc=False)
-        if sensitive_checkbox:
-            await sensitive_checkbox.click()
-        else:
-            print(f"{super_scraper.OOPS} 'Sensitive Data' checkbox not found")
-
-        if SuperScraper.REMOVE_INFORMATION:
-            deletion_checkbox = await tab.find(id="deletion", raise_exc=False)
-            if deletion_checkbox:
-                await deletion_checkbox.click()
-            else:
-                print(f"{super_scraper.OOPS} 'Deletion' checkbox not found")
+        for right in rights:
+            for checkbox_id in RIGHT_MAP[right]:
+                checkbox = await tab.find(id=checkbox_id, raise_exc=False)
+                if checkbox:
+                    await checkbox.click()
+                else:
+                    print(f"{super_scraper.OOPS} checkbox '{checkbox_id}' not found")
 
         fields = {
             "firstName": SuperScraper.FIRST_NAME,
@@ -83,9 +115,11 @@ async def main():
         else:
             print(f"{super_scraper.OOPS} State option '{SuperScraper.STATE}' not found")
 
+        if SuperScraper.HEALTH_CHECK:
+            await SuperScraper.assert_fields_filled(tab, FIELD_XPATHS)
+
         await asyncio.sleep(1)
-        await tab.take_screenshot(path="resources/screenshots/speedeondata_dry_run.png")
-        print("Screenshot saved to resources/screenshots/speedeondata_dry_run.png")
+        await SuperScraper.screenshot(tab, "dry_run_" + "_".join(r.value for r in rights))
         print(
             "\nRequest filled but NOT submitted — a reCAPTCHA v2 checkbox requires a manual "
             "solve before submitting."

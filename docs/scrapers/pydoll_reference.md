@@ -176,8 +176,8 @@ element = await tab.find(
 )
 
 if not element:
-    print("Element not found - checking blacklist")
-    # Add to blacklist or skip
+    print("Element not found - skipping and documenting")
+    # Skip the field, note it in the scraper header / SITES.md
 ```
 
 ### Timeout Configuration
@@ -335,7 +335,7 @@ await super_scraper.input_text_field(tab=tab, xpath=..., text=SuperScraper.EMAIL
 |Click fails | Element may be hidden, scroll into view first |
 | Dropdown not working | Try `double_click=True`, wait for options to appear |
 | Page too slow | Increase timeout inside of individual scraper compared to `BASE_TIMEOUT_IN_SECONDS` from `.env` |
-| CAPTCHA appears | Cannot automate, add to blacklist | 
+| CAPTCHA appears | Fill the form anyway; pause for a manual solve | 
 
 ## Official Resources
 

@@ -1,28 +1,33 @@
 # mckessoncompile.com — OneTrust DSAR webform
-# (privacyportal.onetrust.com/webform). One submission total.
-#   formField38DSARElement  "State of Residence*" autocomplete combobox -> STATE
-#   "I am submitting a request on behalf of"  role="option" pair -> "Myself"
-#   "Select request type"  autocomplete combobox — the specific right; the
-#       broadest available option is chosen ("Access Request" style) and every
-#       other right is also stated in Request Details, since this build offers
-#       no multi-select. If the guessed option label does not match, the field
-#       is left for manual completion (a warning is printed).
-#   emailDSARElement / firstNameDSARElement / lastNameDSARElement
-#   dateOfBirthDSARElement  required date picker (MM/DD/YYYY from .env DD/MM/YYYY)
-#   phoneNumberDSARElement  (formField19DSARElement = optional 2nd phone, blank)
-#   addressDSARElement / cityDSARElement / formField35DSARElement (state combo) /
-#       zipDSARElement
-#   requestDetailsDSARElement  the rights being exercised, in words
-#   formField13DSARElement  "I certify under penalty of perjury..." checkbox
+# (privacyportal.onetrust.com/webform). One submission total, covering every selected
+# right: the form has a single "Select request type" chooser, so the broadest option
+# ("Access") is chosen and the selected rights are spelled out in Request Details.
+# Which rights run is decided ONLY by SuperScraper.rights_to_exercise(RIGHT_MAP).
+# Rights stated in Request Details: access, list of third parties, opt-out, delete.
+# A BotDetect image CAPTCHA (captchaCode) gates submit — the form is filled up to that
+# point and left for a manual entry.  **CAPTCHA solution required**
+#
+# Page elements (keep this list current):
+#   formField38DSARElement   "State of Residence*" autocomplete combobox -> STATE
+#   role="option" "Myself"   "I am submitting a request on behalf of" -> "Myself"
+#   input[aria-label~"I am a"]   "I am a (an)" autocomplete — candidate labels are tried in order
+#   input[aria-label~"request type"]  "Select request type" autocomplete — types "Access", picks first match
+#   emailDSARElement / firstNameDSARElement / lastNameDSARElement   Email / First / Last name
+#   dateOfBirthDSARElement   required date picker (MM/DD/YYYY from .env DD/MM/YYYY)
+#   phoneNumberDSARElement   Phone  (formField19DSARElement = optional 2nd phone, left blank)
+#   addressDSARElement / cityDSARElement / zipDSARElement   Address / City / Zip
+#   formField35DSARElement   second state combobox
+#   requestDetailsDSARElement   Request Details textarea
+#   aria-label "I certify under penalty of perjury..."   certification checkbox
+#   captchaCode              BotDetect image CAPTCHA (manual)
 #   Optional agent/correction document upload left blank.
-# A BotDetect image CAPTCHA (captchaCode) gates submit — filled to that point.
-# **CAPTCHA solution required**
 import asyncio
 
 from pydoll.browser.chromium import Chrome
-from pydoll.browser.options import ChromiumOptions
 from pydoll.constants import Key
 
+from src.dsar import js_utils
+from src.dsar.rights import Right
 from src.dsar.super_scraper import SuperScraper
 
 URL = (
@@ -30,14 +35,38 @@ URL = (
     "599133ba-bafa-4e24-8173-6e59b6c96dab/1554ac76-9012-4a4d-8cd4-53776f517530"
 )
 
-RIGHTS_TEXT_BASE = (
-    "I am exercising my applicable state privacy rights: the right to know/access "
-    "the personal information you have about me, the right to a list of the "
-    "categories of third parties to whom you have disclosed my personal "
-    "information, and the right to opt out of the sale or sharing of my personal "
-    "information and its processing for targeted advertising."
-)
-RIGHTS_TEXT_DELETE = " I also request deletion of my personal information."
+STATE_COMBO = "formField38DSARElement"  # "State of Residence*"
+ADDRESS_STATE_COMBO = "formField35DSARElement"  # second state combobox
+DETAILS_FIELD = "requestDetailsDSARElement"  # Request Details textarea
+CERTIFY_LABEL = "I certify under penalty of perjury that the foregoing is true and correct."
+
+# One request type ("Access") covers the whole combined submission; the rights themselves
+# are stated in Request Details.
+REQUEST_TYPE_TEXT = "Access"
+RIGHT_MAP = {
+    Right.RIGHT_TO_ACCESS: REQUEST_TYPE_TEXT,
+    Right.RIGHT_TO_LIST_OF_THIRD_PARTIES: REQUEST_TYPE_TEXT,
+    Right.RIGHT_TO_OPT_OUT: REQUEST_TYPE_TEXT,
+    Right.RIGHT_TO_DELETE: REQUEST_TYPE_TEXT,
+}
+RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
+
+PAGE_RIGHTS = {}  # TODO(health-check): run HEALTH_CHECK once live; it prints the full list
+# (A single "Select request type" autocomplete; only "Access" is recorded, so no inventory is built.)
+
+FIELD_XPATHS = {
+    "State of residence": f"//*[@id='{STATE_COMBO}']",
+    "Second state": f"//*[@id='{ADDRESS_STATE_COMBO}']",
+    "Request details": f"//*[@id='{DETAILS_FIELD}']",
+    "Email": "//*[@id='emailDSARElement']",
+    "First name": "//*[@id='firstNameDSARElement']",
+    "Last name": "//*[@id='lastNameDSARElement']",
+    "Date of birth": "//*[@id='dateOfBirthDSARElement']",
+    "Phone": "//*[@id='phoneNumberDSARElement']",
+    "Address": "//*[@id='addressDSARElement']",
+    "City": "//*[@id='cityDSARElement']",
+    "Zip": "//*[@id='zipDSARElement']",
+}
 
 
 def _dob_mm_dd_yyyy():
@@ -75,27 +104,30 @@ async def _combo(tab, super_scraper, field_id, value):
         await asyncio.sleep(0.3)
         await tab.keyboard.press(Key.ENTER)
     await asyncio.sleep(0.5)
-    current = await field.execute_script("return this.value")
-    cur = current.get("result", {}).get("result", {}).get("value") if isinstance(current, dict) else current
+    cur = await js_utils.js_eval(field, "return this.value")
     if cur and value.lower() not in str(cur).lower():
         print(f"{super_scraper.OOPS} combobox '{field_id}' value looks wrong: {cur!r}")
 
 
 async def main():
-    options = ChromiumOptions()
     super_scraper = SuperScraper()
-    options.binary_location = super_scraper.CHROMIUM_LOCATION
-    options.add_argument("--no-sandbox")
-    options.add_argument("--window-size=1280,3400")
+    if SuperScraper.bail_if_not_automatable(globals()):
+        return
 
-    details = RIGHTS_TEXT_BASE + (RIGHTS_TEXT_DELETE if SuperScraper.REMOVE_INFORMATION else "")
+    rights = SuperScraper.rights_to_exercise(RIGHT_MAP)
+    if not rights:
+        print("No requested privacy rights apply to this form — nothing to do.")
+        return
+    details = SuperScraper.request_statement(rights, broker="McKesson Compile")
+
+    options = SuperScraper.build_chromium_options()
 
     async with Chrome(options=options) as browser:
         tab = await browser.start()
         await tab.go_to(URL)
         await asyncio.sleep(7)
 
-        await _combo(tab, super_scraper, "formField38DSARElement", SuperScraper.STATE)
+        await _combo(tab, super_scraper, STATE_COMBO, SuperScraper.STATE)
 
         # "I am submitting a request on behalf of" -> Myself
         myself = await tab.find(**{"aria-label": "Myself"}, raise_exc=False)
@@ -118,11 +150,7 @@ async def main():
             for candidate in ("Consumer", "Individual", "Customer", "Patient", "Other"):
                 await iama.click()
                 await asyncio.sleep(0.3)
-                await iama.execute_script(
-                    "var s=Object.getOwnPropertyDescriptor(Object.getPrototypeOf(this),'value').set;"
-                    f"s.call(this,{candidate!r});"
-                    "this.dispatchEvent(new Event('input',{bubbles:true}));"
-                )
+                await js_utils.js_set_value(iama, candidate)
                 await asyncio.sleep(1)
                 opt = await tab.find(
                     xpath=f"//*[@role='option' and normalize-space()={candidate!r}]", raise_exc=False
@@ -146,7 +174,7 @@ async def main():
         if rt_input:
             await rt_input.click()
             await asyncio.sleep(0.4)
-            await tab.keyboard.type_text("Access")
+            await tab.keyboard.type_text(REQUEST_TYPE_TEXT)
             await asyncio.sleep(1.4)
             await tab.keyboard.press(Key.ARROWDOWN)
             await asyncio.sleep(0.3)
@@ -167,7 +195,7 @@ async def main():
             ("addressDSARElement", SuperScraper.ADDRESS),
             ("cityDSARElement", SuperScraper.CITY),
             ("zipDSARElement", SuperScraper.ZIP_CODE),
-            ("requestDetailsDSARElement", details),
+            (DETAILS_FIELD, details),
         ):
             if not value:
                 continue
@@ -178,10 +206,10 @@ async def main():
             else:
                 print(f"{super_scraper.OOPS} field '{field_id}' not found")
 
-        await _combo(tab, super_scraper, "formField35DSARElement", SuperScraper.STATE)
+        await _combo(tab, super_scraper, ADDRESS_STATE_COMBO, SuperScraper.STATE)
 
         certify = await tab.find(
-            **{"aria-label": "I certify under penalty of perjury that the foregoing is true and correct."},
+            **{"aria-label": CERTIFY_LABEL},
             raise_exc=False,
         )
         if certify:
@@ -189,11 +217,11 @@ async def main():
         else:
             print(f"{super_scraper.OOPS} perjury-certification checkbox not found")
 
+        if SuperScraper.HEALTH_CHECK:
+            await SuperScraper.assert_fields_filled(tab, FIELD_XPATHS)
+
         await asyncio.sleep(1)
-        await tab.take_screenshot(
-            path="resources/screenshots/mckessoncompile_dry_run.png", beyond_viewport=True
-        )
-        print("Screenshot saved to resources/screenshots/mckessoncompile_dry_run.png")
+        await SuperScraper.screenshot(tab, "dry_run_" + "_".join(r.value for r in rights))
         print(
             "Request filled but NOT submitted — enter the BotDetect image CAPTCHA "
             "(captchaCode) manually, then Submit."

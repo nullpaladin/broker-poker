@@ -12,26 +12,48 @@
 # targeted positionally rather than by id. InMarket sells location/MAID
 # data, so ADVERTISING_ID is filled into the "Your Mobile Advertising ID
 # (MAID)" field on the Opt-Out card (present only there, not on Access/
-# Deletion). Relationship dropdown answered "Other". Exercises Access and
-# Opt Out unconditionally; Deletion gated on REMOVE_INFORMATION. No captcha
+# Deletion). Relationship dropdown answered "Other". Which of Access / Opt Out /
+# Deletion run is decided only by SuperScraper.rights_to_exercise. No captcha
 # observed.
+#
+# Page elements:
+#   "Start Access Request" / "Start Deletion Request" /
+#   "Start Request to Opt Out or Limit Use of Sensitive Personal Information"   request cards
+#   input[name=first_name] / [name=last_name]   First / Last name
+#   input[name=email_address]                   Email address
+#   div[aria-labelledby=mui-component-select-data_subject_relationship]
+#                                               "Data subject relationship" select -> "Other"
+#   input with a 36-char (UUID) name            "Your Mobile Advertising ID (MAID)" (opt-out card only)
+#   div[aria-labelledby=mui-component-select-<uuid>]   opt-out / limit-sensitive-PI sub-select
+#   "Review Request" / "Submit Request"         review and final submit buttons
 import asyncio
 
+from src.dsar.rights import Right
 from src.dsar.super_scraper import SuperScraper
 
 from pydoll.browser.chromium import Chrome
-from pydoll.browser.options import ChromiumOptions
 from pydoll.constants import Key
 
 URL = "https://preferences.inmarket.com/?locationCode=US-MN"
 
-ACCESS = ("access", "Start Access Request", None)
-OPT_OUT = (
-    "opt_out",
-    "Start Request to Opt Out or Limit Use of Sensitive Personal Information",
-    "Opt out of the sale and/or sharing of my personal information",
-)
-DELETE = ("delete", "Start Deletion Request", None)
+# Right -> (card button text, sub-select choice or None).
+RIGHT_MAP = {
+    Right.RIGHT_TO_ACCESS: ("Start Access Request", None),
+    Right.RIGHT_TO_OPT_OUT: (
+        "Start Request to Opt Out or Limit Use of Sensitive Personal Information",
+        "Opt out of the sale and/or sharing of my personal information",
+    ),
+    Right.RIGHT_TO_DELETE: ("Start Deletion Request", None),
+}
+RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
+
+PAGE_RIGHTS = {}  # TODO(health-check): run HEALTH_CHECK once live; it prints the full list
+
+FIELD_XPATHS = {
+    "First name": "//input[@name='first_name']",
+    "Last name": "//input[@name='last_name']",
+    "Email": "//input[@name='email_address']",
+}
 
 
 async def _fill_common(tab, super_scraper):
@@ -58,7 +80,7 @@ async def _fill_common(tab, super_scraper):
             await asyncio.sleep(0.5)
 
 
-async def submit_request(tab, right_id, card_text, sub_choice, super_scraper):
+async def submit_request(tab, right, card_text, sub_choice, super_scraper):
     await tab.go_to(URL)
     await asyncio.sleep(5)
 
@@ -103,11 +125,13 @@ async def submit_request(tab, right_id, card_text, sub_choice, super_scraper):
         else:
             print(f"{super_scraper.OOPS} opt-out/limit-PI sub-select not found")
 
+    if SuperScraper.HEALTH_CHECK:
+        await SuperScraper.assert_fields_filled(tab, FIELD_XPATHS)
+
     if SuperScraper.DRY_RUN:
-        print(f"DRY RUN: would submit '{right_id}' for {SuperScraper.FIRST_NAME} {SuperScraper.LAST_NAME}")
         await asyncio.sleep(1)
-        await tab.take_screenshot(path=f"resources/screenshots/inmarket_dry_run_{right_id}.png")
-        print(f"Screenshot saved to resources/screenshots/inmarket_dry_run_{right_id}.png")
+        await SuperScraper.screenshot(tab, f"dry_run_{right.value}")
+        print(f"DRY RUN: would submit '{right.name}' for {SuperScraper.EMAIL}")
         return
 
     review_btn = await tab.find(text="Review Request", raise_exc=False)
@@ -119,25 +143,25 @@ async def submit_request(tab, right_id, card_text, sub_choice, super_scraper):
     if submit_btn:
         await submit_btn.click()
         await asyncio.sleep(2)
-        print(f"Submitted '{right_id}' for {SuperScraper.FIRST_NAME} {SuperScraper.LAST_NAME}")
+        print(f"Submitted '{right.name}' for {SuperScraper.EMAIL} — confirm in the browser.")
     else:
-        print(f"{super_scraper.OOPS} Submit Request button not found for '{right_id}'")
+        print(f"{super_scraper.OOPS} Submit Request button not found for '{right.name}'")
 
 
 async def main():
-    options = ChromiumOptions()
     super_scraper = SuperScraper()
-    options.binary_location = super_scraper.CHROMIUM_LOCATION
-    options.add_argument("--no-sandbox")
+    options = SuperScraper.build_chromium_options()
 
-    requests = [ACCESS, OPT_OUT]
-    if SuperScraper.REMOVE_INFORMATION:
-        requests.append(DELETE)
+    rights = SuperScraper.rights_to_exercise(RIGHT_MAP)
+    if not rights:
+        print("No requested privacy rights apply to this form — nothing to do.")
+        return
 
     async with Chrome(options=options) as browser:
         tab = await browser.start()
-        for right_id, card_text, sub_choice in requests:
-            await submit_request(tab, right_id, card_text, sub_choice, super_scraper)
+        for right in rights:
+            card_text, sub_choice = RIGHT_MAP[right]
+            await submit_request(tab, right, card_text, sub_choice, super_scraper)
 
 
 asyncio.run(main())

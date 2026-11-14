@@ -1,32 +1,55 @@
-# owneriq.com — exercises Right to Access and Right to Delete (gated on
-# REMOVE_INFORMATION). No Opt-Out or Correct form available on the OneTrust
-# portal. Subject type "Consumer located in CA, CO, CT, DE, IN, IA, KY, MD,
-# MN, MT, NE, NH, NJ, OR, RI, TN, TX, UT, or VA". Country and State are
-# autocomplete comboboxes (click then tab.keyboard.type_text then tab.find(text=)).
-# Delivery method: Online (click_using_js). "I am submitting this request as:"
-# (formField20DSARElement) autocomplete → type "Consumer", select if option appears.
-# Phone number required (formField21DSARElement). No captcha.
-# inmar.com uses the same form URL.
+# owneriq.com — OneTrust Angular DSAR portal. Rights the form exposes: Access, Delete (no Opt-Out
+# or Correct). One submission per right; which run is decided ONLY by
+# SuperScraper.rights_to_exercise(RIGHT_MAP). inmar.com uses the same form URL.
+# Subject type is a "Consumer located in CA, CO, CT, DE, IN, IA, KY, MD, MN, MT, NE, NH, NJ, OR,
+# RI, TN, TX, UT, or VA" card — the form is for residents of those states, so
+# SERVES_NO_LAW_STATES = False. No captcha observed.
+#
+# Page elements (keep this list current):
+#   aria-label SUBJECT_TYPE             Subject type card (click_using_js)
+#   aria-label "Access My Information"  Request type card -> RIGHT_TO_ACCESS
+#   aria-label "Delete My Information"  Request type card -> RIGHT_TO_DELETE
+#   aria-label "Online"                 Delivery method (click_using_js)
+#   #formField20DSARElement             "I am submitting this request as:" autocomplete -> type "Consumer"
+#   #firstNameDSARElement / #lastNameDSARElement / #emailDSARElement   First / Last name, Email
+#   #formField21DSARElement             Phone number (required)
+#   #countryDSARElement / #stateDSARElement   Country / State autocomplete comboboxes (State appears after Country)
+#   aria-label "click to submit form"   Submit button
 import asyncio
-import time
 
 from pydoll.browser.chromium import Chrome
-from pydoll.browser.options import ChromiumOptions
 
+from src.dsar.rights import Right
 from src.dsar.super_scraper import SuperScraper
 
 URL = "https://privacyportal-cdn.onetrust.com/dsarwebform/fa9f2f77-33ff-473b-ae55-579e2e693a91/ea2fadbb-3208-459b-8ed6-c975b6a9901c.html"
 
 SUBJECT_TYPE = "Consumer located in CA, CO, CT, DE, IN, IA, KY, MD, MN, MT, NE, NH, NJ, OR, RI, TN, TX, UT, or VA"
 
-# (aria-label, screenshot label)
-REQUESTS = [
-    ("Access My Information", "access"),
-]
-DELETE_REQUEST = ("Delete My Information", "delete")
+SERVES_NO_LAW_STATES = False
+
+# Right -> request-type card aria-label
+RIGHT_MAP = {
+    Right.RIGHT_TO_ACCESS: "Access My Information",
+    Right.RIGHT_TO_DELETE: "Delete My Information",
+}
+RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
+
+PAGE_RIGHTS = {}  # TODO(health-check): run HEALTH_CHECK once live; it prints the full list
+# (Recorded request types are aria-labels; the visible text may differ, so they are not copied in.)
+
+FIELD_XPATHS = {
+    "Submitting as": "//*[@id='formField20DSARElement']",
+    "First name": "//*[@id='firstNameDSARElement']",
+    "Last name": "//*[@id='lastNameDSARElement']",
+    "Email": "//*[@id='emailDSARElement']",
+    "Phone": "//*[@id='formField21DSARElement']",
+    "Country": "//*[@id='countryDSARElement']",
+    "State": "//*[@id='stateDSARElement']",
+}
 
 
-async def submit_request(tab, aria_label, label, super_scraper):
+async def submit_request(tab, right, aria_label, super_scraper):
     await tab.go_to(URL)
     await asyncio.sleep(6)
 
@@ -92,6 +115,9 @@ async def submit_request(tab, aria_label, label, super_scraper):
             await state_opt.click()
     await asyncio.sleep(0.5)
 
+    if SuperScraper.HEALTH_CHECK:
+        await SuperScraper.assert_fields_filled(tab, FIELD_XPATHS)
+
     if SuperScraper.DRY_RUN:
         print(
             f"DRY RUN: would submit '{aria_label}' for "
@@ -101,8 +127,7 @@ async def submit_request(tab, aria_label, label, super_scraper):
         if submit_btn:
             await submit_btn.scroll_into_view()
         await asyncio.sleep(1)
-        await tab.take_screenshot(f"resources/screenshots/owneriq_dry_run_{label}.png")
-        print(f"Screenshot saved to resources/screenshots/owneriq_dry_run_{label}.png")
+        await SuperScraper.screenshot(tab, f"dry_run_{right.value}")
         return
 
     print(f"\nForm filled for '{aria_label}'.")
@@ -110,28 +135,27 @@ async def submit_request(tab, aria_label, label, super_scraper):
     print("Press Enter after the confirmation page appears...")
     input()
 
-    source = await tab.page_source
-    if any(w in source.lower() for w in ("thank", "success", "received", "submitted", "confirmation")):
-        print(f"Submitted '{aria_label}' for {SuperScraper.FIRST_NAME} {SuperScraper.LAST_NAME}")
-    else:
-        print(f"{super_scraper.OOPS} Confirmation unclear for '{aria_label}' — verify in browser")
+    print(f"Submitted '{right.name}' for {SuperScraper.EMAIL} — confirm in the browser.")
 
 
 async def main():
-    options = ChromiumOptions()
     super_scraper = SuperScraper()
-    options.binary_location = super_scraper.CHROMIUM_LOCATION
-    options.add_argument("--no-sandbox")
-    options.add_argument("--window-size=1280,3000")
+    options = SuperScraper.build_chromium_options()
 
-    requests = list(REQUESTS)
-    if SuperScraper.REMOVE_INFORMATION:
-        requests.append(DELETE_REQUEST)
+    if SuperScraper.bail_if_not_automatable(globals()):
+        return
+    if SuperScraper.bail_if_state_unsupported(globals()):
+        return
+
+    rights = SuperScraper.rights_to_exercise(RIGHT_MAP)
+    if not rights:
+        print("No requested privacy rights apply to this form — nothing to do.")
+        return
 
     async with Chrome(options=options) as browser:
         tab = await browser.start()
-        for aria_label, label in requests:
-            await submit_request(tab, aria_label, label, super_scraper)
+        for right in rights:
+            await submit_request(tab, right, RIGHT_MAP[right], super_scraper)
 
 
 asyncio.run(main())

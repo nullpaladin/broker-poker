@@ -5,10 +5,20 @@
 # rest are all Thomson Reuters customer/employee-specific relationships);
 # that reveals "Select request type" — a single-select toggle group
 # (confirmed: picking a second option deselects the first) — one
-# submission per right: Data Access Request, Do Not Sell My Personal
-# Information, Opt Out of Marketing Communications unconditionally; Delete
-# my PI gated on REMOVE_INFORMATION. Correct/Expunge skipped (no concrete
-# inaccuracy to describe).
+# submission per request type: Data Access Request (access), Do Not Sell My Personal
+# Information + Opt Out of Marketing Communications (opt-out), Delete my PI (delete);
+# which run is decided ONLY by SuperScraper.rights_to_exercise(RIGHT_MAP). Correct/Expunge
+# skipped (no concrete inaccuracy to describe).
+#
+# Page elements:
+#   formField36DSARElement   "State of Residency" (vt-autocomplete)
+#   firstNameDSARElement / lastNameDSARElement / emailDSARElement   First / Last name, Contact Email
+#   addressDSARElement / cityDSARElement / zipDSARElement           Current Street Address / City / Zip Code
+#   nationalIdDSARElement    Last four digits of SSN (optional)
+#   formField73DSARElement   "US Phone Number"
+#   formField54DSARElement   Phone Number (Opt Out of Marketing Communications only)
+#   formField22DSARElement   "Day of Birth" (MM/DD)
+#   phoneNumberDSARElement   "Requestor Phone Number" (Data Access Request only)
 #
 # Selecting a request type reveals its own final block of fields, and this
 # DIVERGES by type (tested three of the four): Data Access Request and Do
@@ -34,19 +44,30 @@
 # required**.
 import asyncio
 
+from src.dsar.rights import Right
 from src.dsar.super_scraper import SuperScraper
 
 from pydoll.browser.chromium import Chrome
-from pydoll.browser.options import ChromiumOptions
 
 URL = "https://privacyportal.onetrust.com/webform/dbf5ae8a-0a6a-4f4b-b527-7f94d0de6bbc/23dce484-737f-4d47-a389-2e990f683e8c"
 
-REQUEST_TYPES = [
-    "Data Access Request",
-    "Do Not Sell My Personal Information",
-    "Opt Out of Marketing Communications",
-]
-DELETE_REQUEST_TYPE = "Delete my PI"
+# Right -> "Select request type" option(s).
+RIGHT_MAP = {
+    Right.RIGHT_TO_ACCESS: ["Data Access Request"],
+    Right.RIGHT_TO_OPT_OUT: ["Do Not Sell My Personal Information", "Opt Out of Marketing Communications"],
+    Right.RIGHT_TO_DELETE: ["Delete my PI"],
+}
+RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
+
+PAGE_RIGHTS = {}  # TODO(health-check): run HEALTH_CHECK once live; it prints the full list
+# (The request-type toggles are listed without a Correct / Expunge label; the fields below are common to every type.)
+
+FIELD_XPATHS = {
+    "State of residency": "//*[@id='formField36DSARElement']",
+    "First name": "//*[@id='firstNameDSARElement']",
+    "Last name": "//*[@id='lastNameDSARElement']",
+    "Contact email": "//*[@id='emailDSARElement']",
+}
 MARKETING_OPT_OUT_TYPE = "Opt Out of Marketing Communications"
 ACCESS_REQUEST_TYPE = "Data Access Request"
 
@@ -139,10 +160,12 @@ async def submit_request(tab, request_type, super_scraper):
             elif not requestor_phone_field:
                 print(f"{super_scraper.OOPS} Requestor Phone Number field not found")
 
+    if SuperScraper.HEALTH_CHECK:
+        await SuperScraper.assert_fields_filled(tab, FIELD_XPATHS)
+
     label = "".join(c if c.isalnum() else "_" for c in request_type.lower())[:40].strip("_")
     await asyncio.sleep(1)
-    await tab.take_screenshot(path=f"resources/screenshots/thomsonreuters_dry_run_{label}.png")
-    print(f"Screenshot saved to resources/screenshots/thomsonreuters_dry_run_{label}.png")
+    await SuperScraper.screenshot(tab, f"dry_run_{label}")
     print(
         f"\n'{request_type}' request filled but NOT submitted — a reCAPTCHA v2 checkbox "
         "requires a manual solve before submitting."
@@ -150,15 +173,14 @@ async def submit_request(tab, request_type, super_scraper):
 
 
 async def main():
-    options = ChromiumOptions()
     super_scraper = SuperScraper()
-    options.binary_location = super_scraper.CHROMIUM_LOCATION
-    options.add_argument("--no-sandbox")
-    options.add_argument("--window-size=1280,3000")
+    options = SuperScraper.build_chromium_options()
 
-    request_types = list(REQUEST_TYPES)
-    if SuperScraper.REMOVE_INFORMATION:
-        request_types.append(DELETE_REQUEST_TYPE)
+    rights = SuperScraper.rights_to_exercise(RIGHT_MAP)
+    if not rights:
+        print("No requested privacy rights apply to this form — nothing to do.")
+        return
+    request_types = [entry for right in rights for entry in RIGHT_MAP[right]]
 
     async with Chrome(options=options) as browser:
         tab = await browser.start()

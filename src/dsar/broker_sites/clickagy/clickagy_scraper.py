@@ -17,20 +17,38 @@
 #   (asked for statistics only — the site states it honors opt-outs
 #   "regardless of location") — no identity fields, no CAPTCHA, so DRY_RUN is
 #   respected and a real submission goes through when DRY_RUN is False.
+#
+# Page elements:
+#   "Clickagy has no data associated with your device" banner   Access page, no-data case
+#   #ccpa_form_email                                  Email (Access page)
+#   #ccpa_form_california_resident_yes / _no          "Are you a California resident?" radios
+#   button[type=submit]                               Submit (Opt-Out page)
+#   (Access page also has a reCAPTCHA v2 checkbox — manual solve)
 import asyncio
 
+from src.dsar.rights import Right
 from src.dsar.super_scraper import SuperScraper
 
 from pydoll.browser.chromium import Chrome
-from pydoll.browser.options import ChromiumOptions
 
 ACCESS_URL = "https://www.clickagy.com/privacy-center/request/"
 OPT_OUT_URL = "https://www.clickagy.com/privacy-center/no-resell/"
 
+# Right -> the page that exercises it.
+RIGHT_MAP = {
+    Right.RIGHT_TO_ACCESS: ACCESS_URL,
+    Right.RIGHT_TO_OPT_OUT: OPT_OUT_URL,
+}
+RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
+
+PAGE_RIGHTS = {}  # TODO(health-check): run HEALTH_CHECK once live; it prints the full list
+# (The two pages have no rights chooser or recorded heading text to inventory.)
+
 
 async def _select_california_resident(tab, super_scraper):
-    is_california = SuperScraper.STATE.strip().lower() == "california"
-    radio_id = "ccpa_form_california_resident_yes" if is_california else "ccpa_form_california_resident_no"
+    # "Are you a California resident?" — answered truthfully from STATE.
+    answer_yes = (SuperScraper.STATE or "").strip().lower() == "california"
+    radio_id = "ccpa_form_california_resident_yes" if answer_yes else "ccpa_form_california_resident_no"
     radio = await tab.find(id=radio_id, raise_exc=False)
     if radio:
         await radio.click()
@@ -44,8 +62,7 @@ async def submit_access(tab, super_scraper):
 
     no_data_banner = await tab.find(text="Clickagy has no data associated with your device", raise_exc=False)
     if no_data_banner:
-        await tab.take_screenshot(path="resources/screenshots/clickagy_dry_run_access.png")
-        print("Screenshot saved to resources/screenshots/clickagy_dry_run_access.png")
+        await SuperScraper.screenshot(tab, "dry_run_access")
         print(
             "\nClickagy's own device check reports no data associated with this browser/device — "
             "the email+CAPTCHA request form never rendered, so there is nothing to request."
@@ -60,9 +77,11 @@ async def submit_access(tab, super_scraper):
 
     await _select_california_resident(tab, super_scraper)
 
+    if SuperScraper.HEALTH_CHECK:
+        await SuperScraper.assert_fields_filled(tab, {"Email": "//input[@id='ccpa_form_email']"})
+
     await asyncio.sleep(1)
-    await tab.take_screenshot(path="resources/screenshots/clickagy_dry_run_access.png")
-    print("Screenshot saved to resources/screenshots/clickagy_dry_run_access.png")
+    await SuperScraper.screenshot(tab, "dry_run_access")
     print(
         "\nAccess request filled but NOT submitted — a reCAPTCHA v2 checkbox requires a manual "
         "solve before submitting."
@@ -76,9 +95,7 @@ async def submit_opt_out(tab, super_scraper):
     await _select_california_resident(tab, super_scraper)
 
     await asyncio.sleep(1)
-    await tab.take_screenshot(path="resources/screenshots/clickagy_dry_run_opt_out.png")
-    print("Screenshot saved to resources/screenshots/clickagy_dry_run_opt_out.png")
-
+    await SuperScraper.screenshot(tab, "dry_run_opt_out")
     if SuperScraper.DRY_RUN:
         print("DRY RUN: would submit opt-out-of-sale request for this device/browser")
         return
@@ -87,22 +104,25 @@ async def submit_opt_out(tab, super_scraper):
     if submit_button:
         await submit_button.click()
         await asyncio.sleep(3)
-        print("Submitted opt-out-of-sale request for this device/browser.")
+        print("Submitted opt-out-of-sale request for this device/browser — confirm in the browser.")
     else:
         print(f"{super_scraper.OOPS} submit button not found")
 
 
 async def main():
-    options = ChromiumOptions()
     super_scraper = SuperScraper()
-    options.binary_location = super_scraper.CHROMIUM_LOCATION
-    options.add_argument("--no-sandbox")
-    options.add_argument("--window-size=1280,3000")
+    rights = SuperScraper.rights_to_exercise(RIGHT_MAP)
+    if not rights:
+        print("No requested privacy rights apply to this form — nothing to do.")
+        return
+    options = SuperScraper.build_chromium_options()
 
     async with Chrome(options=options) as browser:
         tab = await browser.start()
-        await submit_access(tab, super_scraper)
-        await submit_opt_out(tab, super_scraper)
+        if Right.RIGHT_TO_ACCESS in rights:
+            await submit_access(tab, super_scraper)
+        if Right.RIGHT_TO_OPT_OUT in rights:
+            await submit_opt_out(tab, super_scraper)
 
 
 asyncio.run(main())

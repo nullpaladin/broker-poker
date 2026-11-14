@@ -9,8 +9,8 @@
 # (requestTypesDSARElement) is a role=listbox toggle group — the page's own
 # copy says "If you want to access and delete your personal data, you'll
 # need to submit two separate requests," confirming single-select — one
-# submission per right: Access personal data unconditionally, Delete
-# personal data gated on REMOVE_INFORMATION. Correct personal data skipped
+# submission per right: Access personal data (access), Delete personal data
+# (delete); which run is decided ONLY by SuperScraper.rights_to_exercise(RIGHT_MAP). Correct personal data skipped
 # (no concrete inaccuracy to describe).
 #
 # Selecting a Type of request reveals fields common to BOTH rights:
@@ -24,17 +24,47 @@
 # online portal"); Delete additionally requires First Name, Last Name,
 # Street address (formField84DSARElement), City, Zip code — none of which
 # Access asks for at all. reCAPTCHA v2 — **CAPTCHA solution required**.
+#
+# Page elements:
+#   formField79DSARElement    "Requestor" -> "I am requesting my own personal data"
+#   requestTypesDSARElement   "Type of request" (see RIGHT_MAP)
+#   subjectTypesDSARElement   "Relationship with T-Mobile" -> "Current customer"
+#   formField112DSARElement   "US States & Territories" -> "Continental US, AK, HI, DC"
+#   stateDSARElement          "State of residence"
+#   phoneNumberDSARElement    Phone Number
+#   emailDSARElement          Email
+#   formField77DSARElement    "Delivery method" (Access only) -> "Secure online portal"
+#   firstNameDSARElement / lastNameDSARElement / formField84DSARElement (Street address) /
+#   cityDSARElement / zipDSARElement   First name, Last name, Street address, City, Zip code (Delete only)
 import asyncio
 
+from src.dsar.rights import Right
 from src.dsar.super_scraper import SuperScraper
 
 from pydoll.browser.chromium import Chrome
-from pydoll.browser.options import ChromiumOptions
 
 URL = "https://privacyportal-t-mobile.my.onetrust.com/webform/d4a925f0-4ebf-40ba-817b-bccc309e602f/7831d667-1ebc-4b1e-a941-e545cb0d0523"
 
-REQUEST_TYPES = ["Access personal data"]
-DELETE_REQUEST_TYPE = "Delete personal data"
+# Right -> "Type of request" option.
+RIGHT_MAP = {
+    Right.RIGHT_TO_ACCESS: "Access personal data",
+    Right.RIGHT_TO_DELETE: "Delete personal data",
+}
+RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
+
+# Every option in the "Type of request" toggle group, as displayed -> the Right it maps to (None = not automated).
+PAGE_RIGHTS = {
+    "Access personal data": Right.RIGHT_TO_ACCESS,
+    "Delete personal data": Right.RIGHT_TO_DELETE,
+    "Correct personal data": None,
+}
+RIGHTS_OPTIONS_CSS = "#requestTypesDSARElement [role='option']"
+
+FIELD_XPATHS = {
+    "State of residence": "//*[@id='stateDSARElement']",
+    "Email": "//*[@id='emailDSARElement']",
+}
+DELETE_REQUEST_TYPE = RIGHT_MAP[Right.RIGHT_TO_DELETE]
 
 
 async def _select_option(tab, option_text, super_scraper, description):
@@ -57,6 +87,10 @@ async def submit_request(tab, request_type, super_scraper):
         await _select_option(tab, "I am requesting my own personal data", super_scraper, "Requestor")
     else:
         print(f"{super_scraper.OOPS} Requestor field not found")
+
+    if SuperScraper.HEALTH_CHECK:
+        offered = await SuperScraper.read_option_labels(tab, RIGHTS_OPTIONS_CSS)
+        SuperScraper.audit_rights(offered, PAGE_RIGHTS)
 
     await _select_option(tab, request_type, super_scraper, "Type of request")
     await _select_option(tab, "Current customer", super_scraper, "Relationship with T-Mobile")
@@ -108,10 +142,12 @@ async def submit_request(tab, request_type, super_scraper):
     else:
         await _select_option(tab, "Secure online portal", super_scraper, "Delivery method")
 
+    if SuperScraper.HEALTH_CHECK:
+        await SuperScraper.assert_fields_filled(tab, FIELD_XPATHS)
+
     label = "".join(c if c.isalnum() else "_" for c in request_type.lower())[:40].strip("_")
     await asyncio.sleep(1)
-    await tab.take_screenshot(path=f"resources/screenshots/tmobile_dry_run_{label}.png")
-    print(f"Screenshot saved to resources/screenshots/tmobile_dry_run_{label}.png")
+    await SuperScraper.screenshot(tab, f"dry_run_{label}")
     print(
         f"\n'{request_type}' request filled but NOT submitted — a reCAPTCHA v2 checkbox "
         "requires a manual solve before submitting."
@@ -119,15 +155,14 @@ async def submit_request(tab, request_type, super_scraper):
 
 
 async def main():
-    options = ChromiumOptions()
     super_scraper = SuperScraper()
-    options.binary_location = super_scraper.CHROMIUM_LOCATION
-    options.add_argument("--no-sandbox")
-    options.add_argument("--window-size=1280,3000")
+    options = SuperScraper.build_chromium_options()
 
-    request_types = list(REQUEST_TYPES)
-    if SuperScraper.REMOVE_INFORMATION:
-        request_types.append(DELETE_REQUEST_TYPE)
+    rights = SuperScraper.rights_to_exercise(RIGHT_MAP)
+    if not rights:
+        print("No requested privacy rights apply to this form — nothing to do.")
+        return
+    request_types = [RIGHT_MAP[right] for right in rights]
 
     async with Chrome(options=options) as browser:
         tab = await browser.start()

@@ -1,24 +1,56 @@
-# ididata.com (IDI Data) — exercises Access, Do Not Sell, Delete (gated).
+# ididata.com (IDI Data) — Access, Do Not Sell (opt-out) and Delete; which run is decided only
+# by SuperScraper.rights_to_exercise.
 # Three separate Salesforce Web-to-Case pages, one per right type. Minnesota is supported.
 # Fields: name, address, state (full name), zip, phone, email, last4ss (LAST_FOUR_SSN required),
 # DOB (month/day/year selects), lived6Months ("Yes"), deliveryChoice ("email").
 # hp-prefixed selects (hplived6Months, hpdobmonth, etc.) are honeypots — left empty.
 # hplegalAgree is a honeypot checkbox — left unchecked.
 # reCAPTCHA v2 requires manual solve before submit.
+#
+# Page elements (ids):
+#   "Accept All Cookies" button     cookie banner
+#   #firstName / #lastName          First / Last name
+#   #addressLine1 / #addressLine2   Address lines
+#   #city / #State / #zip           City / State (full name) / ZIP
+#   #lived6Months                   lived at address 6 months -> "Yes"
+#   #phone / #email                 Phone / Email
+#   #last4ss                        Last 4 of SSN
+#   #month / #day / #year           Date of birth selects
+#   #deliveryChoice                 Delivery preference -> "email"
+#   "Submit Request" button
 import asyncio
 import time
 
 from pydoll.browser.chromium import Chrome
-from pydoll.browser.options import ChromiumOptions
 
+from src.dsar.rights import Right
 from src.dsar.super_scraper import SuperScraper
 
 # (URL, screenshot label)
-REQUESTS = [
-    ("https://www.ididata.com/personal-information-request/",    "access"),
-    ("https://www.ididata.com/do-not-sell-my-personal-information/", "optout"),
-]
-DELETE_REQUEST = ("https://www.ididata.com/deletion-request/", "delete")
+RIGHT_MAP = {
+    Right.RIGHT_TO_ACCESS: ("https://www.ididata.com/personal-information-request/", "access"),
+    Right.RIGHT_TO_OPT_OUT: ("https://www.ididata.com/do-not-sell-my-personal-information/", "optout"),
+    Right.RIGHT_TO_DELETE: ("https://www.ididata.com/deletion-request/", "delete"),
+}
+RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
+
+PAGE_RIGHTS = {}  # TODO(health-check): run HEALTH_CHECK once live; it prints the full list
+
+FIELD_XPATHS = {
+    "First name": "//*[@id='firstName']",
+    "Last name": "//*[@id='lastName']",
+    "Address": "//*[@id='addressLine1']",
+    "City": "//*[@id='city']",
+    "State": "//*[@id='State']",
+    "Zip": "//*[@id='zip']",
+    "Phone": "//*[@id='phone']",
+    "Email": "//*[@id='email']",
+    "Last 4 of SSN": "//*[@id='last4ss']",
+    "Birth month": "//*[@id='month']",
+    "Birth day": "//*[@id='day']",
+    "Birth year": "//*[@id='year']",
+    "Delivery preference": "//*[@id='deliveryChoice']",
+}
 
 
 def _parse_dob():
@@ -43,7 +75,7 @@ async def _select_option(tab, select_id, value):
         print(f"Select #{select_id} not found")
 
 
-async def submit_request(tab, url, label, super_scraper, dob_day, dob_month, dob_year):
+async def submit_request(tab, right, url, label, super_scraper, dob_day, dob_month, dob_year):
     await tab.go_to(url)
     await asyncio.sleep(6)
 
@@ -108,29 +140,28 @@ async def submit_request(tab, url, label, super_scraper, dob_day, dob_month, dob
     # hplegalAgree is a honeypot — do NOT check it
     time.sleep(0.5)
 
+    if SuperScraper.HEALTH_CHECK:
+        await SuperScraper.assert_fields_filled(tab, FIELD_XPATHS)
+
     if SuperScraper.DRY_RUN:
         submit_btn = await tab.find(tag_name="button", text="Submit Request", raise_exc=False)
         if submit_btn:
             await submit_btn.scroll_into_view()
-        await tab.take_screenshot(f"resources/screenshots/ididata_dry_run_{label}.png")
+        await SuperScraper.screenshot(tab, f"dry_run_{right.value}")
         print(
-            f"DRY RUN: would submit '{label}' for "
-            f"{SuperScraper.FIRST_NAME} {SuperScraper.LAST_NAME} <{SuperScraper.EMAIL}>"
+            f"DRY RUN: would submit '{right.name}' for {SuperScraper.EMAIL}"
         )
         return
 
-    print(f"\nForm filled for '{label}'. Solve the reCAPTCHA v2, then click Submit Request.")
+    print(f"\nForm filled for '{right.name}'. Solve the reCAPTCHA v2, then click Submit Request.")
     print("Press Enter after the confirmation page appears...")
     input()
-    print(f"Submitted '{label}' for {SuperScraper.FIRST_NAME} {SuperScraper.LAST_NAME}")
+    print(f"Submitted '{right.name}' for {SuperScraper.EMAIL} — confirm in the browser.")
 
 
 async def main():
-    options = ChromiumOptions()
     super_scraper = SuperScraper()
-    options.binary_location = super_scraper.CHROMIUM_LOCATION
-    options.add_argument("--no-sandbox")
-    options.add_argument("--window-size=1280,4000")
+    options = SuperScraper.build_chromium_options()
 
     if not SuperScraper.LAST_FOUR_SSN:
         print("LAST_FOUR_SSN is required for ididata.com — set it in .env and retry.")
@@ -138,14 +169,17 @@ async def main():
 
     dob_day, dob_month, dob_year = _parse_dob()
 
-    requests = list(REQUESTS)
-    if SuperScraper.REMOVE_INFORMATION:
-        requests.append(DELETE_REQUEST)
+    rights = SuperScraper.rights_to_exercise(RIGHT_MAP)
+    if not rights:
+        print("No requested privacy rights apply to this form — nothing to do.")
+        return
 
     async with Chrome(options=options) as browser:
         tab = await browser.start()
-        for url, label in requests:
-            await submit_request(tab, url, label, super_scraper, dob_day, dob_month, dob_year)
+        for right in rights:
+            entries = RIGHT_MAP[right]
+            for url, label in (entries if isinstance(entries, list) else [entries]):
+                await submit_request(tab, right, url, label, super_scraper, dob_day, dob_month, dob_year)
 
 
 asyncio.run(main())

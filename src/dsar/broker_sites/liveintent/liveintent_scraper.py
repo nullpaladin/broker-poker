@@ -7,10 +7,12 @@
 # Submitting this form sends a real verification email, so the scraper fills the
 # email field and stops there regardless of DRY_RUN — it never clicks Submit.
 # No CAPTCHA.
+#
+# Page elements:
+#   input[type=email] / input[name=email]   The portal's only field: email address
 import asyncio
 
 from pydoll.browser.chromium import Chrome
-from pydoll.browser.options import ChromiumOptions
 
 from src.dsar.super_scraper import SuperScraper
 
@@ -18,11 +20,8 @@ URL = "https://privacy.liveintent.com/"
 
 
 async def main():
-    options = ChromiumOptions()
     super_scraper = SuperScraper()
-    options.binary_location = super_scraper.CHROMIUM_LOCATION
-    options.add_argument("--no-sandbox")
-    options.add_argument("--window-size=1280,1400")
+    options = SuperScraper.build_chromium_options()
 
     async with Chrome(options=options) as browser:
         tab = await browser.start()
@@ -36,8 +35,7 @@ async def main():
             print(f"{super_scraper.OOPS} email field not found")
 
         await asyncio.sleep(1)
-        await tab.take_screenshot(path="resources/screenshots/liveintent_dry_run.png", beyond_viewport=True)
-        print("Screenshot saved to resources/screenshots/liveintent_dry_run.png")
+        await SuperScraper.screenshot(tab, "dry_run")
         print(
             f"Email {SuperScraper.EMAIL} entered but NOT submitted — clicking Submit sends a "
             "real verification email. Do that yourself, then follow the personalized link to "

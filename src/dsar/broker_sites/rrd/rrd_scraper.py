@@ -4,29 +4,65 @@
 # the consumer's own email used for data lookup — fill both with EMAIL.
 # State (stateDSARElement) appears after Country is selected.
 # Phone country code vt-input-12 (type "1"). Image CAPTCHA (captchaCode).
-# Rights exercised: Opt-Out (Do Not Sell/Share, Targeted Advertising, Profiling,
-# Sensitive), Correct, Know (Categories + Specific Pieces), Copy/Access.
-# Delete gated on REMOVE_INFORMATION.
+# Rights exercised (each only if selected by SuperScraper.rights_to_exercise): Opt-Out
+# (Do Not Sell/Share, Targeted Advertising, Profiling, Sensitive), Know (Categories +
+# Specific Pieces), Copy/Access, Delete. "Request to Correct Inaccurate Personal
+# Information" is offered by the page but not automated.
+#
+# Page elements:
+#   aria-label "Consumer"                    subject-type button
+#   aria-label <request type label>          request-type buttons (see RIGHT_MAP)
+#   #emailDSARElement                        communication email
+#   #countryDSARElement / #stateDSARElement  Country / State autocompletes
+#   #firstNameDSARElement / #lastNameDSARElement / #addressDSARElement / #cityDSARElement / #zipDSARElement
+#   #formField87DSARElement                  consumer's own email (data lookup)
+#   #vt-input-12                             phone country code (type "1")
+#   #phoneNumberDSARElement                  Phone
+#   #captchaCode                             image CAPTCHA (manual entry)
 import asyncio
 
 from pydoll.browser.chromium import Chrome
-from pydoll.browser.options import ChromiumOptions
 
+from src.dsar.rights import Right
 from src.dsar.super_scraper import SuperScraper
 
 URL = "https://privacyportal.onetrust.com/webform/45e4be25-919b-483f-9f95-12809576a2b3/6e633594-9a81-48bb-97ab-6fb29bf46019"
 
-ALWAYS_REQUESTS = [
-    "Request to Opt-Out (Do Not Sell or Share My Personal Information)",
-    "Request to Opt-Out (Targeted Advertising)",
-    "Request to Opt-Out (Profiling)",
-    "Request to Opt-Out (Use of My Sensitive Information)",
-    "Request to Correct Inaccurate Personal Information",
-    "Request to Know (Categories of Personal Information & 3rd Parties Shared)",
-    "Request to Know (Specific Pieces of Personal Information)",
-    "Request a Copy of Personal Information",
-]
-DELETE_REQUEST = "Request to Delete Personal Information"
+# "Request to Correct Inaccurate Personal Information" is deliberately not mapped.
+RIGHT_MAP = {
+    Right.RIGHT_TO_ACCESS: [
+        "Request a Copy of Personal Information",
+        "Request to Know (Specific Pieces of Personal Information)",
+        "Request to Know (Categories of Personal Information & 3rd Parties Shared)",
+    ],
+    Right.RIGHT_TO_LIST_OF_THIRD_PARTIES: [
+        "Request to Know (Categories of Personal Information & 3rd Parties Shared)",
+    ],
+    Right.RIGHT_TO_OPT_OUT: [
+        "Request to Opt-Out (Do Not Sell or Share My Personal Information)",
+        "Request to Opt-Out (Targeted Advertising)",
+        "Request to Opt-Out (Profiling)",
+        "Request to Opt-Out (Use of My Sensitive Information)",
+    ],
+    Right.RIGHT_TO_DELETE: ["Request to Delete Personal Information"],
+}
+RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
+
+PAGE_RIGHTS = {}  # TODO(health-check): run HEALTH_CHECK once live; it prints the full list
+# (Recorded request types are aria-labels; the visible text may differ, so they are not copied in.)
+
+FIELD_XPATHS = {
+    "Communication email": "//*[@id='emailDSARElement']",
+    "Country": "//*[@id='countryDSARElement']",
+    "First name": "//*[@id='firstNameDSARElement']",
+    "Last name": "//*[@id='lastNameDSARElement']",
+    "Address": "//*[@id='addressDSARElement']",
+    "City": "//*[@id='cityDSARElement']",
+    "State": "//*[@id='stateDSARElement']",
+    "Zip": "//*[@id='zipDSARElement']",
+    "Consumer email": "//*[@id='formField87DSARElement']",
+    "Phone": "//*[@id='phoneNumberDSARElement']",
+}
 
 
 async def _autocomplete(tab, field_id, text):
@@ -47,11 +83,12 @@ async def _autocomplete(tab, field_id, text):
 
 
 async def main():
-    options = ChromiumOptions()
     super_scraper = SuperScraper()
-    options.binary_location = super_scraper.CHROMIUM_LOCATION
-    options.add_argument("--no-sandbox")
-    options.add_argument("--window-size=1280,3000")
+    rights = SuperScraper.rights_to_exercise(RIGHT_MAP)
+    if not rights:
+        print("No requested privacy rights apply to this form — nothing to do.")
+        return
+    options = SuperScraper.build_chromium_options()
 
     async with Chrome(options=options) as browser:
         tab = await browser.start()
@@ -65,9 +102,9 @@ async def main():
         await asyncio.sleep(0.5)
 
         # Request types
-        requests = list(ALWAYS_REQUESTS)
-        if SuperScraper.REMOVE_INFORMATION:
-            requests.append(DELETE_REQUEST)
+        # dict.fromkeys de-duplicates: the "Categories & 3rd Parties" button is listed under
+        # both ACCESS and LIST_OF_THIRD_PARTIES and a second click would toggle it off.
+        requests = list(dict.fromkeys(entry for right in rights for entry in RIGHT_MAP[right]))
 
         for req_label in requests:
             btn = await tab.find(**{"aria-label": req_label}, raise_exc=False)
@@ -131,6 +168,9 @@ async def main():
         if phone:
             await phone.type_text(SuperScraper.PHONE_NUMBER)
 
+        if SuperScraper.HEALTH_CHECK:
+            await SuperScraper.assert_fields_filled(tab, FIELD_XPATHS)
+
         if SuperScraper.DRY_RUN:
             print(
                 f"DRY RUN: would submit for "
@@ -140,8 +180,7 @@ async def main():
             if captcha_field:
                 await captcha_field.scroll_into_view()
             await asyncio.sleep(1)
-            await tab.take_screenshot("resources/screenshots/rrd_dry_run.png")
-            print("Screenshot saved to resources/screenshots/rrd_dry_run.png")
+            await SuperScraper.screenshot(tab, "dry_run_" + "_".join(r.value for r in rights))
             return
 
         print(
@@ -151,11 +190,6 @@ async def main():
         )
         input()
 
-        source = await tab.page_source
-        if any(w in source.lower() for w in ("thank", "success", "received", "submitted", "confirmation")):
-            print(f"Submitted for {SuperScraper.FIRST_NAME} {SuperScraper.LAST_NAME}")
-        else:
-            print(f"{super_scraper.OOPS} Confirmation unclear — verify in browser")
-
+        print(f"Submitted {[r.name for r in rights]} for {SuperScraper.EMAIL} — confirm in the browser.")
 
 asyncio.run(main())

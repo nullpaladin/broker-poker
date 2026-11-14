@@ -5,22 +5,42 @@
 # Fields: #first_name, #last_name, #email, then a reCAPTCHA v2 checkbox and
 # Submit — filled to that point and left for a manual solve.
 # **CAPTCHA solution required**
+#
+# Page elements:
+#   #first_name / #last_name / #email   First / Last name / Email
+#   reCAPTCHA v2 checkbox, Submit button  (left for the user)
 import asyncio
 
 from pydoll.browser.chromium import Chrome
-from pydoll.browser.options import ChromiumOptions
 
+from src.dsar.rights import Right
 from src.dsar.super_scraper import SuperScraper
 
 URL = "https://app.fetcher.ai/opt-out"
 
+RIGHT_MAP = {Right.RIGHT_TO_OPT_OUT: "removal"}
+RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
+
+PAGE_RIGHTS = {}  # TODO(health-check): run HEALTH_CHECK once live; it prints the full list
+
+FIELD_XPATHS = {
+    "First name": "//*[@id='first_name']",
+    "Last name": "//*[@id='last_name']",
+    "Email": "//*[@id='email']",
+}
+
 
 async def main():
-    options = ChromiumOptions()
     super_scraper = SuperScraper()
-    options.binary_location = super_scraper.CHROMIUM_LOCATION
-    options.add_argument("--no-sandbox")
-    options.add_argument("--window-size=1280,1600")
+    if SuperScraper.bail_if_not_automatable(globals()):
+        return
+
+    rights = SuperScraper.rights_to_exercise(RIGHT_MAP)
+    if not rights:
+        print("No requested privacy rights apply to this form — nothing to do.")
+        return
+
+    options = SuperScraper.build_chromium_options()
 
     async with Chrome(options=options) as browser:
         tab = await browser.start()
@@ -42,9 +62,11 @@ async def main():
             else:
                 print(f"{super_scraper.OOPS} field '{field_id}' not found")
 
+        if SuperScraper.HEALTH_CHECK:
+            await SuperScraper.assert_fields_filled(tab, FIELD_XPATHS)
+
         await asyncio.sleep(1)
-        await tab.take_screenshot(path="resources/screenshots/fetcher_dry_run.png", beyond_viewport=True)
-        print("Screenshot saved to resources/screenshots/fetcher_dry_run.png")
+        await SuperScraper.screenshot(tab, "dry_run")
         print(
             "Opt-out request filled but NOT submitted — solve the reCAPTCHA v2 "
             "checkbox manually, then click Submit."

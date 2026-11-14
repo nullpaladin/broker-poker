@@ -28,39 +28,65 @@
 # and would submit step 1 (name + email + "I am" + agreement checkbox) but
 # cannot proceed past the emailed verification link, matching this repo's
 # existing precedent (statsocial.com) of stopping at an email-verification
-# wall. Gated on REMOVE_INFORMATION since it initiates a removal request.
+# wall. Mapped to delete only since it initiates a removal request.
+# Which of the two flows run is decided ONLY by SuperScraper.rights_to_exercise(RIGHT_MAP).
+#
+# Page elements (privacy-rights form):
+#   #chooseOption        "Please choose from the following options" <select> -> "ADC"
+#   #adc-request-type    "Request Type" <select> -> "right_to_know"
+#   #adc-company-interactions   company-relationship <select> -> "no-relation"
+#   #adc-firstname / #adc-lastname / #adc-email / #adc-phone   First / Last name, Email, Phone
+#   #adc-streetaddress / #adc-city / #adc-zipcode   Street address, City, Zip
+#   #adc-dob             Date of birth (native date input)
+#   #adc-user-type       "I am" <select> -> "subject"
+#   #adc-state           State <select> (lower-case full state name)
+# Page elements (removal form, step 1):
+#   #user-type "I am" <select> -> "subject"; #subject-firstname / #subject-lastname /
+#   #subject-email   First / Last name, Email; #agreement   agreement checkbox
 #
 # Google reCAPTCHA Enterprise on both forms — **CAPTCHA solution required**.
 import asyncio
 
+from src.dsar import js_utils
+from src.dsar.rights import Right
 from src.dsar.super_scraper import SuperScraper
 
 from pydoll.browser.chromium import Chrome
-from pydoll.browser.options import ChromiumOptions
 
 PRIVACY_RIGHTS_URL = "https://www.usa-people-search.com/privacy-rights"
 REMOVAL_URL = "https://www.usa-people-search.com/removal"
 
+# Right -> this site's flow: the privacy-rights form's "Request Type" value, or the
+# separate removal form (opt-out/deletion, step 1 only).
+REQUEST_TYPE_ACCESS = "right_to_know"
+REMOVAL_FLOW = "removal"
+RIGHT_MAP = {
+    Right.RIGHT_TO_ACCESS: REQUEST_TYPE_ACCESS,
+    Right.RIGHT_TO_DELETE: REMOVAL_FLOW,
+}
+RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
 
-async def _select_native_option(select_element, option_value):
-    await select_element.execute_script(
-        "for (var i=0;i<this.options.length;i++){"
-        f"  if(this.options[i].value==={option_value!r}){{ this.selectedIndex=i; }}"
-        "}"
-        "this.dispatchEvent(new Event('change', {bubbles:true}));"
-    )
+PAGE_RIGHTS = {}  # TODO(health-check): run HEALTH_CHECK once live; it prints the full list
+# (The "Request Type" options are recorded by value only; the removal flow is a separate page.)
 
-
-async def _set_text_via_js(field_element, value):
-    # A CSS fade/slide-in transition on this form intermittently makes
-    # pydoll's click-based type_text() raise ElementNotVisible even after
-    # confirming offsetParent is set — set the value directly via JS
-    # instead, which doesn't require the element to be clickable.
-    await field_element.execute_script(
-        f"this.value = {value!r};"
-        "this.dispatchEvent(new Event('input', {bubbles:true}));"
-        "this.dispatchEvent(new Event('change', {bubbles:true}));"
-    )
+ADC_FIELD_XPATHS = {
+    "Request type": "//*[@id='adc-request-type']",
+    "Company interactions": "//*[@id='adc-company-interactions']",
+    "First name": "//*[@id='adc-firstname']",
+    "Last name": "//*[@id='adc-lastname']",
+    "Email": "//*[@id='adc-email']",
+    "Street address": "//*[@id='adc-streetaddress']",
+    "City": "//*[@id='adc-city']",
+    "Zip": "//*[@id='adc-zipcode']",
+    "I am": "//*[@id='adc-user-type']",
+    "State": "//*[@id='adc-state']",
+}
+REMOVAL_FIELD_XPATHS = {
+    "I am": "//*[@id='user-type']",
+    "First name": "//*[@id='subject-firstname']",
+    "Last name": "//*[@id='subject-lastname']",
+    "Email": "//*[@id='subject-email']",
+}
 
 
 async def submit_request(tab, request_type, super_scraper):
@@ -69,17 +95,17 @@ async def submit_request(tab, request_type, super_scraper):
 
     choose_option_select = await tab.find(id="chooseOption", raise_exc=False)
     if choose_option_select:
-        await _select_native_option(choose_option_select, "ADC")
+        await js_utils.select_native_option(choose_option_select, value="ADC")
         # The ADC form section fades/slides in — poll until it's actually
         # visible rather than a fixed sleep, since a fixed short sleep was
         # intermittently too short and caused ElementNotVisible errors.
         for _ in range(20):
             await asyncio.sleep(0.3)
-            result = await tab.execute_script(
+            is_visible = await js_utils.js_eval(
+                tab,
                 "var el = document.getElementById('adc-firstname');"
-                "return !!(el && el.offsetParent !== null);"
+                "return !!(el && el.offsetParent !== null);",
             )
-            is_visible = result["result"]["result"]["value"]
             if is_visible:
                 await asyncio.sleep(1.5)  # let any fade/slide-in CSS transition finish
                 break
@@ -90,13 +116,13 @@ async def submit_request(tab, request_type, super_scraper):
 
     request_type_select = await tab.find(id="adc-request-type", raise_exc=False)
     if request_type_select:
-        await _select_native_option(request_type_select, request_type)
+        await js_utils.select_native_option(request_type_select, value=request_type)
     else:
         print(f"{super_scraper.OOPS} Request Type select not found")
 
     interactions_select = await tab.find(id="adc-company-interactions", raise_exc=False)
     if interactions_select:
-        await _select_native_option(interactions_select, "no-relation")
+        await js_utils.select_native_option(interactions_select, value="no-relation")
     else:
         print(f"{super_scraper.OOPS} Company interactions select not found")
 
@@ -114,7 +140,7 @@ async def submit_request(tab, request_type, super_scraper):
             continue
         field = await tab.find(id=field_id, raise_exc=False)
         if field:
-            await _set_text_via_js(field, value)
+            await js_utils.js_set_value(field, value)
         else:
             print(f"{super_scraper.OOPS} field '{field_id}' not found")
 
@@ -123,26 +149,28 @@ async def submit_request(tab, request_type, super_scraper):
         dob_field = await tab.find(id="adc-dob", raise_exc=False)
         if dob_field:
             # Native <input type="date"> — set via JS in ISO format (YYYY-MM-DD).
-            await _set_text_via_js(dob_field, f"{year}-{month}-{day}")
+            await js_utils.js_set_value(dob_field, f"{year}-{month}-{day}")
         else:
             print(f"{super_scraper.OOPS} Date of Birth field not found")
 
     user_type_select = await tab.find(id="adc-user-type", raise_exc=False)
     if user_type_select:
-        await _select_native_option(user_type_select, "subject")
+        await js_utils.select_native_option(user_type_select, value="subject")
     else:
         print(f"{super_scraper.OOPS} 'I am' select not found")
 
     state_select = await tab.find(id="adc-state", raise_exc=False)
     if state_select:
-        await _select_native_option(state_select, SuperScraper.STATE.lower())
+        await js_utils.select_native_option(state_select, value=SuperScraper.STATE.lower())
     else:
         print(f"{super_scraper.OOPS} State select not found")
 
+    if SuperScraper.HEALTH_CHECK:
+        await SuperScraper.assert_fields_filled(tab, ADC_FIELD_XPATHS)
+
     label = "".join(c if c.isalnum() else "_" for c in request_type.lower())[:40].strip("_")
     await asyncio.sleep(1)
-    await tab.take_screenshot(path=f"resources/screenshots/usa_people_search_dry_run_{label}.png")
-    print(f"Screenshot saved to resources/screenshots/usa_people_search_dry_run_{label}.png")
+    await SuperScraper.screenshot(tab, f"dry_run_{label}")
     print(
         f"\n'{request_type}' request filled but NOT submitted — Google reCAPTCHA Enterprise "
         "requires a manual solve before submitting."
@@ -155,7 +183,7 @@ async def submit_removal_step1(tab, super_scraper):
 
     user_type_select = await tab.find(id="user-type", raise_exc=False)
     if user_type_select:
-        await _select_native_option(user_type_select, "subject")
+        await js_utils.select_native_option(user_type_select, value="subject")
     else:
         print(f"{super_scraper.OOPS} 'I am' select not found")
 
@@ -167,7 +195,7 @@ async def submit_removal_step1(tab, super_scraper):
     for field_id, value in fields.items():
         field = await tab.find(id=field_id, raise_exc=False)
         if field:
-            await _set_text_via_js(field, value)
+            await js_utils.js_set_value(field, value)
         else:
             print(f"{super_scraper.OOPS} field '{field_id}' not found")
 
@@ -177,9 +205,11 @@ async def submit_removal_step1(tab, super_scraper):
     else:
         print(f"{super_scraper.OOPS} agreement checkbox not found")
 
+    if SuperScraper.HEALTH_CHECK:
+        await SuperScraper.assert_fields_filled(tab, REMOVAL_FIELD_XPATHS)
+
     await asyncio.sleep(1)
-    await tab.take_screenshot(path="resources/screenshots/usa_people_search_dry_run_removal_step1.png")
-    print("Screenshot saved to resources/screenshots/usa_people_search_dry_run_removal_step1.png")
+    await SuperScraper.screenshot(tab, "dry_run_removal_step1")
     print(
         "\nOpt-Out Form step 1 filled but NOT submitted — Google reCAPTCHA Enterprise requires "
         "a manual solve, and submitting only emails a continuation link (step 2, the actual "
@@ -188,17 +218,21 @@ async def submit_removal_step1(tab, super_scraper):
 
 
 async def main():
-    options = ChromiumOptions()
     super_scraper = SuperScraper()
-    options.binary_location = super_scraper.CHROMIUM_LOCATION
-    options.add_argument("--no-sandbox")
-    options.add_argument("--window-size=1280,3000")
+    options = SuperScraper.build_chromium_options()
+
+    rights = SuperScraper.rights_to_exercise(RIGHT_MAP)
+    if not rights:
+        print("No requested privacy rights apply to this form — nothing to do.")
+        return
 
     async with Chrome(options=options) as browser:
         tab = await browser.start()
-        await submit_request(tab, "right_to_know", super_scraper)
-        if SuperScraper.REMOVE_INFORMATION:
-            await submit_removal_step1(tab, super_scraper)
+        for right in rights:
+            if RIGHT_MAP[right] == REMOVAL_FLOW:
+                await submit_removal_step1(tab, super_scraper)
+            else:
+                await submit_request(tab, RIGHT_MAP[right], super_scraper)
 
 
 asyncio.run(main())

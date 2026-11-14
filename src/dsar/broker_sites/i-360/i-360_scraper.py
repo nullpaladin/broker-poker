@@ -6,32 +6,68 @@
 # party (portability), Opt-out of sale/sharing, Limit Sensitive PI); "File a
 # complaint", "Raise concerns", and "Appeal previously denied request" are
 # skipped as auxiliary contact options rather than data-subject rights.
-# Erase personal data is gated on REMOVE_INFORMATION. U.S. State
-# (formField40DSARElement) is a vt-autocomplete combobox. reCAPTCHA v2
-# requires manual solve in live mode.
+# Erase personal data is also offered. "Update/correct" is not automated
+# (no Right for it). U.S. State (formField40DSARElement) is a
+# vt-autocomplete combobox. reCAPTCHA v2 requires manual solve in live mode.
+# Which rights run is decided only by SuperScraper.rights_to_exercise.
+#
+# Page elements (aria-label buttons are the request types listed in RIGHT_MAP):
+#   [aria-label=Consumer]            "I am submitting this request as a/an" -> Consumer
+#   [aria-label=<request type>]      one button per request type (single-select)
+#   #formField40DSARElement          U.S. State (vt-autocomplete combobox)
+#   #firstNameDSARElement            First name
+#   #lastNameDSARElement             Last name
+#   #formField34DSARElement          Address
+#   #formField36DSARElement          City
+#   #vt-input-8                      Phone country code (typed "1")
+#   #phoneNumberDSARElement          Phone number
+#   #zipDSARElement                  ZIP code
+#   #emailDSARElement                Email
+#   #requestDetailsDSARElement       Request details textarea
 import asyncio
 
 from pydoll.browser.chromium import Chrome
-from pydoll.browser.options import ChromiumOptions
 from pydoll.constants import Key
 
+from src.dsar.rights import Right
 from src.dsar.super_scraper import SuperScraper
 
 URL = "https://privacyportal.onetrust.com/webform/94afa614-d9cb-419b-99f1-20c87afaca7f/7527122f-48fe-46ad-bd59-6d69a33ac4db"
 
-RIGHTS = [
-    "Know categories of personal data",
-    "Know specific pieces of personal data",
-    "Update/correct personal data",
-    "Object/restrict processing of personal data",
-    "Obtain personal data to transmit to a third-party",
-    "Opt-out of sale or sharing of personal information",
-    "Limit Use / Disclosure of Sensitive Personal Information",
-]
-DELETE_RIGHT = "Erase personal data"
+# "Object/restrict processing" has no exact Right -> rides with opt-out.
+# "Obtain personal data to transmit to a third-party" (portability) rides with access.
+RIGHT_MAP = {
+    Right.RIGHT_TO_ACCESS: [
+        "Know categories of personal data",
+        "Know specific pieces of personal data",
+        "Obtain personal data to transmit to a third-party",
+    ],
+    Right.RIGHT_TO_OPT_OUT: [
+        "Opt-out of sale or sharing of personal information",
+        "Object/restrict processing of personal data",
+        "Limit Use / Disclosure of Sensitive Personal Information",
+    ],
+    Right.RIGHT_TO_DELETE: ["Erase personal data"],
+}
+RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
+
+PAGE_RIGHTS = {}  # TODO(health-check): run HEALTH_CHECK once live; it prints the full list
+# (Recorded request types are aria-labels; the visible text may differ, so they are not copied in.)
+
+FIELD_XPATHS = {
+    "U.S. State": "//*[@id='formField40DSARElement']",
+    "First name": "//*[@id='firstNameDSARElement']",
+    "Last name": "//*[@id='lastNameDSARElement']",
+    "Address": "//*[@id='formField34DSARElement']",
+    "City": "//*[@id='formField36DSARElement']",
+    "Phone": "//*[@id='phoneNumberDSARElement']",
+    "Zip": "//*[@id='zipDSARElement']",
+    "Email": "//*[@id='emailDSARElement']",
+    "Request details": "//*[@id='requestDetailsDSARElement']",
+}
 
 
-async def submit_request(tab, right, super_scraper):
+async def submit_request(tab, right, entry, super_scraper):
     await tab.go_to(URL)
     await asyncio.sleep(6)
 
@@ -40,9 +76,9 @@ async def submit_request(tab, right, super_scraper):
         await consumer_btn.click_using_js()
         await asyncio.sleep(1)
 
-    req_btn = await tab.find(**{"aria-label": right}, raise_exc=False)
+    req_btn = await tab.find(**{"aria-label": entry}, raise_exc=False)
     if not req_btn:
-        print(f"{super_scraper.OOPS} Request type button '{right}' not found")
+        print(f"{super_scraper.OOPS} Request type button '{entry}' not found")
         return
     await req_btn.click_using_js()
     await asyncio.sleep(1)
@@ -91,46 +127,37 @@ async def submit_request(tab, right, super_scraper):
     request_details = await tab.find(id="requestDetailsDSARElement", raise_exc=False)
     if request_details:
         await request_details.type_text(
-            f"I am exercising my '{right}' rights under applicable privacy law."
+            SuperScraper.request_statement([right], broker="i-360")
         )
 
-    label = "".join(c if c.isalnum() else "_" for c in right.lower())[:40].strip("_")
+    if SuperScraper.HEALTH_CHECK:
+        await SuperScraper.assert_fields_filled(tab, FIELD_XPATHS)
 
     if SuperScraper.DRY_RUN:
-        print(
-            f"DRY RUN: would submit '{right}' for "
-            f"{SuperScraper.FIRST_NAME} {SuperScraper.LAST_NAME} <{SuperScraper.EMAIL}>"
-        )
         await asyncio.sleep(1)
-        await tab.take_screenshot(path=f"resources/screenshots/i-360_dry_run_{label}.png")
-        print(f"Screenshot saved to resources/screenshots/i-360_dry_run_{label}.png")
+        await SuperScraper.screenshot(tab, f"dry_run_{right.value}")
+        print(f"DRY RUN: would submit '{right.name}' ({entry}) for {SuperScraper.EMAIL}")
         return
 
-    print(f"\nForm filled for '{right}'. Solve the reCAPTCHA, click Submit,")
-    print("then press Enter once the confirmation page appears...")
+    print(f"\nForm filled for '{entry}'. Solve the reCAPTCHA, click Submit, then press Enter...")
     input()
-
-    source = await tab.page_source
-    if any(w in source.lower() for w in ("thank", "success", "received", "submitted", "confirmation")):
-        print(f"Submitted '{right}' for {SuperScraper.FIRST_NAME} {SuperScraper.LAST_NAME}")
-    else:
-        print(f"{super_scraper.OOPS} Confirmation unclear for '{right}' — verify in browser")
+    print(f"Submitted '{right.name}' ({entry}) for {SuperScraper.EMAIL} — confirm in the browser.")
 
 
 async def main():
-    options = ChromiumOptions()
     super_scraper = SuperScraper()
-    options.binary_location = super_scraper.CHROMIUM_LOCATION
-    options.add_argument("--no-sandbox")
+    options = SuperScraper.build_chromium_options()
 
-    rights = list(RIGHTS)
-    if SuperScraper.REMOVE_INFORMATION:
-        rights.append(DELETE_RIGHT)
+    rights = SuperScraper.rights_to_exercise(RIGHT_MAP)
+    if not rights:
+        print("No requested privacy rights apply to this form — nothing to do.")
+        return
 
     async with Chrome(options=options) as browser:
         tab = await browser.start()
         for right in rights:
-            await submit_request(tab, right, super_scraper)
+            for entry in RIGHT_MAP[right]:
+                await submit_request(tab, right, entry, super_scraper)
 
 
 asyncio.run(main())

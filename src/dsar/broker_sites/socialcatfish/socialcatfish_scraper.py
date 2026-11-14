@@ -1,9 +1,16 @@
 # socialcatfish.com — Social Catfish privacy request. The same /opt-out/ page
 # serves a different form per `?id=` query value: request_access (Right to
 # Access), request_optout (Right to Opt-Out), request_delete (Right to Delete).
-# One submission per right — Access + Opt-Out unconditional, Delete gated on
-# REMOVE_INFORMATION.
-# Fields: firstname, lastname, email, ccpa_state (native <select>, full state
+# One submission per right; which of them run is decided ONLY by
+# SuperScraper.rights_to_exercise(RIGHT_MAP).
+# Page elements:
+#   #first-name / #last-name   First / Last name
+#   #email                    Email
+#   #ccpa_state               State <select> (native, full state names)
+#   #consent-checkbox         Residency attestation ("I verify I am a resident of <state> ...")
+#   input[name*=third_party_opt]  "authorized agent of a third-party organization" checkbox
+#   ccpa_url[]                Profile-URL field (left blank)
+# Notes: ccpa_state (native <select>, full state
 # names). The "I am submitting as an authorized agent of a third-party
 # organization" checkbox is left UNCHECKED; the STEP 03 "check all that apply"
 # scope checkboxes are all ticked. The required "I verify I am a resident of
@@ -21,16 +28,28 @@ import asyncio
 import time
 
 from pydoll.browser.chromium import Chrome
-from pydoll.browser.options import ChromiumOptions
 
+from src.dsar.rights import Right
 from src.dsar.super_scraper import SuperScraper
+from src.dsar import js_utils
 
 BASE = "https://socialcatfish.com/opt-out/?id="
-REQUESTS = [
-    ("request_access", "access"),
-    ("request_optout", "optout"),
-]
-DELETE_REQUEST = ("request_delete", "delete")
+RIGHT_MAP = {
+    Right.RIGHT_TO_ACCESS: [("request_access", "access")],
+    Right.RIGHT_TO_OPT_OUT: [("request_optout", "optout")],
+    Right.RIGHT_TO_DELETE: [("request_delete", "delete")],
+}
+RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
+
+PAGE_RIGHTS = {}  # TODO(health-check): run HEALTH_CHECK once live; it prints the full list
+# (One page per ?id= value; each form's heading text is unrecorded.)
+
+FIELD_XPATHS = {
+    "First name": "//*[@id='first-name']",
+    "Last name": "//*[@id='last-name']",
+    "Email": "//*[@id='email']",
+    "State": "//*[@id='ccpa_state']",
+}
 
 
 async def submit_request(tab, mode, label, super_scraper):
@@ -48,11 +67,7 @@ async def submit_request(tab, mode, label, super_scraper):
 
     state_select = await tab.find(id="ccpa_state", raise_exc=False)
     if state_select:
-        await state_select.execute_script(
-            f"const o=[...this.options].find(x=>x.text.trim()=={SuperScraper.STATE!r});"
-            "if(o){const s=Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype,'value').set;"
-            "s.call(this,o.value);this.dispatchEvent(new Event('change',{bubbles:true}));}"
-        )
+        await js_utils.select_native_option(state_select, text=SuperScraper.STATE)
 
     # STEP 03 "check all that apply" scope checkboxes (skip the agent checkbox
     # and the residency attestation, handled below)
@@ -64,17 +79,19 @@ async def submit_request(tab, mode, label, super_scraper):
             continue  # "I am an authorized agent" — leave unchecked
         val = (box.get_attribute("value") or "").lower()
         if name == "consent" or box.id == "consent-checkbox" or val in ("on", "1") or "information" in val or "categor" in val:
-            await box.execute_script("if (!this.checked) this.click();")
+            await js_utils.js_check(box)
             await asyncio.sleep(0.1)
 
     # required residency attestation, in case it wasn't caught above
     consent = await tab.find(id="consent-checkbox", raise_exc=False)
     if consent:
-        await consent.execute_script("if (!this.checked) this.click();")
+        await js_utils.js_check(consent)
+
+    if SuperScraper.HEALTH_CHECK:
+        await SuperScraper.assert_fields_filled(tab, FIELD_XPATHS)
 
     time.sleep(0.5)
-    await tab.take_screenshot(f"resources/screenshots/socialcatfish_dry_run_{label}.png")
-    print(f"Screenshot saved to resources/screenshots/socialcatfish_dry_run_{label}.png")
+    await SuperScraper.screenshot(tab, f"dry_run_{label}")
     print(
         f"'{mode}' filled but NOT submitted — paste links to your own Social Catfish "
         f"result pages in the profile-URL field, solve the CAPTCHA, then submit."
@@ -86,15 +103,14 @@ async def submit_request(tab, mode, label, super_scraper):
 
 
 async def main():
-    options = ChromiumOptions()
     super_scraper = SuperScraper()
-    options.binary_location = super_scraper.CHROMIUM_LOCATION
-    options.add_argument("--no-sandbox")
-    options.add_argument("--window-size=1280,2400")
+    options = SuperScraper.build_chromium_options()
 
-    requests = list(REQUESTS)
-    if SuperScraper.REMOVE_INFORMATION:
-        requests.append(DELETE_REQUEST)
+    rights = SuperScraper.rights_to_exercise(RIGHT_MAP)
+    if not rights:
+        print("No requested privacy rights apply to this form — nothing to do.")
+        return
+    requests = [entry for right in rights for entry in RIGHT_MAP[right]]
 
     async with Chrome(options=options) as browser:
         tab = await browser.start()

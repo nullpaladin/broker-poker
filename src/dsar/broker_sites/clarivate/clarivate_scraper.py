@@ -1,37 +1,75 @@
-# clarivate.com — single general DSAR request form (no per-right-type picker).
-# OneTrust Angular portal. Country of Residence is an autocomplete combobox —
+# clarivate.com — single general DSAR request form (no per-right-type picker, no free-text
+# message box). OneTrust Angular portal. Country of Residence is an autocomplete combobox —
 # must type then click the dropdown option; setting .value alone is insufficient.
 # reCAPTCHA v2 requires manual user solve before submit.
+# The form cannot say WHICH right is being exercised, so RIGHT_MAP lists every right as
+# the same "general request"; rights_to_exercise() only decides whether to run at all, and
+# the one general request is submitted once.
+#
+# Page elements:
+#   [aria-label="Myself"]        "Myself" request-subject choice
+#   #countryDSARElement          Country of Residence autocomplete -> "United States"
+#   #stateDSARElement            State autocomplete (appears after choosing United States)
+#   #subjectTypesDSARElement     "This request is for:" autocomplete -> "Customer"
+#   #firstNameDSARElement        First name
+#   #lastNameDSARElement         Last name
+#   [role=option]                Autocomplete dropdown entries
 import asyncio
 import json
 
+from src.dsar.rights import Right
 from src.dsar.super_scraper import SuperScraper
+from src.dsar import js_utils
 
 from pydoll.browser.chromium import Chrome
-from pydoll.browser.options import ChromiumOptions
 
 URL = "https://privacyportal.onetrust.com/webform/7636e208-dda4-4218-8026-e1bc155873fc/ae937376-9b21-4996-9327-81eaaa1b20f9"
 
+GENERAL_REQUEST = "general request"
+RIGHT_MAP = {
+    Right.RIGHT_TO_ACCESS: GENERAL_REQUEST,
+    Right.RIGHT_TO_OPT_OUT: GENERAL_REQUEST,
+    Right.RIGHT_TO_DELETE: GENERAL_REQUEST,
+    Right.RIGHT_TO_LIST_OF_THIRD_PARTIES: GENERAL_REQUEST,
+}
+RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
 
-def _js_set(selector, value):
-    sel = json.dumps(selector)
-    val = json.dumps(str(value))
-    return (
-        f"(function(){{"
-        f"var el=document.querySelector({sel});"
-        f"if(!el)return;"
-        f"el.value={val};"
-        f"el.dispatchEvent(new Event('input',{{bubbles:true}}));"
-        f"el.dispatchEvent(new Event('change',{{bubbles:true}}));"
-        f"}})();"
+PAGE_RIGHTS = {}  # TODO(health-check): run HEALTH_CHECK once live; it prints the full list
+# (One general request form: there is no rights chooser to inventory.)
+
+FIELD_XPATHS = {
+    "Country of residence": "//*[@id='countryDSARElement']",
+    "State": "//*[@id='stateDSARElement']",
+    "This request is for": "//*[@id='subjectTypesDSARElement']",
+    "First name": "//*[@id='firstNameDSARElement']",
+    "Last name": "//*[@id='lastNameDSARElement']",
+}
+
+
+async def _click_visible_option(tab, text):
+    """Click the visible [role=option] whose text is exactly ``text``; True if found."""
+    return bool(await js_utils.js_eval(
+        tab,
+        "var opts = Array.from(document.querySelectorAll('[role=option]'));"
+        f"var opt = opts.find(o => o.innerText.trim() === {json.dumps(text)} && o.offsetParent !== null);"
+        "if (opt) { opt.click(); return true; } return false;",
+    ))
+
+
+async def _click_myself(tab):
+    """Click the 'Myself' requester-type option."""
+    await tab.execute_script(
+        "document.querySelector('[aria-label=\"Myself\"]').click();"
     )
 
 
 async def main():
-    options = ChromiumOptions()
     super_scraper = SuperScraper()
-    options.binary_location = super_scraper.CHROMIUM_LOCATION
-    options.add_argument("--no-sandbox")
+    rights = SuperScraper.rights_to_exercise(RIGHT_MAP)
+    if not rights:
+        print("No requested privacy rights apply to this form — nothing to do.")
+        return
+    options = SuperScraper.build_chromium_options()
 
     async with Chrome(options=options) as browser:
         tab = await browser.start()
@@ -39,9 +77,7 @@ async def main():
         await asyncio.sleep(6)
 
         # Select "Myself"
-        await tab.execute_script(
-            "document.querySelector('[aria-label=\"Myself\"]').click();"
-        )
+        await _click_myself(tab)
 
         # Country autocomplete — must type then select from dropdown
         country_input = await tab.find(
@@ -55,11 +91,7 @@ async def main():
         await country_input.click()
         await tab.keyboard.type_text("United States")
         await asyncio.sleep(2)
-        clicked = await tab.execute_script(
-            "var opts = Array.from(document.querySelectorAll('[role=option]'));"
-            "var opt = opts.find(o => o.innerText.trim() === 'United States' && o.offsetParent !== null);"
-            "if (opt) { opt.click(); return true; } return false;"
-        )
+        clicked = await _click_visible_option(tab, 'United States')
         if not clicked:
             print(f"{super_scraper.OOPS} 'United States' option not found in country dropdown")
 
@@ -75,12 +107,7 @@ async def main():
             await state_input.click()
             await tab.keyboard.type_text(SuperScraper.STATE)
             await asyncio.sleep(2)
-            state_name = json.dumps(SuperScraper.STATE)
-            clicked = await tab.execute_script(
-                f"var opts = Array.from(document.querySelectorAll('[role=option]'));"
-                f"var opt = opts.find(o => o.innerText.trim() === {state_name} && o.offsetParent !== null);"
-                f"if (opt) {{ opt.click(); return true; }} return false;"
-            )
+            clicked = await _click_visible_option(tab, SuperScraper.STATE)
             if not clicked:
                 print(f"{super_scraper.OOPS} State option '{SuperScraper.STATE}' not found in dropdown")
         else:
@@ -99,11 +126,7 @@ async def main():
             await subject_input.click()
             await tab.keyboard.type_text("Customer")
             await asyncio.sleep(2)
-            clicked = await tab.execute_script(
-                "var opts = Array.from(document.querySelectorAll('[role=option]'));"
-                "var opt = opts.find(o => o.innerText.trim() === 'Customer' && o.offsetParent !== null);"
-                "if (opt) { opt.click(); return true; } return false;"
-            )
+            clicked = await _click_visible_option(tab, 'Customer')
             if not clicked:
                 print(f"{super_scraper.OOPS} 'Customer' option not found in subject type dropdown")
         else:
@@ -112,17 +135,21 @@ async def main():
         await asyncio.sleep(1)
 
         # Name fields
-        await tab.execute_script(_js_set("#firstNameDSARElement", SuperScraper.FIRST_NAME))
-        await tab.execute_script(_js_set("#lastNameDSARElement", SuperScraper.LAST_NAME))
+        for field_id, value in (
+            ("firstNameDSARElement", SuperScraper.FIRST_NAME),
+            ("lastNameDSARElement", SuperScraper.LAST_NAME),
+        ):
+            field = await tab.find(id=field_id, raise_exc=False)
+            if field:
+                await js_utils.js_set_value(field, str(value))
+
+        if SuperScraper.HEALTH_CHECK:
+            await SuperScraper.assert_fields_filled(tab, FIELD_XPATHS)
 
         if SuperScraper.DRY_RUN:
-            print(
-                f"DRY RUN: would submit DSAR for "
-                f"{SuperScraper.FIRST_NAME} {SuperScraper.LAST_NAME}"
-            )
             await asyncio.sleep(2)
-            await tab.take_screenshot("resources/screenshots/clarivate_dry_run.png")
-            print("Screenshot saved to resources/screenshots/clarivate_dry_run.png")
+            await SuperScraper.screenshot(tab, "dry_run_general_request")
+            print(f"DRY RUN: would submit a general request for {SuperScraper.FIRST_NAME} {SuperScraper.LAST_NAME}")
             return
 
         print(f"\nForm filled for {SuperScraper.FIRST_NAME} {SuperScraper.LAST_NAME}.")
@@ -130,11 +157,7 @@ async def main():
         print("Press Enter after submission completes...")
         input()
 
-        result = await tab.execute_script("return document.body.innerText") or ""
-        if any(w in result.lower() for w in ("thank", "success", "received", "submitted", "confirmation")):
-            print(f"Submitted DSAR for {SuperScraper.FIRST_NAME} {SuperScraper.LAST_NAME}")
-        else:
-            print(f"{super_scraper.OOPS} Confirmation unclear — verify in browser")
+        print(f"Submitted general request for {SuperScraper.FIRST_NAME} {SuperScraper.LAST_NAME} — confirm in the browser.")
 
 
 asyncio.run(main())

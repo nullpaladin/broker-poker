@@ -3,26 +3,65 @@
 # entire form's stated purpose is "delete and/or stop using data currently associated
 # with specific identifiers", with no separate non-destructive Access alternative.
 # Because deletion is inherent to the only right this form offers, the whole
-# submission is gated on REMOVE_INFORMATION (DRY_RUN preview still works either way).
+# submission is RIGHT_TO_DELETE and runs only when SuperScraper.rights_to_exercise allows it.
 # Subject-type step: click "Myself". Country/State are vt-autocomplete comboboxes
 # (type then ArrowDown+Enter). captchaCode is a BotDetect image CAPTCHA — requires
 # manual entry in live mode.
+#
+# Page elements:
+#   aria-label="Myself"             Subject-type button -> "Myself"
+#   #firstNameDSARElement / #lastNameDSARElement   First / Last name
+#   #emailDSARElement                              Email
+#   #countryDSARElement                            Country combobox -> "United States"
+#   #addressDSARElement                            Address
+#   #cityDSARElement                               City
+#   #stateDSARElement                              State combobox (full state name)
+#   #zipDSARElement                                Zip code
+#   #phoneNumberDSARElement                        Phone number
+#   #requestDetailsDSARElement                     Request details textarea
+#   #captchaCode                                   BotDetect image CAPTCHA code (manual entry)
 import asyncio
 
 from pydoll.browser.chromium import Chrome
-from pydoll.browser.options import ChromiumOptions
 from pydoll.constants import Key
 
+from src.dsar.rights import Right
 from src.dsar.super_scraper import SuperScraper
 
 URL = "https://affinitysolutions-privacy.my.onetrust.com/webform/a564cfa1-53bf-4c10-bf95-cd907432d7e8/7e4e6bf3-6562-454e-8c73-6a7bd1f4b336"
 
+RIGHT_MAP = {
+    Right.RIGHT_TO_DELETE: "delete and/or stop using data associated with my identifiers",
+}
+RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
+
+PAGE_RIGHTS = {}  # TODO(health-check): run HEALTH_CHECK once live; it prints the full list
+
+FIELD_XPATHS = {
+    "First name": "//*[@id='firstNameDSARElement']",
+    "Last name": "//*[@id='lastNameDSARElement']",
+    "Email": "//*[@id='emailDSARElement']",
+    "Country": "//*[@id='countryDSARElement']",
+    "Address": "//*[@id='addressDSARElement']",
+    "City": "//*[@id='cityDSARElement']",
+    "State": "//*[@id='stateDSARElement']",
+    "Zip": "//*[@id='zipDSARElement']",
+    "Phone": "//*[@id='phoneNumberDSARElement']",
+    "Request details": "//*[@id='requestDetailsDSARElement']",
+}
+
 
 async def main():
-    options = ChromiumOptions()
     super_scraper = SuperScraper()
-    options.binary_location = super_scraper.CHROMIUM_LOCATION
-    options.add_argument("--no-sandbox")
+    if SuperScraper.bail_if_not_automatable(globals()):
+        return
+
+    rights = SuperScraper.rights_to_exercise(RIGHT_MAP)
+    if not rights:
+        print("No requested privacy rights apply to this form — nothing to do.")
+        return
+
+    options = SuperScraper.build_chromium_options()
 
     async with Chrome(options=options) as browser:
         tab = await browser.start()
@@ -87,27 +126,21 @@ async def main():
         request_details = await tab.find(id="requestDetailsDSARElement", raise_exc=False)
         if request_details:
             await request_details.type_text(
-                "Please delete and stop using any data you have associated with my identifiers."
+                SuperScraper.request_statement(rights, broker="Affinity Solutions")
             )
 
-        if not SuperScraper.REMOVE_INFORMATION and not SuperScraper.DRY_RUN:
-            print(
-                f"{super_scraper.OOPS} affinity.solutions' only form is a deletion "
-                "request — skipping real submission because REMOVE_INFORMATION is False."
-            )
-            return
+        if SuperScraper.HEALTH_CHECK:
+            await SuperScraper.assert_fields_filled(tab, FIELD_XPATHS)
 
         if SuperScraper.DRY_RUN:
             print(
-                f"DRY RUN: would submit deletion/opt-out request for "
-                f"{SuperScraper.FIRST_NAME} {SuperScraper.LAST_NAME} <{SuperScraper.EMAIL}>"
+                f"DRY RUN: would submit '{Right.RIGHT_TO_DELETE.name}' for {SuperScraper.EMAIL}"
             )
             captcha_field = await tab.find(id="captchaCode", raise_exc=False)
             if captcha_field:
                 await captcha_field.scroll_into_view()
             await asyncio.sleep(1)
-            await tab.take_screenshot(path="resources/screenshots/affinity_solutions_dry_run.png")
-            print("Screenshot saved to resources/screenshots/affinity_solutions_dry_run.png")
+            await SuperScraper.screenshot(tab, "dry_run_delete")
             return
 
         print("\nForm filled. Enter the CAPTCHA code shown in the image into the")
@@ -115,11 +148,7 @@ async def main():
         print("confirmation page appears...")
         input()
 
-        source = await tab.page_source
-        if any(w in source.lower() for w in ("thank", "success", "received", "submitted", "confirmation")):
-            print(f"Submitted request for {SuperScraper.FIRST_NAME} {SuperScraper.LAST_NAME}")
-        else:
-            print(f"{super_scraper.OOPS} Confirmation unclear — verify in browser")
+        print(f"Submitted '{Right.RIGHT_TO_DELETE.name}' for {SuperScraper.EMAIL} — confirm in the browser.")
 
 
 asyncio.run(main())

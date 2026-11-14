@@ -14,21 +14,47 @@
 # persona, so it's checked. hCaptcha present but rendered as an invisible
 # checkbox widget (`display:none`) — auto-resolves in most cases, no
 # manual solve built in here, though it may occasionally challenge.
+#
+# Page elements:
+#   label[for*='forMyself']            "I am submitting a request" -> "For Myself"
+#   #first_name / #last_name           First / Last name
+#   #email / #phone / #zipCode         Email / Phone / ZIP code
+#   label "{State} Resident"           State-of-residence radio (either column group)
+#   input[name='data[certification]']  Certification checkbox
+#   button "Submit Request"            Submit
 import asyncio
 
+from src.dsar.rights import Right
 from src.dsar.super_scraper import SuperScraper
 
 from pydoll.browser.chromium import Chrome
-from pydoll.browser.options import ChromiumOptions
 
 URL = "https://privacy-central.securiti.ai/#/dsr/1b319101-f00c-470f-a7f0-26aa81f057b8"
 
+# Opt-out only: the form offers no other right.
+RIGHT_MAP = {Right.RIGHT_TO_OPT_OUT: "Request to Opt-Out"}
+RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
+
+PAGE_RIGHTS = {}  # TODO(health-check): run HEALTH_CHECK once live; it prints the full list
+
+FIELD_XPATHS = {
+    "First name": "//*[@id='first_name']",
+    "Last name": "//*[@id='last_name']",
+    "Email": "//*[@id='email']",
+    "Phone": "//*[@id='phone']",
+    "Zip": "//*[@id='zipCode']",
+}
+
 
 async def main():
-    options = ChromiumOptions()
     super_scraper = SuperScraper()
-    options.binary_location = super_scraper.CHROMIUM_LOCATION
-    options.add_argument("--no-sandbox")
+    if SuperScraper.bail_if_not_automatable(globals()):
+        return
+    if not SuperScraper.rights_to_exercise(RIGHT_MAP):
+        print("No requested privacy rights apply to this form — nothing to do.")
+        return
+
+    options = SuperScraper.build_chromium_options()
 
     async with Chrome(options=options) as browser:
         tab = await browser.start()
@@ -77,10 +103,11 @@ async def main():
         else:
             print(f"{super_scraper.OOPS} Certification checkbox not found")
 
-        await asyncio.sleep(1)
-        await tab.take_screenshot(path="resources/screenshots/quinstreet_dry_run.png")
-        print("Screenshot saved to resources/screenshots/quinstreet_dry_run.png")
+        if SuperScraper.HEALTH_CHECK:
+            await SuperScraper.assert_fields_filled(tab, FIELD_XPATHS)
 
+        await asyncio.sleep(1)
+        await SuperScraper.screenshot(tab, "dry_run")
         if SuperScraper.DRY_RUN:
             print("DRY RUN: would submit Opt-Out request")
             return
@@ -89,7 +116,7 @@ async def main():
         if submit_btn:
             await submit_btn.click()
             await asyncio.sleep(2)
-            print("Submitted Opt-Out request")
+            print(f"Submitted Opt-Out request for {SuperScraper.EMAIL} — confirm in the browser.")
         else:
             print(f"{super_scraper.OOPS} Submit button not found")
 

@@ -1,25 +1,35 @@
 # kochava.com — Opt-Out only by Mobile Advertising ID (IDFA/GAID).
-# No Access or Delete form — opt-out is the only right available.
+# No Access or Delete form — opt-out is the only right available. Whether it runs is
+# decided ONLY by SuperScraper.rights_to_exercise(RIGHT_MAP).
 # Requires ADVERTISING_ID in UUID format (xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx).
 # reCAPTCHA v2 checkbox requires manual solve; submit button is disabled
 # until the reCAPTCHA callback enables it.
 # honeypot field must be left empty.
+#
+# Page elements:
+#   input[name=maid]   Mobile Advertising ID
+#   reCAPTCHA v2 checkbox -> enables the Submit button
 import asyncio
-import time
 
 from pydoll.browser.chromium import Chrome
-from pydoll.browser.options import ChromiumOptions
 
+from src.dsar.rights import Right
 from src.dsar.super_scraper import SuperScraper
 
 URL = "https://www.kochava.com/opt-out-do-not-sell-request-process/"
 
+RIGHT_MAP = {Right.RIGHT_TO_OPT_OUT: "opt-out"}
+RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
+
+PAGE_RIGHTS = {}  # TODO(health-check): run HEALTH_CHECK once live; it prints the full list
+
 
 async def main():
-    options = ChromiumOptions()
     super_scraper = SuperScraper()
-    options.binary_location = super_scraper.CHROMIUM_LOCATION
-    options.add_argument("--no-sandbox")
+    if not SuperScraper.rights_to_exercise(RIGHT_MAP):
+        print("No requested privacy rights apply to this form — nothing to do.")
+        return
+    options = SuperScraper.build_chromium_options()
 
     if not SuperScraper.ADVERTISING_ID:
         print(f"{super_scraper.OOPS} ADVERTISING_ID not set — kochava requires a Mobile Ad ID (IDFA/GAID)")
@@ -38,12 +48,14 @@ async def main():
 
         # Leave honeypot empty (do not interact with it)
 
+        if SuperScraper.HEALTH_CHECK:
+            await SuperScraper.assert_fields_filled(tab, {"Mobile Advertising ID": "//input[@name='maid']"})
+
         if SuperScraper.DRY_RUN:
             print(
                 f"DRY RUN: would submit opt-out for MAID={SuperScraper.ADVERTISING_ID}"
             )
-            await tab.take_screenshot("resources/screenshots/kochava_dry_run.png")
-            print("Screenshot saved to resources/screenshots/kochava_dry_run.png")
+            await SuperScraper.screenshot(tab, "dry_run")
             return
 
         print(f"\nMAID field filled: {SuperScraper.ADVERTISING_ID}")
@@ -51,11 +63,7 @@ async def main():
         print("Press Enter after clicking Submit and the confirmation appears...")
         input()
 
-        source = await tab.page_source
-        if any(w in source.lower() for w in ("received", "submitted", "thank", "success")):
-            print(f"Submitted opt-out for MAID={SuperScraper.ADVERTISING_ID}")
-        else:
-            print(f"{super_scraper.OOPS} Confirmation unclear — verify in browser")
+        print(f"Submitted 'RIGHT_TO_OPT_OUT' for MAID={SuperScraper.ADVERTISING_ID} — confirm in the browser.")
 
 
 asyncio.run(main())

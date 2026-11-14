@@ -25,29 +25,48 @@
 # a manual solve in live mode. No separate Access/Delete request type exists
 # here — Acxiom's Right to Know/Right to Delete are handled elsewhere (a
 # marketing-form email flow, not a self-service DSAR form), so this scraper
-# only exercises the Opt-Out segments.
+# only exercises the Opt-Out segments (RIGHT_TO_OPT_OUT -> one entry per segment).
+#
+# Page elements (all inside the iframe#frameresize):
+#   iframe#frameresize        Embedded opt-out form (isapps.acxiom.com/optout/optout.aspx)
+#   "OK" button               Notice dismissed on the outer page, if shown
+#   "Select opt out segment"  Segment chip dropdown -> "Mailing Addresses" / "Phone Numbers" /
+#                             "Email Addresses"
+#   #Identity                 Identity <select> -> "Submitter" ("Me")
+#   #FirstName / #LastName    First / Last name
+#   #AddName2                 Add (name) button
+#   #Street1 / #City / #State / #Zip   Mailing address fields (State is a <select>, 2-letter value)
+#   #AddAddress2              Add (address) button
+#   #SelectCorrected2         Accept USPS-standardized address button (popup)
+#   #AreaCode / #PhoneNumber  Phone fields
+#   #AddPhone2                Add (phone) button
+#   #Email / #AddEmail2       Email field / Add (email) button
+#   g-recaptcha               reCAPTCHA -> manual solve in live mode
+#   #SubmitButton2            Submit button
 import asyncio
 
+from src.dsar import js_utils
+from src.dsar.rights import Right
 from src.dsar.super_scraper import SuperScraper
 
 from pydoll.browser.chromium import Chrome
-from pydoll.browser.options import ChromiumOptions
 
 URL = "https://www.acxiom.com/optout/"
 
+# The form only offers opt-out; each segment is its own submission.
+RIGHT_MAP = {
+    Right.RIGHT_TO_OPT_OUT: ["mail", "phone", "email"],
+}
+RIGHTS_SUPPORTED = tuple(RIGHT_MAP)
 
-async def _select_by_value(select_element, value):
-    await select_element.execute_script(
-        "for (var i=0;i<this.options.length;i++){"
-        f"  if(this.options[i].value==={value!r}){{ this.selectedIndex=i; }}"
-        "}"
-        "this.dispatchEvent(new Event('change', {bubbles:true}));"
-    )
+PAGE_RIGHTS = {}  # TODO(health-check): run HEALTH_CHECK once live; it prints the full list
+# No audit/field checks wired: the form lives in iframe#frameresize (read_option_labels reads the outer
+# document only) and the grid's Add buttons clear each field after it is added.
 
 
 async def _add_name(iframe):
     who = await iframe.find(id="Identity")
-    await _select_by_value(who, "Submitter")
+    await js_utils.select_native_option(who, value="Submitter")
     await asyncio.sleep(0.5)
 
     first = await iframe.find(id="FirstName")
@@ -71,8 +90,8 @@ async def _fill_mail(iframe):
     await city.click()
     await city.type_text(SuperScraper.CITY)
     state = await iframe.find(id="State")
-    state_abbr = await SuperScraper.state_full_name_to_abbreviated(SuperScraper.STATE)
-    await _select_by_value(state, state_abbr)
+    state_abbr = SuperScraper.STATE_ABBREVIATED
+    await js_utils.select_native_option(state, value=state_abbr)
     zip_field = await iframe.find(id="Zip")
     await zip_field.click()
     await zip_field.type_text(SuperScraper.ZIP_CODE)
@@ -123,7 +142,7 @@ SEGMENTS = {
 }
 
 
-async def submit_segment(tab, segment_key, super_scraper):
+async def submit_segment(tab, right, segment_key, super_scraper):
     label, fill_fn = SEGMENTS[segment_key]
 
     await tab.go_to(URL)
@@ -156,10 +175,9 @@ async def submit_segment(tab, segment_key, super_scraper):
     await fill_fn(iframe)
 
     if SuperScraper.DRY_RUN:
-        print(f"DRY RUN: would submit {segment_key} opt-out for {SuperScraper.FIRST_NAME} {SuperScraper.LAST_NAME}")
+        print(f"DRY RUN: would submit '{right.name}' ({segment_key}) for {SuperScraper.EMAIL}")
         await asyncio.sleep(1)
-        await tab.take_screenshot(path=f"resources/screenshots/acxiom_dry_run_{segment_key}.png")
-        print(f"Screenshot saved to resources/screenshots/acxiom_dry_run_{segment_key}.png")
+        await SuperScraper.screenshot(tab, f"dry_run_{right.value}_{segment_key}")
         return
 
     print(f"\n{segment_key} opt-out filled. Solve the reCAPTCHA, then press Enter to submit...")
@@ -168,19 +186,25 @@ async def submit_segment(tab, segment_key, super_scraper):
     submit_btn = await iframe.find(id="SubmitButton2")
     await submit_btn.click()
     await asyncio.sleep(2)
-    print(f"Submitted {segment_key} opt-out for {SuperScraper.FIRST_NAME} {SuperScraper.LAST_NAME}")
+    print(f"Submitted '{right.name}' ({segment_key}) for {SuperScraper.EMAIL} — confirm in the browser.")
 
 
 async def main():
-    options = ChromiumOptions()
     super_scraper = SuperScraper()
-    options.binary_location = super_scraper.CHROMIUM_LOCATION
-    options.add_argument("--no-sandbox")
+    if SuperScraper.bail_if_not_automatable(globals()):
+        return
 
+    rights = SuperScraper.rights_to_exercise(RIGHT_MAP)
+    if not rights:
+        print("No requested privacy rights apply to this form — nothing to do.")
+        return
+
+    options = SuperScraper.build_chromium_options()
     async with Chrome(options=options) as browser:
         tab = await browser.start()
-        for segment_key in SEGMENTS:
-            await submit_segment(tab, segment_key, super_scraper)
+        for right in rights:
+            for segment_key in RIGHT_MAP[right]:
+                await submit_segment(tab, right, segment_key, super_scraper)
 
 
 asyncio.run(main())

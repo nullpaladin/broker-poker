@@ -51,6 +51,16 @@ FIELD_XPATHS = {
 }
 
 
+async def _select_state(state_select, state_abbr):
+    """Select the state option whose value equals the abbreviation."""
+    await state_select.execute_script(
+        "for (var i=0;i<this.options.length;i++){"
+        f"  if(this.options[i].value==={state_abbr!r}){{ this.selectedIndex=i; }}"
+        "}"
+        "this.dispatchEvent(new Event('change', {bubbles:true}));"
+    )
+
+
 async def submit_request(tab, right, radio_label, super_scraper):
     try:
         await tab.go_to(URL)
@@ -61,12 +71,7 @@ async def submit_request(tab, right, radio_label, super_scraper):
     state_abbr = SuperScraper.STATE_ABBREVIATED
     state_select = await tab.find(id="selectInput-userInput-state-input", raise_exc=False)
     if state_select:
-        await state_select.execute_script(
-            "for (var i=0;i<this.options.length;i++){"
-            f"  if(this.options[i].value==={state_abbr!r}){{ this.selectedIndex=i; }}"
-            "}"
-            "this.dispatchEvent(new Event('change', {bubbles:true}));"
-        )
+        await _select_state(state_select, state_abbr)
         await asyncio.sleep(2)
     else:
         print(f"{super_scraper.OOPS} state select not found")

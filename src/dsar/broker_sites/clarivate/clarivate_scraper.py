@@ -46,6 +46,23 @@ FIELD_XPATHS = {
 }
 
 
+async def _click_visible_option(tab, text):
+    """Click the visible [role=option] whose text is exactly ``text``; True if found."""
+    return bool(await js_utils.js_eval(
+        tab,
+        "var opts = Array.from(document.querySelectorAll('[role=option]'));"
+        f"var opt = opts.find(o => o.innerText.trim() === {json.dumps(text)} && o.offsetParent !== null);"
+        "if (opt) { opt.click(); return true; } return false;",
+    ))
+
+
+async def _click_myself(tab):
+    """Click the 'Myself' requester-type option."""
+    await tab.execute_script(
+        "document.querySelector('[aria-label=\"Myself\"]').click();"
+    )
+
+
 async def main():
     super_scraper = SuperScraper()
     rights = SuperScraper.rights_to_exercise(RIGHT_MAP)
@@ -60,9 +77,7 @@ async def main():
         await asyncio.sleep(6)
 
         # Select "Myself"
-        await tab.execute_script(
-            "document.querySelector('[aria-label=\"Myself\"]').click();"
-        )
+        await _click_myself(tab)
 
         # Country autocomplete — must type then select from dropdown
         country_input = await tab.find(
@@ -76,11 +91,7 @@ async def main():
         await country_input.click()
         await tab.keyboard.type_text("United States")
         await asyncio.sleep(2)
-        clicked = await tab.execute_script(
-            "var opts = Array.from(document.querySelectorAll('[role=option]'));"
-            "var opt = opts.find(o => o.innerText.trim() === 'United States' && o.offsetParent !== null);"
-            "if (opt) { opt.click(); return true; } return false;"
-        )
+        clicked = await _click_visible_option(tab, 'United States')
         if not clicked:
             print(f"{super_scraper.OOPS} 'United States' option not found in country dropdown")
 
@@ -96,12 +107,7 @@ async def main():
             await state_input.click()
             await tab.keyboard.type_text(SuperScraper.STATE)
             await asyncio.sleep(2)
-            state_name = json.dumps(SuperScraper.STATE)
-            clicked = await tab.execute_script(
-                f"var opts = Array.from(document.querySelectorAll('[role=option]'));"
-                f"var opt = opts.find(o => o.innerText.trim() === {state_name} && o.offsetParent !== null);"
-                f"if (opt) {{ opt.click(); return true; }} return false;"
-            )
+            clicked = await _click_visible_option(tab, SuperScraper.STATE)
             if not clicked:
                 print(f"{super_scraper.OOPS} State option '{SuperScraper.STATE}' not found in dropdown")
         else:
@@ -120,11 +126,7 @@ async def main():
             await subject_input.click()
             await tab.keyboard.type_text("Customer")
             await asyncio.sleep(2)
-            clicked = await tab.execute_script(
-                "var opts = Array.from(document.querySelectorAll('[role=option]'));"
-                "var opt = opts.find(o => o.innerText.trim() === 'Customer' && o.offsetParent !== null);"
-                "if (opt) { opt.click(); return true; } return false;"
-            )
+            clicked = await _click_visible_option(tab, 'Customer')
             if not clicked:
                 print(f"{super_scraper.OOPS} 'Customer' option not found in subject type dropdown")
         else:

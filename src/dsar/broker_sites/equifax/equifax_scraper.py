@@ -30,6 +30,7 @@ import asyncio
 
 from src.dsar.rights import Right
 from src.dsar.super_scraper import SuperScraper
+from src.dsar import js_utils
 
 from pydoll.browser.chromium import Chrome
 
@@ -52,6 +53,25 @@ FIELD_XPATHS = {
     "Email": "//*[@id='email']",
     "State": "//select[@id='state']",
 }
+
+
+async def _select_state(tab):
+    """Select STATE in select#state (matches visible text)."""
+    await tab.execute_script(
+        'var s = document.querySelector("select#state"); '
+        f'var opt = Array.from(s.options).find(o => o.textContent.trim() === "{SuperScraper.STATE}"); '
+        'if(opt){ s.value = opt.value; s.dispatchEvent(new Event("change")); }'
+    )
+
+
+async def _click_next_step(tab):
+    """Click the 'Next step' button; True if found."""
+    return bool(await js_utils.js_eval(
+        tab,
+        "var btns = Array.from(document.querySelectorAll('button')); "
+        "var b = btns.find(x=>x.textContent.trim().toLowerCase().includes('next step')); "
+        "if(b){ b.click(); return true;} return false;",
+    ))
 
 
 async def main():
@@ -99,11 +119,7 @@ async def main():
             if mobile_field:
                 await mobile_field.type_text(SuperScraper.PHONE_NUMBER)
 
-        await tab.execute_script(
-            'var s = document.querySelector("select#state"); '
-            f'var opt = Array.from(s.options).find(o => o.textContent.trim() === "{SuperScraper.STATE}"); '
-            'if(opt){ s.value = opt.value; s.dispatchEvent(new Event("change")); }'
-        )
+        await _select_state(tab)
 
         tou_label = await tab.find(xpath="//input[@id='touCheckbox-input']/ancestor::label", raise_exc=False)
         if tou_label:
@@ -119,11 +135,7 @@ async def main():
             await SuperScraper.screenshot(tab, "dry_run")
             return
 
-        clicked = await tab.execute_script(
-            "var btns = Array.from(document.querySelectorAll('button')); "
-            "var b = btns.find(x=>x.textContent.trim().toLowerCase().includes('next step')); "
-            "if(b){ b.click(); return true;} return false;"
-        )
+        clicked = await _click_next_step(tab)
         if not clicked:
             print(f"{super_scraper.OOPS} 'Go to next step' button not found")
             return

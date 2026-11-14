@@ -1,6 +1,6 @@
 # Scraper Development Discoveries
 
-Running log of non-obvious things learned while building DSAR scrapers for the sites merged from `new_sites.txt` into `README.md`. Read this before starting a new scraper — it'll save re-discovering the same traps.
+Running log of non-obvious things learned while building DSAR scrapers for the sites merged from the old new_sites lists into `SITES.md`. Read this before starting a new scraper — it'll save re-discovering the same traps.
 
 ## Headless mode for local development
 
@@ -178,8 +178,8 @@ If you ever see a new `_is_remove_information()`-style workaround being (re-)int
 
 ## Docs vs. actual repo convention
 
-- **Screenshots**: AGENTS.md / `docs/scraper_methodology.md`-adjacent docs reference a `validation/` directory. Actual convention across all 130+ shipped scrapers is `resources/screenshots/`. Use `resources/screenshots/`.
-- **Blacklist/memory files**: `docs/blacklist_management.md` describes a `src/dsar/blacklist.json` + `src/dsar/memory/*.json` system in detail. In practice, neither has ever been created by any shipped scraper. Known-unmappable fields and quirks are instead documented inline as a `Note:` in the scraper's own file-header comment and in the corresponding README entry. Follow that convention rather than building the documented-but-unused JSON system, unless explicitly asked to.
+- **Screenshots**: go to `resources/screenshots/<scraper>/` via `SuperScraper.screenshot` (gitignored). There is no `validation/` directory.
+- **Blacklist/memory files**: removed. Unmappable fields and quirks are documented in the scraper's header `Note:` and its SITES.md entry.
 
 ## Recorded URLs are sometimes stale or simply wrong
 

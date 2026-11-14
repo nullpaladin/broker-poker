@@ -63,6 +63,14 @@ async def _check_by_text(tab, super_scraper, text):
     return False
 
 
+async def _dismiss_cookie_banner(tab):
+    """Click 'Accept all' on the cookie banner if present."""
+    await tab.execute_script(
+        "var b=[...document.querySelectorAll('button')].find(x=>/accept all/i.test(x.textContent));"
+        "if(b)b.click();"
+    )
+
+
 async def main():
     super_scraper = SuperScraper()
     if SuperScraper.bail_if_not_automatable(globals()):
@@ -81,10 +89,7 @@ async def main():
         await asyncio.sleep(7)
 
         # dismiss cookie banner if present
-        await tab.execute_script(
-            "var b=[...document.querySelectorAll('button')].find(x=>/accept all/i.test(x.textContent));"
-            "if(b)b.click();"
-        )
+        await _dismiss_cookie_banner(tab)
         await asyncio.sleep(1)
 
         if SuperScraper.HEALTH_CHECK:

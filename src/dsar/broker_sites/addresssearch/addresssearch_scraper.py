@@ -37,6 +37,13 @@ STATE_XPATH = '//select[@name="state"]'
 SUBMIT_XPATH = '//input[@name="submit"]'
 
 
+async def _select_state(tab, state_abbrev):
+    """Set the State <select> by abbreviation (JS) and fire change."""
+    await tab.execute_script(
+        f'var s = document.querySelector("select[name=state]"); s.value = "{state_abbrev}"; s.dispatchEvent(new Event("change"));'
+    )
+
+
 async def main():
     super_scraper = SuperScraper()
     if SuperScraper.bail_if_not_automatable(globals()):
@@ -62,9 +69,7 @@ async def main():
         await super_scraper.input_text_field(tab=tab, xpath=ADDRESS_XPATH, text=SuperScraper.ADDRESS)
         await super_scraper.input_text_field(tab=tab, xpath=CITY_XPATH, text=SuperScraper.CITY)
 
-        await tab.execute_script(
-            f'var s = document.querySelector("select[name=state]"); s.value = "{state_abbrev}"; s.dispatchEvent(new Event("change"));'
-        )
+        await _select_state(tab, state_abbrev)
 
         await super_scraper.input_text_field(tab=tab, xpath=ZIP_XPATH, text=SuperScraper.ZIP_CODE)
 

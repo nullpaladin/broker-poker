@@ -95,6 +95,11 @@ async def _select_react_select_option(tab, input_index, option_text, super_scrap
         print(f"{super_scraper.OOPS} {description} option '{option_text}' not found")
 
 
+async def _blur_active_element(tab):
+    """Blur the focused element so later fields are visible in the screenshot."""
+    await tab.execute_script("document.activeElement && document.activeElement.blur();")
+
+
 async def main():
     super_scraper = SuperScraper()
     if SuperScraper.bail_if_not_automatable(globals()):
@@ -127,7 +132,7 @@ async def main():
 
         # close the still-open multi-select dropdown so it doesn't overlap
         # the fields below in the screenshot
-        await tab.execute_script("document.activeElement && document.activeElement.blur();")
+        await _blur_active_element(tab)
 
         # Unlike portal-input-0/1 (which wrap a react-select in a div),
         # portal-input-2/3/4 carry the data-test attribute directly on the

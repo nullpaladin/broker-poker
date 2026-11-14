@@ -50,6 +50,15 @@ FIELD_XPATHS = {
 }
 
 
+async def _select_request_type(sel, request_type):
+    """Select the option with this visible text via the native value setter."""
+    await sel.execute_script(
+        f"const o=[...this.options].find(x=>x.text.trim()=={request_type!r});"
+        "if(o){const s=Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype,'value').set;"
+        "s.call(this,o.value);this.dispatchEvent(new Event('change',{bubbles:true}));}"
+    )
+
+
 async def submit_request(tab, right, request_type, super_scraper):
     await tab.go_to(URL)
     await asyncio.sleep(6)
@@ -71,11 +80,7 @@ async def submit_request(tab, right, request_type, super_scraper):
 
     sel = await tab.find(xpath="//select[@name='Request Type']", raise_exc=False)
     if sel:
-        await sel.execute_script(
-            f"const o=[...this.options].find(x=>x.text.trim()=={request_type!r});"
-            "if(o){const s=Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype,'value').set;"
-            "s.call(this,o.value);this.dispatchEvent(new Event('change',{bubbles:true}));}"
-        )
+        await _select_request_type(sel, request_type)
 
     if SuperScraper.HEALTH_CHECK:
         await SuperScraper.assert_fields_filled(tab, FIELD_XPATHS)

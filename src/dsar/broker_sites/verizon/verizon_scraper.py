@@ -101,6 +101,26 @@ async def _click_via_js(tab, super_scraper, element_id, description):
         print(f"{super_scraper.OOPS} '{description}' element not found")
 
 
+async def _select_state_option(state_select):
+    """Select the first option whose value contains STATE."""
+    await state_select.execute_script(
+        "for (var i=0;i<this.options.length;i++){"
+        f"  if(this.options[i].value.indexOf({SuperScraper.STATE!r})!==-1){{ this.selectedIndex=i; }}"
+        "}"
+        "this.dispatchEvent(new Event('change', {bubbles:true}));"
+    )
+
+
+async def _select_brand_verizon(brand_select):
+    """Select the 'Verizon' brand option."""
+    await brand_select.execute_script(
+        "for (var i=0;i<this.options.length;i++){"
+        "  if(this.options[i].value==='Verizon'){ this.selectedIndex=i; }"
+        "}"
+        "this.dispatchEvent(new Event('change', {bubbles:true}));"
+    )
+
+
 async def main():
     super_scraper = SuperScraper()
     if SuperScraper.bail_if_not_automatable(globals()):
@@ -141,23 +161,13 @@ async def main():
 
         state_select = await tab.find(id="edit-home-state", raise_exc=False)
         if state_select:
-            await state_select.execute_script(
-                "for (var i=0;i<this.options.length;i++){"
-                f"  if(this.options[i].value.indexOf({SuperScraper.STATE!r})!==-1){{ this.selectedIndex=i; }}"
-                "}"
-                "this.dispatchEvent(new Event('change', {bubbles:true}));"
-            )
+            await _select_state_option(state_select)
         else:
             print(f"{super_scraper.OOPS} Home state select not found")
 
         brand_select = await tab.find(id="edit-brand", raise_exc=False)
         if brand_select:
-            await brand_select.execute_script(
-                "for (var i=0;i<this.options.length;i++){"
-                "  if(this.options[i].value==='Verizon'){ this.selectedIndex=i; }"
-                "}"
-                "this.dispatchEvent(new Event('change', {bubbles:true}));"
-            )
+            await _select_brand_verizon(brand_select)
         else:
             print(f"{super_scraper.OOPS} Brand select not found")
 

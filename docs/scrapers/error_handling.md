@@ -36,7 +36,7 @@ if "Loading..." in html:
     await asyncio.sleep(10)
 ```
 
-4. ✅ If still not found after 3 attempts → ADD TO BLACKLIST
+4. ✅ If still not found after 3 attempts → skip the field and document it (scraper header `Note:` + SITES.md)
 
 
 **Decision Tree:**
@@ -44,8 +44,7 @@ if "Loading..." in html:
 Element not found?
 ├─ Try alternative selector → Found? → Continue
 ├─ Wait longer → Found? → Continue  
-├─ Check blacklist → Already blacklisted? → Skip
-└─ Still not found after 3 tries → Blacklist it
+└─ Still not found after 3 tries → Skip it and document it in the scraper header + SITES.md
 ```
 
 ### Category 2: Form Submission Failures
@@ -87,7 +86,7 @@ await super_scraper.click_item_by_text(tab=tab, text="Submit")
 await tab.evaluate("document.querySelector('form').submit()")
 ```
 
-4. ✅ If submission consistently fails → Document in memory file, move on
+4. ✅ If submission consistently fails → Document in the scraper header + SITES.md, move on
 
 
 ### Category 3: CAPTCHA Detection
@@ -114,19 +113,9 @@ recaptcha = await tab.find(
     raise_exc=False
 )
 ```
-2. ✅ Add to blacklist immediately
-```
-# Update blacklist.json
-blacklist["broker.com"]["blacklisted_fields"].append("captcha_verification")
-```
-3. ✅ Document in memory file
-```
-{
-  "known_issues": [
-    "CAPTCHA present - requires manual handling or 2Captcha integration"
-  ]
-}
-```
+2. ✅ Do not skip the form: fill every field, then pause for a manual solve (`input()`), per the CAPTCHA policy
+3. ✅ Note the CAPTCHA type in the scraper header and SITES.md
+
 4. ✅ Continue with other fields (don't block entire scraper)
 
 
@@ -183,7 +172,7 @@ await tab.evaluate("window.onload")
 await tab.refresh()
 await asyncio.sleep(5)
 ```
-4. ✅ If persistent → Document in memory file, consider browser restart
+4. ✅ If persistent → Document it, consider browser restart
 
 ### Category 6: Browser Crashes
 **Symptoms:**
@@ -216,34 +205,18 @@ async with Chrome(options=options) as browser:
 options.binary_location = os.getenv("CHROMIUM_LOCATION")  # Verify this path exists
 ```
 
-## Blacklist Decision Framework
+## When to skip a field
+There is no blacklist file. Skipped fields and quirks are documented in the scraper's header comment (`Note:`)
+and in its SITES.md entry.
 
-### When to Blacklist a Field
 | Condition | Action |
 |-----------|--------|
-| Field doesn't match any SuperScraper env var | ✅ Blacklist |
-| Field causes 3+ consecutive failures | ✅ Blacklist |
-| Field is clearly optional | ✅ Blacklist |
-| CAPTCHA present | ✅ Blacklist |
-| Field requires info not in .env | ✅ Blacklist + ask user ONCE |
-| Field is required by law | ❌ Don't blacklist - fix implementation |
-
-### Blacklist Entry Format
-```
-{
-  "broker-domain.com": {
-    "blacklisted_fields": [
-      {
-        "field_name": "social_security_number",
-        "reason": "Not required for state privacy request",
-        "date_added": "2026-04-25",
-        "added_by": "autonomous_agent"
-      }
-    ],
-    "notes": "California privacy law doesn't require SSN"
-  }
-}
-```
+| Field doesn't match any SuperScraper env var | Skip, document |
+| Field causes 3+ consecutive failures | Skip, document |
+| Field is clearly optional | Skip |
+| CAPTCHA present | Still fill the whole form; pause for a manual solve |
+| Field requires info not in `.env` | Skip, document, ask the user once |
+| Field is required by law | Don't skip — fix the implementation |
 
 ## Escalation Matrix
 
@@ -253,7 +226,7 @@ options.binary_location = os.getenv("CHROMIUM_LOCATION")  # Verify this path exi
 - Timeout → Increase timeout values
 - Minor errors → Retry with delays
 
-### Level 2: Blacklist & Document (4% of cases)
+### Level 2: Skip & Document (4% of cases)
 
 - CAPTCHA
 - Fields without matching env vars
@@ -271,8 +244,8 @@ After fixing any error, verify:
 - No "OOPS" messages in output
 - All required fields have values
 - Form submission attempted
-- Validation artifacts saved
-- Memory file updated with issue/resolution
+- Screenshots saved (`resources/screenshots/`)
+- Issue/resolution documented in the scraper header and SITES.md
 
 ### Common Error Messages & Meanings
 | Message | Meaning | Action |
@@ -287,7 +260,7 @@ After fixing any error, verify:
 ## Reinforcement: Keep Working!
 **Remember:**
 - Most errors are solvable autonomously
-- Blacklist is your friend - use it liberally
-- Document everything in memory files
+- Skipping an optional field is fine - document it
+- Document everything in the scraper header and SITES.md
 - Only stop for catastrophic failures
 - Each error is a learning opportunity for future scrapers

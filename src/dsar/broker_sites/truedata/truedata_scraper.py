@@ -86,6 +86,11 @@ async def _select_native(tab, element_id, match_text):
     )
 
 
+async def _enable_select(state):
+    """Re-enable a disabled <select>."""
+    await state.execute_script("this.disabled = false;")
+
+
 async def main():
     super_scraper = SuperScraper()
     options = SuperScraper.build_chromium_options()
@@ -115,7 +120,7 @@ async def main():
 
         state = await tab.find(id="state", raise_exc=False)
         if state:
-            await state.execute_script("this.disabled = false;")
+            await _enable_select(state)
         await _select_native(tab, "state", SuperScraper.STATE)
 
         for xpath, value in {

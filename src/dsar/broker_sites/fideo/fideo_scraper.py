@@ -27,6 +27,7 @@ import asyncio
 
 from src.dsar.rights import Right
 from src.dsar.super_scraper import SuperScraper
+from src.dsar import js_utils
 
 from pydoll.browser.chromium import Chrome
 
@@ -67,6 +68,16 @@ async def _click_continue(tab):
     )
 
 
+async def _click_use_my_email(tab):
+    """Click the 'Use my email' button; True if found."""
+    return bool(await js_utils.js_eval(
+        tab,
+        "var btns = Array.from(document.querySelectorAll('button')); "
+        "var b = btns.find(x=>x.textContent.trim().toLowerCase().includes('use my email')); "
+        "if(b){ b.click(); return true;} return false;",
+    ))
+
+
 async def submit_request(tab, radio_id, label, super_scraper):
     await tab.go_to(URL)
     await asyncio.sleep(6)
@@ -83,11 +94,7 @@ async def submit_request(tab, radio_id, label, super_scraper):
     await _click_continue(tab)  # confirm country (defaults to United States)
     await asyncio.sleep(2)
 
-    use_email = await tab.execute_script(
-        "var btns = Array.from(document.querySelectorAll('button')); "
-        "var b = btns.find(x=>x.textContent.trim().toLowerCase().includes('use my email')); "
-        "if(b){ b.click(); return true;} return false;"
-    )
+    use_email = await _click_use_my_email(tab)
     if not use_email:
         print(f"{super_scraper.OOPS} 'Use My Email' button not found for '{label}'")
         return

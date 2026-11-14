@@ -60,6 +60,11 @@ def _set_value_script(value):
     )
 
 
+async def _set_value(element, value):
+    """Set an input/textarea value via the native prototype setter."""
+    await element.execute_script(_set_value_script(value))
+
+
 async def main():
     super_scraper = SuperScraper()
     rights = SuperScraper.rights_to_exercise(RIGHT_MAP)
@@ -81,20 +86,20 @@ async def main():
         message = await tab.find(xpath="//textarea[@name='your-message']", raise_exc=False)
 
         if first:
-            await first.execute_script(_set_value_script(SuperScraper.FIRST_NAME))
+            await _set_value(first, SuperScraper.FIRST_NAME)
         if last:
-            await last.execute_script(_set_value_script(SuperScraper.LAST_NAME))
+            await _set_value(last, SuperScraper.LAST_NAME)
         if email:
-            await email.execute_script(_set_value_script(SuperScraper.EMAIL))
+            await _set_value(email, SuperScraper.EMAIL)
         if phone:
-            await phone.execute_script(_set_value_script(SuperScraper.PHONE_NUMBER))
+            await _set_value(phone, SuperScraper.PHONE_NUMBER)
 
         request_text = (
             f"I am {SuperScraper.FIRST_NAME} {SuperScraper.LAST_NAME}. "
             + SuperScraper.request_statement(rights, broker="BI2 Technologies")
         )
         if message:
-            await message.execute_script(_set_value_script(request_text))
+            await _set_value(message, request_text)
 
         if SuperScraper.HEALTH_CHECK:
             await SuperScraper.assert_fields_filled(tab, FIELD_XPATHS)

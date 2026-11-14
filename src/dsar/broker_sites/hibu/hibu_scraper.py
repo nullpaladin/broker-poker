@@ -67,27 +67,49 @@ def _js_set_id(field_id, value):
     )
 
 
-async def submit_request(tab, request_type, label, super_scraper):
-    await tab.go_to(URL)
-    await asyncio.sleep(5)
+async def _set_field_by_id(tab, field_id, value):
+    """Set the field with this id (JS) and fire input/change."""
+    await tab.execute_script(_js_set_id(field_id, value))
 
+
+async def _accept_cookies(tab):
+    """Accept the OneTrust cookie banner if present."""
     await tab.execute_script(
         "var btn=document.getElementById('onetrust-accept-btn-handler');"
         "if(btn)btn.click();"
     )
-    await asyncio.sleep(1)
 
-    await tab.execute_script(_js_set_id(VISITOR_TYPE_FIELD, VISITOR_TYPE))
-    await tab.execute_script(_js_set_id(REQUEST_TYPE_FIELD, request_type))
-    await tab.execute_script(_js_set_id(FIRST_NAME_FIELD, SuperScraper.FIRST_NAME))
-    await tab.execute_script(_js_set_id(LAST_NAME_FIELD, SuperScraper.LAST_NAME))
-    await tab.execute_script(_js_set_id(EMAIL_FIELD, SuperScraper.EMAIL))
-    await tab.execute_script(_js_set_id(STATE_FIELD, SuperScraper.STATE))
 
+async def _tick_attestation(tab):
+    """Tick the attestation checkbox if it isn't already."""
     await tab.execute_script(
         f"var cb=document.getElementById('{ATTEST_CHECKBOX}');"
         "if(cb&&!cb.checked)cb.click();"
     )
+
+
+async def _click_submit(tab):
+    """Click the submit button."""
+    await tab.execute_script(
+        f"document.getElementById('{SUBMIT_BUTTON}').click();"
+    )
+
+
+async def submit_request(tab, request_type, label, super_scraper):
+    await tab.go_to(URL)
+    await asyncio.sleep(5)
+
+    await _accept_cookies(tab)
+    await asyncio.sleep(1)
+
+    await _set_field_by_id(tab, VISITOR_TYPE_FIELD, VISITOR_TYPE)
+    await _set_field_by_id(tab, REQUEST_TYPE_FIELD, request_type)
+    await _set_field_by_id(tab, FIRST_NAME_FIELD, SuperScraper.FIRST_NAME)
+    await _set_field_by_id(tab, LAST_NAME_FIELD, SuperScraper.LAST_NAME)
+    await _set_field_by_id(tab, EMAIL_FIELD, SuperScraper.EMAIL)
+    await _set_field_by_id(tab, STATE_FIELD, SuperScraper.STATE)
+
+    await _tick_attestation(tab)
 
     await asyncio.sleep(1)
 
@@ -98,9 +120,7 @@ async def submit_request(tab, request_type, label, super_scraper):
         await SuperScraper.screenshot(tab, f"dry_run_{label}")
         return
 
-    await tab.execute_script(
-        f"document.getElementById('{SUBMIT_BUTTON}').click();"
-    )
+    await _click_submit(tab)
     await asyncio.sleep(5)
 
     print(f"Submitted '{request_type}' for {SuperScraper.EMAIL} — confirm in the browser.")

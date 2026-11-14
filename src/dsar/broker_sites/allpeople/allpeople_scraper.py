@@ -28,6 +28,23 @@ PAGE_RIGHTS = {}  # TODO(health-check): run HEALTH_CHECK once live; it prints th
 EMAIL_XPATH = "//*[@id='email']"
 
 
+async def _set_email(tab):
+    """Set the #email field via JS and fire input."""
+    await tab.execute_script(
+        f"document.getElementById('email').value = {__import__('json').dumps(SuperScraper.EMAIL)};"
+        "document.getElementById('email').dispatchEvent(new Event('input', {bubbles: true}));"
+    )
+
+
+async def _tick_agreement(tab):
+    """Tick #agreement-checkbox via JS and fire change."""
+    await tab.execute_script(
+        "var cb = document.getElementById('agreement-checkbox');"
+        "cb.checked = true;"
+        "cb.dispatchEvent(new Event('change', {bubbles: true}));"
+    )
+
+
 async def main():
     super_scraper = SuperScraper()
     if SuperScraper.bail_if_not_automatable(globals()):
@@ -45,15 +62,8 @@ async def main():
         await tab.go_to(URL)
         await asyncio.sleep(4)
 
-        await tab.execute_script(
-            f"document.getElementById('email').value = {__import__('json').dumps(SuperScraper.EMAIL)};"
-            "document.getElementById('email').dispatchEvent(new Event('input', {bubbles: true}));"
-        )
-        await tab.execute_script(
-            "var cb = document.getElementById('agreement-checkbox');"
-            "cb.checked = true;"
-            "cb.dispatchEvent(new Event('change', {bubbles: true}));"
-        )
+        await _set_email(tab)
+        await _tick_agreement(tab)
 
         if SuperScraper.HEALTH_CHECK:
             await SuperScraper.assert_fields_filled(tab, {"Email": EMAIL_XPATH})

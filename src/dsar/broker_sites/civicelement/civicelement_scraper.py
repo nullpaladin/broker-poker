@@ -59,6 +59,16 @@ def _js_set(selector, value):
     )
 
 
+async def _set_field(tab, selector, value):
+    """Set the field matching ``selector`` (JS) and fire input/change."""
+    await tab.execute_script(_js_set(selector, value))
+
+
+async def _click_submit(tab):
+    """Click the submit button (.light-button-cta)."""
+    await tab.execute_script("document.querySelector('.light-button-cta').click();")
+
+
 async def submit_request(tab, right, request_type, label, super_scraper):
     await tab.go_to(URL)
     await asyncio.sleep(5)
@@ -67,12 +77,12 @@ async def submit_request(tab, right, request_type, label, super_scraper):
         print(f"{super_scraper.OOPS} PHONE_NUMBER not set — civicelement requires phone; skipping '{request_type}'")
         return
 
-    await tab.execute_script(_js_set(".text-field-7", SuperScraper.FIRST_NAME))
-    await tab.execute_script(_js_set(".text-field-8", SuperScraper.LAST_NAME))
-    await tab.execute_script(_js_set("#State-or-Province", SuperScraper.STATE))
-    await tab.execute_script(_js_set(".text-field-6", SuperScraper.PHONE_NUMBER))
-    await tab.execute_script(_js_set(".text-field-5", SuperScraper.EMAIL))
-    await tab.execute_script(_js_set("#Request-Types", request_type))
+    await _set_field(tab, ".text-field-7", SuperScraper.FIRST_NAME)
+    await _set_field(tab, ".text-field-8", SuperScraper.LAST_NAME)
+    await _set_field(tab, "#State-or-Province", SuperScraper.STATE)
+    await _set_field(tab, ".text-field-6", SuperScraper.PHONE_NUMBER)
+    await _set_field(tab, ".text-field-5", SuperScraper.EMAIL)
+    await _set_field(tab, "#Request-Types", request_type)
 
     if SuperScraper.HEALTH_CHECK:
         await SuperScraper.assert_fields_filled(tab, FIELD_XPATHS)
@@ -85,7 +95,7 @@ async def submit_request(tab, right, request_type, label, super_scraper):
         await SuperScraper.screenshot(tab, f"dry_run_{label}")
         return
 
-    await tab.execute_script("document.querySelector('.light-button-cta').click();")
+    await _click_submit(tab)
     await asyncio.sleep(4)
 
     print(f"Submitted '{right.name}' ({request_type}) for {SuperScraper.EMAIL} — confirm in the browser.")

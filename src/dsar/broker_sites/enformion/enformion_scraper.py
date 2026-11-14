@@ -19,6 +19,7 @@ import time
 
 from src.dsar.rights import Right
 from src.dsar.super_scraper import SuperScraper
+from src.dsar import js_utils
 
 from pydoll.browser.chromium import Chrome
 
@@ -62,6 +63,42 @@ def _js_check(selector):
     )
 
 
+async def _set_field(tab, selector, value):
+    """Set the field matching ``selector`` (JS) and fire input/change."""
+    await tab.execute_script(_js_set(selector, value))
+
+
+async def _check_box(tab, selector):
+    """Tick the checkbox matching ``selector`` (JS) and fire change."""
+    await tab.execute_script(_js_check(selector))
+
+
+async def _reveal_section(tab, section_sel, dropdown_val):
+    """Reveal the right's section and sync the visible rights dropdown."""
+    await tab.execute_script(
+        f"document.querySelector({json.dumps(section_sel)}).classList.remove('hidden');"
+        f"document.querySelector('.rightsDropdown').value={json.dumps(dropdown_val)};"
+    )
+
+
+async def _choose_public_requester(tab):
+    """Pick 'public' in #exerciseRights to reveal the delete form."""
+    await tab.execute_script(
+        "var sel=document.getElementById('exerciseRights');"
+        "sel.value='public';"
+        "sel.dispatchEvent(new Event('change',{bubbles:true}));"
+        "document.getElementById('publicContent').style.display='';"
+    )
+
+
+async def _read_form_text(tab):
+    """Text of the zendesk form container ('' if absent)."""
+    return await js_utils.js_eval(
+        tab,
+        "var c=document.querySelector('.enf-zendesk-form-cont'); return c ? c.innerText : '';",
+    )
+
+
 async def process_form(tab, dropdown_val, label, right, super_scraper):
     form_sel = f'[data-value="{dropdown_val}"] .enf-zendesk-form'
 
@@ -72,26 +109,18 @@ async def process_form(tab, dropdown_val, label, right, super_scraper):
     section_sel = f'[data-value="{dropdown_val}"]'
 
     # Reveal the section and sync the visible dropdown.
-    await tab.execute_script(
-        f"document.querySelector({json.dumps(section_sel)}).classList.remove('hidden');"
-        f"document.querySelector('.rightsDropdown').value={json.dumps(dropdown_val)};"
-    )
+    await _reveal_section(tab, section_sel, dropdown_val)
 
     # Delete form is gated by an exerciseRights select — choose "public" to reveal the form.
     if dropdown_val == "delete":
-        await tab.execute_script(
-            "var sel=document.getElementById('exerciseRights');"
-            "sel.value='public';"
-            "sel.dispatchEvent(new Event('change',{bubbles:true}));"
-            "document.getElementById('publicContent').style.display='';"
-        )
+        await _choose_public_requester(tab)
         time.sleep(0.5)
 
     # Base fields (requesterType already defaults to "subject").
-    await tab.execute_script(_js_set(f'{form_sel} [name="firstName"]', SuperScraper.FIRST_NAME))
-    await tab.execute_script(_js_set(f'{form_sel} [name="lastName"]', SuperScraper.LAST_NAME))
-    await tab.execute_script(_js_set(f'{form_sel} [name="email"]', SuperScraper.EMAIL))
-    await tab.execute_script(_js_check(f'{form_sel} [name="privacyAuthorization"]'))
+    await _set_field(tab, f'{form_sel} [name="firstName"]', SuperScraper.FIRST_NAME)
+    await _set_field(tab, f'{form_sel} [name="lastName"]', SuperScraper.LAST_NAME)
+    await _set_field(tab, f'{form_sel} [name="email"]', SuperScraper.EMAIL)
+    await _check_box(tab, f'{form_sel} [name="privacyAuthorization"]')
 
     if SuperScraper.HEALTH_CHECK:
         form_xpath = f'//*[@data-value="{dropdown_val}"]//*[contains(@class, "enf-zendesk-form")]'
@@ -115,9 +144,7 @@ async def process_form(tab, dropdown_val, label, right, super_scraper):
     input()
 
     await asyncio.sleep(2)
-    result = await tab.execute_script(
-        "var c=document.querySelector('.enf-zendesk-form-cont'); return c ? c.innerText : '';"
-    )
+    result = await _read_form_text(tab)
     if result and ("Email Sent" in result or "Submission Confirmation" in result):
         print(f"Submitted '{right.name}' for {SuperScraper.EMAIL} — confirm in the browser.")
     else:

@@ -49,6 +49,14 @@ FIELD_XPATHS = {
 }
 
 
+async def _click_label_for(box):
+    """Click the label that belongs to a visually hidden checkbox."""
+    await box.execute_script(
+        "const l=this.closest('label')||document.querySelector('label[for=\"'+this.id+'\"]');"
+        "(l||this).click();"
+    )
+
+
 async def main():
     super_scraper = SuperScraper()
     rights = SuperScraper.rights_to_exercise(RIGHT_MAP)
@@ -97,10 +105,7 @@ async def main():
         for box in boxes:
             if not await js_utils.js_eval(box, "return this.checked;"):
                 # click the associated label (the input itself is visually hidden)
-                await box.execute_script(
-                    "const l=this.closest('label')||document.querySelector('label[for=\"'+this.id+'\"]');"
-                    "(l||this).click();"
-                )
+                await _click_label_for(box)
                 await asyncio.sleep(0.15)
 
         if SuperScraper.HEALTH_CHECK:

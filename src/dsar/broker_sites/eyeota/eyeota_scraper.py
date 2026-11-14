@@ -67,6 +67,15 @@ async def _set_text(tab, xpath, value):
     await asyncio.sleep(0.2)
 
 
+async def _select_regulation_other(reg):
+    """Select the 'Other / Generic' regulation option via the native value setter."""
+    await reg.execute_script(
+        "const o=[...this.options].find(x=>x.value==='Other / Generic');"
+        "if(o){const s=Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype,'value').set;"
+        "s.call(this,o.value);this.dispatchEvent(new Event('change',{bubbles:true}));}"
+    )
+
+
 async def main():
     super_scraper = SuperScraper()
     if SuperScraper.bail_if_not_automatable(globals()):
@@ -114,11 +123,7 @@ async def main():
 
         reg = await tab.find(xpath="//select[@name='regulation']", raise_exc=False)
         if reg:
-            await reg.execute_script(
-                "const o=[...this.options].find(x=>x.value==='Other / Generic');"
-                "if(o){const s=Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype,'value').set;"
-                "s.call(this,o.value);this.dispatchEvent(new Event('change',{bubbles:true}));}"
-            )
+            await _select_regulation_other(reg)
 
         msg = SuperScraper.request_statement(rights, broker="Eyeota")
         if Right.RIGHT_TO_OPT_OUT in rights:

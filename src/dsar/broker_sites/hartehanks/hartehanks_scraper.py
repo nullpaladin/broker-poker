@@ -118,6 +118,36 @@ async def _pick_visible_role_option(tab, field_id, text):
     print(f"  Option '{text}' not found in {field_id}")
 
 
+async def _set_state_text(tab, state_name):
+    """Type the state name into #stateDSARElement via the native value setter."""
+    await tab.execute_script(f"""
+        var inp = document.getElementById('stateDSARElement');
+        var setter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value').set;
+        setter.call(inp, '{state_name}');
+        inp.dispatchEvent(new Event('input', {{bubbles: true}}));
+    """)
+
+
+async def _open_info_request_menu(tab):
+    """Open the information-request dropdown."""
+    await tab.execute_script(
+        "document.getElementById('infoRequestOptionDSARElement').click();"
+    )
+
+
+async def _click_option_containing(tab, snippet):
+    """Click the first [role=option] whose text contains ``snippet``."""
+    await tab.execute_script(f"""
+        var opts = document.querySelectorAll('[role="option"]');
+        for (var i = 0; i < opts.length; i++) {{
+            if (opts[i].textContent.includes('{snippet}')) {{
+                opts[i].click();
+                break;
+            }}
+        }}
+    """)
+
+
 async def main():
     super_scraper = SuperScraper()
     options = SuperScraper.build_chromium_options()
@@ -152,12 +182,7 @@ async def main():
             await state_field.click()
             await asyncio.sleep(0.5)
             state_name = SuperScraper.STATE.title().replace("'", "\\'")
-            await tab.execute_script(f"""
-                var inp = document.getElementById('stateDSARElement');
-                var setter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value').set;
-                setter.call(inp, '{state_name}');
-                inp.dispatchEvent(new Event('input', {{bubbles: true}}));
-            """)
+            await _set_state_text(tab, state_name)
             await asyncio.sleep(2)
             await _js_click_vt_option(tab, SuperScraper.STATE.title())
         else:
@@ -187,19 +212,9 @@ async def main():
         info_field = await tab.find(id="infoRequestOptionDSARElement", raise_exc=False)
         if Right.RIGHT_TO_ACCESS in rights and info_field:
             for snippet in ("categories of personal", "specific pieces of data"):
-                await tab.execute_script(
-                    "document.getElementById('infoRequestOptionDSARElement').click();"
-                )
+                await _open_info_request_menu(tab)
                 await asyncio.sleep(2)
-                await tab.execute_script(f"""
-                    var opts = document.querySelectorAll('[role="option"]');
-                    for (var i = 0; i < opts.length; i++) {{
-                        if (opts[i].textContent.includes('{snippet}')) {{
-                            opts[i].click();
-                            break;
-                        }}
-                    }}
-                """)
+                await _click_option_containing(tab, snippet)
                 await asyncio.sleep(0.5)
                 await tab.keyboard.press(Key.ESCAPE)
                 await asyncio.sleep(0.3)

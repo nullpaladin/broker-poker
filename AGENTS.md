@@ -15,14 +15,11 @@ broker-poker/
 │   ├── dsar/
 │   │   ├── super_scraper.py              # Base class — use its methods, don't reinvent them
 │   │   ├── template_scraper.py           # Copy this to start a new scraper
-│   │   ├── blacklist.json                # Blacklisted fields per broker
-│   │   ├── memory/                       # Completion records per broker
-│   │   │   └── [broker_name]_memory.json
 │   │   └── broker_sites/
 │   │       └── [broker_name]/
 │   │           └── [broker_name]_scraper.py
 │   └── state_privacy_request_factory/
-├── validation/                           # Screenshots & HTML snapshots
+├── resources/screenshots/                # DRY_RUN / HEALTH_CHECK screenshots (gitignored)
 ├── docs/                                 # Reference docs (look up when needed)
 └── .env
 ```
@@ -140,45 +137,20 @@ python src/dsar/broker_sites/[broker_name]/[broker_name]_scraper.py
 Check output for:
 - No "OOPS" / "was not found" messages
 - Browser shows form filled correctly
-- Validation files created in `validation/`
+- Screenshots saved under `resources/screenshots/<scraper>/`
 
-If an element fails: try an alternative selector, increase timeout, then blacklist after 3 consecutive failures. See `docs/error_handling.md`.
+If an element fails: try an alternative selector, increase timeout, then skip and document the field after 3 consecutive failures. See `docs/scrapers/error_handling.md`.
 
-### Phase 4 — Blacklist Management
+### Phase 4 — Document
 
-Blacklist a field when:
-- It fails 3+ times
-- It doesn't map to any SuperScraper env variable
-- It's clearly optional or requires data not in `.env`
-- CAPTCHA is required
+There is no blacklist or memory file. Record the outcome in two places:
+- the scraper's **header comment** (`Note:` lines, element notes with human names, skipped fields and why);
+- the broker's entry in **SITES.md** (URL, status, quirks).
 
-See `docs/blacklist_management.md` for the full API and JSON schema.
+Skip a field when it fails 3+ times, maps to no `.env` value, or is optional. A CAPTCHA is never a reason to
+skip the form: fill everything, then pause for a manual solve.
 
-### Phase 5 — Memory File
-
-Create `src/dsar/memory/[broker_name]_memory.json`:
-
-```json
-{
-  "broker_name": "broker-example",
-  "url": "https://broker-example.com/opt-out-form",
-  "completion_date": "YYYY-MM-DD",
-  "fields_implemented": ["first_name", "last_name", "email", "state"],
-  "blacklisted_fields": ["social_security_number"],
-  "xpath_mappings": {
-    "first_name": "//input[@name='fname']",
-    "state": "//select[@id='state']"
-  },
-  "known_issues": [],
-  "validation_files": [
-    "validation/broker-example_completed.html",
-    "validation/broker-example_screenshot.png"
-  ],
-  "status": "COMPLETE"
-}
-```
-
-### Phase 6 — Wrap Up
+### Phase 5 — Wrap Up
 
 Move to the next URL. Don't carry XPath selectors across broker sites — each site's DOM is independent.
 
@@ -188,7 +160,6 @@ Move to the next URL. Don't carry XPath selectors across broker sites — each s
 
 ### Pre-scraper
 - [ ] `.env` verified
-- [ ] Blacklist checked for this broker
 - [ ] Template copied to correct path
 - [ ] Form inspected in browser
 
@@ -196,17 +167,16 @@ Move to the next URL. Don't carry XPath selectors across broker sites — each s
 - [ ] All required fields implemented
 - [ ] Dropdowns, checkboxes handled
 - [ ] Sleeps/waits added for dynamic content
-- [ ] CAPTCHA handled (blacklisted and documented)
+- [ ] CAPTCHA handled (form filled, manual-solve pause, documented)
 - [ ] Submit button wired
 
 ### Testing
 - [ ] No "OOPS" errors in output
 - [ ] Browser shows correctly filled form
-- [ ] Validation HTML and screenshot saved
+- [ ] Screenshots saved
 
 ### Completion
-- [ ] Memory file created
-- [ ] Blacklist updated if needed
+- [ ] Scraper header + SITES.md entry written
 - [ ] Known issues documented
 
 ---
@@ -219,7 +189,7 @@ Only stop for:
 - API/site completely unavailable (confirmed)
 - User explicitly requests stop
 
-For everything else: fix it, blacklist it, or document it — then continue.
+For everything else: fix it, skip it, or document it — then continue.
 
 ---
 
@@ -255,7 +225,7 @@ For everything else: fix it, blacklist it, or document it — then continue.
   comment (see `lizdev_scraper.py`) and use named constants, not bare ids.
 - **State**: `SuperScraper.STATE_ABBREVIATED`; `SuperScraper.state_has_privacy_law()`.
   "California resident?" / "resident of X?" yes-no questions answer **yes for any
-  privacy-law state**, not only literal California — see `docs/development_reference/state_privacy_data.md`.
+  privacy-law state**, not only literal California — see `docs/data/state_privacy_data.md`.
 - **Message text**: `SuperScraper.request_statement([right, ...], broker="<Name>")` — pulls the
   state's `request_basis` / citation from `state_privacy_data.json`; cites a law only for states
   that have one. Don't hardcode law names, and never say "federal privacy law" (none applies).
@@ -263,7 +233,9 @@ For everything else: fix it, blacklist it, or document it — then continue.
   `NOT_AUTOMATABLE = True` + `NOT_AUTOMATABLE_REASON` and opens `main()` with
   `if SuperScraper.bail_if_not_automatable(globals()): return`. A manual reCAPTCHA
   `input()` pause is fine and is NOT "not automatable".
-- **Honeypots**: `docs/development_reference/honeypot_audit.md` — never trust a field's
+- **Inline JS**: no raw `execute_script` in `main()` / `submit_request()`. Use a `js_utils` helper, or
+  put page-specific JS in its own named function (e.g. `_accept_cookies(tab)`) above the flow function.
+- **Honeypots**: `docs/scrapers/honeypot_audit.md` — never trust a field's
   name; check computed layout.
 - **Health checks**: each scraper has `PAGE_RIGHTS` (every option the page offers -> `Right` or
   `None` if not automated). Under `HEALTH_CHECK`: `SuperScraper.audit_rights(await
@@ -301,10 +273,10 @@ CAPTCHA solvers in `src/dsar/captcha_solutions_util.py` (`solve_math_captcha`, 0
 
 | Doc | When to read |
 |-----|-------------|
-| `docs/pydoll_reference.md` | PyDoll API — element finding, interaction, screenshots, scrolling |
-| `docs/error_handling.md` | Error recovery procedures by category |
-| `docs/blacklist_management.md` | Blacklist JSON schema and helper functions |
-| `docs/scraper_methodology.md` | Conceptual overview of the scraper development approach |
-| `docs/development_reference/embedded_js_audit.md` | What every `execute_script` block does + the shared helpers that replace them |
-| `docs/development_reference/state_privacy_data.md` | The state → privacy-law JSON schema + loader API |
-| `docs/development_reference/honeypot_audit.md` | Honeypot fields per scraper + the "check computed layout" rule |
+| `docs/scrapers/pydoll_reference.md` | PyDoll API — element finding, interaction, screenshots, scrolling |
+| `docs/scrapers/error_handling.md` | Error recovery procedures by category |
+| `docs/scrapers/scraper_methodology.md` | Conceptual overview of the scraper development approach |
+| `docs/scrapers/health_checks.md` | What a health check does, `PAGE_RIGHTS` data, statuses, skills |
+| `docs/scrapers/embedded_js_audit.md` | What every `execute_script` block does + the shared helpers that replace them |
+| `docs/data/state_privacy_data.md` | The state → privacy-law JSON schema + loader API |
+| `docs/scrapers/honeypot_audit.md` | Honeypot fields per scraper + the "check computed layout" rule |

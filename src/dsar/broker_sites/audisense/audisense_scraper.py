@@ -61,6 +61,18 @@ FIELD_XPATHS = {
 }
 
 
+async def _accept_wpconsent_cookies(tab):
+    """Accept the WP Consent Wall banner (rendered inside a shadow root)."""
+    await tab.execute_script(
+        "var host = document.getElementById('wpconsent-container'); "
+        "if(host && host.shadowRoot){ "
+        "  var btns = Array.from(host.shadowRoot.querySelectorAll('button')); "
+        "  var b = btns.find(x=>x.textContent.trim().toLowerCase()==='accept all'); "
+        "  if(b) b.click(); "
+        "}"
+    )
+
+
 async def main():
     super_scraper = SuperScraper()
     if SuperScraper.bail_if_not_automatable(globals()):
@@ -80,14 +92,7 @@ async def main():
 
         # Cookie consent (WP Consent Wall) renders inside a shadow root — not
         # reachable via normal DOM queries/pydoll find().
-        await tab.execute_script(
-            "var host = document.getElementById('wpconsent-container'); "
-            "if(host && host.shadowRoot){ "
-            "  var btns = Array.from(host.shadowRoot.querySelectorAll('button')); "
-            "  var b = btns.find(x=>x.textContent.trim().toLowerCase()==='accept all'); "
-            "  if(b) b.click(); "
-            "}"
-        )
+        await _accept_wpconsent_cookies(tab)
         await asyncio.sleep(1)
 
         checkboxes = [entry for right in rights for entry in RIGHT_MAP[right]]

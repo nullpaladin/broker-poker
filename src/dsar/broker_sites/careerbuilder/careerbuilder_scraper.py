@@ -40,6 +40,20 @@ FIELD_XPATHS = {
 }
 
 
+async def _select_relation_other(tab):
+    """Set select#relation to 'other'."""
+    await tab.execute_script(
+        'var s = document.querySelector("select#relation"); s.value = "other"; s.dispatchEvent(new Event("change"));'
+    )
+
+
+async def _select_type(tab, type_value):
+    """Set select#type to ``type_value``."""
+    await tab.execute_script(
+        f'var s = document.querySelector("select#type"); s.value = "{type_value}"; s.dispatchEvent(new Event("change"));'
+    )
+
+
 async def submit_request(tab, right, type_value, super_scraper):
     await tab.go_to(URL)
     await asyncio.sleep(3)
@@ -48,12 +62,8 @@ async def submit_request(tab, right, type_value, super_scraper):
     await super_scraper.input_text_field(tab=tab, xpath="//input[@id='email']", text=SuperScraper.EMAIL, sleep=0.3)
     await super_scraper.input_text_field(tab=tab, xpath="//textarea[@id='address']", text=SuperScraper.ADDRESS, sleep=0.3)
 
-    await tab.execute_script(
-        'var s = document.querySelector("select#relation"); s.value = "other"; s.dispatchEvent(new Event("change"));'
-    )
-    await tab.execute_script(
-        f'var s = document.querySelector("select#type"); s.value = "{type_value}"; s.dispatchEvent(new Event("change"));'
-    )
+    await _select_relation_other(tab)
+    await _select_type(tab, type_value)
 
     if SuperScraper.HEALTH_CHECK:
         await SuperScraper.assert_fields_filled(tab, FIELD_XPATHS)

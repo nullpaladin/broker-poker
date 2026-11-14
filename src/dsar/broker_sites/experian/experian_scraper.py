@@ -45,6 +45,16 @@ PAGE_RIGHTS = {}  # TODO(health-check): run HEALTH_CHECK once live; it prints th
 # (Step 2 offers one checkbox per request type; only the Delete label is recorded.)
 
 
+async def _select_state(state_select):
+    """Pick the user's STATE in the native <select> using the HTMLSelectElement value setter."""
+    await state_select.execute_script(
+        f"const w={SuperScraper.STATE.upper()!r};"
+        "const o=[...this.options].find(x=>x.text.trim().toUpperCase()===w);"
+        "if(o){const s=Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype,'value').set;"
+        "s.call(this,o.value);this.dispatchEvent(new Event('change',{bubbles:true}));}"
+    )
+
+
 async def main():
     super_scraper = SuperScraper()
     if SuperScraper.bail_if_not_automatable(globals()):
@@ -64,12 +74,7 @@ async def main():
 
         state_select = await tab.find(xpath="//select", raise_exc=False)
         if state_select:
-            await state_select.execute_script(
-                f"const w={SuperScraper.STATE.upper()!r};"
-                "const o=[...this.options].find(x=>x.text.trim().toUpperCase()===w);"
-                "if(o){const s=Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype,'value').set;"
-                "s.call(this,o.value);this.dispatchEvent(new Event('change',{bubbles:true}));}"
-            )
+            await _select_state(state_select)
         await asyncio.sleep(1)
 
         new_req = await tab.find(text="Make a new request", raise_exc=False)

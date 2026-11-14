@@ -39,6 +39,25 @@ EMAIL_XPATH = '//input[@id="email"]'
 REQUEST_TYPE_XPATH = '//select[@id="request_type"]'
 
 
+async def _select_request_type(tab, request_type):
+    """Set #request_type explicitly (page JS also pre-selects it from the URL)."""
+    await tab.execute_script(
+        f"var s = document.getElementById('request_type');"
+        f"s.value = {json.dumps(request_type)};"
+        f"s.dispatchEvent(new Event('change'));"
+    )
+
+
+async def _check_terms(tab):
+    """Click #terms (its handler enables the submit button)."""
+    await tab.execute_script("document.getElementById('terms').click()")
+
+
+async def _click_submit(tab):
+    """Click #submit."""
+    await tab.execute_script("document.getElementById('submit').click()")
+
+
 async def submit_request(tab, right, request_type, label, super_scraper):
     await tab.go_to(BASE_URL.format(request_type))
     time.sleep(3)
@@ -48,16 +67,12 @@ async def submit_request(tab, right, request_type, label, super_scraper):
         SuperScraper.audit_rights(offered, PAGE_RIGHTS)
 
     # Page JS (selectedType) pre-selects the right option from the URL param; set it explicitly too.
-    await tab.execute_script(
-        f"var s = document.getElementById('request_type');"
-        f"s.value = {json.dumps(request_type)};"
-        f"s.dispatchEvent(new Event('change'));"
-    )
+    await _select_request_type(tab, request_type)
 
     await super_scraper.input_text_field(tab=tab, xpath=EMAIL_XPATH, text=SuperScraper.EMAIL, sleep=1)
 
     # Checking the terms box calls toggleSubmit() which removes the disabled attribute from submit.
-    await tab.execute_script("document.getElementById('terms').click()")
+    await _check_terms(tab)
     time.sleep(0.5)
 
     if SuperScraper.HEALTH_CHECK:
@@ -69,7 +84,7 @@ async def submit_request(tab, right, request_type, label, super_scraper):
         await asyncio.sleep(2)
         return
 
-    await tab.execute_script("document.getElementById('submit').click()")
+    await _click_submit(tab)
     await asyncio.sleep(4)
     result = await js_utils.page_text(tab)
     print(result[:500])

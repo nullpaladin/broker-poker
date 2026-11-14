@@ -61,6 +61,23 @@ FIELD_XPATHS = {
 }
 
 
+async def _accept_cookies(tab):
+    """Click the Complianz accept button via JS (hidden when headless)."""
+    await tab.execute_script(
+        "var b=document.querySelector('.cmplz-accept,.cmplz-btn.cmplz-accept');"
+        "if(b){b.click();}"
+    )
+
+
+async def _unhide_form(tab):
+    """Un-hide the Gravity Forms wrapper if the page JS hasn't already."""
+    await tab.execute_script(
+        "var w=document.getElementById('gform_wrapper_5');"
+        "if(w){w.style.display='';w.removeAttribute('style');}"
+        "var f=document.getElementById('gform_5'); if(f){f.style.opacity='';}"
+    )
+
+
 async def main():
     super_scraper = SuperScraper()
     options = SuperScraper.build_chromium_options()
@@ -77,18 +94,11 @@ async def main():
 
         # Dismiss the Complianz cookie banner (may be absent/offscreen in
         # headless) — click it via JS rather than a visibility-gated .click().
-        await tab.execute_script(
-            "var b=document.querySelector('.cmplz-accept,.cmplz-btn.cmplz-accept');"
-            "if(b){b.click();}"
-        )
+        await _accept_cookies(tab)
         await asyncio.sleep(2)
 
         # Un-hide the form wrapper if the page JS hasn't already.
-        await tab.execute_script(
-            "var w=document.getElementById('gform_wrapper_5');"
-            "if(w){w.style.display='';w.removeAttribute('style');}"
-            "var f=document.getElementById('gform_5'); if(f){f.style.opacity='';}"
-        )
+        await _unhide_form(tab)
         await asyncio.sleep(1)
 
         text_fields = {

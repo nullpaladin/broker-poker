@@ -1,6 +1,6 @@
 """Shared in-page JavaScript helpers (moved out of SuperScraper to keep it small).
 
-See docs/development_reference/embedded_js_audit.md. All functions take a pydoll
+See docs/scrapers/embedded_js_audit.md. All functions take a pydoll
 tab or element; scripts that read ``this`` run against an element.
 """
 

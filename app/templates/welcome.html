@@ -1,0 +1,21 @@
+{% extends "base.html" %}{% block content %}
+<h1>Request your data back from data brokers</h1>
+<p>Broker Poker fills in the privacy-request forms of hundreds of data brokers for you, so you can ask them to <strong>send you a copy of your data</strong>, <strong>stop selling it</strong>, and (optionally) <strong>delete it</strong>. It also helps you email the brokers that only accept email.</p>
+<div class="card"><h2 style="margin-top:0">How it works</h2><ol>
+<li>Enter the details brokers need to find you (name, address, email, phone…).</li>
+<li>Pick which rights to use and how to handle CAPTCHAs.</li>
+<li>Review the list of sites, then start. Each site opens in a browser, the form is filled in, and the result is shown live.</li></ol>
+<p class="muted">Your state's law decides which rights apply. If your state has no privacy law, requests may not be honored.</p></div>
+<div class="warn"><strong>Practice runs are the default.</strong> A practice run fills every form and takes screenshots but never submits. Sending real requests needs an explicit confirmation.</div>
+<div class="card"><h2 style="margin-top:0">Legal disclaimer</h2>
+<p>This tool is for exercising <em>your own</em> privacy rights over <em>your own</em> information. Don't use it for anyone else's data or in any way that breaks the law. You are acting on your own behalf — this app does <strong>not</strong> act as an "authorized agent". It is provided as-is, with no guarantee that any broker will honor a request.</p></div>
+<div class="card"><h2 style="margin-top:0">Privacy practices</h2><ul>
+<li>Everything runs on your computer. Your details are stored encrypted on this machine only.</li>
+<li>The maintainer receives no data, except what you choose to put in a GitHub issue or pull request.</li>
+<li>The only network traffic is to the broker sites themselves. Your information goes only to the brokers you run.</li>
+<li>No AI service ever sees your information.</li></ul></div>
+<div class="actions"><a class="btn" href="{% url 'step' key='identity' %}">{% if profile.complete %}Edit my details{% else %}Get started{% endif %}</a>
+{% if profile.complete %}<a class="btn secondary" href="{% url 'summary' %}">Go to run</a>{% endif %}
+<a class="btn secondary" href="{% url 'import' %}">Returning user? Import a profile</a></div>
+{% if env_available %}<form method="post" action="{% url 'import_env' %}" style="margin-top:1rem">{% csrf_token %}<button class="secondary">Developer: load profile from .env</button></form>{% endif %}
+{% endblock %}

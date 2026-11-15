@@ -4,3 +4,6 @@ node_modules/
 .nanocoder/
 package.json
 .claude/
+
+# Local app data
+app/**/__pycache__/

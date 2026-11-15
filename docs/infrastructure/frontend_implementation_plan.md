@@ -23,6 +23,12 @@ is designed self-contained in [§4](#4-data-model) here, and
 `next_phase_implementation_plan.md` §3 is superseded. Read that document for
 the `captcha_solver.py` design; ignore its §3.
 
+## Implementation status
+
+Phases 0–5 are built in `app/` (branch `2026-11/frontend`): run with `python -m app`.
+Practice run (never submits) is the default; real runs need a confirmation and are
+ledger-protected. Packaging, 2Captcha, and the trust stack (Phases 6–8) are not. See §17 for deviations from this spec.
+
 ## Table of contents
 
 1. [Guiding constraints](#1-guiding-constraints)
@@ -54,8 +60,9 @@ they ever conflict with something that "seems easier" mid-implementation:
   web app. No auth system, no multi-user concerns, no need for Redis/Celery/
   message brokers — those add operational weight this project doesn't need
   at its actual scale (~200 sequential scraper runs, one profile).
-- **Maintained by one person who is not a frontend developer.** Every
-  frontend decision below was chosen to minimize ongoing JS/tooling burden.
+- **Minimal tooling.** The app must eventually ship as one exe/container,
+  and is reviewed by a single maintainer. Every frontend decision below was
+  chosen to minimize ongoing JS/tooling burden.
   No `npm`, no JS build step, no framework. Plain Django templates + one
   page using hand-written `fetch()` JS.
 - **Scrapers run headless by default.** Chrome is launched with
@@ -789,7 +796,7 @@ terminal prompt) and is far lower risk to build.
   - `POST /api/runs/<run_id>/captcha/<site_run_id>/click/` — relayed click coordinates (v2 only).
 
 No CSS framework mandated here either — keep styling plain/hand-written CSS
-given the "maintainable by one non-frontend person" constraint; a CSS
+given the "minimal tooling" constraint; a CSS
 framework is optional polish, not a requirement of this plan.
 
 ---
@@ -1199,3 +1206,13 @@ built this way":
   no revenue); replaced with a free trust stack (build provenance,
   VirusTotal, source availability, documented network behavior) rather
   than left unaddressed, given the PII sensitivity involved.
+- **2026-11 implementation deviations** (built on main, not PR #54):
+  - Scrapers run as one **subprocess each** (they end in bare `asyncio.run(main())`
+    and read `os.getenv` at class-definition time), configured via env vars, so no
+    scraper or `SuperScraper` change is needed.
+  - The registry is a **static AST scan** (no imports); `needs_human` = file calls `input(`.
+  - CAPTCHAs are handled by **intercepting `input()`** in the child wrapper
+    (sentinel line on stdout, answer via stdin): this is widget-CAPTCHA v1 for all existing pauses.
+  - Headed/headless is decided **per site** (`needs_human` sites headed in solve mode).
+  - The submission ledger is enforced **in the runner**, not per-scraper `submit_once()`.
+  - DL image, VIN, redaction levels and the health overlay are deferred.

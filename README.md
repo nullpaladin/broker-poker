@@ -2,21 +2,30 @@
 Broker Poker is an application that assists users to receive a copy of and delete their personal data from registered or otherwise known data brokers.
 
 # Status
-- Broker Poker is in a near-MVP status, where a user can email data brokers, but the automation to send web form requests is not yet ready.
+- Broker Poker is in a near-MVP status. A user can email data brokers, and a local app (`app/`, see "Run the app") now runs the web-form scrapers one at a time from a browser UI. Packaging for non-developers (installer/Docker) and 2Captcha are not done yet.
+
+# Run the app
+```bash
+python -m venv venv && source venv/bin/activate
+pip install -r requirements.txt -r requirements-app.txt
+python -m app        # opens http://127.0.0.1:8000
+```
+The app starts in **practice-run mode** (fills forms, never submits). Sending real requests requires an explicit confirmation on the pre-run screen. Your profile is stored encrypted on your machine only.
 
 # Acronyms
 - DSAR: Data Subject Access Request (the method of communication from a consumer to a controller in order to exercise data privacy rights)
 
 # AI usage disclosure
-- Generative AI (LLMs) are used in this project only for the following:
+- Generative AI (LLMs) are used in this project for the following:
   - To generate broker opt-out scrapers in `src/dsar/`
-    - Why? There are too many data brokers that require DSAR forms (hundreds) to generate myself. The output is deterministic (the scraper will fail if it cannot insert a piece of information) and relatively easy to validate by a human.
-      - `pydoll` makes this easy since I can take a screenshot of the site before and after the scraper runs, so I can view the output before committing anything to main.
-- Generative AI (LLMs) are not used in any decision making, nor to generate infrastructure. All design decisions are my own and are unassisted by LLMs.
-- All code is reviewed by myself and no code will be allowed to make it to main without a thorough review (and later CICD checks to make sure all scrapers are valid and healthchecks pass).
+    - Why? There are too many data brokers that require DSAR forms (hundreds) to write by hand. The output is deterministic (the scraper will fail if it cannot insert a piece of information) and relatively easy to validate by a human.
+      - `pydoll` makes this easy since a screenshot of the site before and after the scraper runs can be reviewed before anything is committed to main.
+  - To write the local app in `app/` (the GUI, run orchestration, profile storage and export/import), following the design in [docs/infrastructure/frontend_implementation_plan.md](docs/infrastructure/frontend_implementation_plan.md).
+    - Why? The maintainer chose to have an LLM build the frontend to get the tool into consumers' hands sooner.
+    - Design decisions an LLM proposes while implementing are recorded in that document's decision log and approved by the maintainer.
+- **The app never sends your information to an LLM or any other AI service at runtime.** The only network traffic is to the broker sites themselves (and, in a later release, to 2Captcha if you opt in).
+- All code is reviewed by the maintainer and no code is allowed to make it to main without review (and CI checks that scrapers and the app are valid).
 - Captcha bypass is either done by the end user or via captcha solution services (which as far as I am aware do not use LLMs or other forms of machine learning for these tasks).
-- Generative AI (LLMs) may be used to critique frontend (GUI) code before it hits version control, however LLMs will have no say in the design or final output.
-  - I'm not very good at frontend design, however I will not rely on LLMs as a crutch since this is part learning exercise for frontend design and implementation.
 
 # Infrastructure
 - `src/emails`

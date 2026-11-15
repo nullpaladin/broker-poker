@@ -1,0 +1,11 @@
+{% extends "base.html" %}{% block content %}<h1>{% if run.status == "cancelled" %}Run cancelled{% else %}Run complete{% endif %}{% if run.dry_run %} <span class="muted">(practice — nothing was sent)</span>{% endif %}</h1>
+<div class="card"><strong>{{ c.completed }}</strong>/{{ total }} completed · <strong>{{ c.failed }}</strong> failed · <strong>{{ c.skipped }}</strong> skipped</div>
+{% if run.dry_run %}<p>Happy with the practice run? <a class="btn" href="{% url 'summary' %}">Back to run page to send real requests</a></p>{% endif %}
+<details><summary>Report: every site</summary><table>{% for s in sites %}<tr><td>{{ s.display_name }}</td><td>{{ s.get_status_display }}{% if s.warnings %} ⚠{% endif %}</td><td class="muted">{{ s.note }}</td></tr>{% endfor %}</table></details>
+<h2>Save your results</h2><div class="actions"><a class="btn" href="{% url 'export' %}?run={{ run.id }}">Export profile + run history</a></div>
+<h2>Follow-up reminders</h2><p>Brokers often don't respond the first time. Add a calendar reminder to check back:</p>
+<div class="actions"><a class="btn secondary" href="{% url 'reminders' run_id=run.id %}">6 months (.ics)</a><a class="btn secondary" href="{% url 'reminders' run_id=run.id %}?months=12">1 year (.ics)</a></div>
+<p class="muted">Only sites where opt-out and deletion were not both completed get a reminder.</p>
+<h2>Email brokers</h2><p>Haven't sent the email requests yet? <a href="{% url 'summary' %}#mailbody">Go to the email batches</a>.</p>
+<h2>Learn more</h2><p><a href="https://github.com/nullpaladin/broker-poker">Project on GitHub</a> — report broken sites or suggest improvements there.</p>
+{% endblock %}

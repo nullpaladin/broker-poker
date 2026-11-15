@@ -1,5 +1,21 @@
 # AGENTS.md — Broker Poker Agent Operating Manual
 
+## Scope: what agents work on
+
+Agents work on **two areas**:
+1. **Scrapers** in `src/dsar/` — the manual below.
+2. **The local app** in `app/` — Django GUI, run orchestration, encrypted profile storage, export/import, email-broker helper. Design: `docs/infrastructure/frontend_implementation_plan.md` (follow it; record deviations in its decision log §17).
+
+App conventions: plain Django templates + one hand-written JS run page (no npm, no build step, no JS framework); every view bound to localhost; DRF only for the run-page API; tests with `pytest app/tests`.
+
+Integration rule: never change a scraper or `super_scraper.py` just to suit the app. The app runs each scraper in a subprocess (`app/runs/child.py`) and reads scraper metadata statically (`app/scrapers/registry.py`).
+
+Hard rules (both areas):
+- Never perform a real (non-dry-run) submission during development or tests.
+- Never commit `.env`, profile data, databases, keys, or screenshots.
+- No new outbound network calls beyond the broker sites without the maintainer's approval (the privacy disclosure promises this).
+- Releases and packaging need the maintainer's sign-off.
+
 ## Environment Setup
 
 1. Working directory: `broker-poker/`
@@ -21,6 +37,7 @@ broker-poker/
 │   │       └── [broker_name]/
 │   │           └── [broker_name]_scraper.py
 │   └── state_privacy_request_factory/
+├── app/                                  # Local GUI app (see Scope above)
 ├── validation/                           # Screenshots & HTML snapshots
 ├── docs/                                 # Reference docs (look up when needed)
 └── .env

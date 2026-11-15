@@ -61,7 +61,7 @@
         var b = document.getElementById("banner");
         b.hidden = !BP.dry; b.textContent = "Practice run — forms are filled but nothing is submitted.";
         if (d.run.status === "complete" || d.run.status === "cancelled") {
-          if (!done) { done = true; notify("Run finished"); setTimeout(function () { location.href = "/runs/" + BP.run + "/done/"; }, 1500); }
+          if (!done) { done = true; notify("Run finished"); if (location.search.indexOf("live=1") < 0) setTimeout(function () { location.href = "/runs/" + BP.run + "/done/"; }, 1500); }
           return;
         }
         setTimeout(poll, 1500);

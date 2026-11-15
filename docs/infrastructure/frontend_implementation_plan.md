@@ -25,8 +25,9 @@ the `captcha_solver.py` design; ignore its §3.
 
 ## Implementation status
 
-Phases 0–5 are built in `app/` (branch `2026-11/frontend`). Packaging, 2Captcha,
-and the trust stack (Phases 6–8) are not. See §17 for deviations from this spec.
+Phases 0–5 are built in `app/` (branch `2026-11/frontend`): run with `python -m app`.
+Practice run (never submits) is the default; real runs need a confirmation and are
+ledger-protected. Packaging, 2Captcha, and the trust stack (Phases 6–8) are not. See §17 for deviations from this spec.
 
 ## Table of contents
 

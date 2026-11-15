@@ -87,7 +87,8 @@ def process_run(run_id: int) -> None:
                 site.status, site.note = "skipped", "Already submitted once — blocked to avoid a duplicate request."
                 site.save()
                 continue
-        headless = not site.needs_human
+        # Headed only where a human must act; BROKER_POKER_HEADLESS_ALL forces headless (servers/CI).
+        headless = not site.needs_human or bool(os.environ.get("BROKER_POKER_HEADLESS_ALL"))
         env = profile_to_env(data, dry_run=run.dry_run, delete=run.delete_enabled, headless=headless)
         site.status, site.started_at, site.rights_used = "in_progress", timezone.now(), _rights(run)
         site.save()

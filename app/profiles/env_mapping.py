@@ -24,6 +24,22 @@ FIELD_LABELS = {
 _ALWAYS_BLANK = ["TWO_CAPTCHA_API_KEY", "2CAPTCHA_API_KEY", "REQUEST_DETAILS"]
 
 
+def find_chromium() -> str:
+    """CHROMIUM_LOCATION if set, else the first Chrome/Chromium found on PATH or in common install paths."""
+    import shutil
+    if os.environ.get("CHROMIUM_LOCATION"):
+        return os.environ["CHROMIUM_LOCATION"]
+    for name in ("chromium", "chromium-browser", "google-chrome", "google-chrome-stable", "chrome"):
+        if shutil.which(name):
+            return shutil.which(name)
+    for p in (r"C:\Program Files\Google\Chrome\Application\chrome.exe",
+              r"C:\Program Files (x86)\Google\Chrome\Application\chrome.exe",
+              "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"):
+        if os.path.exists(p):
+            return p
+    return ""
+
+
 def provided_fields(data: dict) -> list[str]:
     return [k for k in PROFILE_FIELDS if (data.get(k) or "").strip()]
 
@@ -42,7 +58,7 @@ def profile_to_env(data: dict, *, dry_run: bool, delete: bool, headless: bool,
     env["RIGHTS_TO_EXERCISE"] = ",".join(rights)
     env["HEALTH_CHECK"] = "False"
     env["BP_HEADLESS"] = "1" if headless else "0"
-    env.setdefault("CHROMIUM_LOCATION", os.environ.get("CHROMIUM_LOCATION", ""))
+    env["CHROMIUM_LOCATION"] = find_chromium()
     return env
 
 

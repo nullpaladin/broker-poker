@@ -1,0 +1,22 @@
+{% extends "base.html" %}{% block content %}<h1>Ready to run</h1>
+{% if no_law %}<div class="warn">Your state has no active consumer-privacy law. Requests may not be honored.</div>{% endif %}
+<div class="card"><strong>{{ n_run }}</strong> sites will run, <strong>{{ n_skip }}</strong> are skipped (struck through below).
+{% if n_human %}<p><strong>{{ n_human }}</strong> of them need you to solve a CAPTCHA or verification step. They run <strong>first</strong>, in a visible browser window, so you can handle them and then leave the rest unattended. Keep this page open.</p>{% endif %}
+<p class="muted">Rights: access, opt-out, list of third parties{% if profile.delete_enabled %}, <strong>deletion</strong>{% endif %}. <a href="{% url 'step' key='rights' %}">change</a> · <a href="{% url 'step' key='identity' %}">edit details</a></p>
+<details><summary>Show the sites</summary><div class="sitelist"><table>{% for r in rows %}<tr {% if r.skipped %}class="struck"{% endif %}><td>{{ r.info.display_name }}{% if r.info.needs_human and not r.skipped %} <span title="needs you">⏳</span>{% endif %}</td><td class="why muted">{{ r.reason }}</td></tr>{% endfor %}</table></div></details></div>
+<form method="post">{% csrf_token %}
+<div class="card"><label style="margin-top:0">How do you want to run?</label>
+<div class="row"><input type="radio" id="m1" name="mode" value="practice" checked> <label for="m1"><strong>Practice run</strong> — fill the forms and take screenshots, never submit (recommended first)</label></div>
+<div class="row"><input type="radio" id="m2" name="mode" value="live"> <label for="m2"><strong>Send real requests</strong></label></div>
+<div class="row warn"><input type="checkbox" id="cl" name="confirm_live"> <label for="cl">I understand real requests are sent to each broker and each broker will only ever receive one.</label></div>
+<details><summary class="muted">Developer: only these sites</summary><input type="text" name="only" placeholder="slug1, slug2"></details></div>
+<button>Start</button></form>
+<h2>Brokers that only take email</h2>
+<p>Send these while the run works. Open each batch in your email client (recipients are in BCC), then paste the message.</p>
+{% if email_state_warning %}<div class="warn">This message is written for <strong>Minnesota</strong> law. Edit it for your state before sending.</div>{% endif %}
+<div class="card"><label style="margin-top:0">Subject</label><input type="text" readonly value="{{ email_subject }}">
+<label>Message</label><textarea class="mono" readonly rows="12" id="mailbody">{{ email_body }}</textarea>
+<div class="actions"><button type="button" class="secondary" onclick="navigator.clipboard.writeText(document.getElementById('mailbody').value)">Copy message</button></div></div>
+{% for b in email_batches %}<div class="card"><strong>Batch {{ b.n }}</strong> <span class="muted">({{ b.count }} recipients)</span>
+<div class="actions"><a class="btn secondary" href="{{ b.mailto }}">Open in email app</a><button type="button" class="secondary" data-copy="{{ b.to }}" onclick="navigator.clipboard.writeText(this.dataset.copy)">Copy recipients</button></div></div>{% endfor %}
+{% endblock %}

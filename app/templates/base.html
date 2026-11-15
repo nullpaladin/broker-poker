@@ -1,0 +1,6 @@
+{% load static %}<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>{% block title %}Broker Poker{% endblock %}</title><link rel="stylesheet" href="{% static 'app.css' %}"></head>
+<body><header class="top"><a href="{% url 'welcome' %}">Broker Poker</a>
+<nav><a href="{% url 'summary' %}">Run</a><a href="{% url 'export' %}">Export profile</a><a href="{% url 'history' %}">Submission history</a></nav></header>
+{% block body %}<main>{% block content %}{% endblock %}</main>{% endblock %}</body></html>

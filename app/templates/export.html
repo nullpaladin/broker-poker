@@ -1,0 +1,7 @@
+{% extends "base.html" %}{% block content %}<h1>Export your profile</h1>
+<p>Save your details so you can restore them later (e.g. next time you run the app). The file is encrypted with a password you choose.</p>
+{% if error %}<p class="err">{{ error }}</p>{% endif %}
+<form method="post">{% csrf_token %}{% if run_id %}<input type="hidden" name="run_id" value="{{ run_id }}"><p class="muted">Includes the history of your runs.</p>{% endif %}
+<label for="p">Password (min 8 characters)</label><input id="p" type="password" name="password" autocomplete="new-password">
+<div class="warn" style="margin-top:1.5rem"><div class="row"><input id="pl" type="checkbox" name="plaintext"> <label for="pl">Save <strong>without encryption</strong> — the file will contain my personal information in plain text.</label></div></div>
+<div class="actions"><button>Download export</button></div></form>{% endblock %}

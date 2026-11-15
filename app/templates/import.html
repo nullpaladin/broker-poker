@@ -1,0 +1,6 @@
+{% extends "base.html" %}{% block content %}<h1>Import a profile</h1>
+{% if error %}<p class="err">{{ error }}</p>{% endif %}
+<form method="post" enctype="multipart/form-data">{% csrf_token %}
+<label for="f">Export file (.zip)</label><input id="f" type="file" name="file" accept=".zip" required>
+<label for="p">Password (if it was encrypted)</label><input id="p" type="password" name="password" autocomplete="off">
+<div class="actions"><button>Import</button><a class="btn secondary" href="{% url 'welcome' %}">Cancel</a></div></form>{% endblock %}

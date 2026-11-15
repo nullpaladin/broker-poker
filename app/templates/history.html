@@ -1,0 +1,5 @@
+{% extends "base.html" %}{% block content %}<h1>Submission history</h1>
+<p>Each broker can receive a real request <strong>only once</strong>, to avoid duplicate requests (which look like spam). Brokers listed here are blocked from real submissions.</p>
+{% for r in rows %}{% if forloop.first %}<table><tr><th>Broker</th><th>First submitted</th><th></th></tr>{% endif %}
+<tr><td>{{ r.slug }}</td><td>{{ r.submitted_at|date:"Y-m-d H:i" }}</td><td><form method="post" onsubmit="return confirm('Allow another real request to {{ r.slug }}?')">{% csrf_token %}<input type="hidden" name="slug" value="{{ r.slug }}"><button class="secondary">Allow again</button></form></td></tr>
+{% if forloop.last %}</table>{% endif %}{% empty %}<p class="muted">Nothing has been submitted yet.</p>{% endfor %}{% endblock %}

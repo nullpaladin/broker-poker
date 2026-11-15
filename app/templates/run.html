@@ -1,0 +1,9 @@
+{% extends "base.html" %}{% load static %}{% block body %}
+<div class="runhead"><div class="key"><span>✅ complete</span><span>❌ unable to complete</span><span>➖ skipped</span><span>🔄 in progress</span><span>⏳ waiting on you</span><span>⚠ completed with warnings</span></div>
+<div class="counts" id="counts"></div><div class="banner" id="banner" hidden></div>
+<noscript>This page needs JavaScript to update live.</noscript></div>
+<div class="layout"><div id="sites" data-run="{{ run.id }}">
+{% for s in sites %}<div class="site {{ s.status }}" data-id="{{ s.id }}" data-slug="{{ s.slug }}"><div class="t"><span class="st"></span><span class="nm">{{ s.display_name }}</span><span class="muted nt">{{ s.note }}</span></div><div class="detail"></div></div>{% endfor %}</div>
+<aside id="panel" class="hidden"></aside></div>
+<script>window.BP={run:{{ run.id }},dry:{{ run.dry_run|yesno:"true,false" }}};</script><script src="{% static 'run.js' %}"></script>
+{% endblock %}

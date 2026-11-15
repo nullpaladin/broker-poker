@@ -1,0 +1,7 @@
+Django>=5.1,<6
+djangorestframework>=3.15
+cryptography>=43
+waitress>=3.0
+platformdirs>=4.2
+pytest>=8
+pytest-django>=4.9

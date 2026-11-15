@@ -1,0 +1,8 @@
+{% extends "base.html" %}{% block content %}
+<p class="steps">Step {{ n }} of {{ total }}</p><h1>{{ title }}</h1>
+{% if no_law_warning %}<div class="warn">{{ state }} has no active consumer-privacy law, so requests may not be honored and no state-specific rights apply. You can still continue.</div>{% endif %}
+<form method="post">{% csrf_token %}{{ form.non_field_errors }}
+{% for f in form %}{% if f.field.widget.input_type == "checkbox" %}<div class="row" style="margin-top:1rem">{{ f }} <label for="{{ f.id_for_label }}">{{ f.label }}</label><span class="helptext">{{ f.help_text }}</span>{{ f.errors }}</div>
+{% else %}<label for="{{ f.id_for_label }}">{{ f.label }}</label>{{ f }}{% if f.help_text %}<span class="helptext">{{ f.help_text }}</span>{% endif %}{{ f.errors }}{% endif %}{% endfor %}
+<div class="actions">{% if prev %}<a class="btn secondary" href="{% url 'step' key=prev %}">Back</a>{% endif %}<button>{% if n == total %}Finish{% else %}Next{% endif %}</button></div></form>
+{% endblock %}
